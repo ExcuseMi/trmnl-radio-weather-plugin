@@ -1,0 +1,7 @@
+# working notes and review renders stay local
+BRIEF*.md
+concepts/
+review/
+plugin/renders/
+plugin/_build/
+plugin/report/

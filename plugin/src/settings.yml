@@ -1,0 +1,110 @@
+---
+strategy: polling
+no_screen_padding: 'yes'
+dark_mode: 'no'
+static_data: ''
+polling_verb: get
+framework_version: 3.4.6
+serverless_language:
+refresh_interval_floor:
+polling_url: 'https://api.open-meteo.com/v1/forecast?latitude={{ lat_lon | split: '','' | first | strip }}&longitude={{ lat_lon | split: '','' | last | strip }}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day&hourly=temperature_2m,precipitation_probability,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_hours=48&forecast_days=14&temperature_unit={{ unit }}&wind_speed_unit={% if unit == ''fahrenheit'' %}mph{% else %}kmh{% endif %}'
+polling_headers: ''
+polling_body:
+id: 535432
+oauth_enabled: 'false'
+oauth_pkce_enabled: 'no'
+custom_fields:
+- keyname: author_info
+  name: About This Plugin
+  field_type: author_bio
+  description: 'The weather as the front of an early-80s hi-fi receiver: a needle meter for the temperature now within today''s low and high, a needle meter for the chance of rain, a smoked-glass display with the temperature and the time the rain starts, and a key for each coming day.<br /><br />Data: <strong>Open-Meteo</strong> (open-meteo.com), no key needed.'
+  github_url: https://github.com/ExcuseMi/trmnl-stereo-weather-plugin
+  category: environment
+- keyname: lat_lon
+  field_type: lat_lon
+  name: Location
+  description: Search for a city or postal code, or give latitude,longitude.
+  description-de: Suche nach einer Stadt oder Postleitzahl, oder gib Breite,Länge an.
+  description-fr: Cherche une ville ou un code postal, ou indique latitude,longitude.
+  description-es-ES: Busca una ciudad o un código postal, o indica latitud,longitud.
+  description-nl: Zoek een stad of postcode, of geef breedtegraad,lengtegraad.
+  description-ja: 都市名か郵便番号で検索するか、緯度,経度を入力します。
+  placeholder: 52.52,13.41
+  default: 52.52,13.41
+- keyname: unit
+  field_type: select
+  name: Temperature Unit
+  options:
+  - Celsius: celsius
+  - Fahrenheit: fahrenheit
+  default: celsius
+- keyname: days_shown
+  field_type: select
+  name: Days Shown
+  description: Day keys for the coming days. Auto fits the screen; a larger number is reduced to what fits.
+  options:
+  - Auto: auto
+  - '3': '3'
+  - '4': '4'
+  - '5': '5'
+  - '6': '6'
+  - '7': '7'
+  default: auto
+- keyname: dial_span
+  field_type: select
+  name: Dial Span
+  description: How far ahead the rain meter and the rain time look.
+  options:
+  - 12 hours: 12h
+  - 24 hours: 24h
+  default: 24h
+- keyname: hide_title_bar
+  field_type: boolean
+  name: Hide Title Bar
+  default: false
+- keyname: language
+  field_type: select
+  name: Language
+  description: The language of the labels and conditions. Automatic follows the language set in your TRMNL account.
+  description-de: Sprache der Beschriftungen und Wetterlagen. Automatisch folgt der Sprache deines TRMNL-Kontos.
+  description-fr: Langue des libellés et des conditions. Automatique suit la langue de ton compte TRMNL.
+  description-es-ES: Idioma de las etiquetas y del tiempo. Automático sigue el idioma de tu cuenta TRMNL.
+  description-nl: Taal van de labels en het weertype. Automatisch volgt de taal van je TRMNL-account.
+  description-ja: ラベルと天気の言語。自動はTRMNLアカウントの言語に従います。
+  options:
+  - Automatic (my TRMNL language): auto
+  - English: en
+  - English (UK): en-GB
+  - English (Australia): en-AU
+  - Deutsch: de
+  - Deutsch (Österreich): de-AT
+  - Français: fr
+  - Español: es-ES
+  - Italiano: it
+  - Nederlands: nl
+  - Português (Brasil): pt-BR
+  - Dansk: da
+  - Svenska: sv
+  - Norsk: false
+  - Polski: pl
+  - Čeština: cs
+  - Slovenčina: sk
+  - Slovenščina: sl
+  - Magyar: hu
+  - Română: ro
+  - Lietuvių: lt
+  - Íslenska: is
+  - Bahasa Indonesia: id
+  - Русский: ru
+  - Українська: uk
+  - עברית: he
+  - हिन्दी: hi
+  - ગુજરાતી: gu
+  - 日本語: ja
+  - 한국어: ko
+  - 简体中文: zh-CN
+  - 繁體中文 (香港): zh-HK
+  default: auto
+name: Stereo Weather
+description: Weather as a vintage hi-fi receiver
+refresh_interval: 60
