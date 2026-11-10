@@ -8,7 +8,7 @@ The weather as the front of an early-80s hi-fi receiver, for [TRMNL](https://trm
 
 - **L meter**: a needle shows the temperature now, between today's low and high.
 - **R meter**: a needle shows the chance of rain.
-- **Smoked-glass display**: the temperature in segment digits and the time the rain starts.
+- **Smoked-glass display**: the temperature in segment digits, humidity, UV and the time the rain starts. Warning lamps light for rain, snow, hail, thunder, frost, wind and high UV.
 - **Level bars**: one key per coming day with its icon, low and high.
 
 Every element shows data. It is drawn for each view (full, half horizontal, half vertical, quadrant) and each panel: a warm lamp glow on colour screens, solid ink on BWRY, grey on the TRMNL X, and a night glass in dark mode.
