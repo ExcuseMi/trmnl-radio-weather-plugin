@@ -780,11 +780,21 @@ RSpec.describe 'Stereo Weather' do
       })()
     JS
 
-    it 'shows humidity and UV now on the glass, OG and X, full view' do
+    it 'shows humidity and UV now as readouts in a left block on the glass, OG and X, full view' do
       %w[og_png v2].each do |device|
-        t = texts(draw(device:))
-        expect(t).to include('HUM 91%').and include('UV 1.8'.sub('1.8', '2'))
+        s = draw(device:)
+        expect(debug(s)['readouts']).to eq(%w[91 2])
+        expect(texts(s)).to include('HUMIDITY %')
+        expect(label_problems(s)).to eq([])
       end
+    end
+
+    it 'keeps the small text readouts where the glass is too narrow for the block, never clipped' do
+      s = draw(device: 'v2', orientation: :portrait)
+      d = debug(s)
+      expect(d['readouts']).to be_nil.or eq(%w[91 2])
+      expect(texts(s)).to include('HUM 91%').and include('UV 2') unless d['readouts']
+      expect(label_problems(s)).to eq([])
     end
 
     it 'shows humidity and UV on the quadrant glass of the OG' do
@@ -792,8 +802,8 @@ RSpec.describe 'Stereo Weather' do
     end
 
     it 'says them in Dutch, and falls back to English for a language without our words' do
-      expect(texts(draw(fields: { 'language' => 'nl' }, device: 'v2'))).to include('VOCHT 91%')
-      expect(texts(draw(fields: { 'language' => 'sv' }, device: 'v2'))).to include('HUM 91%')
+      expect(texts(draw(fields: { 'language' => 'nl' }, device: 'v2'))).to include('VOCHTIGHEID %')
+      expect(texts(draw(fields: { 'language' => 'sv' }, device: 'v2'))).to include('HUMIDITY %')
     end
 
     it 'lights the UV lamp when the UV now is 6 or more, and not below' do
@@ -807,9 +817,9 @@ RSpec.describe 'Stereo Weather' do
       %w[og_png v2].each do |device|
         VIEWS.each do |view|
           s = draw(view:, device:, answer: { json: old })
-          debug(s)
+          d0 = debug(s)
           expect(label_problems(s)).to eq([])
-          expect(texts(s)).to include('HUM --') if view == 'full'
+          expect(d0['readouts']).to eq(%w[-- --]) if view == 'full'
         end
       end
     end
