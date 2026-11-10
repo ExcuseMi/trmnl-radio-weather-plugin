@@ -619,8 +619,6 @@ var I18N = (function () {
    if (GREYGLOW) lampGrey(g, fx, fy, fw, fh);
    insetBevel(g, fx, fy, fw, fh, u(5));
    var fx0 = fx, fy0 = fy;
-   // the channel badge (owner): a small inverted label in the face's outer top corner, L left, R right,
-   // only where both meters show; placed first so the LO / HI words keep clear of it
    var badge = null;
    if (o.badge) {
     var BG = F(RD(Math.min(fh, fw) * 0.055, 10), '800'), bp = BG.size * 0.45;
@@ -823,11 +821,12 @@ var I18N = (function () {
    var id = 'swlampg' + view + '-' + (lampN++), g70 = fillOf('gray-70', '#ddd'), g75 = fillOf('gray-75', '#eee');
    var cp = mk('clipPath', { id: id }, defs); rrect(cp, x, y, w, h, u(5));
    var lg = mk('g', { 'clip-path': 'url(#' + id + ')' }, g);
-   [[g70, g75, 0.25, 1], [g70, g75, 0.5, 0.86], [g70, g75, 0.75, 0.72], [g75, paper, 0.25, 0.58], [g75, paper, 0.5, 0.45], [g75, paper, 0.75, 0.32], [paper, paper, 1, 0.18]].forEach(function (st, i) {
-    var dd = '', ecx = x + w * 0.5, ecy = y + h * 0.92;      // the lamp sits low and central, by the pivot; the points stay inside the face
+   // the plateau (white) holds the whole dial; the falloff is outside it, toward the corners
+   [[g70, g75, 0.25, 1.6], [g70, g75, 0.5, 1.42], [g70, g75, 0.75, 1.25], [g75, paper, 0.25, 1.1], [g75, paper, 0.5, 0.98], [g75, paper, 0.75, 0.88], [paper, paper, 1, 0.78]].forEach(function (st, i) {
+    var dd = '', ecx = x + w * 0.5, ecy = y + h * 0.85;      // low and central, by the pivot; the points stay inside the face
     for (var k = 0; k < 64; k++) {
      var an = k / 64 * Math.PI * 2;
-     dd += (k ? ' L' : 'M') + Math.max(x, Math.min(x + w, ecx + w * 0.62 * st[3] * Math.cos(an))).toFixed(1) + ' ' + Math.max(y, Math.min(y + h, ecy + h * 0.9 * st[3] * Math.sin(an))).toFixed(1);
+     dd += (k ? ' L' : 'M') + Math.max(x, Math.min(x + w, ecx + w * 0.5 * st[3] * Math.cos(an))).toFixed(1) + ' ' + Math.max(y, Math.min(y + h, ecy + h * 0.85 * st[3] * Math.sin(an))).toFixed(1);
     }
     mk('path', { d: dd + ' Z', fill: st[2] < 1 ? dith(st[0], st[1], st[2]) : st[0], 'data-sw-lamp': i }, lg);
    });
@@ -979,8 +978,6 @@ var I18N = (function () {
    if (compact) {
     var CR = F(RD(hb * 0.06, 9), '600'), crRight = x + w - u(16) - hb * 0.24 - u(8), crRoom = crRight - (ix + pillW + u(12));
     var crCol = bits === 1 ? ink : (DIMW || GLOW);
-    // the longest credit that fits on the top row: place, time and source; else time and source (the sync
-    // time always stays, owner); else time and source at the right of the bottom line
     var SHORTCR = (M.now.sync ? M.now.sync + '  \u00b7  ' : '') + 'OPEN-METEO';
     var ct0 = null;
     [CREDIT, SHORTCR].some(function (c) {
@@ -1023,11 +1020,16 @@ var I18N = (function () {
    debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(lx + iconW) };
    var dwid = seg7W(dw, str), iconW = compact ? 0 : dh * 1.05;
    var lx = (blk ? blk.cL : ix) + (avail - need(dh)) / 2;
+   if (blk) {      // centre what is seen (icon to the unit's end), not the blank cells in front of the digits
+    var tg = mk('g', {}, g), gs0 = Math.min(dh * 0.95, (y + h * 0.9 - WD.size - u(4) - dy - dh * 0.5) / 0.7);
+    seg7(tg, 0, dy, dw, dh, str, DIGIT, null);
+    var fl = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
+    g.removeChild(tg);
+    lx = blk.cL + avail / 2 - ((fl.l - dh * 0.14 - 1.2 * gs0) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12))) / 2 - iconW;
+   }
    var dx = lx + iconW;
    glowDigits(function (hg) { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
    debug.digits.boxes = seg7.boxes;
-   // the icon stands right before the first lit cell, so icon, minus, digits and unit read as one group
-   // (owner: no lone minus far from a floating icon); the cells themselves stay fixed
    var firstLit = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
    ICON_INK = GLOW;
    var gsz = Math.min(dh * 0.95, (y + h * 0.9 - WD.size - u(4) - dy - dh * 0.5) / 0.7), icx = (firstLit ? firstLit.l : dx) - dh * 0.14 - gsz * 0.6;
@@ -1045,7 +1047,7 @@ var I18N = (function () {
     debug.readouts = [];
     var cx0 = ix, gap2 = Math.max(u(16), (rw - blk.colW[0] - blk.colW[1]) / 2);
     blk.strs.forEach(function (str2, i) {
-     var cwid = blk.colW[i], dwid2 = seg7W(blk.cw, str2), lt = fitText(g, blk.labs[i], cx0, y + h * 0.36, WD, cwid + u(4), WL);
+     var cwid = blk.colW[i], dwid2 = seg7W(blk.cw, str2), lt = fitText(g, blk.labs[i], cx0, y + h * 0.9, WD, cwid + u(4), WL);
      lt.setAttribute('x', R(cx0 + (cwid - width(lt)) / 2));
      glowDigits(function (hg) { seg7(hg || g, cx0 + (cwid - dwid2) / 2, y + h * 0.44, blk.cw, R(blk.cw * 2), str2, DIGIT, hg ? null : GHOSTD); });
      debug.readouts.push(str2);
@@ -1136,8 +1138,6 @@ var I18N = (function () {
    var lw = Math.max(2, u(2));
    if (SHADE) rrect(g, x + u(3), y + u(3), w, h, u(6), SHADE);
    rrect(g, x + lw / 2, y + lw / 2, w - lw, h - lw, u(6), paper, ink, lw);
-   // measured columns (a cut TODAY and an icon over it were seen live): lamp | label as wide as
-   // "TODAY" | icon scaled to the row | high | low, each with a gap; everything shrinks together until it fits
    var cy = y + h / 2, pad = Math.max(u(8), h * 0.18), gap = Math.max(u(6), h * 0.12);
    var k = 1, L, T, t2, lr, isz, labW, hiW, loW, need;
    function measure(str, sp) { var tt = text(g, str, 0, 0, sp, { ls: R(sp.size * 0.12) }); var ww = width(tt); g.removeChild(tt); return ww; }
