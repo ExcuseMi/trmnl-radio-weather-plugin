@@ -822,7 +822,7 @@ var I18N = (function () {
    var cp = mk('clipPath', { id: id }, defs); rrect(cp, x, y, w, h, u(5));
    var lg = mk('g', { 'clip-path': 'url(#' + id + ')' }, g);
    // the plateau (white) holds the whole dial; the falloff is outside it, toward the corners
-   [[g70, g75, 0.25, 1.6], [g70, g75, 0.5, 1.42], [g70, g75, 0.75, 1.25], [g75, paper, 0.25, 1.1], [g75, paper, 0.5, 0.98], [g75, paper, 0.75, 0.88], [paper, paper, 1, 0.78]].forEach(function (st, i) {
+   [[g70, g75, 0.25, 1.35], [g70, g75, 0.5, 1.2], [g70, g75, 0.75, 1.08], [g75, paper, 0.25, 0.97], [g75, paper, 0.5, 0.87], [g75, paper, 0.75, 0.78], [paper, paper, 1, 0.7]].forEach(function (st, i) {
     var dd = '', ecx = x + w * 0.5, ecy = y + h * 0.85;      // low and central, by the pivot; the points stay inside the face
     for (var k = 0; k < 64; k++) {
      var an = k / 64 * Math.PI * 2;
@@ -1020,8 +1020,10 @@ var I18N = (function () {
    debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(lx + iconW) };
    var dwid = seg7W(dw, str), iconW = compact ? 0 : dh * 1.05;
    var lx = (blk ? blk.cL : ix) + (avail - need(dh)) / 2;
+   // the icon about as tall as the digits, centred on them; never into the lamp row or the condition word
+   function gszOf() { return Math.min(dh * 1.25, dh + 2 * (dy - lampBottom - u(3)), (y + h * 0.9 - WD.size - u(4) - dy - dh * 0.5) / 0.7 * 1.0); }
    if (blk) {      // centre what is seen (icon to the unit's end), not the blank cells in front of the digits
-    var tg = mk('g', {}, g), gs0 = Math.min(dh * 0.95, (y + h * 0.9 - WD.size - u(4) - dy - dh * 0.5) / 0.7);
+    var tg = mk('g', {}, g), gs0 = gszOf();
     seg7(tg, 0, dy, dw, dh, str, DIGIT, null);
     var fl = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
     g.removeChild(tg);
@@ -1032,7 +1034,7 @@ var I18N = (function () {
    debug.digits.boxes = seg7.boxes;
    var firstLit = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
    ICON_INK = GLOW;
-   var gsz = Math.min(dh * 0.95, (y + h * 0.9 - WD.size - u(4) - dy - dh * 0.5) / 0.7), icx = (firstLit ? firstLit.l : dx) - dh * 0.14 - gsz * 0.6;
+   var gsz = blk ? gszOf() : Math.min(dh * 0.95, (y + h * 0.9 - WD.size - u(4) - dy - dh * 0.5) / 0.7), icx = (firstLit ? firstLit.l : dx) - dh * 0.14 - gsz * 0.6;
    if (!compact) icon(g, M.now.icon, icx, dy + dh * 0.5, gsz, M.now.day);
    else icon(g, M.now.icon, x + w - u(16) - hb * 0.11, y + h * 0.16, hb * 0.2, M.now.day);
    ICON_INK = null;
