@@ -634,9 +634,6 @@ var I18N = (function () {
    var pyy = fy + fh * 0.86;            // the owner's reference: the hub visible low in the face, the tail below it
    var rArc = Math.min(fw * 0.43 / Math.sin(A), (pyy - fy - fh * (shortFace ? 0.13 : 0.2)));
    var cx = fx + fw / 2, py = pyy;
-   // the LO / HI / NOW words sit outside the arc, whole inside the face and clear of its bevel: the arc shrinks
-   // until the widest word fits above it (Dutch MIN sat on the frame, live); toward the sides a word may sit
-   // nearer the top than its pointer (AL), where a narrow face has no room beside the arc's end
    var MK = F(RD(fh * (o.small ? 0.07 : 0.05), o.small ? 11 : 10), '700'), bm = R(fh * 0.045) + lw * 2, fm = u(10), AM = A * 1.06;
    function wOf(str) { var t0 = text(g, str, 0, 0, MK), tw = width(t0); g.removeChild(t0); return tw; }
    var mkW = Math.max(wOf(I18N.lo), wOf(I18N.hi), wOf(I18N.ours('now')));
@@ -796,8 +793,6 @@ var I18N = (function () {
   var GLOW = bits === 1 ? ink : (darkMode ? ink : paper);
   var GHOSTD = null;          // no unlit segments (owner decision); the fixed cells keep the layout still
   var DIMW = bits === 4 ? fillOf(darkMode ? 'gray-55' : 'gray-45', '#777') : null;
-  // the amber look in grey light (owner, for the TRMNL X): a radial lamp glow on the faces and glowing white
-  // digits on 16 greys; not in dark mode (fixed greys would not mirror), flat on 4 greys and 1-bit
   var lightPanel = (function () { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !m || (+m[1] + +m[2] + +m[3]) > 384; })();
   var GREYGLOW = bits === 4 && !color && lightPanel;
   var DIGIT = AMBER ? AMBER : (color && RED !== ink ? RED : GLOW);
@@ -811,20 +806,30 @@ var I18N = (function () {
     mk('stop', { offset: '100%', 'stop-color': '#c9862c' }, rg);
     return 'url(#' + id + ')';
    }
-   if (GREYGLOW) return fillOf('gray-75', '#eee');   // also the knockout round the scale numbers
+   if (GREYGLOW) return fillOf('gray-70', '#ddd');
    if (FACE_OR) return FACE_OR;
    if (color && YEL) return YEL;
    return bits === 4 ? fillOf('gray-70', '#eee') : paper;
   }
-  // the X meter backlight: five plain grey steps (60..75, white), brightest at the top-left core, each a clear one-grey jump
-  var lampN = 0;
+  // the X meter backlight: a soft lamp at the bottom centre, ordered dithers between neighbouring greys (70, 75, white), no hard rings
+  var lampN = 0, BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+  function dith(a, b, dn) {
+   var pid = 'swd' + view + '-' + (lampN++), pat = mk('pattern', { id: pid, patternUnits: 'userSpaceOnUse', width: 4, height: 4 }, defs);
+   mk('rect', { width: 4, height: 4, fill: a }, pat);
+   for (var c = 0; c < 16; c++) if (BAYER[c] < dn * 16) mk('rect', { x: c % 4, y: Math.floor(c / 4), width: 1, height: 1, fill: b }, pat);
+   return 'url(#' + pid + ')';
+  }
   function lampGrey(g, x, y, w, h) {
-   var id = 'swlampg' + view + '-' + (lampN++);
+   var id = 'swlampg' + view + '-' + (lampN++), g70 = fillOf('gray-70', '#ddd'), g75 = fillOf('gray-75', '#eee');
    var cp = mk('clipPath', { id: id }, defs); rrect(cp, x, y, w, h, u(5));
    var lg = mk('g', { 'clip-path': 'url(#' + id + ')' }, g);
-   rrect(lg, x, y, w, h, 0, fillOf('gray-60', '#aaa'));
-   [['gray-65', 1, 1], ['gray-70', 0.8, 0.82], ['gray-75', 0.56, 0.58], [null, 0.3, 0.32]].forEach(function (st, i) {
-    mk('ellipse', { cx: R(x + w * 0.44), cy: R(y + h * 0.47), rx: R(w * 0.44 * st[1]), ry: R(h * 0.47 * st[2]), fill: st[0] ? fillOf(st[0], '#ddd') : paper, 'data-sw-lamp': i }, lg);
+   [[g70, g75, 0.25, 1], [g70, g75, 0.5, 0.86], [g70, g75, 0.75, 0.72], [g75, paper, 0.25, 0.58], [g75, paper, 0.5, 0.45], [g75, paper, 0.75, 0.32], [paper, paper, 1, 0.18]].forEach(function (st, i) {
+    var dd = '', ecx = x + w * 0.5, ecy = y + h * 0.92;      // the lamp sits low and central, by the pivot; the points stay inside the face
+    for (var k = 0; k < 64; k++) {
+     var an = k / 64 * Math.PI * 2;
+     dd += (k ? ' L' : 'M') + Math.max(x, Math.min(x + w, ecx + w * 0.62 * st[3] * Math.cos(an))).toFixed(1) + ' ' + Math.max(y, Math.min(y + h, ecy + h * 0.9 * st[3] * Math.sin(an))).toFixed(1);
+    }
+    mk('path', { d: dd + ' Z', fill: st[2] < 1 ? dith(st[0], st[1], st[2]) : st[0], 'data-sw-lamp': i }, lg);
    });
   }
   function glowDigits(draw) {
@@ -947,8 +952,6 @@ var I18N = (function () {
    var ix = x + u(compact ? 16 : 30), iw = w - 2 * (ix - x);
    var hb = Math.min(h, w * (compact ? 0.7 : 0.28));
    var ST = F(RD(hb * (compact ? 0.085 : 0.075), 10), '700');
-   // status words across the top: each lights when it is true for the next 24 hours
-   // six lamps in priority order (owner: snow and hail first-class), each lit when expected within the span
    var has = function (k) { return X1.some(function (hh) { return hh.icon === k; }); };
    var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain')], [I18N.snow, has('snow')],
     [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
@@ -998,18 +1001,15 @@ var I18N = (function () {
     wt = fitText(g, condS, ix, y + h * 0.88, WD, iw, { fill: GLOW, ls: R(WD.size * 0.15) });
     crMoved.setAttribute('y', R(y + h * 0.88 - WD.size * 1.6));
    }
-   var rx = ix + iw * 0.66, rw = iw * 0.34, WL = { ls: R(WD.size * 0.15), fill: GLOW };
+   var rx = ix + iw * 0.72, rw = iw * 0.28, WL = { ls: R(WD.size * 0.15), fill: GLOW };
    // left block mirroring the right one: HUMIDITY % and UV as small digits; glass too narrow keeps the small text
    var blk = null;
    if (!compact && M.ok) {
     var labs = [I18N.ours('humidity') + ' %', I18N.ours('uv')], lt0 = labs.map(function (l) { var tt = text(g, l, 0, 0, WD, WL); var ww = width(tt); g.removeChild(tt); return ww; });
-    var top0 = lampBottom + u(3), room0 = y + h - innerD - u(3) - top0, chL = Math.min(room0 / 2 - WD.size - u(4), h * 0.2), stack = chL >= u(18);
-    var chB = stack ? chL : Math.min(room0 - WD.size - u(6), h * 0.3), cwL = R(chB * 0.5), cwid = seg7W(cwL, '88');
-    var colW = lt0.map(function (l) { return Math.max(l, cwid); }), gp = u(16);
-    var bw = Math.max(iw * 0.22, stack ? Math.max(colW[0], colW[1]) : colW[0] + gp + colW[1]);
-    blk = { labs: labs, cw: cwL, divX: ix + bw + u(14), cL: ix + bw + u(28), cR: rx - u(28),
-     pos: [[ix, top0], stack ? [ix, top0 + room0 / 2] : [ix + colW[0] + gp, top0]] };
-    if (blk.cR - blk.cL < (function () { var d0 = R(h * 0.42), dw0 = R(d0 * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + d0 * 1.05; })()) blk = null;
+    var chB = R(h * 0.26), cwL = R(chB * 0.5), gp = u(16), strs = [M.now.hum, M.now.uv].map(function (v) { return v === null ? '--' : SWModel.fmt(v); });
+    var colW = lt0.map(function (l, i) { return Math.max(l, seg7W(cwL, strs[i])); });
+    blk = { labs: labs, cw: cwL, strs: strs, colW: colW, divX: ix + rw + u(14), cL: ix + rw + u(22), cR: rx - u(22), ok: colW[0] + gp + colW[1] <= rw };
+    if (!blk.ok || blk.cR - blk.cL < (function () { var d0 = R(h * 0.36), dw0 = R(d0 * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + d0 * 1.05; })()) blk = null;
    }
    var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
    var dh = R(h * (compact ? 0.46 : 0.56));
@@ -1043,11 +1043,13 @@ var I18N = (function () {
    if (blk) {
     mk('rect', { x: R(blk.divX), y: R(y + h * 0.3), width: Math.max(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
     debug.readouts = [];
-    [[M.now.hum], [M.now.uv]].forEach(function (v, i) {
-     var bx = blk.pos[i][0], by = blk.pos[i][1], str2 = v[0] === null ? '--' : SWModel.fmt(v[0]);
-     fitText(g, blk.labs[i], bx, by + WD.size * 0.8, WD, blk.divX - ix - u(6), WL);
-     glowDigits(function (hg) { seg7(hg || g, bx, by + WD.size + u(2), blk.cw, R(blk.cw * 2), str2, DIGIT, hg ? null : GHOSTD); });
+    var cx0 = ix, gap2 = Math.max(u(16), (rw - blk.colW[0] - blk.colW[1]) / 2);
+    blk.strs.forEach(function (str2, i) {
+     var cwid = blk.colW[i], dwid2 = seg7W(blk.cw, str2), lt = fitText(g, blk.labs[i], cx0, y + h * 0.36, WD, cwid + u(4), WL);
+     lt.setAttribute('x', R(cx0 + (cwid - width(lt)) / 2));
+     glowDigits(function (hg) { seg7(hg || g, cx0 + (cwid - dwid2) / 2, y + h * 0.44, blk.cw, R(blk.cw * 2), str2, DIGIT, hg ? null : GHOSTD); });
      debug.readouts.push(str2);
+     cx0 += cwid + gap2;
     });
    }
    if (!compact && !blk && M.ok) {
