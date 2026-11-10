@@ -796,14 +796,14 @@ RSpec.describe 'Stereo Weather' do
       expect(texts(draw(fields: { 'language' => 'sv' }, device: 'v2'))).to include('HUM 91%')
     end
 
-    it 'lights the UV lamp when today\'s UV max is 6 or more, and not below' do
+    it 'lights the UV lamp when the UV now is 6 or more, and not below' do
       expect(debug(draw(device: 'v2', answer: { json: fixture('extreme') }))['lamps']).to include('+UV')
       expect(debug(draw(device: 'v2'))['lamps']).not_to include('+UV')
     end
 
     it 'draws -- for humidity and UV and does not crash when an old answer lacks them' do
       old = fixture('mixed')
-      old['current'].delete('uv_index'); old['current'].delete('relative_humidity_2m'); old['daily'].delete('uv_index_max')
+      old['current'].delete('uv_index'); old['current'].delete('relative_humidity_2m')
       %w[og_png v2].each do |device|
         VIEWS.each do |view|
           s = draw(view:, device:, answer: { json: old })
@@ -814,19 +814,12 @@ RSpec.describe 'Stereo Weather' do
       end
     end
 
-    it 'puts the rain chance and the UV max beside each day low, and leaves nothing clipped' do
-      %w[og_png v2].each do |device|
-        s = draw(device:)
-        expect(debug(s)['dayMeta']).to eq(2)
-        expect(texts(s)).to include('90%').and include('UV 4')
-        expect(label_problems(s)).to eq([])
-      end
-    end
-
-    it 'drops UV from the day keys, then the rain chance, when the column is narrow' do
-      s = draw(view: 'half_vertical', device: 'og_png', fields: { 'days_shown' => '7' })
-      expect([0, 1, 2]).to include(debug(s)['dayMeta'])
-      expect(label_problems(s)).to eq([])
+    it 'keeps the day highs at a native pixel size on the OG, never fractional' do
+      s = draw(device: 'og_png')
+      debug(s)
+      sizes = s.evaluate("[].slice.call(document.querySelectorAll('.sw-stage svg text')).map(function(t){return parseFloat(t.getAttribute('font-size'))})")
+      expect(sizes.uniq - [12, 16, 21, 42]).to be_empty
+      expect(s.evaluate("[].slice.call(document.querySelectorAll('.sw-stage svg text')).filter(function(t){return /^1[23]°$/.test(t.textContent)}).map(function(t){return parseFloat(t.getAttribute('font-size'))})")).to all(be >= 16)
     end
 
     %w[og_png v2].each do |device|

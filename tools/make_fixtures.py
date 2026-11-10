@@ -27,14 +27,13 @@ def answer(start, temps, probs, codes, days, cur, unit='celsius'):
         'hourly': {'time': hours, 'temperature_2m': temps, 'precipitation_probability': probs, 'weather_code': codes,
                    'is_day': [1 if 7 <= (start + timedelta(hours=i)).hour <= 16 else 0 for i in range(len(temps))]},
         'daily_units': {'time': 'iso8601', 'weather_code': 'wmo code', 'temperature_2m_max': t_unit,
-                        'temperature_2m_min': t_unit, 'precipitation_probability_max': '%', 'uv_index_max': ''},
+                        'temperature_2m_min': t_unit, 'precipitation_probability_max': '%'},
         'daily': {
             'time': [(d0 + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(len(days))],
             'weather_code': [d[2] for d in days],
             'temperature_2m_max': [d[1] for d in days],
             'temperature_2m_min': [d[0] for d in days],
             'precipitation_probability_max': [d[3] for d in days],
-            'uv_index_max': [round(max(0.0, d[1] / 3.5), 1) for d in days],
         },
     }
 
@@ -117,7 +116,7 @@ def main():
         'empty.json': {**m, 'hourly': {'time': [], 'temperature_2m': [], 'precipitation_probability': [],
                                        'weather_code': [], 'is_day': []},
                        'daily': {'time': [], 'weather_code': [], 'temperature_2m_max': [], 'temperature_2m_min': [],
-                                 'precipitation_probability_max': [], 'uv_index_max': []}},
+                                 'precipitation_probability_max': []}},
         'nulls.json': json.loads(json.dumps(m).replace('"temperature_2m": 1.6', '"temperature_2m": null')),
         'error.json': {'error': True, 'reason': 'Latitude must be in range of -90 to 90°. Given: 952.52.'},
     }

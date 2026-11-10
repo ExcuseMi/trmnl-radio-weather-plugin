@@ -131,10 +131,10 @@ var SWModel = (function () {
   if (interval === 'daily') {
    var d = raw.daily || {};
    var dt = list(d, 'time'), dmin = list(d, 'temperature_2m_min'), dmax = list(d, 'temperature_2m_max');
-   var dp = list(d, 'precipitation_probability_max'), dc = list(d, 'weather_code'), du = list(d, 'uv_index_max');
+   var dp = list(d, 'precipitation_probability_max'), dc = list(d, 'weather_code');
    for (var i = 0; i < dt.length && out.length < 24; i++) {
     var mm = minMax([dmin[i], dmax[i]]);
-    out.push({ label: weekday(dt[i]), lo: mm.lo, hi: mm.hi, rain: num(dp[i]), uvMax: num(du[i]), sev: severity(dc[i]),
+    out.push({ label: weekday(dt[i]), lo: mm.lo, hi: mm.hi, rain: num(dp[i]), sev: severity(dc[i]),
      first: i === 0, missing: mm.lo === null, icon: kind(dc[i]), day: true });
    }
    return out;
@@ -342,7 +342,6 @@ var I18N = (function () {
  }
  function R(v) { return Math.round(v); }
 
- // Seven segments: which bars light for each glyph.
  var GLYPH = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg',
   '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '', 'C': 'adef', 'F': 'aefg', 'o': 'abfg' };
 
@@ -372,8 +371,8 @@ var I18N = (function () {
   var W = stage.clientWidth, H = stage.clientHeight;
   if (!W || !H) return;
   var rect = stage.getBoundingClientRect();
-  var z = rect.width / W || 1;                      // device px per CSS px (TRMNL X: 1.8)
-  var UW = R(W * z), UH = R(H * z);                 // drawing units are device pixels
+  var z = rect.width / W || 1;
+  var UW = R(W * z), UH = R(H * z);
   var ox = rect.left - Math.floor(rect.left), oy = rect.top - Math.floor(rect.top);
   function u(cssPx) { return R(cssPx * z); }
 
@@ -402,7 +401,6 @@ var I18N = (function () {
    var f = null;
    try { f = TP ? TP.bg(token, opt) : null; } catch (e) { f = null; }
    var ref = fallback;
-   // a 2-bit panel prints its own two greys solid; the dot pattern over them only adds noise in a ladder
    if (f && f.url && f.color && bits === 2 && !/^rgb\(255, 255, 255\)$/.test(f.color)) f = { color: f.color };
    if (f && f.url && f.size) {
     var id = 'swp' + view + '-' + (patN++) + '-' + Math.floor(Math.random() * 1e6);
@@ -417,19 +415,15 @@ var I18N = (function () {
    fills[token] = ref;
    return ref;
   }
-  // bit depth decides how quiet the unlit parts can be: 1-bit has no grey that is not a dot field
   var scr = stage.closest('.screen');
   var cls = scr ? scr.className : '';
-  // a colour palette (bwr, bwy, bwry, 6a, 7a) has black, white and a few hues: greys there are dot fields,
-  // so it draws like 1-bit with colour accents. Full-colour screens draw like 4-bit with accents.
   var color = /screen--color-/.test(cls);
   var bits = /screen--1bit/.test(cls) || (color && !/screen--color-full/.test(cls)) ? 1 : (/screen--2bit/.test(cls) ? 2 : 4);
   function hue(token) {
    if (!color) return null;
    var f = null;
    try { f = TP ? TP.bg(token, opt) : null; } catch (e) { f = null; }
-   if (!f || !f.color || f.url) return null;          // only a solid the panel really has
-   // and only the hue asked for: a palette without blue answers its nearest colour (red on BWRY)
+   if (!f || !f.color || f.url) return null;
    var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(f.color);
    if (!m) return null;
    var r = +m[1], gg = +m[2], b = +m[3];
@@ -437,23 +431,21 @@ var I18N = (function () {
     orange: r > 200 && gg > 70 && gg < 190 && b < 90 }[token];
    return okHue ? f.color : null;
   }
-  // classic hi-fi accents where the panel has them: red for peak, storm and the meters' red zone,
-  // yellow for the "now" pill and the lit lamps on the glass
   var RED = hue('red') || ink, YEL = hue('yellow');
   var FULL = /screen--color-full/.test(cls);
-  var BLUE = hue('blue');                   // likely rain, where the panel has blue (6 and 7 colours)
+  var BLUE = hue('blue');
 
   // the warm lamp look, only where the panel can show it (owner, option C): amber glow and digits on full colour,
   // the real orange ink on 7a; 4bwry, 3bwy and 6a solid yellow faces, red digits, yellow lamps; 3bwr white faces
   // and red digits; nothing dithered
   var SEVEN = /screen--color-7a/.test(cls);
-  var ORANGE = SEVEN ? fillOf('orange', null) : null;                     // digits, lamps, the lit segments
-  var FACE_OR = ORANGE;                                                     // the meter faces
+  var ORANGE = SEVEN ? fillOf('orange', null) : null;
+  var FACE_OR = ORANGE;
   var AMBER = FULL ? '#ff9a1f' : ORANGE;
   var LIT = ink;
-  var PLATE = bits === 4 ? fillOf('gray-75', '#eee') : null;       // brushed faceplate, grey screens only
+  var PLATE = bits === 4 ? fillOf('gray-75', '#eee') : null;
   var BRUSH = bits === 4 ? fillOf('gray-70', '#ddd') : null;
-  var SHADE = bits >= 2 ? fillOf(bits === 4 ? 'gray-45' : 'gray-40', '#888') : null;   // the lower-right edge
+  var SHADE = bits >= 2 ? fillOf(bits === 4 ? 'gray-45' : 'gray-40', '#888') : null;
 
   // ---- type, measured from the framework's own roles
   function spec(role, fallbackPx) {
@@ -467,9 +459,6 @@ var I18N = (function () {
   var root = mk('g', {}, svg);
   stage.appendChild(svg);
 
-  // 1 and 2 bit panels (the OG): TRMNL's pixel fonts only look right at their native pixel sizes. Any size asked
-  // for snaps to the largest native size that is not bigger (12, 16, 21, then whole multiples of 21), in that
-  // size's own family, so no glyph is ever scaled by a fraction and thresholded ragged.
   var PIXFONT = bits <= 2 && z < 1.5 && /trmnl|nico|block/i.test(String(LG.family)) && /trmnl|nico|block/i.test(String(SM.family));
   function pixel(sp, weight) {
    var nat = [SM, MD, LG].map(function (q) { return { family: q.family, size: Math.round(q.size) }; });
@@ -486,7 +475,6 @@ var I18N = (function () {
     'font-weight': px ? px.weight : (opts.weight || sp.weight), 'text-rendering': px ? 'optimizeSpeed' : null,
     fill: opts.fill || ink, 'text-anchor': opts.anchor || 'start', 'letter-spacing': opts.ls ? R(opts.ls) : null }, parent);
    t.textContent = str;
-   // centred and right-aligned text starts on a whole pixel too, or bitmap faces smear on 1-bit
    if (opts.anchor === 'middle' || opts.anchor === 'end') {
     var tw = 0;
     try { tw = t.getComputedTextLength(); } catch (e) { tw = 0; }
@@ -498,7 +486,6 @@ var I18N = (function () {
    return t;
   }
   function width(t) { try { return t.getComputedTextLength(); } catch (e) { return 0; } }
-  // the cap height of a face, measured once per spec, to centre text on a row
   var capCache = {};
   function cap(sp) {
    var k = sp.family + sp.size;
@@ -507,20 +494,15 @@ var I18N = (function () {
    var b = { height: sp.size * 0.7, y: -sp.size * 0.7 };
    try { b = t.getBBox(); } catch (e) { /* estimate */ }
    root.removeChild(t);
-   // bbox includes the line box on some engines; never trust more than the font size
    var c = Math.min(Math.abs(b.y), sp.size) * 0.98;
    capCache[k] = c > 0 ? c : sp.size * 0.7;
    return capCache[k];
   }
-  // Write str so it fits maxW, never cut (a trailing dot reads as a broken word): the size steps
-  // down to 70 %, then a shorter wording of the same thing; the last try stays whole even if it is tight.
   var SHORTER = { 'PARTLY CLOUDY': 'SOME CLOUD', 'MOSTLY CLEAR': 'CLEAR', 'THUNDERSTORM': 'STORM', 'HAIL STORM': 'HAIL',
    'FREEZING RAIN': 'ICY RAIN', 'HEAVY SHOWERS': 'SHOWERS', 'SNOW SHOWERS': 'SNOW', 'LIGHT SNOW': 'SNOW', 'HEAVY SNOW': 'SNOW',
    'SNOW GRAINS': 'SNOW', 'LIGHT RAIN': 'RAIN', 'HEAVY RAIN': 'RAIN', 'ICY DRIZZLE': 'DRIZZLE', 'RIME FOG': 'FOG', 'TODAY': 'NOW' };
-  SHORTER[I18N.rainChance] = I18N.precipitation;              // e.g. German: NIEDERSCHLAGSWAHRSCHEINLICHKEIT -> NIEDERSCHLAG
+  SHORTER[I18N.rainChance] = I18N.precipitation;
   SHORTER[I18N.temperature] = I18N.ours('temp_s');
-  // a day's name from TRMNL's l_date in the chosen language (its trailing dot dropped, "LUN." -> "LUN"), else ours
-  // the coming wet spell's own words: rain, snow or hail (SNOW FROM 17:00, not RAIN FROM)
   function wetType() { return M.rain && M.rain.type || 'rain'; }
   function wetWord() { return wetType() === 'snow' ? I18N.snow : (wetType() === 'hail' ? I18N.hail : I18N.ours('rain')); }
   function wetKey(part) {
@@ -575,7 +557,6 @@ var I18N = (function () {
    if (!PLATE) rrect(g, x + u(4), y + u(4), w - u(8), h - u(8), Math.max(2, r - u(3)), 'none', ink, 1);
   }
 
-  // the fallback when TRMNL's weather icon could not be fetched: a plain ring with a dot, so the gap is honest
   function icon(g, kind, cx, cy, sz, isDay) {
    if (!kind) return;
    mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.3), fill: 'none', stroke: ICON_INK || ink, 'stroke-width': Math.max(2, R(sz * 0.06)) }, g);
@@ -595,7 +576,7 @@ var I18N = (function () {
   var FAM = LG.family;
   function F(px, w) {
    var q = { family: FAM, size: Math.max(8, R(px)), weight: w || '700' };
-   return PIXFONT ? pixel(q, q.weight) : q;      // pixel fonts: the layout follows the size really drawn
+   return PIXFONT ? pixel(q, q.weight) : q;
   }
   function tStr(v) { return v === null || v === undefined ? '--' : SWModel.fmt(v) + deg; }
   var SPAN = SW_CFG.span === '12h' ? 12 : 24;
@@ -609,7 +590,6 @@ var I18N = (function () {
   var station = (SW_CFG.label || '').toUpperCase();
   // the credit; with the title bar hidden the location and time join it on the glass (owner)
   var CREDIT = (SW_CFG.hideTitle || view !== 1 ? (M.now.sync ? M.now.sync + '  \u00b7  ' : '') : '') + 'OPEN-METEO';
-  // TRMNL's weather icons in place of the drawn ones; ICON_INK paints them (ink, or the glow on dark glass)
   var ICON_INK = null, drawnIcon = icon, iconsUsed = { wi: 0, drawn: 0 };
   icon = function (g, kind, cx, cy, sz, isDay) {
    if (!kind) return;
@@ -649,7 +629,6 @@ var I18N = (function () {
     badge = { x: o.badge === 'R' ? fx0 + fw - bm - bwd : fx0 + bm, y: fy0 + bm, w: bwd, h: bht, sp: BG };
    }
    var fhE = Math.min(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
-   // a real VU face: the scale high and wide, the pivot on the lower edge under a small housing
    var shortFace = fh < fw * 0.42;
    var A = (shortFace ? 52 : 42) * Math.PI / 180;
    var pyy = fy + fh * 0.86;            // the owner's reference: the hub visible low in the face, the tail below it
@@ -675,7 +654,6 @@ var I18N = (function () {
    var SC = F(RD(fh * (o.small ? 0.085 : 0.065), o.small ? 12 : 11), o.small ? '700' : '500');
    arc(rArc, 0, 1, lw);
    faceEl.setAttribute('data-sw-pivot', [cx, py, rArc + (o.band ? R(fh * 0.045) + lw : lw / 2)].join(' '));
-   // the band that means something: today's range on the temperature, "likely" on the rain
    if (o.band) {
     var bw = R(fh * 0.045);
     arc(rArc + bw / 2 + lw, o.band[0], o.band[1], bw, o.bandCol || ink);
@@ -684,12 +662,9 @@ var I18N = (function () {
     var p0 = at(tk.f, rArc), p1 = at(tk.f, rArc - (tk.major ? fh * 0.07 : fh * 0.035));
     mk('line', { x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], stroke: ink, 'stroke-width': tk.major ? lw : Math.max(1, R(lw * 0.6)), 'shape-rendering': 'geometricPrecision' }, g);
    });
-   // the numbers, evenly spaced: every one, every 2nd, ... down to the ends, the first set where none touch and the
-   // needle crosses no inner number; a compact face shows three at most (the scale has an even count there)
    var labs = o.ticks.filter(function (tk) { return tk.label !== undefined; }), compact = o.small || fw / z < 420;
    if (compact) SC = F(SC.size * 1.12, SC.weight);
    var placed = [];
-   // the needle's line, known before the numbers so a number never sits under it
    var nv = o.needle === null ? -0.03 : Math.max(-0.03, Math.min(1.03, o.needle));
    var ang = -A + 2 * A * nv, ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux;
    var tipR = rArc + fh * 0.025, tailR = fh * 0.1;
@@ -697,8 +672,8 @@ var I18N = (function () {
    function boxOf(tk) {
     var pl = at(tk.f, rArc - fh * 0.07 - SC.size * 0.85), t0 = text(g, tk.label, 0, 0, SC), tw = width(t0);
     g.removeChild(t0);
-    var ko = Math.max(3, u(5)) / 2;   // the knockout stroke widens each number
-    return { tk: tk, x: pl[0], y: pl[1], l: pl[0] - tw / 2 - SC.size * 0.3 - ko, r: pl[0] + tw / 2 + SC.size * 0.3 + ko, t: pl[1] - SC.size * 0.65 - ko, b: pl[1] + SC.size * 0.65 + ko };   // the font box, as the browser measures it
+    var ko = Math.max(3, u(5)) / 2;
+    return { tk: tk, x: pl[0], y: pl[1], l: pl[0] - tw / 2 - SC.size * 0.3 - ko, r: pl[0] + tw / 2 + SC.size * 0.3 + ko, t: pl[1] - SC.size * 0.65 - ko, b: pl[1] + SC.size * 0.65 + ko };
    }
    function onNeedle(bx) { for (var k = 0; k <= 40; k++) { var xx = cx + ux * tipR * k / 40, yy = py + uy * tipR * k / 40;
     if (xx > bx.l - wBase && xx < bx.r + wBase && yy > bx.t - wBase && yy < bx.b + wBase) return true; } return false; }
@@ -709,9 +684,7 @@ var I18N = (function () {
     if (ks >= nl || sel.every(function (bx, i) { return (i === 0 || i === sel.length - 1 || !onNeedle(bx)) &&
      sel.every(function (q, j) { return j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > q.b; }); })) { placed = sel; break; }
    }
-   var scaleLabels = placed;   // drawn after the needle (below), knocked out so it never crosses a number
-   // marks outside the arc: small triangles with a word (LO / HI, NOW); a word steps along the arc, off the
-   // channel badge and off the other word, never closer to the arc or the frame
+   var scaleLabels = placed;
    var mks = (o.marks || []).map(function (m) { return { m: m, tw: wOf(m.label), an: Math.max(-AL, Math.min(AL, -A + 2 * A * Math.max(-0.03, Math.min(1.03, m.f)))) }; });
    function mkBox(q) { var rc = rArc + kOf(q.an, q.tw), x0 = cx + rc * Math.sin(q.an), y0 = py - rc * Math.cos(q.an);
     return { x: x0, y: y0, l: x0 - q.tw / 2, r: x0 + q.tw / 2, t: y0 - MK.size * 0.63, b: y0 + MK.size * 0.63 }; }
@@ -731,12 +704,10 @@ var I18N = (function () {
     var bx = mkBox(q);
     text(g, m.label, bx.x, bx.y + MK.size * 0.37, MK, { anchor: 'middle' }).setAttribute('data-sw-mark', MN);
    });
-   // the needle, clipped to the face, then the pivot housing on the lower edge
    var id = 'vuclip' + view + '-' + (clipK++);
    var cp = mk('clipPath', { id: id }, defs);
    mk('rect', { x: fx, y: fy, width: fw, height: fh }, cp);
    var ng = mk('g', { 'clip-path': 'url(#' + id + ')' }, g);
-   // the needle never leaves the scale: past an end it rests on a stop pin and a mark shows over / under
    (debug.needles = debug.needles || []).push({ chan: o.chan, v: o.needle, shown: nv });
    // an analog needle (owner): tapered, a counterweight tail, a soft shadow on greys, crisp on 1-bit, black in colour
    function needlePts(ox, oy) {
@@ -762,7 +733,7 @@ var I18N = (function () {
    // caption sits under the meter, the short name with the unit, so every meter says what it shows
    var pad = fh * 0.06;
    function freeW(yTop) { return cx - (py - yTop) * Math.tan(A + 0.08) - fx - pad - u(4); }
-   var cornerTxt = o.captioned || (PIXFONT && o.small) ? o.unitName : o.shortName + ' ' + o.unitName;   // pixel fonts cannot shrink: a small face prints the unit alone
+   var cornerTxt = o.captioned || (PIXFONT && o.small) ? o.unitName : o.shortName + ' ' + o.unitName;
    var BIG = F(fh * (o.captioned ? 0.15 : 0.11), '700');
    var ly1 = fy + fh * 0.92;
    // never under the pivot or its tail: the print ends well left of the hub (owner, X half_horizontal)
@@ -783,13 +754,12 @@ var I18N = (function () {
    }
    return { fx: fx, fy: fy, fw: fw, fh: fh };
   }
-  // a round scale for the day: 3 to 6 labelled majors at 1/2/5/10/20/25/50 steps, minor ticks between
   function niceScale(lo, hi, even) {
    var steps = [1, 2, 5, 10, 20, 25, 50], span = Math.max(hi - lo, M.unit === 'F' ? 15 : 8);
    for (var i = 0; i < steps.length; i++) {
     var st = steps[i], a0 = Math.floor(lo / st) * st, b0 = Math.ceil(hi / st) * st;
     if (b0 - a0 < span) b0 = a0 + Math.ceil(span / st) * st;
-    if ((b0 - a0) / st <= 5) return { a: a0, b: b0 + (even && ((b0 - a0) / st) % 2 ? st : 0), major: st, minor: st % 5 === 0 ? st / 5 : (st % 2 === 0 ? st / 2 : st / 5) };   // even: an exact middle
+    if ((b0 - a0) / st <= 5) return { a: a0, b: b0 + (even && ((b0 - a0) / st) % 2 ? st : 0), major: st, minor: st % 5 === 0 ? st / 5 : (st % 2 === 0 ? st / 2 : st / 5) };
    }
    return { a: Math.floor(lo / 50) * 50, b: Math.ceil(hi / 50) * 50, major: 50, minor: 10 };
   }
@@ -825,7 +795,7 @@ var I18N = (function () {
   var GLASSD = bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25', '#333') : (bits === 2 ? fillOf(darkMode ? 'gray-75' : 'gray-15', '#333') : paper);
   var GLOW = bits === 1 ? ink : (darkMode ? ink : paper);
   var GHOSTD = null;          // no unlit segments (owner decision); the fixed cells keep the layout still
-  var DIMW = bits === 4 ? fillOf(darkMode ? 'gray-55' : 'gray-45', '#777') : null;      // an unlit status word
+  var DIMW = bits === 4 ? fillOf(darkMode ? 'gray-55' : 'gray-45', '#777') : null;
   // the amber look in grey light (owner, for the TRMNL X): a radial lamp glow on the faces and glowing white
   // digits on 16 greys; not in dark mode (fixed greys would not mirror), flat on 4 greys and 1-bit
   var lightPanel = (function () { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !m || (+m[1] + +m[2] + +m[3]) > 384; })();
@@ -833,21 +803,19 @@ var I18N = (function () {
   var DIGIT = AMBER ? AMBER : (color && RED !== ink ? RED : GLOW);
   var glowN = 0;
   function faceFill(fx1, fy1, fw1, fh1) {
-   if (FULL) {                                  // brightest behind the scale, fading to the edges
+   if (FULL) {
     var id = 'swlamp' + view + '-' + (glowN++);
-    // in screen space, so the scale numbers' knockout picks up exactly the glow behind them
     var rg = mk('radialGradient', { id: id, gradientUnits: 'userSpaceOnUse', cx: R(fx1 + fw1 / 2), cy: R(fy1 + fh1 * 0.58), r: R(Math.max(fw1, fh1) * 0.62) }, defs);
     mk('stop', { offset: '0%', 'stop-color': '#ffe3a3' }, rg);
     mk('stop', { offset: '55%', 'stop-color': '#f7c25e' }, rg);
     mk('stop', { offset: '100%', 'stop-color': '#c9862c' }, rg);
     return 'url(#' + id + ')';
    }
-   if (GREYGLOW) return fillOf('gray-70', '#ddd');   // the base; lampGrey() lays the light on top
+   if (GREYGLOW) return fillOf('gray-70', '#ddd');
    if (FACE_OR) return FACE_OR;
-   if (color && YEL) return YEL;                // option C: the solid yellow lamp face
+   if (color && YEL) return YEL;
    return bits === 4 ? fillOf('gray-70', '#eee') : paper;
   }
-  // lamp light on 16 greys: nested ellipses of 4x4 Bayer dithers (12-75 %) of the panel's own two greys, no bands
   var lampN = 0, BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
   function lampGrey(g, x, y, w, h) {
    var id = 'swlampg' + view + '-' + (lampN++), L1 = fillOf('gray-75', '#eee'), L0 = fillOf('gray-70', '#ddd');
@@ -862,7 +830,6 @@ var I18N = (function () {
      for (var c = 0; c < 16; c++) if (BAYER[c] < st[0] * 16) mk('rect', { x: c % 4, y: Math.floor(c / 4), width: 1, height: 1, fill: L1 }, pat);
      fill = 'url(#' + pid + ')';
     }
-    // the ellipse already cut to the face (its points held inside), so nothing reaches past the face
     var rx = w * st[1], ry = h * st[2], dd = '';
     for (var k = 0; k < 72; k++) {
      var an = k / 72 * Math.PI * 2, px = Math.max(x, Math.min(x + w, ecx + rx * Math.cos(an))), py2 = Math.max(y, Math.min(y + h, ecy + ry * Math.sin(an)));
@@ -871,13 +838,12 @@ var I18N = (function () {
     mk('path', { d: dd + ' Z', fill: fill, 'data-sw-lamp': i }, lg);
    });
   }
-  // the digits' soft halo, full colour only: a blurred copy under them
   function glowDigits(draw) {
    if (!FULL && !GREYGLOW) return draw(null);
    var id = 'swhalo' + view + '-' + (glowN++);
    var f = mk('filter', { id: id, x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
    mk('feGaussianBlur', { stdDeviation: Math.max(2, u(4)) }, f);
-   var ct = mk('feComponentTransfer', {}, f);                  // the halo three quarters strong
+   var ct = mk('feComponentTransfer', {}, f);
    mk('feFuncA', { type: 'linear', slope: 0.75 }, ct);
    var hg = mk('g', { filter: 'url(#' + id + ')', 'data-sw-halo': '1' }, root);
    draw(hg);
@@ -888,7 +854,6 @@ var I18N = (function () {
   debug.orange = { digits: String(ORANGE), face: String(FACE_OR) };
   debug.glass = String(GLASSD); debug.paper = String(paper); debug.glow = String(GLOW);
   var RAINC = BLUE || (RED !== ink ? RED : ink);
-  // a recessed window lit from the top left: a soft L-shaped inset shadow along its inner top and left, 1 px line on 1-bit
   var bevelN = 0;
   function insetBevel(g, x, y, w, h, r, onGlass) {
    if (bits === 1) { rrect(g, x + 1.5, y + 1.5, w - 3, h - 3, Math.max(0, r - 1), 'none', ink, 1); return; }
@@ -909,7 +874,6 @@ var I18N = (function () {
     mk('path', { d: rr(x, y, w, h, r) + ' ' + rr(x + d, y + d, w, h, r), 'fill-rule': 'evenodd', fill: st[1], 'shape-rendering': 'geometricPrecision' }, bg);
    });
   }
-  // the window's inner edge (its 1 px line on 1-bit, the bevel elsewhere): nothing printed on the glass may touch it
   function glassInner(g, x, y, w, h) {
    var d = bits === 1 ? u(9) : u(6);
    mk('rect', { x: R(x + d), y: R(y + d), width: R(w - 2 * d), height: R(h - 2 * d), fill: 'none', 'data-sw-glass-inner': 1 }, g);
@@ -923,15 +887,14 @@ var I18N = (function () {
     rrect(g, x + u(5), y + u(5), w - u(10), h - u(10), r - u(4), paper);
     rrect(g, x + u(9), y + u(9), w - u(18), h - u(18), r - u(6), 'none', ink, 1);
    } else {
-    rrect(g, x, y, w, h, r, fillOf('gray-50', '#888'));        // a soft bezel
+    rrect(g, x, y, w, h, r, fillOf('gray-50', '#888'));
     rrect(g, x + u(6), y + u(6), w - u(12), h - u(12), r - u(4), GLASSD);
     insetBevel(g, x + u(6), y + u(6), w - u(12), h - u(12), r - u(4), true);
    }
   }
-  // seven segments in any colour; ':' '.' and '-' too; returns the width drawn
   function seg7(g, x, y, dw, dh, str, col, ghost) {
    var t = Math.max(3, dw * 0.18), gap = Math.max(2, R(dw * 0.22)), cx = x, box = null;
-   seg7.boxes = [];       // each digit cell and the extent of what is lit in it, for the tests
+   seg7.boxes = [];
    function poly(p, c, kind) {
     mk('polygon', { points: pts(p), fill: c, 'shape-rendering': 'geometricPrecision', 'data-sw-seg': kind }, g);
     p.forEach(function (q) { box.l = Math.min(box.l, q[0]); box.r = Math.max(box.r, q[0]); });
@@ -939,14 +902,12 @@ var I18N = (function () {
    str.split('').forEach(function (ch, ci) {
     if (ch === '.') { var d = R(t * 1.2); mk('rect', { x: R(cx), y: R(y + dh - d), width: d, height: d, fill: col }, g); cx += d + gap; return; }
     if (ch === ':') { var d2 = R(t * 1.1); [0.3, 0.7].forEach(function (k) { mk('rect', { x: R(cx), y: R(y + dh * k - d2 / 2), width: d2, height: d2, fill: col }, g); }); cx += d2 + gap; return; }
-    // a 1 after a digit stands centred in its cell ("21.3" read as "2 1.3"); a 1 that leads stays right, against
-    // the digit after it ("17:00", "104.5"); a minus hugs a centred 1
     var afterDigit = ci > 0 && /[0-9]/.test(str.charAt(ci - 1));
     var leadOne = ch === '1' && !afterDigit && /[0-9]/.test(str.charAt(ci + 1));   // "17:00", "13.0": close the gap a little
     var shift = ch === '1' && afterDigit ? -(dw - t) / 2 : (leadOne ? gap * 0.6 : (ch === '-' && str.charAt(ci + 1) === '1' ? dw - t : 0));
     var sh = segShapes(cx + shift, y, dw, dh, t), on = GLYPH[ch] || '';
     // only lit segments (owner decision); '_' is a blank sign cell, the minus its only segment
-    var signCell = (ch === '_' || ch === '-') && ci === 0 && str.charAt(str.length - 2) === '.';   // a temperature, not the clock
+    var signCell = (ch === '_' || ch === '-') && ci === 0 && str.charAt(str.length - 2) === '.';
     if (ch === '_') on = '';
     var segs = signCell ? 'g' : 'abcdefg';
     box = { ch: ch, x0: R(cx), x1: R(cx + dw), l: Infinity, r: -Infinity };
@@ -968,39 +929,33 @@ var I18N = (function () {
    if (M.now.temp === null) return '_' + ' '.repeat(NDIG - 2) + '--.-';
    var v = Math.round(M.now.temp * 10) / 10, a = Math.min(Math.pow(10, NDIG) - 0.1, Math.abs(v));
    var ip = String(Math.floor(a + 1e-9)), dec = String(Math.round((a - Math.floor(a + 1e-9)) * 10) % 10);
-   // the minus stands right before the first digit ("-1.4", "-40.0"); the sign cell stays blank when it moves in
    var cells = ((v < 0 ? '-' : '') + ip).padStart(NDIG + 1, ' ');
    return (cells.charAt(0) === ' ' ? '_' : '') + cells.slice(cells.charAt(0) === ' ' ? 1 : 0) + '.' + dec;
   }
   function cellsText(str) { return str.replace(/[_ ]/g, ''); }
-  // a status word lit or dark, as on a VFD
   function status(g, str, x, y, sp, on) {
    var col = on ? GLOW : (DIMW || null);
    if (!col && bits !== 1) return 0;
-   if (bits === 1) {      // 1-bit: a square lamp, outlined dark, filled lit, crisp 1 px lines
+   if (bits === 1) {
     var t0 = text(g, str, x + sp.size * 0.5, y, sp, { ls: R(sp.size * 0.15), fill: on ? (LAMP ? ink : paper) : ink });
     var lw0 = Math.ceil(width(t0) + sp.size), lh0 = R(sp.size * 1.4), ly0 = R(y - sp.size * 1.05), bx = R(x), cr = { 'shape-rendering': 'crispEdges', 'data-sw-status': 1 };
     if (on) g.insertBefore(mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP || ink }, cr), g), t0);
     if (!on || LAMP) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, fill: 'none', stroke: ink, 'stroke-width': 1 }, cr), g);
     return lw0;
    }
-   // a lit word glows in the lamp colour on full colour, with the digits' halo
    var tw2 = 0, lit = on && (FULL || GREYGLOW);
    function word(hg) { var tt = text(hg || g, str, x, y, sp, { ls: R(sp.size * 0.15), fill: lit ? (FULL ? AMBER : GLOW) : col }); tw2 = width(tt); if (!hg) tt.setAttribute('data-sw-status', 1); }
    if (lit) glowDigits(word); else word(null);
    return tw2;
   }
   function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
-  function metaStr(d, mode) { return fv(d.rain, '%') + (mode === 2 ? '  ' + I18N.ours('uv') + ' ' + fv(d.uvMax) : ''); }
   function humTxt() { return I18N.ours('hum') + ' ' + fv(M.now.hum, '%'); }
   function uvTxt() { return I18N.ours('uv') + ' ' + fv(M.now.uv); }
-  var UVMAX0 = M.days.length ? M.days[0].uvMax : null;
   function vfd(g, x, y, w, h, compact) {
    debug.glassBox = [R(x), R(y), R(w), R(h)]; debug.origin = [R(rect.left * z), R(rect.top * z)];
    debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
    vfdBox(g, x, y, w, h);
    var ix = x + u(compact ? 16 : 30), iw = w - 2 * (ix - x);
-   // print sizes follow the glass's height, but never more than its width allows
    var hb = Math.min(h, w * (compact ? 0.7 : 0.28));
    var ST = F(RD(hb * (compact ? 0.085 : 0.075), 10), '700');
    // status words across the top: each lights when it is true for the next 24 hours
@@ -1009,13 +964,11 @@ var I18N = (function () {
    var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain')], [I18N.snow, has('snow')],
     [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
     [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, M.now.wind !== null && M.now.wind >= (M.unit === 'F' ? 20 : 30)],
-    [I18N.ours('uv'), UVMAX0 !== null && UVMAX0 >= 6]];
-   // the lamps sit clear of the window's inner edge on every view
+    [I18N.ours('uv'), M.now.uv !== null && M.now.uv >= 6]];
    var innerD = u(bits === 1 ? 9 : 6), sy = Math.max(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
    var lampBottom = sy + ST.size * 0.45;
    if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
    if (!compact) {
-    // all lamps must fit before the credit: drop unlit ones from the end (never a lit one), then shrink
     var room = iw - u(20) - (function () { var tc = text(g, 'OPEN-METEO', 0, 0, ST, { ls: R(ST.size * 0.15) }); var tw = width(tc); g.removeChild(tc); return tw; })();
     var rowW = function (fl, sp) { return fl.reduce(function (a, f) { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 ? 2.3 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
     debug.lampFit = { need: R(rowW(flags, ST)), room: R(room) };
@@ -1029,9 +982,7 @@ var I18N = (function () {
    if (!compact) text(g, 'OPEN-METEO', x + w - u(compact ? 16 : 30), sy, ST, { anchor: 'end', ls: R(ST.size * 0.15), fill: bits === 1 ? ink : (DIMW || GLOW) });
    var pillW = 0;
    if (compact) pillW = status(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry')), ix, sy, ST, !M.ok || !!M.rain);
-   // the temperature as station digits sized for the widest reading, the unit beside, the icon
    var WD = F(RD(hb * (compact ? 0.09 : 0.085), 11), '700');
-   // the credit: on the glass, small at the right of the condition line (never on a meter face)
    var crW = 0, crMoved = null;
    if (compact) {
     var CR = F(RD(hb * 0.06, 9), '600'), crRight = x + w - u(16) - hb * 0.24 - u(8), crRoom = crRight - (ix + pillW + u(12));
@@ -1045,7 +996,7 @@ var I18N = (function () {
      ct0 = text(g, c, crRight, sy, CR, { anchor: 'end', ls: R(CR.size * 0.1), fill: crCol });
      return width(ct0) <= crRoom;
     });
-    if (width(ct0) > crRoom) {              // no room up there: at the right of the condition line
+    if (width(ct0) > crRoom) {
      g.removeChild(ct0);
      ct0 = text(g, SHORTCR, x + w - u(16), y + h * 0.88, CR, { anchor: 'end', ls: R(CR.size * 0.1), fill: crCol });
      crW = width(ct0) + u(12); crMoved = ct0;
@@ -1053,18 +1004,16 @@ var I18N = (function () {
    }
    var condS = M.ok ? (I18N.cond(M.now.code, M.now.day) || M.now.word || '') : String(M.reason || 'NO DATA').toUpperCase(), wt = null;
    if (compact) wt = fitText(g, condS, ix, y + h * 0.88, WD, iw - crW, { fill: GLOW, ls: R(WD.size * 0.15) });
-   // a condition too long to share its line (German, French): the credit goes up, on a line of its own
    if (crMoved && width(wt) > iw - crW + 1) {
     g.removeChild(wt);
     wt = fitText(g, condS, ix, y + h * 0.88, WD, iw, { fill: GLOW, ls: R(WD.size * 0.15) });
     crMoved.setAttribute('y', R(y + h * 0.88 - WD.size * 1.6));
    }
    var avail = compact ? iw - h * 0.05 : iw * 0.62;
-   var dh = R(h * (compact ? 0.46 : 0.56));          // as big as the glass allows
+   var dh = R(h * (compact ? 0.46 : 0.56));
    function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.05); }
    // the digits end above the print under them: the condition, or the credit on its own row (it ran over "1.6", live)
    var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
-   // the full glass: the digits start under the lamp row and end clear of the window's inner edge
    var dyTop = compact ? y + h * 0.27 : Math.max(y + h * 0.25, lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2);
    while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh > dyEnd))) dh -= 2;
    var dw = R(dh * 0.5), dy = dyTop;
@@ -1079,7 +1028,6 @@ var I18N = (function () {
    // (owner: no lone minus far from a floating icon); the cells themselves stay fixed
    var firstLit = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
    ICON_INK = GLOW;
-   // a clear gap, then the icon; a tall icon (a storm) stays above the condition line
    var gsz = Math.min(dh * 0.95, (y + h * 0.9 - WD.size - u(4) - dy - dh * 0.5) / 0.7), icx = (firstLit ? firstLit.l : dx) - dh * 0.14 - gsz * 0.6;
    if (!compact) icon(g, M.now.icon, icx, dy + dh * 0.5, gsz, M.now.day);
    else icon(g, M.now.icon, x + w - u(16) - hb * 0.11, y + h * 0.16, hb * 0.2, M.now.day);
@@ -1090,7 +1038,6 @@ var I18N = (function () {
    seg7(g, dx + dwid + R(dw * 0.25) + sw + R(dw * 0.12), dy, sw, R(dh * 0.45), M.unit, DIGIT, null);
    if (!compact) wt = fitText(g, condS, lx, y + h * 0.9, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
    if (!compact && M.ok) {
-    // humidity and UV now, stacked over the condition left of the icon; a readout that does not fit is dropped, never clipped
     var rdW = icx - gsz * 0.62 - lx - u(6), rdB = y + h * 0.9 - WD.size * 1.7;
     [[humTxt(), rdB - WD.size * 1.7], [uvTxt(), rdB]].forEach(function (rd) {
      var rt = fitText(g, rd[0], lx, rd[1], WD, rdW, { fill: GLOW, ls: R(WD.size * 0.15) });
@@ -1100,28 +1047,24 @@ var I18N = (function () {
    if (compact) {
     return;
    }
-   // right part: when the rain comes, as the clock digits
    var rx = ix + iw * 0.66, rw = iw * 0.34;
    mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: Math.max(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
    fitText(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? I18N.ours(wetKey(M.rain.now ? 'until' : 'from')) : I18N.ours('no_rain')), rx, y + h * 0.36, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
    var ch = R(h * 0.3);
    while (ch > 8 && seg7W(R(ch * 0.5), '88:88') > rw - u(8)) ch -= 2;
    var cw = R(ch * 0.5);
-   // raining now: the clock shows when it stops
    var ct = M.rain ? (M.rain.now ? rainTo : rainFrom) : '--:--';
    glowDigits(function (hg) { seg7(hg || g, rx, y + h * 0.44, cw, ch, ct, M.rain ? DIGIT : GLOW, hg ? null : GHOSTD); });
    debug.clock = { str: ct, boxes: seg7.boxes };
    fitText(g, !M.ok ? 'OPEN-METEO' : (M.rain ? (M.rain.now ? I18N.ours(wetKey('now')) : I18N.ours('until') + ' ' + rainTo) : I18N.ours('next_h', SPAN)), rx, y + h * 0.9, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
   }
-  // The small quadrant (OG): one strong element, the glass alone. Big fixed-cell digits with the unit at
-  // their top, the icon, a slim LO-to-HI scale with a mark for now, the condition, one line of the rest.
   function vfdQuad(g, x, y, w, h) {
    vfdBox(g, x, y, w, h);
    debug.glassBox = [R(x), R(y), R(w), R(h)]; debug.origin = [R(rect.left * z), R(rect.top * z)];
    debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
    var pad = Math.max(u(12), h * 0.07), ix = x + pad, iw = w - 2 * pad, iy = y + pad, ih = h - 2 * pad;
    var LN = F(RD(ih * 0.085, 11), '700'), SM2 = F(RD(ih * 0.065, 9), '600');
-   var isz = ih * 0.4;                                      // the icon, readable
+   var isz = ih * 0.4;
    var rowH = ih * 0.47;
    var unitW = function (dw0) { return R(dw0 * 0.55) * 2 + R(dw0 * 0.3); };
    var dh = R(rowH);
@@ -1139,7 +1082,6 @@ var I18N = (function () {
    var sw = R(dw * 0.55), ux = dx + dwid + R(dw * 0.25);
    seg7(g, ux, dy, sw, R(dh * 0.42), 'o', DIGIT, null);
    seg7(g, ux + sw + R(dw * 0.12), dy, sw, R(dh * 0.42), M.unit, DIGIT, null);
-   // the slim scale: today's low to high under the digits, a mark where now sits (the analog touch)
    var sy = iy + rowH + ih * 0.13, lo = M.today.lo, hi = M.today.hi, now = M.now.temp;
    if (M.ok && lo !== null && hi !== null && hi > lo && now !== null) {
     var sx0 = dx, sx1 = dx + dwid, lwS = Math.max(1, u(1.5));
@@ -1150,12 +1092,10 @@ var I18N = (function () {
      fill: DIGIT, 'shape-rendering': 'geometricPrecision' }, g);
     debug.slim = { f: f };
    }
-   // the condition (or the reason there is no signal), the credit small at the right
    var wy = iy + ih * 0.76, ly = iy + ih - LN.size * 0.3;
    var cw = text(g, CREDIT, ix + iw, wy, SM2, { anchor: 'end', ls: R(SM2.size * 0.1), fill: bits === 1 ? ink : (DIMW || GLOW) });
    var condTxt = M.ok ? (I18N.cond(M.now.code, M.now.day) || M.now.word || '') : I18N.ours('no_signal');
    var wq = fitText(g, condTxt, ix, wy, LN, iw - width(cw) - u(10), { fill: GLOW, ls: R(LN.size * 0.1) });
-   // a long condition (German, French) takes the whole line; the credit moves under the icon, shorter if it must
    if (width(wq) > iw - width(cw) - u(10)) {
     g.removeChild(wq);
     fitText(g, condTxt, ix, wy, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
@@ -1166,7 +1106,6 @@ var I18N = (function () {
    var line = M.ok ? I18N.hi + ' ' + SWModel.fmt(hi) + '  ' + I18N.lo + ' ' + SWModel.fmt(lo) + '  \u00b7  ' +
     (M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry_h', SPAN)) : String(M.reason || '').toUpperCase();
    var lt = fitText(g, line, ix, ly, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
-   // humidity and UV at the right of the line when it is short enough, else humidity alone, else none
    if (M.ok) [humTxt() + '  ' + uvTxt(), humTxt()].some(function (rd) {
     var rt = text(g, rd, ix + iw, ly, LN, { anchor: 'end', ls: R(LN.size * 0.1), fill: GLOW });
     if (width(lt) + width(rt) + u(12) <= iw) return true;
@@ -1174,13 +1113,10 @@ var I18N = (function () {
    });
   }
 
-  faceplate(root, u(3), u(3), UW - u(6), UH - u(6));   // edge to edge, its strokes kept inside the screen
+  faceplate(root, u(3), u(3), UW - u(6), UH - u(6));
   var MG = u(view === 4 ? 8 : 14), GP = u(view === 4 ? 8 : 14);
   var X0 = MG, Y0 = MG, W0 = UW - 2 * MG, H0 = UH - 2 * MG;
-  // a face too small for two lines of print and a lamp drops them (the OG full view, the quadrant);
-  // a wide, short face keeps them, its corners have the room
   function smallFace(h, w) { return h / z < 160 || (h / z < 230 && !(w > h * 1.8)); }
-  // one row of the next-days list: lamp, day, icon, high and low across the width
   function dayRow(g0, x, y, w, h, d, on) {
    var g = mk('g', { 'data-sw-row': 1 }, g0);
    var lw = Math.max(2, u(2));
@@ -1204,7 +1140,6 @@ var I18N = (function () {
    mk('circle', { cx: R(cx0 + lr), cy: R(cy), r: lr, fill: on ? (LAMP || ink) : paper, stroke: ink, 'stroke-width': Math.max(1, u(1.2)), 'shape-rendering': 'geometricPrecision' }, g);
    var labX = cx0 + 2 * lr + gap;
       text(g, on ? I18N.today : dayName(d), labX, cy + L.size * 0.36, L, { ls: R(L.size * 0.12) });
-   // the spare width goes between the label and the icon, so the numbers stay at the right edge
    var right = x + w - pad, loX = right, hiX = right - loW - gap;
    var icX = Math.max(labX + labW + gap + isz / 2, (labX + labW + hiX - hiW) / 2);
    icon(g, d.icon, icX, cy, isz, null);
@@ -1213,14 +1148,14 @@ var I18N = (function () {
   }
   function keysRow(x, y, w, h, nd) {
    debug.days = 0;
-   if (!M.days.length) {                        // no forecast: one empty plate says so, no blank keys
+   if (!M.days.length) {
     var lw = Math.max(2, u(2)), P = F(RD(Math.min(h, w * 0.2) * 0.16, 12), '700');
     rrect(root, x + lw / 2, y + lw / 2, w - lw - u(3), h - lw - u(3), u(6), paper, ink, lw);
     text(root, I18N.ours('next_days'), x + w / 2, y + h / 2 - P.size * 0.2, P, { anchor: 'middle', ls: R(P.size * 0.25) });
     text(root, I18N.ours(M.ok ? 'no_forecast' : 'no_signal'), x + w / 2, y + h / 2 + P.size * 1.3, F(P.size * 0.8, '600'), { anchor: 'middle', ls: R(P.size * 0.2) });
     return;
    }
-   if (h > w * 0.6) {                           // a tall area: the next days as list rows
+   if (h > w * 0.6) {
     var rg = u(10), n = Math.max(1, Math.min(M.days.length || 1, 7, Math.floor((h + rg) / (u(52) * TS + rg))));
     var rh = (h - rg * (n - 1)) / n;
     if (rh > u(90) * TS) { rh = u(90) * TS; }
@@ -1231,7 +1166,6 @@ var I18N = (function () {
    debug.days = nd; debug.rows = false;
    daysStrip(x, y, w, h, nd);
   }
-  // the week as one visual: day columns on one shared temperature scale, name and icon above
   function daysStrip(x, y, w, h, nd) {
    var days = M.days.slice(0, nd), cw = w / nd;
    var lo = null, hi = null;
@@ -1240,30 +1174,26 @@ var I18N = (function () {
    if (hi - lo < 1) hi = lo + 1;
    var hb = Math.min(h, cw * 1.6);
    var L = F(RD(Math.min(hb * 0.11, cw * 0.16), 11), '700'), T = F(RD(Math.min(hb * 0.15, cw * 0.24), 13), '800'), t2 = F(RD(Math.min(hb * 0.12, cw * 0.2), 12), '700');
-   // one row of day name and icon, so most of the height is the shared scale
    var isz = Math.min(L.size * 2.2, cw * 0.35), rowY = y + Math.max(L.size, isz * 0.62) + u(4);
-   // each day's rain chance and UV max flank its low on the same line; the UV is dropped first, then the rain chance, when the column is narrow
-   var RS = F(RD(Math.min(hb * 0.09, cw * 0.14), 10), '600');
-   var metaW = function (str) { var tt = text(root, str, 0, 0, RS, { ls: R(RS.size * 0.05) }); var ww = width(tt); root.removeChild(tt); return ww; };
-   var room = cw / 2 - metaW('-88' + deg) / 2 - u(6);
-   var flank = metaW('100%') <= room ? (metaW(I18N.ours('uv') + ' 11') <= room ? 2 : 1) : 0;
-   debug.dayMeta = flank;
-   var top = rowY + isz * 0.7 + T.size * 1.45,   // under the icon's full height (it covered 13°, large text)
-    bot = y + h - t2.size * 1.35;
+   function geo(Tc) {
+    var tp = PIXFONT ? rowY + isz * 0.7 + Tc.size * 1.15 : rowY + isz * 0.7 + Tc.size * 1.45, bt = y + h - t2.size * 1.35, sH = Math.max(u(2), Math.min(u(3.5), (bt - tp) / 22)), sG = Math.max(bits === 1 ? 2 : 1, R(sH * 0.6));
+    return { T: Tc, top: tp, bot: bt, segH: sH, segG: sG, n: Math.floor((bt - tp + sG) / (sH + sG)) };
+   }
+   var G = geo(T);
+   if (PIXFONT) [21, 16, 12].some(function (c) { G = geo(F(c, '800')); return G.n >= 6; });
+   T = G.T;
    // segmented audio level bars (owner, the original ask): a fixed count of thin LED segments per day on the
    // shared scale, lit from the low to the high, a brighter peak-hold segment at the high, unlit segments faint
-   var pw = Math.max(u(14), Math.min(cw * 0.22, u(40)));
-   var segH = Math.max(u(2), Math.min(u(3.5), (bot - top) / 22)), segG = Math.max(bits === 1 ? 2 : 1, R(segH * 0.6));   // many thin segments, clear gaps
-   var NS = Math.max(6, Math.floor((bot - top + segG) / (segH + segG)));
+   var pw = Math.max(u(14), Math.min(cw * 0.22, u(40))), top = G.top, bot = G.bot, segH = G.segH, segG = G.segG;
+   var NS = Math.max(PIXFONT ? 2 : 6, G.n);
    var LIT = FULL ? AMBER : (ORANGE || (bits === 4 ? fillOf('gray-20', '#333') : (bits === 2 ? fillOf('gray-15', '#333') : ink)));
-   var PEAK = FULL ? '#ff5a00' : (color && RED !== ink ? RED : ink);   // the warmest: red where the panel has it
+   var PEAK = FULL ? '#ff5a00' : (color && RED !== ink ? RED : ink);
    var OFF = FULL ? 'rgb(0,0,0,0.08)' : (bits === 4 ? fillOf('gray-60', '#bbb') : (bits === 2 ? fillOf('gray-60', '#bbb') : null));
    debug.strip = []; debug.segments = NS;
    days.forEach(function (d, i) {
     var cx = x + cw * (i + 0.5), on = i === 0;
     var LB = on ? F(L.size * 0.85, '800') : L;
     var lmax = cw * 0.5 - u(14), lt = fitText(root, on ? I18N.today : dayName(d), cx - u(10), rowY + LB.size * 0.36, LB, lmax, { anchor: 'end', ls: R(LB.size * 0.08) });
-   // a "today" too long for its column (AUJOURD'HUI on the OG) gives way to the day's own short name, still underlined
    if (on && lt && width(lt) > lmax + 1) { root.removeChild(lt); lt = fitText(root, dayName(d), cx - u(10), rowY + LB.size * 0.36, LB, lmax, { anchor: 'end', ls: R(LB.size * 0.08) }); }
     icon(root, d.icon, cx + isz * 0.7, rowY, isz, null);
     if (lt) { lt.setAttribute('data-sw-day', R(x + cw * i) + ' ' + R(x + cw * (i + 1))); }
@@ -1274,17 +1204,11 @@ var I18N = (function () {
     for (var k = 0; k < NS; k++) {
      var litK = k >= k0 && k <= k1, fill = litK ? (k === k1 ? PEAK : LIT) : OFF;
      if (fill) mk('rect', { x: R(cx - pw / 2), y: R(yOf(k)), width: R(pw), height: R(segH), fill: fill, 'data-sw-led': litK ? (k === k1 ? 'peak' : 'lit') : 'off' }, root);
-     else if (bits === 1 && !litK) mk('rect', { x: R(cx), y: R(yOf(k) + segH / 2), width: 1, height: 1, fill: ink, 'data-sw-led': 'off' }, root);   // 1-bit: a crisp dot
+     else if (bits === 1 && !litK) mk('rect', { x: R(cx), y: R(yOf(k) + segH / 2), width: 1, height: 1, fill: ink, 'data-sw-led': 'off' }, root);
     }
     var yHi = yOf(k1), yLo = yOf(k0) + segH;
-    // the numbers at the column's ends, clear of every segment: the high above, the low below
     text(root, tStr(d.hi), cx, yOf(NS - 1) - T.size * 0.35, T, { anchor: 'middle' });
     text(root, tStr(d.lo), cx, bot + t2.size * 1.1, t2, { anchor: 'middle' });
-    if (flank) {
-     var fy = bot + t2.size * 1.1, off = metaW('-88' + deg) / 2 + u(6), mo = { ls: R(RS.size * 0.05) };
-     text(root, metaStr(d, 1), cx - off, fy, RS, Object.assign({ anchor: 'end' }, mo));
-     if (flank === 2) text(root, I18N.ours('uv') + ' ' + fv(d.uvMax), cx + off, fy, RS, mo);
-    }
     debug.strip.push({ hi: d.hi, lo: d.lo, top: R(yHi), bottom: R(yLo) });
    });
   }
@@ -1307,26 +1231,23 @@ var I18N = (function () {
   }
   if (view === 4) {
    // quadrant: the glass shows the temperature, so the one meter is the rain chance (owner: never the temperature twice)
-   if (H0 / z >= 260) {                          // the X: the glass on top, the rain chance meter wide underneath
+   if (H0 / z >= 260) {
     var qg = R(H0 * 0.42);
     vfd(root, X0, Y0, W0, qg, true);
     rainMeter(root, X0, Y0 + qg + GP, W0, H0 - qg - GP, true);
    } else {
-    vfdQuad(root, X0, Y0, W0, H0);              // the OG: the glass alone, one strong element
+    vfdQuad(root, X0, Y0, W0, H0);
    }
   } else if (view === 2 && W0 < H0 * 2.4) {
-   // a half that is not wide enough for three across (TRMNL X portrait): glass on top, meters below
    var vh2 = R(H0 * 0.34);
    vfd(root, X0, Y0, W0, vh2, true);
    meterPair(X0, Y0 + vh2 + GP, W0, H0 - vh2 - GP, false);
   } else if (view === 2) {
-   // half horizontal: meter, glass, meter in one row, the receiver's own order
    var mw3 = R(Math.min(W0 * 0.33, H0 * 1.15)), gw = W0 - 2 * mw3 - 2 * GP;
    tempMeter(root, X0, Y0, mw3, H0, smallFace(H0, mw3), 'L');
    vfd(root, X0 + mw3 + GP, Y0, gw, H0, true);
    rainMeter(root, X0 + W0 - mw3, Y0, mw3, H0, smallFace(H0, mw3), 'R');
   } else if (view === 3 && H0 > W0 * 1.25) {
-   // a tall half (TRMNL X): glass, the meters one above the other at full width, then the days
    var vh5 = R(H0 * 0.22), mh5 = R(Math.min(H0 * 0.25, W0 * 0.62));
    vfd(root, X0, Y0, W0, vh5, true);
    tempMeter(root, X0, Y0 + vh5 + GP, W0, mh5, smallFace(mh5, W0), 'L');
@@ -1334,7 +1255,6 @@ var I18N = (function () {
    var ky5 = Y0 + vh5 + 2 * mh5 + 3 * GP;
    keysRow(X0, ky5, W0, Y0 + H0 - ky5, daysFit(W0, 110));
   } else if (view === 3) {
-   // half vertical: the glass on top, the meter pair, then the days
    var vh3 = R(H0 * 0.27), kh3 = R(H0 * 0.24);
    var mp3 = H0 - vh3 - kh3 - 2 * GP, cap3 = R((W0 - GP) / 2 * 0.85);
    if (mp3 > cap3) { var ex3 = mp3 - cap3; vh3 += R(ex3 * 0.5); kh3 += ex3 - R(ex3 * 0.5); }
