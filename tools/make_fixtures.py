@@ -19,7 +19,7 @@ def answer(start, temps, probs, codes, days, cur, unit='celsius'):
         'latitude': 52.52, 'longitude': 13.419998, 'generationtime_ms': 0.4, 'utc_offset_seconds': 3600,
         'timezone': 'Europe/Berlin', 'timezone_abbreviation': 'GMT+1', 'elevation': 38.0,
         'current_units': {'time': 'iso8601', 'interval': 'seconds', 'temperature_2m': t_unit,
-                          'apparent_temperature': t_unit, 'relative_humidity_2m': '%',
+                          'apparent_temperature': t_unit, 'relative_humidity_2m': '%', 'uv_index': '',
                           'wind_speed_10m': 'mp/h' if unit == 'fahrenheit' else 'km/h', 'weather_code': 'wmo code'},
         'current': dict(time=hours[0], interval=900, is_day=1 if 7 <= start.hour <= 16 else 0, **cur),
         'hourly_units': {'time': 'iso8601', 'temperature_2m': t_unit, 'precipitation_probability': '%',
@@ -27,13 +27,14 @@ def answer(start, temps, probs, codes, days, cur, unit='celsius'):
         'hourly': {'time': hours, 'temperature_2m': temps, 'precipitation_probability': probs, 'weather_code': codes,
                    'is_day': [1 if 7 <= (start + timedelta(hours=i)).hour <= 16 else 0 for i in range(len(temps))]},
         'daily_units': {'time': 'iso8601', 'weather_code': 'wmo code', 'temperature_2m_max': t_unit,
-                        'temperature_2m_min': t_unit, 'precipitation_probability_max': '%'},
+                        'temperature_2m_min': t_unit, 'precipitation_probability_max': '%', 'uv_index_max': ''},
         'daily': {
             'time': [(d0 + timedelta(days=i)).strftime('%Y-%m-%d') for i in range(len(days))],
             'weather_code': [d[2] for d in days],
             'temperature_2m_max': [d[1] for d in days],
             'temperature_2m_min': [d[0] for d in days],
             'precipitation_probability_max': [d[3] for d in days],
+            'uv_index_max': [round(max(0.0, d[1] / 3.5), 1) for d in days],
         },
     }
 
@@ -62,7 +63,7 @@ def mixed():
             (2.0, 9.0, 61, 65), (1.2, 8.1, 2, 15), (0.4, 6.0, 73, 70), (-0.5, 5.5, 1, 5),
             (1.0, 7.7, 3, 20), (2.2, 9.9, 61, 50)]
     cur = {'temperature_2m': 1.6, 'apparent_temperature': -1.9, 'relative_humidity_2m': 91,
-           'wind_speed_10m': 11.2, 'weather_code': 2}
+           'wind_speed_10m': 11.2, 'weather_code': 2, 'uv_index': 1.8}
     return answer(start, temps, probs, codes, days, cur)
 
 
@@ -87,7 +88,7 @@ def extreme():
     days = [(-10.0, 35.0, 99, 100), (-8.4, 33.2, 95, 100), (-6.0, 30.1, 75, 80), (-9.5, 12.0, 86, 90),
             (2.0, 28.0, 0, 0), (12.0, 34.9, 96, 85), (-3.0, 18.0, 65, 75)] * 2
     cur = {'temperature_2m': -10.0, 'apparent_temperature': -18.4, 'relative_humidity_2m': 100,
-           'wind_speed_10m': 88.0, 'weather_code': 95}
+           'wind_speed_10m': 88.0, 'weather_code': 95, 'uv_index': 9.4}
     return answer(start, temps, probs, codes, days, cur)
 
 
@@ -116,7 +117,7 @@ def main():
         'empty.json': {**m, 'hourly': {'time': [], 'temperature_2m': [], 'precipitation_probability': [],
                                        'weather_code': [], 'is_day': []},
                        'daily': {'time': [], 'weather_code': [], 'temperature_2m_max': [], 'temperature_2m_min': [],
-                                 'precipitation_probability_max': []}},
+                                 'precipitation_probability_max': [], 'uv_index_max': []}},
         'nulls.json': json.loads(json.dumps(m).replace('"temperature_2m": 1.6', '"temperature_2m": null')),
         'error.json': {'error': True, 'reason': 'Latitude must be in range of -90 to 90°. Given: 952.52.'},
     }

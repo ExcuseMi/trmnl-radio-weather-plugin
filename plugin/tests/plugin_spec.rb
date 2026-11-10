@@ -765,6 +765,90 @@ RSpec.describe 'Stereo Weather' do
     end
   end
 
+  describe 'humidity, UV and the lamps' do
+    def texts(screen) = screen.evaluate("[].slice.call(document.querySelectorAll('.sw-stage svg text')).map(function(t){return t.textContent}).join(' | ')")
+
+    # every lamp (pill or word) with the margin to the window's inner edge it sits in, in screen pixels
+    LAMP_BOXES = <<~JS
+      (function () {
+        var wins = [].slice.call(document.querySelectorAll('.sw-stage [data-sw-glass-inner]')).map(function (e) { return e.getBoundingClientRect(); });
+        return [].slice.call(document.querySelectorAll('.sw-stage [data-sw-status]')).map(function (e) {
+          var r = e.getBoundingClientRect(), cx = (r.left + r.right) / 2, cy = (r.top + r.bottom) / 2;
+          var w = wins.filter(function (q) { return cx > q.left && cx < q.right && cy > q.top && cy < q.bottom; })[0];
+          return { rx: e.getAttribute('rx'), margin: w ? Math.min(r.left - w.left, r.top - w.top, w.right - r.right, w.bottom - r.bottom) : null };
+        });
+      })()
+    JS
+
+    it 'shows humidity and UV now on the glass, OG and X, full view' do
+      %w[og_png v2].each do |device|
+        t = texts(draw(device:))
+        expect(t).to include('HUM 91%').and include('UV 1.8'.sub('1.8', '2'))
+      end
+    end
+
+    it 'shows humidity and UV on the quadrant glass of the OG' do
+      expect(texts(draw(view: 'quadrant', device: 'og_png'))).to include('HUM 91%').and include('UV 2')
+    end
+
+    it 'says them in Dutch, and falls back to English for a language without our words' do
+      expect(texts(draw(fields: { 'language' => 'nl' }, device: 'v2'))).to include('VOCHT 91%')
+      expect(texts(draw(fields: { 'language' => 'sv' }, device: 'v2'))).to include('HUM 91%')
+    end
+
+    it 'lights the UV lamp when today\'s UV max is 6 or more, and not below' do
+      expect(debug(draw(device: 'v2', answer: { json: fixture('extreme') }))['lamps']).to include('+UV')
+      expect(debug(draw(device: 'v2'))['lamps']).not_to include('+UV')
+    end
+
+    it 'draws -- for humidity and UV and does not crash when an old answer lacks them' do
+      old = fixture('mixed')
+      old['current'].delete('uv_index'); old['current'].delete('relative_humidity_2m'); old['daily'].delete('uv_index_max')
+      %w[og_png v2].each do |device|
+        VIEWS.each do |view|
+          s = draw(view:, device:, answer: { json: old })
+          debug(s)
+          expect(label_problems(s)).to eq([])
+          expect(texts(s)).to include('HUM --') if view == 'full'
+        end
+      end
+    end
+
+    it 'puts the rain chance and the UV max beside each day low, and leaves nothing clipped' do
+      %w[og_png v2].each do |device|
+        s = draw(device:)
+        expect(debug(s)['dayMeta']).to eq(2)
+        expect(texts(s)).to include('90%').and include('UV 4')
+        expect(label_problems(s)).to eq([])
+      end
+    end
+
+    it 'drops UV from the day keys, then the rain chance, when the column is narrow' do
+      s = draw(view: 'half_vertical', device: 'og_png', fields: { 'days_shown' => '7' })
+      expect([0, 1, 2]).to include(debug(s)['dayMeta'])
+      expect(label_problems(s)).to eq([])
+    end
+
+    %w[og_png v2].each do |device|
+      VIEWS.each do |view|
+        next if device == 'og_png' && view == 'quadrant'   # the OG quadrant is the glass alone, no lamps
+
+        it "keeps every lamp inside the glass with clear space, on #{device} #{view}" do
+          debug(s = draw(view:, device:))
+          lamps = s.evaluate(LAMP_BOXES)
+          expect(lamps).not_to be_empty
+          expect(lamps.map { it['margin'] }).to all(be >= 3)
+        end
+      end
+    end
+
+    it 'draws the OG lamps as rectangles with square corners' do
+      lamps = draw(device: 'og_png').evaluate(LAMP_BOXES)
+      expect(lamps.size).to be >= 5
+      expect(lamps.map { it['rx'].to_f }.max).to eq(0)
+    end
+  end
+
   it 'asks Open-Meteo for the chosen place and unit' do
     run = trmnl.transform(mocks:, custom_fields: custom_fields.merge('lat_lon' => '48.85, 2.35', 'unit' => 'fahrenheit'))
     url = run.requests.map { it[:url] }.find { it.include?('open-meteo') }

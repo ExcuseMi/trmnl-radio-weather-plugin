@@ -131,10 +131,10 @@ var SWModel = (function () {
   if (interval === 'daily') {
    var d = raw.daily || {};
    var dt = list(d, 'time'), dmin = list(d, 'temperature_2m_min'), dmax = list(d, 'temperature_2m_max');
-   var dp = list(d, 'precipitation_probability_max'), dc = list(d, 'weather_code');
+   var dp = list(d, 'precipitation_probability_max'), dc = list(d, 'weather_code'), du = list(d, 'uv_index_max');
    for (var i = 0; i < dt.length && out.length < 24; i++) {
     var mm = minMax([dmin[i], dmax[i]]);
-    out.push({ label: weekday(dt[i]), lo: mm.lo, hi: mm.hi, rain: num(dp[i]), sev: severity(dc[i]),
+    out.push({ label: weekday(dt[i]), lo: mm.lo, hi: mm.hi, rain: num(dp[i]), uvMax: num(du[i]), sev: severity(dc[i]),
      first: i === 0, missing: mm.lo === null, icon: kind(dc[i]), day: true });
    }
    return out;
@@ -192,7 +192,7 @@ var SWModel = (function () {
   cfg = cfg || {};
   var interval = ({ '1h': 1, '2h': 1, '3h': 1, daily: 1 })[cfg.interval] ? cfg.interval : '3h';
   var model = { ok: false, unit: cfg.unit === 'fahrenheit' ? 'F' : 'C', interval: interval, slots: [],
-   now: { temp: null, feels: null, hum: null, wind: null, word: '', icon: null, day: true, sync: null, rain6: null },
+   now: { temp: null, feels: null, hum: null, uv: null, wind: null, word: '', icon: null, day: true, sync: null, rain6: null },
    today: { lo: null, hi: null }, hours: [], days: [], rain: null, age: null, reason: null };
   if (!raw || raw.error || (!raw.hourly && !raw.daily && !raw.current)) {
    model.reason = (raw && raw.reason) ? String(raw.reason).slice(0, 160) : 'NO DATA FROM OPEN-METEO';
@@ -204,6 +204,7 @@ var SWModel = (function () {
    temp: num(c.temperature_2m) !== null ? num(c.temperature_2m) : num(tt[0]),
    feels: num(c.apparent_temperature),
    hum: num(c.relative_humidity_2m),
+   uv: num(c.uv_index),
    wind: num(c.wind_speed_10m),
    word: word(c.weather_code),
    code: num(c.weather_code),
@@ -251,14 +252,14 @@ var I18N_TRMNL = {"cs":"Teplota|Min/Max|Dnes||||Sněžení|Slunečno|Polojasno|Z
 // locale in OURS_KEYS order; a missing locale or key falls back to English.
 var OURS_KEYS = ['temp_s', 'rain', 'rain_from', 'rain_until', 'until', 'raining_now', 'no_rain', 'dry', 'next_h', 'dry_h',
  'frost', 'no_signal', 'no_forecast', 'next_days', 'over', 'under', 'now', 'rain_chance', 'wind', 'temperature', 'today', 'lh',
- 'snow', 'hail', 'snow_from', 'snow_until', 'snowing_now', 'hail_from', 'hail_until', 'hailing_now'];
+ 'snow', 'hail', 'snow_from', 'snow_until', 'snowing_now', 'hail_from', 'hail_until', 'hailing_now', 'hum', 'uv'];
 var OURS = {
- en: 'TEMP|RAIN|RAIN FROM|RAIN UNTIL|UNTIL|RAINING NOW|NO RAIN|DRY|NEXT {n} H|DRY {n} H|FROST|NO SIGNAL|NO FORECAST|NEXT DAYS|OVER|UNDER|NOW|RAIN CHANCE|WIND|TEMPERATURE|TODAY|L/H|SNOW|HAIL|SNOW FROM|SNOW UNTIL|SNOWING NOW|HAIL FROM|HAIL UNTIL|HAIL NOW',
+ en: 'TEMP|RAIN|RAIN FROM|RAIN UNTIL|UNTIL|RAINING NOW|NO RAIN|DRY|NEXT {n} H|DRY {n} H|FROST|NO SIGNAL|NO FORECAST|NEXT DAYS|OVER|UNDER|NOW|RAIN CHANCE|WIND|TEMPERATURE|TODAY|L/H|SNOW|HAIL|SNOW FROM|SNOW UNTIL|SNOWING NOW|HAIL FROM|HAIL UNTIL|HAIL NOW|HUM|UV',
  de: 'TEMP|REGEN|REGEN AB|REGEN BIS|BIS|ES REGNET|KEIN REGEN|TROCKEN|NÄCHSTE {n} STD|TROCKEN {n} STD|FROST|KEIN SIGNAL|KEINE VORHERSAGE|NÄCHSTE TAGE|ÜBER|UNTER|JETZT|REGENRISIKO|WIND|TEMPERATUR|HEUTE|T/H|SCHNEE|HAGEL|SCHNEE AB|SCHNEE BIS|ES SCHNEIT|HAGEL AB|HAGEL BIS|ES HAGELT',
  fr: "TEMP|PLUIE|PLUIE DÈS|PLUIE JUSQU'À|JUSQU'À|IL PLEUT|PAS DE PLUIE|SEC|PROCHAINES {n} H|SEC {n} H|GEL|PAS DE SIGNAL|PAS DE PRÉVISION|PROCHAINS JOURS|AU-DESSUS|EN DESSOUS|MAINTENANT|RISQUE DE PLUIE|VENT|TEMPÉRATURE|AUJOURD'HUI|MIN/MAX|NEIGE|GRÊLE|NEIGE DÈS|NEIGE JUSQU'À|IL NEIGE|GRÊLE DÈS|GRÊLE JUSQU'À|IL GRÊLE",
  es: 'TEMP|LLUVIA|LLUVIA DESDE|LLUVIA HASTA|HASTA|LLUEVE|SIN LLUVIA|SECO|PRÓXIMAS {n} H|SECO {n} H|HELADA|SIN SEÑAL|SIN PRONÓSTICO|PRÓXIMOS DÍAS|ENCIMA|DEBAJO|AHORA|RIESGO DE LLUVIA|VIENTO|TEMPERATURA|HOY|MÍN/MÁX|NIEVE|GRANIZO|NIEVE DESDE|NIEVE HASTA|NIEVA|GRANIZO DESDE|GRANIZO HASTA|GRANIZA',
  it: 'TEMP|PIOGGIA|PIOGGIA DALLE|PIOGGIA FINO|FINO ALLE|PIOVE|NIENTE PIOGGIA|ASCIUTTO|PROSSIME {n} ORE|ASCIUTTO {n} ORE|GELO|NESSUN SEGNALE|NESSUNA PREVISIONE|PROSSIMI GIORNI|SOPRA|SOTTO|ORA|RISCHIO PIOGGIA|VENTO|TEMPERATURA|OGGI|MIN/MAX|NEVE|GRANDINE|NEVE DALLE|NEVE FINO|NEVICA|GRANDINE DALLE|GRANDINE FINO|GRANDINA',
- nl: 'TEMP|REGEN|REGEN VANAF|REGEN TOT|TOT|HET REGENT|GEEN REGEN|DROOG|KOMENDE {n} UUR|DROOG {n} UUR|VORST|GEEN SIGNAAL|GEEN VERWACHTING|KOMENDE DAGEN|BOVEN|ONDER|NU|REGENKANS|WIND|TEMPERATUUR|VANDAAG|MIN/MAX|SNEEUW|HAGEL|SNEEUW VANAF|SNEEUW TOT|HET SNEEUWT|HAGEL VANAF|HAGEL TOT|HET HAGELT',
+ nl: 'TEMP|REGEN|REGEN VANAF|REGEN TOT|TOT|HET REGENT|GEEN REGEN|DROOG|KOMENDE {n} UUR|DROOG {n} UUR|VORST|GEEN SIGNAAL|GEEN VERWACHTING|KOMENDE DAGEN|BOVEN|ONDER|NU|REGENKANS|WIND|TEMPERATUUR|VANDAAG|MIN/MAX|SNEEUW|HAGEL|SNEEUW VANAF|SNEEUW TOT|HET SNEEUWT|HAGEL VANAF|HAGEL TOT|HET HAGELT|VOCHT|UV',
  pt: 'TEMP|CHUVA|CHUVA ÀS|CHUVA ATÉ|ATÉ|CHOVENDO|SEM CHUVA|SECO|PRÓXIMAS {n} H|SECO {n} H|GEADA|SEM SINAL|SEM PREVISÃO|PRÓXIMOS DIAS|ACIMA|ABAIXO|AGORA|CHANCE DE CHUVA|VENTO|TEMPERATURA|HOJE|MÍN/MÁX|NEVE|GRANIZO|NEVE ÀS|NEVE ATÉ|NEVANDO|GRANIZO ÀS|GRANIZO ATÉ|GRANIZANDO',
  ja: '気温|雨|雨の開始|雨の終了|終了|降雨中|雨なし|雨なし|今後{n}時間|{n}時間 雨なし|霜|受信なし|予報なし|週間予報|超過|未満|現在|降水確率|風|気温|今日|最低/最高|雪|ひょう|雪の開始|雪の終了|降雪中|ひょうの開始|ひょうの終了|降ひょう中',
  ko: '기온|비|비 시작|비 그침|종료|비 오는 중|비 없음|비 없음|향후 {n}시간|{n}시간 비 없음|서리|신호 없음|예보 없음|주간 예보|초과|미만|현재|강수 확률|바람|기온|오늘|최저/최고|눈|우박|눈 시작|눈 그침|눈 오는 중|우박 시작|우박 그침|우박 내리는 중',
@@ -466,9 +467,23 @@ var I18N = (function () {
   var root = mk('g', {}, svg);
   stage.appendChild(svg);
 
+  // 1 and 2 bit panels (the OG): TRMNL's pixel fonts only look right at their native pixel sizes. Any size asked
+  // for snaps to the largest native size that is not bigger (12, 16, 21, then whole multiples of 21), in that
+  // size's own family, so no glyph is ever scaled by a fraction and thresholded ragged.
+  var PIXFONT = bits <= 2 && z < 1.5 && /trmnl|nico|block/i.test(String(LG.family)) && /trmnl|nico|block/i.test(String(SM.family));
+  function pixel(sp, weight) {
+   var nat = [SM, MD, LG].map(function (q) { return { family: q.family, size: Math.round(q.size) }; });
+   var best = nat[0];
+   nat.forEach(function (q) { if (q.size <= sp.size * 1.04 && q.size >= best.size) best = q; });
+   var size = best.size;
+   if (sp.size >= nat[2].size * 2 * 0.96) size = nat[2].size * Math.floor(sp.size / nat[2].size + 0.04), best = nat[2];
+   return { family: best.family, size: size, weight: parseInt(weight, 10) >= 600 ? '700' : '400' };
+  }
   function text(parent, str, x, y, sp, opts) {
    opts = opts || {};
-   var t = mk('text', { x: R(x), y: R(y), 'font-family': sp.family, 'font-size': sp.size, 'font-weight': opts.weight || sp.weight,
+   var px = PIXFONT ? pixel(sp, opts.weight || sp.weight) : null;
+   var t = mk('text', { x: R(x), y: R(y), 'font-family': px ? px.family : sp.family, 'font-size': px ? px.size : sp.size,
+    'font-weight': px ? px.weight : (opts.weight || sp.weight), 'text-rendering': px ? 'optimizeSpeed' : null,
     fill: opts.fill || ink, 'text-anchor': opts.anchor || 'start', 'letter-spacing': opts.ls ? R(opts.ls) : null }, parent);
    t.textContent = str;
    // centred and right-aligned text starts on a whole pixel too, or bitmap faces smear on 1-bit
@@ -578,7 +593,10 @@ var I18N = (function () {
   debug.ts = TS; debug.palette = { color: color, red: RED !== ink, yel: !!YEL, blue: !!BLUE }; debug.labelPx = spec('label', 16).size / z;
   function RD(px, minCss) { return Math.max(px, u(minCss)) * TS; }
   var FAM = LG.family;
-  function F(px, w) { return { family: FAM, size: Math.max(8, R(px)), weight: w || '700' }; }
+  function F(px, w) {
+   var q = { family: FAM, size: Math.max(8, R(px)), weight: w || '700' };
+   return PIXFONT ? pixel(q, q.weight) : q;      // pixel fonts: the layout follows the size really drawn
+  }
   function tStr(v) { return v === null || v === undefined ? '--' : SWModel.fmt(v) + deg; }
   var SPAN = SW_CFG.span === '12h' ? 12 : 24;
   var X1 = M.hours.slice(0, SPAN);
@@ -744,12 +762,13 @@ var I18N = (function () {
    // caption sits under the meter, the short name with the unit, so every meter says what it shows
    var pad = fh * 0.06;
    function freeW(yTop) { return cx - (py - yTop) * Math.tan(A + 0.08) - fx - pad - u(4); }
-   var cornerTxt = o.captioned ? o.unitName : o.shortName + ' ' + o.unitName;
+   var cornerTxt = o.captioned || (PIXFONT && o.small) ? o.unitName : o.shortName + ' ' + o.unitName;   // pixel fonts cannot shrink: a small face prints the unit alone
    var BIG = F(fh * (o.captioned ? 0.15 : 0.11), '700');
    var ly1 = fy + fh * 0.92;
    // never under the pivot or its tail: the print ends well left of the hub (owner, X half_horizontal)
    var clearHub = cx - fx - pad - Math.max(u(16), fh * 0.14);
-   var nt = fitText(g, cornerTxt, fx + pad, ly1, BIG, Math.max(u(30), Math.min(freeW(ly1 - BIG.size * 0.8), clearHub)), { ls: R(BIG.size * 0.04) });
+   var cRoom = Math.max(u(30), Math.min(freeW(ly1 - BIG.size * 0.8), clearHub));
+   var nt = fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) });
    debug.cornerPrint = debug.cornerPrint || [];
    debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - Math.max(u(5), fh * 0.035)), gap: R(2 * Math.max(u(5), fh * 0.035)) });
    (debug.names = debug.names || []).push(o.captioned ? o.name + ' ' + o.unitName : nt.textContent);
@@ -890,8 +909,15 @@ var I18N = (function () {
     mk('path', { d: rr(x, y, w, h, r) + ' ' + rr(x + d, y + d, w, h, r), 'fill-rule': 'evenodd', fill: st[1], 'shape-rendering': 'geometricPrecision' }, bg);
    });
   }
+  // the window's inner edge (its 1 px line on 1-bit, the bevel elsewhere): nothing printed on the glass may touch it
+  function glassInner(g, x, y, w, h) {
+   var d = bits === 1 ? u(9) : u(6);
+   mk('rect', { x: R(x + d), y: R(y + d), width: R(w - 2 * d), height: R(h - 2 * d), fill: 'none', 'data-sw-glass-inner': 1 }, g);
+   return d;
+  }
   function vfdBox(g, x, y, w, h) {
    var r = u(12);
+   glassInner(g, x, y, w, h);
    if (bits === 1) {
     rrect(g, x, y, w, h, r, ink);
     rrect(g, x + u(5), y + u(5), w - u(10), h - u(10), r - u(4), paper);
@@ -950,25 +976,25 @@ var I18N = (function () {
   // a status word lit or dark, as on a VFD
   function status(g, str, x, y, sp, on) {
    var col = on ? GLOW : (DIMW || null);
-   if (!col) { if (bits !== 1) return 0; col = null; }
-   if (bits === 1 && !on) {      // 1-bit: an unlit word is an outline pill, a lit one a filled pill
-    var t0 = text(g, str, x + sp.size * 0.45, y, sp, { ls: R(sp.size * 0.15) });
-    var tw0 = width(t0), hh = sp.size * 1.35;
-    rrect(g, x, y - sp.size * 1.0, tw0 + sp.size * 0.9, hh, hh / 2, 'none', ink, Math.max(1, u(1.2)));
-    return tw0 + sp.size * 0.9;
-   }
-   if (bits === 1 && on) {
-    var t1 = text(g, str, x + sp.size * 0.45, y, sp, { ls: R(sp.size * 0.15), fill: LAMP ? ink : paper });
-    var tw1 = width(t1), h1 = sp.size * 1.35;
-    g.insertBefore(rrect(g, x, y - sp.size * 1.0, tw1 + sp.size * 0.9, h1, h1 / 2, LAMP || ink), t1);
-    if (LAMP) rrect(g, x + 0.5, y - sp.size * 1.0 + 0.5, tw1 + sp.size * 0.9 - 1, h1 - 1, h1 / 2, 'none', ink, Math.max(1, u(1.2)));
-    return tw1 + sp.size * 0.9;
+   if (!col && bits !== 1) return 0;
+   if (bits === 1) {      // 1-bit: a square lamp, outlined dark, filled lit, crisp 1 px lines
+    var t0 = text(g, str, x + sp.size * 0.5, y, sp, { ls: R(sp.size * 0.15), fill: on ? (LAMP ? ink : paper) : ink });
+    var lw0 = Math.ceil(width(t0) + sp.size), lh0 = R(sp.size * 1.4), ly0 = R(y - sp.size * 1.05), bx = R(x), cr = { 'shape-rendering': 'crispEdges', 'data-sw-status': 1 };
+    if (on) g.insertBefore(mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP || ink }, cr), g), t0);
+    if (!on || LAMP) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, fill: 'none', stroke: ink, 'stroke-width': 1 }, cr), g);
+    return lw0;
    }
    // a lit word glows in the lamp colour on full colour, with the digits' halo
-   if (on && (FULL || GREYGLOW)) { var tw2 = 0; glowDigits(function (hg) { tw2 = width(text(hg || g, str, x, y, sp, { ls: R(sp.size * 0.15), fill: FULL ? AMBER : GLOW })); }); return tw2; }
-   var t = text(g, str, x, y, sp, { ls: R(sp.size * 0.15), fill: col });
-   return width(t);
+   var tw2 = 0, lit = on && (FULL || GREYGLOW);
+   function word(hg) { var tt = text(hg || g, str, x, y, sp, { ls: R(sp.size * 0.15), fill: lit ? (FULL ? AMBER : GLOW) : col }); tw2 = width(tt); if (!hg) tt.setAttribute('data-sw-status', 1); }
+   if (lit) glowDigits(word); else word(null);
+   return tw2;
   }
+  function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
+  function metaStr(d, mode) { return fv(d.rain, '%') + (mode === 2 ? '  ' + I18N.ours('uv') + ' ' + fv(d.uvMax) : ''); }
+  function humTxt() { return I18N.ours('hum') + ' ' + fv(M.now.hum, '%'); }
+  function uvTxt() { return I18N.ours('uv') + ' ' + fv(M.now.uv); }
+  var UVMAX0 = M.days.length ? M.days[0].uvMax : null;
   function vfd(g, x, y, w, h, compact) {
    debug.glassBox = [R(x), R(y), R(w), R(h)]; debug.origin = [R(rect.left * z), R(rect.top * z)];
    debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
@@ -982,8 +1008,11 @@ var I18N = (function () {
    var has = function (k) { return X1.some(function (hh) { return hh.icon === k; }); };
    var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain')], [I18N.snow, has('snow')],
     [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
-    [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, M.now.wind !== null && M.now.wind >= (M.unit === 'F' ? 20 : 30)]];
-   var sy = y + h * 0.17, sx = ix;
+    [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, M.now.wind !== null && M.now.wind >= (M.unit === 'F' ? 20 : 30)],
+    [I18N.ours('uv'), UVMAX0 !== null && UVMAX0 >= 6]];
+   // the lamps sit clear of the window's inner edge on every view
+   var innerD = u(bits === 1 ? 9 : 6), sy = Math.max(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
+   var lampBottom = sy + ST.size * 0.45;
    if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
    if (!compact) {
     // all lamps must fit before the credit: drop unlit ones from the end (never a lit one), then shrink
@@ -1035,8 +1064,10 @@ var I18N = (function () {
    function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.05); }
    // the digits end above the print under them: the condition, or the credit on its own row (it ran over "1.6", live)
    var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
-   while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)))) dh -= 2;
-   var dw = R(dh * 0.5), dy = y + h * (compact ? 0.27 : 0.25);
+   // the full glass: the digits start under the lamp row and end clear of the window's inner edge
+   var dyTop = compact ? y + h * 0.27 : Math.max(y + h * 0.25, lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2);
+   while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh > dyEnd))) dh -= 2;
+   var dw = R(dh * 0.5), dy = dyTop;
    var str = tempDigits();
    debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(lx + iconW) };
    var dwid = seg7W(dw, str), iconW = compact ? 0 : dh * 1.05;
@@ -1058,6 +1089,14 @@ var I18N = (function () {
    seg7(g, dx + dwid + R(dw * 0.25), dy, sw, R(dh * 0.45), 'o', DIGIT, null);
    seg7(g, dx + dwid + R(dw * 0.25) + sw + R(dw * 0.12), dy, sw, R(dh * 0.45), M.unit, DIGIT, null);
    if (!compact) wt = fitText(g, condS, lx, y + h * 0.9, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
+   if (!compact && M.ok) {
+    // humidity and UV now, stacked over the condition left of the icon; a readout that does not fit is dropped, never clipped
+    var rdW = icx - gsz * 0.62 - lx - u(6), rdB = y + h * 0.9 - WD.size * 1.7;
+    [[humTxt(), rdB - WD.size * 1.7], [uvTxt(), rdB]].forEach(function (rd) {
+     var rt = fitText(g, rd[0], lx, rd[1], WD, rdW, { fill: GLOW, ls: R(WD.size * 0.15) });
+     if (width(rt) > rdW + 1 || rd[1] - WD.size < lampBottom + u(4)) g.removeChild(rt);
+    });
+   }
    if (compact) {
     return;
    }
@@ -1126,7 +1165,13 @@ var I18N = (function () {
    }
    var line = M.ok ? I18N.hi + ' ' + SWModel.fmt(hi) + '  ' + I18N.lo + ' ' + SWModel.fmt(lo) + '  \u00b7  ' +
     (M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry_h', SPAN)) : String(M.reason || '').toUpperCase();
-   fitText(g, line, ix, ly, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
+   var lt = fitText(g, line, ix, ly, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
+   // humidity and UV at the right of the line when it is short enough, else humidity alone, else none
+   if (M.ok) [humTxt() + '  ' + uvTxt(), humTxt()].some(function (rd) {
+    var rt = text(g, rd, ix + iw, ly, LN, { anchor: 'end', ls: R(LN.size * 0.1), fill: GLOW });
+    if (width(lt) + width(rt) + u(12) <= iw) return true;
+    g.removeChild(rt);
+   });
   }
 
   faceplate(root, u(3), u(3), UW - u(6), UH - u(6));   // edge to edge, its strokes kept inside the screen
@@ -1158,7 +1203,7 @@ var I18N = (function () {
    var cx0 = x + pad;
    mk('circle', { cx: R(cx0 + lr), cy: R(cy), r: lr, fill: on ? (LAMP || ink) : paper, stroke: ink, 'stroke-width': Math.max(1, u(1.2)), 'shape-rendering': 'geometricPrecision' }, g);
    var labX = cx0 + 2 * lr + gap;
-   text(g, on ? I18N.today : dayName(d), labX, cy + L.size * 0.36, L, { ls: R(L.size * 0.12) });
+      text(g, on ? I18N.today : dayName(d), labX, cy + L.size * 0.36, L, { ls: R(L.size * 0.12) });
    // the spare width goes between the label and the icon, so the numbers stay at the right edge
    var right = x + w - pad, loX = right, hiX = right - loW - gap;
    var icX = Math.max(labX + labW + gap + isz / 2, (labX + labW + hiX - hiW) / 2);
@@ -1197,6 +1242,12 @@ var I18N = (function () {
    var L = F(RD(Math.min(hb * 0.11, cw * 0.16), 11), '700'), T = F(RD(Math.min(hb * 0.15, cw * 0.24), 13), '800'), t2 = F(RD(Math.min(hb * 0.12, cw * 0.2), 12), '700');
    // one row of day name and icon, so most of the height is the shared scale
    var isz = Math.min(L.size * 2.2, cw * 0.35), rowY = y + Math.max(L.size, isz * 0.62) + u(4);
+   // each day's rain chance and UV max flank its low on the same line; the UV is dropped first, then the rain chance, when the column is narrow
+   var RS = F(RD(Math.min(hb * 0.09, cw * 0.14), 10), '600');
+   var metaW = function (str) { var tt = text(root, str, 0, 0, RS, { ls: R(RS.size * 0.05) }); var ww = width(tt); root.removeChild(tt); return ww; };
+   var room = cw / 2 - metaW('-88' + deg) / 2 - u(6);
+   var flank = metaW('100%') <= room ? (metaW(I18N.ours('uv') + ' 11') <= room ? 2 : 1) : 0;
+   debug.dayMeta = flank;
    var top = rowY + isz * 0.7 + T.size * 1.45,   // under the icon's full height (it covered 13°, large text)
     bot = y + h - t2.size * 1.35;
    // segmented audio level bars (owner, the original ask): a fixed count of thin LED segments per day on the
@@ -1229,6 +1280,11 @@ var I18N = (function () {
     // the numbers at the column's ends, clear of every segment: the high above, the low below
     text(root, tStr(d.hi), cx, yOf(NS - 1) - T.size * 0.35, T, { anchor: 'middle' });
     text(root, tStr(d.lo), cx, bot + t2.size * 1.1, t2, { anchor: 'middle' });
+    if (flank) {
+     var fy = bot + t2.size * 1.1, off = metaW('-88' + deg) / 2 + u(6), mo = { ls: R(RS.size * 0.05) };
+     text(root, metaStr(d, 1), cx - off, fy, RS, Object.assign({ anchor: 'end' }, mo));
+     if (flank === 2) text(root, I18N.ours('uv') + ' ' + fv(d.uvMax), cx + off, fy, RS, mo);
+    }
     debug.strip.push({ hi: d.hi, lo: d.lo, top: R(yHi), bottom: R(yLo) });
    });
   }

@@ -126,5 +126,20 @@ test('data age from the local data time, the offset and the render time', () => 
   eq(SWModel.ageMinutes('2026-11-08T06:00', 0, 0), null);
 });
 
+test('humidity, UV now and the day UV max come through; missing ones are null, never a crash', () => {
+  const m = SWModel.build(fx('mixed'), { interval: '3h' });
+  eq([m.now.hum, m.now.uv, m.days[0].uvMax, m.days[0].rain], [91, 1.8, 3.7, 90]);
+  // an old cached answer without the uv fields
+  const old = fx('mixed');
+  delete old.current.uv_index; delete old.daily.uv_index_max; delete old.current.relative_humidity_2m;
+  const o = SWModel.build(old, { interval: '3h' });
+  eq([o.ok, o.now.hum, o.now.uv, o.days[0].uvMax, o.days[3].uvMax], [true, null, null, null, null]);
+  eq(SWModel.fmt(o.now.uv), '--');
+  // a null inside the list
+  const nl = fx('mixed'); nl.daily.uv_index_max[1] = null; nl.current.uv_index = null;
+  const n = SWModel.build(nl, { interval: '3h' });
+  eq([n.now.uv, n.days[1].uvMax, n.days[0].uvMax], [null, null, 3.7]);
+});
+
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
