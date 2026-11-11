@@ -612,8 +612,11 @@ var MK = F(RD(fh * (o.small ? 0.07 : 0.05), o.small ? 11 : 10), '700'), bm = R(f
 function wOf(str) { var t0 = text(g, str, 0, 0, MK), tw = width(t0); g.removeChild(t0); return tw; }
 var mkW = Mx(wOf(I18N.lo), wOf(I18N.hi), wOf(I18N.ours('now')));
 function kOf(an, tw) { return bm + fh * 0.05 + u(3) + tw / 2 * Math.abs(Math.sin(an)) + MK.size * 0.63 * Math.cos(an); }
-if (!vu) for (var ai = 0; ai <= 8; ai++) rArc = Mn(rArc, (py - fy0 - fm - MK.size * 0.63) / Math.cos(AM * ai / 8) - kOf(AM * ai / 8, mkW));
+var nolab = vu || !!o.words;
+if (!nolab) for (var ai = 0; ai <= 8; ai++) rArc = Mn(rArc, (py - fy0 - fm - MK.size * 0.63) / Math.cos(AM * ai / 8) - kOf(AM * ai / 8, mkW));
 rArc = Mx(rArc, fh * 0.3);
+var WKh = o.words ? Mx(8, R(fh * 0.075)) : 0;
+if (o.words) rArc = Mn(rArc, py - fy0 - u(6) - bm - fh * 0.05 - WKh * 1.5);
 var AL = AM;
 while (AL > 0 && (rArc + kOf(AL, mkW)) * Math.sin(AL) + mkW / 2 > fw / 2 - fm) AL -= 0.01;
 function at(f, rad) { var an = -A + 2 * A * Mx(-0.03, Mn(1.03, f)); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
@@ -648,11 +651,11 @@ return { tk: tk, x: pl[0], y: pl[1], l: pl[0] - tw / 2 - SC.size * 0.3 - ko, r: 
 }
 function onNeedle(bx) { for (var k = 0; k <= 40; k++) { var xx = cx + ux * tipR * k / 40, yy = py + uy * tipR * k / 40;
 if (xx > bx.l - wBase && xx < bx.r + wBase && yy > bx.t - wBase && yy < bx.b + wBase) return true; } return false; }
-var mks = (o.marks || []).map((m) => { return { m: m, tw: vu ? 0 : wOf(m.label), an: Mx(-AL, Mn(AL, -A + 2 * A * Mx(-0.03, Mn(1.03, m.f)))) }; });
+var mks = (o.marks || []).map((m) => { return { m: m, tw: nolab ? 0 : wOf(m.label), an: Mx(-AL, Mn(AL, -A + 2 * A * Mx(-0.03, Mn(1.03, m.f)))) }; });
 function mkBox(q) { var rc = rArc + kOf(q.an, q.tw), x0 = cx + rc * Math.sin(q.an), y0 = py - rc * Math.cos(q.an);
 return { x: x0, y: y0, l: x0 - q.tw / 2, r: x0 + q.tw / 2, t: y0 - MK.size * 0.63, b: y0 + MK.size * 0.63 }; }
 function hit(p, q) { return p.r + u(4) > q.l && q.r + u(4) > p.l && p.b + u(2) > q.t && q.b + u(2) > p.t; }
-for (var it = 0; it < (vu ? 0 : 80); it++) {
+for (var it = 0; it < (nolab ? 0 : 80); it++) {
 var moved = false;
 mks.forEach((q, i) => {
 if (topBox && hit(mkBox(q), topBox)) { q.an += badge ? (o.badge === 'L' ? 0.02 : -0.02) : (q.an <= 0 ? -0.02 : 0.02); moved = true; }
@@ -661,7 +664,7 @@ q.an = Mx(-AL, Mn(AL, q.an));
 });
 if (!moved) break;
 }
-var mkb = vu ? [] : mks.map(mkBox), nl = labs.length - 1;
+var mkb = nolab ? [] : mks.map(mkBox), nl = labs.length - 1;
 for (var ks = compact ? Mx(1, Math.ceil(nl / 2)) : 1; ks <= Mx(1, nl); ks++) {
 if (nl % ks) continue;
 var sel = labs.filter((tk, i) => i % ks === 0).map(boxOf);
@@ -670,21 +673,20 @@ sel.every((q, j) => j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > 
 }
 var scaleLabels = placed;
 if (o.words) {
-var wr = rArc - fh * 0.07 - SC.size * 2.1, WF = [0.1, 0.37, 0.63, 0.9], WK = MK.size * 1.05, WW, wsp = wr * 2 * A * 0.27, stag = false;
+var WF = o.wordF, rw = rArc + bm + fh * 0.05 + WKh * 0.9, WK = WKh * 1.4, WW;
 for (var wi = 0; wi < 40; wi++) {
 WW = o.words.map((s) => wOf(s) * WK / MK.size);
-if (WW.every((q, i) => i === 0 || (q + WW[i - 1]) / 2 + u(3) <= wsp * (stag ? 2 : 1) || (stag && i % 2)) || WK < 6) break;
-WK *= 0.92;
-if (WK < 8 && !stag) { stag = true; WK = MK.size * 1.05; }
+if (WW.every((q, i) => i === 0 || (q + WW[i - 1]) / 2 + u(4) <= rw * 2 * A * (WF[i] - WF[i - 1])) || WK < 6) break;
+WK *= 0.94;
 }
 var WS = F(WK, '700');
-o.words.forEach((s, i) => { var rw = wr - (stag && i % 2 ? WS.size * 1.5 : 0), wp = at(WF[i], rw), wt = text(g, s, wp[0], wp[1] + WS.size * 0.36, WS, { anchor: 'middle' }); wt.setAttribute('data-sw-word', MN);
+o.words.forEach((s, i) => { var wp = at(WF[i], rw), wt = text(g, s, wp[0], wp[1] + WS.size * 0.36, WS, { anchor: 'middle' }); wt.setAttribute('data-sw-word', MN);
 wt.setAttribute('transform', 'rotate(' + R((-A + 2 * A * WF[i]) * 180 / Math.PI) + ' ' + R(wp[0]) + ' ' + R(wp[1]) + ')'); });
 }
 mks.forEach((q) => {
 var m = q.m, r0 = rArc + bm + u(2), r1 = rArc + bm + fh * 0.05, t0 = at(m.f, r0), t1 = at(m.f - 0.012, r1), t2 = at(m.f + 0.012, r1);
 mk('polygon', { points: [t0, t1, t2].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: ink, 'shape-rendering': GPX }, g);
-if (vu) return;
+if (nolab) return;
 var bx = mkBox(q);
 text(g, m.label, bx.x, bx.y + MK.size * 0.37, MK, { anchor: 'middle' }).setAttribute('data-sw-mark', MN);
 });
@@ -796,13 +798,13 @@ function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
 var WUNIT = M.unit === 'F' ? 'MPH' : 'KM/H', WTHR = M.unit === 'F' ? 20 : 30;
 function baroMeter(g, x, y, w, h, small, badge, captioned) {
 var ticks = [], f = (v) => (v - 970) / 80;
-for (var v = 970; v <= 1050; v += 10) ticks.push({ f: f(v), major: (v - 970) % 40 === 0, label: (v - 970) % 40 === 0 ? String(v) : undefined });
+for (var v = 970; v <= 1050; v += 10) ticks.push({ f: f(v), major: (v - 970) % 40 === 0, label: v === 1010 && !small && (w - u(14)) / z >= 420 ? '1010' : undefined });
 var ps = M.hours.slice(0, 24).map((q) => q.pr).filter((q) => q !== null), pn = M.now.press;
 if (pn !== null) ps.push(pn);
 var lo = ps.length ? Mn.apply(null, ps) : null, hi = ps.length ? Mx.apply(null, ps) : null;
 return meter(g, x, y, w, h, { chan: 'R', badge: badge, captioned: captioned, ticks: ticks, needle: pn === null ? null : f(pn), band: lo === null ? null : [f(lo), f(hi)], small: small,
 marks: lo === null ? [] : [{ f: f(lo), label: I18N.lo }, { f: f(hi), label: I18N.hi }],
-words: I18N.ours('bw').split(','), name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: 'hPa', });
+words: I18N.ours('bw').split(','), wordF: [f(980), f(995), f(1010), f(1030)], name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: 'hPa', });
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = SW_CFG.glass === 'light' && bits >= 2 && !darkMode;
@@ -1040,7 +1042,7 @@ if (blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
 }
 function meterRowH(i, r, which) {
 var ZC = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? [fillOf('gray-35', '#666'), fillOf('gray-35', '#666'), ink]
-: LCD ? [fillOf('gray-45', '#777'), fillOf('gray-20', '#333'), ink] : [fillOf('gray-80', '#ddd'), GLOW, GLOW];
+: LCD ? [fillOf('gray-50', '#777'), fillOf('gray-20', '#333'), ink] : [fillOf('gray-80', '#ddd'), GLOW, GLOW];
 var C = cells, LF = C.LF, rh = (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - u(4);
 var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segH = Mx(2, R(rh * 0.42)), nodata = r.bar === null || r.bar === undefined, lit = nodata ? 0 : Math.round(r.bar * 10);
 if (nodata) { text(cg, '--', x1, cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW }).setAttribute('data-sw-nodata', 1); x1 -= mW('--', LF) + u(6); }
@@ -1052,7 +1054,7 @@ var zi = r.zones ? ((k + 0.5) / 10 >= r.zones[1] ? 2 : ((k + 0.5) / 10 >= r.zone
 if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc, 'data-sw-rseg': hg ? null : 'lit', 'data-sw-zone': hg ? null : zi }, hg || cg); });
 if (on && zi === 2 && bits === 4 && !LCD) glowDigits((hg) => { if (hg) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc }, hg); });
 else if (bits <= 2) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
-else if (DIMW) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
+else if (DIMW && !on) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
 }
 (r.ticks || []).forEach((f) => { mk('rect', { x: R(x0 + f * (10 * segW + 9 * sg)), y: R(cy + segH / 2 + u(2)), width: Mx(1, u(1.5)), height: u(4), fill: GLOW, 'data-sw-rtick': 1 }, cg); });
 (debug[which] = debug[which] || []).push(r.lab);
