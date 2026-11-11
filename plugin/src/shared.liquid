@@ -869,7 +869,7 @@ var I18N = (function () {
    return 'url(#' + pid + ')';
   }
   function lampGrey(g, x, y, w, h) {
-   var id = 'swlampg' + view + '-' + (lampN++), g70 = fillOf('gray-70', '#ddd'), g75 = fillOf('gray-75', '#eee');
+   var id = 'swlampg' + view + '-' + (lampN++), g70 = fillOf('gray-55', '#aaa'), g75 = fillOf('gray-70', '#ddd');
    var cp = mk('clipPath', { id: id }, defs); rrect(cp, x, y, w, h, u(5));
    var lg = mk('g', { 'clip-path': 'url(#' + id + ')' }, g);
    // the plateau (white) holds the whole dial; the falloff is outside it, toward the corners
@@ -1089,14 +1089,14 @@ var I18N = (function () {
     g.removeChild(tg);
     ibox.r = ibox.l + dh * 1.05 + Math.max(0, avail - need(dh));
     var ib0 = iconFit(g, M.now.icon, M.now.day, ibox, hWant, dy + dh * 0.5, true);
-    lx = blk.cL + avail / 2 - ((fl.l - dh * 0.14 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12))) / 2 - iconW;
+    lx = blk.cL + avail / 2 - ((fl.l - dh * 0.22 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12))) / 2 - iconW;
    }
    var dx = lx + iconW;
    glowDigits(function (hg) { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
    debug.digits.boxes = seg7.boxes;
    var firstLit = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
    ICON_INK = GLOW; ICON_NOW = true;
-   if (!compact) ibox.r = (firstLit ? firstLit.l : dx) - dh * 0.14;
+   if (!compact) ibox.r = (firstLit ? firstLit.l : dx) - dh * 0.22;
    var ib = glowIcon(g, function (gg) { return iconFit(gg, M.now.icon, M.now.day, ibox, hWant, compact ? y + h * 0.16 : dy + dh * 0.5); });
    ICON_INK = null; ICON_NOW = false;
    debug.digits.iconRight = ib.r;
@@ -1295,7 +1295,7 @@ var I18N = (function () {
    var fit = Math.max(1, Math.floor(w / (u(minCss) * TS))), n = parseInt(SW_CFG.days, 10);
    return Math.max(1, Math.min(M.days.length || 1, 7, fit, n > 0 ? n : 7));
   }
-  var HS = F(RD(H0 * 0.019, 11), '600');
+  var HS = F(RD(H0 * 0.03, 12), '700');
   function meterPair(x, y, w, h, captions) {
    var capH = captions ? HS.size * 1.6 : 0, mh = h - capH, mw = Math.floor((w - GP) / 2);
    tempMeter(root, x, y, mw, mh, smallFace(mh, mw), 'L', captions);

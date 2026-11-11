@@ -329,7 +329,8 @@ RSpec.describe 'Stereo Weather' do
         answer['current']['temperature_2m'] = -1.4
         d = debug(draw(device:, answer: { json: answer }))['digits']
         first = d['boxes'].find { it['l'] }
-        expect(first['l'] - d['iconRight']).to be_between(d['dh'] * 0.05, d['dh'] * 0.3)   # a clear gap, not a far one
+        # owner (photo of the X): a little more space between the icon and the temperature
+        expect(first['l'] - d['iconRight']).to be_between(d['dh'] * 0.18, d['dh'] * 0.3)
       end
     end
 
@@ -346,6 +347,18 @@ RSpec.describe 'Stereo Weather' do
       expect(debug(draw(device: 'v2'))['rainCaption']).to eq('RAIN CHANCE')
       expect(debug(draw(device: 'og_png', fields: { 'language' => 'de' }))['rainCaption']).to eq('NIEDERSCHLAG')
       expect(debug(draw(device: 'v2', fields: { 'language' => 'de' }))['rainCaption']).to start_with('NIEDERSCHLAG')
+    end
+
+    # Owner (photo of the X): TEMPERATUUR and REGENKANS under the meters were too small to read.
+    it 'writes the captions under the meters at a readable size (X and OG, nl)' do
+      %w[v2 og_png].each do |device|
+        s = draw(device:, fields: { 'language' => 'nl' })
+        debug(s)
+        # the caption box height over the screen height (the SVG units differ per device)
+        sizes = s.evaluate("[].slice.call(document.querySelectorAll('.sw-stage svg text')).filter(function(t){return /^(TEMPERATUUR|REGENKANS|NEERSLAG)$/.test(t.textContent.trim())}).map(function(t){return t.getBoundingClientRect().height / window.innerHeight})")
+        expect(sizes.size).to eq(2)
+        expect(sizes.min).to be >= 0.03
+      end
     end
   end
 
