@@ -671,7 +671,14 @@ sel.every((q, j) => j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > 
 }
 var scaleLabels = placed;
 if (o.icons) {
-var isz = rArc * 0.26, irad = rArc * 0.66;
+var zro = rArc - fh * 0.085, zri = zro - fh * 0.05, zg = 0.012, ZS = bits === 1 ? ink : fillOf('gray-35', '#666');
+function zpt(f, rad) { var q = at(f, rad); return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
+for (var zi2 = 0; zi2 < 4; zi2++) {
+var z0 = zi2 / 4 + zg, z1 = (zi2 + 1) / 4 - zg;
+mk('path', { d: 'M' + zpt(z0, zro) + ' A' + zro + ' ' + zro + ' 0 0 1 ' + zpt(z1, zro) + ' L' + zpt(z1, zri) + ' A' + zri + ' ' + zri + ' 0 0 0 ' + zpt(z0, zri) + ' Z',
+fill: zi2 % 2 ? 'none' : ZS, stroke: ink, 'stroke-width': Mx(1, R(lw * 0.5)), 'shape-rendering': GPX, 'data-sw-zone4': zi2 }, g);
+}
+var isz = rArc * 0.26, irad = zri - isz * 0.75;
 o.icons.forEach((nm, i) => { var ip = at((2 * i + 1) / 8, irad); icon(g, nm, ip[0], ip[1], isz, null); });
 }
 mks.forEach((q) => {
@@ -1122,7 +1129,9 @@ mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: 
 if (cells) {
 var RW = cells.ROW, hdS = !M.rain ? I18N.ours('no_rain') : I18N.ours(wetKey(M.rain.now ? 'until' : 'from'));
 fitText(g, hdS, rx, RW.top + WD.size * 0.8, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
-var amtS = M.rain ? ((v) => (M.unit === 'F' ? (v < 0.1 ? v.toFixed(2) : v.toFixed(1)) : (v < 1 ? v.toFixed(1) : String(Math.round(v)))) + (M.unit === 'F' ? ' IN' : ' MM'))(M.rain.mm) + (M.rain.maxP === null ? '' : ' \u00b7 ' + Math.round(M.rain.maxP) + ' %') : null,
+var amtP = M.rain ? [((v) => (M.unit === 'F' ? (v < 0.01 ? null : (v < 0.1 ? v.toFixed(2) : v.toFixed(1))) : (v < 0.05 ? null : (v < 1 ? v.toFixed(1) : String(Math.round(v))))))(M.rain.mm), M.rain.maxP === null ? null : Math.round(M.rain.maxP) + ' %'] : [];
+amtP[0] = amtP[0] === null || amtP[0] === undefined ? null : amtP[0] + (M.unit === 'F' ? ' IN' : ' MM');
+var amtS = amtP.filter(Boolean).join(' \u00b7 ') || null,
 botL = RW.lab - WD.size * (amtS ? 2.9 : 1.4);
 var ch2 = R(Mn(botL - (RW.top + WD.size * 1.3), h * 0.34)), cw2 = R(ch2 * 0.5);
 while (ch2 > 8 && seg7W(R(ch2 * 0.5), '88:88') > rw - u(8)) { ch2 -= 2; cw2 = R(ch2 * 0.5); }
