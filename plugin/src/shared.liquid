@@ -671,14 +671,7 @@ sel.every((q, j) => j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > 
 }
 var scaleLabels = placed;
 if (o.icons) {
-var zro = rArc - fh * 0.085, zri = zro - fh * 0.05, zg = 0.012, ZS = bits === 1 ? ink : fillOf('gray-35', '#666');
-function zpt(f, rad) { var q = at(f, rad); return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
-for (var zi2 = 0; zi2 < 4; zi2++) {
-var z0 = zi2 / 4 + zg, z1 = (zi2 + 1) / 4 - zg;
-mk('path', { d: 'M' + zpt(z0, zro) + ' A' + zro + ' ' + zro + ' 0 0 1 ' + zpt(z1, zro) + ' L' + zpt(z1, zri) + ' A' + zri + ' ' + zri + ' 0 0 0 ' + zpt(z0, zri) + ' Z',
-fill: zi2 % 2 ? 'none' : ZS, stroke: ink, 'stroke-width': Mx(1, R(lw * 0.5)), 'shape-rendering': GPX, 'data-sw-zone4': zi2 }, g);
-}
-var isz = zri * 0.26, irad = zri - isz * 1.4 * 0.9;
+var isz = rArc * 0.26, irad = rArc * 0.66;
 o.icons.forEach((nm, i) => { var ip = at((2 * i + 1) / 8, irad); icon(g, nm, ip[0], ip[1], isz, null); });
 }
 mks.forEach((q) => {
@@ -796,7 +789,7 @@ function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
 var WUNIT = M.unit === 'F' ? 'MPH' : 'KM/H', WTHR = M.unit === 'F' ? 20 : 30;
 function baroMeter(g, x, y, w, h, small, badge, captioned) {
 var ticks = [], f = (v) => (v - 970) / 80;
-for (var v = 970; v <= 1050; v += 10) ticks.push({ f: f(v), major: (v - 970) % 40 === 0, label: undefined });
+for (var v = 970; v <= 1050; v += 5) ticks.push({ f: f(v), major: (v - 970) % 20 === 0, label: undefined });
 var ps = M.hours.slice(0, 24).map((q) => q.pr).filter((q) => q !== null), pn = M.now.press;
 if (pn !== null) ps.push(pn);
 var lo = ps.length ? Mn.apply(null, ps) : null, hi = ps.length ? Mx.apply(null, ps) : null;
