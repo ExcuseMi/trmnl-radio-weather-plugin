@@ -604,7 +604,7 @@ topBox = topBox ? { l: Mn(topBox.l, cb.l), r: Mx(topBox.r, cb.r), t: Mn(topBox.t
 var fhE = Mn(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
 var shortFace = fh < fw * 0.42, vu = shortFace && o.captioned;
 var A = (shortFace ? 52 : 42) * Math.PI / 180, pyy = fy + fh * 0.86, rArc;
-if (vu) { A = Math.PI * 0.36; pyy = fy + fh - fh * 0.1 - u(9); rArc = Mn(fw * 0.47 / Math.sin(A), pyy - fy0 - u(10) - fh * 0.045 - lw - u(4)); }
+if (vu) { A = Math.PI * 0.36; pyy = fy + fh - fh * 0.1 - u(9); rArc = Mn(fw * 0.4 / Math.sin(A), pyy - fy0 - u(6) - fh * 0.045 - lw - u(3)); }
 else rArc = Mn(fw * 0.43 / Math.sin(A), (pyy - fy - fh * (shortFace ? 0.13 : 0.2)));
 var cx = fx + fw / 2, py = pyy;
 if (vu && topBox) {   // the arc may rise beside the caption, never under it
@@ -655,12 +655,11 @@ return { tk: tk, x: pl[0], y: pl[1], l: pl[0] - tw / 2 - SC.size * 0.3 - ko, r: 
 }
 function onNeedle(bx) { for (var k = 0; k <= 40; k++) { var xx = cx + ux * tipR * k / 40, yy = py + uy * tipR * k / 40;
 if (xx > bx.l - wBase && xx < bx.r + wBase && yy > bx.t - wBase && yy < bx.b + wBase) return true; } return false; }
-var mks = (o.marks || []).map((m) => { return { m: m, tw: wOf(m.label), an: Mx(-AL, Mn(AL, -A + 2 * A * Mx(-0.03, Mn(1.03, m.f)))) }; });
-var kIn = fh * 0.07 + SC.size * 1.55 + MK.size * 0.63 + u(3);
-function mkBox(q) { var rc = vu ? rArc - kIn : rArc + kOf(q.an, q.tw), x0 = cx + rc * Math.sin(q.an), y0 = py - rc * Math.cos(q.an);
+var mks = (o.marks || []).map((m) => { return { m: m, tw: vu ? 0 : wOf(m.label), an: Mx(-AL, Mn(AL, -A + 2 * A * Mx(-0.03, Mn(1.03, m.f)))) }; });
+function mkBox(q) { var rc = rArc + kOf(q.an, q.tw), x0 = cx + rc * Math.sin(q.an), y0 = py - rc * Math.cos(q.an);
 return { x: x0, y: y0, l: x0 - q.tw / 2, r: x0 + q.tw / 2, t: y0 - MK.size * 0.63, b: y0 + MK.size * 0.63 }; }
 function hit(p, q) { return p.r + u(4) > q.l && q.r + u(4) > p.l && p.b + u(2) > q.t && q.b + u(2) > p.t; }
-for (var it = 0; it < 80; it++) {
+for (var it = 0; it < (vu ? 0 : 80); it++) {
 var moved = false;
 mks.forEach((q, i) => {
 if (topBox && hit(mkBox(q), topBox)) { q.an += badge ? (o.badge === 'L' ? 0.02 : -0.02) : (q.an <= 0 ? -0.02 : 0.02); moved = true; }
@@ -669,7 +668,7 @@ q.an = Mx(-AL, Mn(AL, q.an));
 });
 if (!moved) break;
 }
-var mkb = mks.map(mkBox), nl = labs.length - 1;
+var mkb = vu ? [] : mks.map(mkBox), nl = labs.length - 1;
 for (var ks = compact ? Mx(1, Math.ceil(nl / 2)) : 1; ks <= Mx(1, nl); ks++) {
 if (nl % ks) continue;
 var sel = labs.filter((tk, i) => i % ks === 0).map(boxOf);
@@ -678,8 +677,9 @@ sel.every((q, j) => j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > 
 }
 var scaleLabels = placed;
 mks.forEach((q) => {
-var m = q.m, r0 = vu ? rArc - lw - u(2) : rArc + bm + u(2), r1 = vu ? rArc - lw - fh * 0.05 - u(2) : rArc + bm + fh * 0.05, t0 = at(m.f, r0), t1 = at(m.f - 0.012, r1), t2 = at(m.f + 0.012, r1);
+var m = q.m, r0 = rArc + bm + u(2), r1 = rArc + bm + fh * 0.05, t0 = at(m.f, r0), t1 = at(m.f - 0.012, r1), t2 = at(m.f + 0.012, r1);
 mk('polygon', { points: [t0, t1, t2].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: ink, 'shape-rendering': GPX }, g);
+if (vu) return;
 var bx = mkBox(q);
 text(g, m.label, bx.x, bx.y + MK.size * 0.37, MK, { anchor: 'middle' }).setAttribute('data-sw-mark', MN);
 });
@@ -1419,7 +1419,7 @@ keysRow(X0, Y0 + H0 - kh3, W0, kh3, daysFit(W0, 110));
 var top = Y0;
 var portrait = UW / UH < 1.15;
 var kinds = threeD ? [DL, DM, DR] : [DL, DR], big = UW / z >= 1040;
-var mh = R(H0 * (portrait ? 0.3 : 0.28)), vh = R(H0 * (portrait ? 0.3 : (big ? 0.36 : 0.34))), keyH = H0 - mh - vh - 2 * GP;
+var mh = R(H0 * (portrait ? 0.3 : (big ? 0.28 : 0.32))), vh = R(H0 * (portrait ? 0.3 : 0.34)), keyH = H0 - mh - vh - 2 * GP;
 if (!portrait) { var mhCap = R((W0 - (kinds.length - 1) * GP) / kinds.length * 0.42); if (mh > mhCap) { vh += mh - mhCap; mh = mhCap; } }
 meterRow(X0, top, W0, mh, true, kinds);
 vfd(root, X0, top + mh + GP, W0, vh, false);
