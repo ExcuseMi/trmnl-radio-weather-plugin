@@ -583,7 +583,7 @@ faceEl.setAttribute('data-sw-face', MN); faceEl.setAttribute('data-sw-inset', u(
 if (GREYGLOW) lampGrey(g, fx, fy, fw, fh);
 insetBevel(g, fx, fy, fw, fh, u(5));
 var fx0 = fx, fy0 = fy;
-var badge = null, topBox = null, bm = u(10);
+var badge = null, topBox = null, capBox = null, bm = u(10);
 if (o.badge) {
 var BG = F(RD(Mn(fh, fw) * 0.055, 10), '800'), bp = BG.size * 0.45;
 var bt0 = text(g, o.badge, 0, 0, BG); var btw = width(bt0); g.removeChild(bt0);
@@ -593,18 +593,16 @@ topBox = { l: badge.x, r: badge.x + badge.w, t: badge.y, b: badge.y + badge.h };
 }
 if (o.captioned && o.name) {
 var CP = o.captioned.family ? o.captioned : F(Mx(HS.size, badge ? badge.sp.size * 1.1 : RD(fh * 0.075, 12)), '700'), cg = CP.size * 0.5;
-var capRoom = fw * 0.6 - (badge ? badge.w + cg : 0), capY = (badge ? badge.y + badge.h / 2 : fy0 + bm + CP.size * 0.65) + CP.size * 0.36;
-var capX = !badge ? fx0 + fw / 2 : (o.badge === 'R' ? badge.x - cg : badge.x + badge.w + cg);
-var ct = fitText(g, o.name, capX, capY, CP, capRoom, { anchor: !badge ? 'middle' : (o.badge === 'R' ? 'end' : 'start'), ls: R(CP.size * 0.08), noShrink: !!o.captioned.family });
+var capRoom = fw / 2 - fh * 0.22 - u(14), capY = fy0 + fh * 0.92, capX = fx0 + fw - fh * 0.06;
+var ct = fitText(g, o.name, capX, capY, CP, capRoom, { anchor: 'end', ls: R(CP.size * 0.08), noShrink: !!o.captioned.family });
 ct.setAttribute('data-sw-caption', MN);
 if (o.chan === 'R') debug.rainCaption = ct.textContent;
-var cl = parseFloat(ct.getAttribute('x')), cb = { l: cl, r: cl + width(ct), t: capY - CP.size * 0.8, b: capY + CP.size * 0.25 };
-topBox = topBox ? { l: Mn(topBox.l, cb.l), r: Mx(topBox.r, cb.r), t: Mn(topBox.t, cb.t), b: Mx(topBox.b, cb.b) } : cb;
+var cl = parseFloat(ct.getAttribute('x')), capBox = { l: cl, r: cl + width(ct), t: capY - CP.size * 0.8, b: capY + CP.size * 0.25 };
 }
 var fhE = Mn(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
 var shortFace = fh < fw * 0.42, vu = shortFace && o.captioned;
 var A = (shortFace ? 52 : 42) * Math.PI / 180, pyy = fy + fh * 0.86, rArc;
-if (vu) { A = Math.PI * 0.36; pyy = fy + fh - fh * 0.1 - u(9); rArc = Mn(fw * 0.4 / Math.sin(A), pyy - fy0 - u(6) - fh * 0.045 - lw - u(3)); }
+if (vu) { A = Math.PI * 0.42; pyy = fy + fh - fh * 0.1 - u(9); rArc = Mn(fw * 0.4 / Math.sin(A), pyy - fy0 - u(6) - fh * 0.045 - lw - u(3)); }
 else rArc = Mn(fw * 0.43 / Math.sin(A), (pyy - fy - fh * (shortFace ? 0.13 : 0.2)));
 var cx = fx + fw / 2, py = pyy;
 if (vu && topBox) {   // the arc may rise beside the caption, never under it
@@ -723,6 +721,7 @@ var hubR = Mx(u(5), fh * 0.035) + u(4);
 var others = placed.concat(mks.map(mkBox), nt ? [{ l: parseFloat(nt.getAttribute('x')), r: parseFloat(nt.getAttribute('x')) + width(nt), t: ly1 - BIG.size, b: ly1 }] : [],
 [{ l: cx - hubR, r: cx + hubR, t: py - hubR, b: py + hubR }]);
 if (topBox) others.push(topBox);
+if (capBox) others.push(capBox);
 function onNeedleAll(bx) { for (var k = -8; k <= 40; k++) { var xx = cx + ux * tipR * k / 40, yy = py + uy * tipR * k / 40;
 if (xx > bx.l - nm && xx < bx.r + nm && yy > bx.t - nm && yy < bx.b + nm) return true; } return false; }
 var pick = null, lw0 = 0;
@@ -1313,21 +1312,14 @@ if (hi - lo < 1) hi = lo + 1;
 var cw0 = w / nd, hb = Mn(h, cw0 * 1.6);
 var L = F(RD(Mn(hb * 0.11, cw0 * 0.16), 11), '700'), T = F(RD(Mn(hb * 0.15, cw0 * 0.24), 13), '800'), t2 = F(RD(Mn(hb * 0.12, cw0 * 0.2), 12), '700'), t3 = F(Mx(8, t2.size * 0.85), '600');
 var mW = (str, sp) => { var tt = text(root, str, 0, 0, sp); var ww = width(tt); root.removeChild(tt); return ww; };
-var scW = mW('-88°', t3) + u(18), dx0 = x + scW, cw = (w - scW) / nd;
+var dx0 = x, cw = w / nd;
 var isz = Mn(L.size * 2.2, cw * 0.35), rowY = y + Mx(L.size, isz * 0.62) + u(4), top = rowY + isz * 0.7 + u(6), bot = y + h - u(4);
 var steps = F_ ? [2, 4, 10, 20] : [1, 2, 5, 10], step = steps[0], a0, b0, n;
 for (var si = 0; si < steps.length; si++) { step = steps[si]; a0 = Fl(lo / step) * step; b0 = Math.ceil(hi / step) * step; n = (b0 - a0) / step; if (n <= 20) break; }
 while (n < 10) { if (n % 2) b0 += step; else a0 -= step; n++; }
 var pitch = (bot - top) / n, gap = Mx(bits === 1 ? 2 : 1, R(pitch * 0.3)), segH = Mx(1, pitch - gap), yTop = (k) => bot - (k + 1) * pitch + gap, yOfV = (v) => bot - (v - a0) / step * pitch;
-var LIT = FULL ? AMBER : (ORANGE || ink), PEAK = FULL ? '#ff5a00' : (color && RED !== ink ? RED : ink);
+var LIT = FULL ? AMBER : (ORANGE || (bits === 4 ? fillOf('gray-15', '#222') : ink)), PEAK = FULL ? '#ff5a00' : (color && RED !== ink ? RED : ink);
 var OFF = FULL ? 'rgb(0,0,0,0.08)' : (bits >= 2 ? fillOf('gray-70', '#ddd') : null), SCI = bits === 4 ? fillOf('gray-30', '#444') : ink;
-var major = F_ ? 10 : 5, labEv = (b0 - a0) < (F_ ? 36 : 20) ? major : major * 2, tx = dx0 - u(6);
-for (var v = a0; v <= b0 + 1e-9; v += step) {
-var yy = R(yOfV(v)), isF = v === frz, isM = v % major === 0, len = isF ? u(12) : (isM ? u(8) : u(4));
-mk('rect', { x: R(tx - len), y: yy, width: len, height: isF || isM ? Mx(1, u(1.5)) : 1, fill: SCI }, root);
-if (isF || v % labEv === 0) text(root, SWModel.fmt(v) + deg, tx - len - u(3), yy + t3.size * 0.36, isF ? F(t3.size, '800') : t3, { anchor: 'end', fill: SCI });
-if (isF) for (var fx = dx0; fx < x + w; fx += u(6)) mk('rect', { x: R(fx), y: yy, width: Mx(1, u(2)), height: 1, fill: SCI, 'data-sw-frost': 1 }, root);
-}
 var pw = Mx(u(14), Mn(cw * 0.4, u(90))), tg = u(6);
 debug.strip = []; debug.segments = n;
 days.forEach((d, i) => {
@@ -1338,18 +1330,18 @@ if (lt) { lt.setAttribute('data-sw-day', R(dx0 + cw * i) + ' ' + R(dx0 + cw * (i
 if (on && lt) mk('rect', { x: R(parseFloat(lt.getAttribute('x'))), y: R(rowY + L.size * 0.62), width: R(width(lt)), height: Mx(2, u(2.5)), fill: LAMP || ink }, root);
 if (d.hi === null || d.lo === null) return;
 var k0 = Mx(0, Mn(n - 1, Fl((d.lo - a0) / step))), k1 = Mx(k0, Mn(n - 1, Math.ceil((d.hi - a0) / step) - 1));
-var hiW = mW(tStr(d.hi), T), loW = mW(tStr(d.lo), t2), bx = cx - (pw + tg + Mx(hiW, loW)) / 2;
+var hiW = mW(tStr(d.hi), T), loW = mW(tStr(d.lo), t2), bx = cx - (pw * 1.24 + tg + Mx(hiW, loW)) / 2;
 for (var k = 0; k < n; k++) {
-var litK = k >= k0 && k <= k1, peak = litK && k === k1, hold = litK && k === k1 - 1 && k1 - k0 >= 2, frost = a0 + (k + 1) * step <= frz;
-var fill = litK && !hold ? (peak ? PEAK : LIT) : OFF, led = peak ? 'peak' : (litK && !hold ? 'lit' : 'off'), ex = peak ? R(gap * 0.6) : 0;
-if (litK && !hold && frost && !peak) mk('rect', { x: R(bx) + 0.5, y: R(yTop(k)) + 0.5, width: R(pw) - 1, height: Mx(1, R(segH) - 1), fill: 'none', stroke: LIT, 'stroke-width': Mx(1, Mn(u(1.5), R(segH) / 3)), 'data-sw-led': 'lit' }, root);
-else if (fill) mk('rect', { x: R(bx), y: R(yTop(k)) - ex, width: R(pw), height: R(segH) + ex, fill: fill, 'data-sw-led': led }, root);
+var litK = k >= k0 && k <= k1, peak = litK && k === k1, cap = litK && (k === k1 || k === k0), frost = a0 + (k + 1) * step <= frz;
+var fill = litK ? (peak ? PEAK : LIT) : OFF, led = peak ? 'peak' : (litK ? 'lit' : 'off'), ex = cap ? R(pw * 0.12) : 0;
+if (litK && frost && !peak) mk('rect', { x: R(bx - ex) + 0.5, y: R(yTop(k)) + 0.5, width: R(pw + 2 * ex) - 1, height: Mx(1, R(segH) - 1), fill: 'none', stroke: LIT, 'stroke-width': Mx(1, Mn(u(1.5), R(segH) / 3)), 'data-sw-led': 'lit' }, root);
+else if (fill) mk('rect', { x: R(bx - ex), y: R(yTop(k)), width: R(pw + 2 * ex), height: R(segH), fill: fill, 'data-sw-led': led }, root);
 else if (bits === 1) mk('rect', { x: R(bx + pw / 2), y: R(yTop(k) + segH / 2), width: 1, height: 1, fill: ink, 'data-sw-led': 'off' }, root);
 }
 var yHi = yTop(k1), yLo = bot - k0 * pitch;
 var hy = Mx(yHi + T.size * 0.72, top + T.size * 0.72), ly = Mn(Mx(yLo, hy + t2.size * 1.15), bot);
-text(root, tStr(d.hi), bx + pw + tg, hy, T);
-if (yLo >= hy + t2.size * 1.05) text(root, tStr(d.lo), bx + pw + tg, ly, t2);
+text(root, tStr(d.hi), bx + pw * 1.12 + tg, hy, T);
+if (yLo >= hy + t2.size * 1.05) text(root, tStr(d.lo), bx + pw * 1.12 + tg, ly, t2);
 debug.strip.push({ hi: d.hi, lo: d.lo, top: R(yHi), bottom: R(yLo) });
 });
 }
@@ -1372,7 +1364,7 @@ var size0 = size, floor = Mx(HS.size, size * 0.6);
 for (size = size0; size >= floor * 0.99; size *= 0.9) {
 capSp = F(size, '700');
 if (kinds.every((k, i) => {
-var nm = dialName(k), room = fw * 0.6 - (i === 0 || i === n - 1 ? bwd + capSp.size * 0.5 : 0);
+var nm = dialName(k), room = fw / 2 - fh * 0.22 - u(14);
 return [nm, allowShort ? SHORTER[nm] : null].filter(Boolean).some((wd) => { var t0 = text(root, wd, 0, 0, capSp, { ls: R(capSp.size * 0.08) }); var ww = width(t0); root.removeChild(t0); return ww <= room; });
 })) return true;
 }
