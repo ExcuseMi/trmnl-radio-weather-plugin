@@ -997,7 +997,7 @@ var RO_ORDER = ['humidity', 'uv', 'wind', 'aqi', 'pressure', 'rain_mm'];
 function readout(k) {
 var n = M.now, t = M.today, c = compass(n.dir), F_ = M.unit === 'F';
 var bar = (v, lo, hi) => v === null ? null : Mx(0, Mn(1, (v - lo) / (hi - lo)));
-if (k === 'wind') return { lab: I18N.wind, cmp: c, bar: bar(n.wind, 0, F_ ? 40 : 60), peak: bar(nz(t.gustMax), 0, F_ ? 40 : 60), txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
+if (k === 'wind') return { lab: I18N.wind, bar: bar(n.wind, 0, F_ ? 40 : 60), peak: bar(nz(t.gustMax), 0, F_ ? 40 : 60), txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
 if (k === 'aqi') return { lab: 'AQI', bar: bar(nz(n.aqi), 0, 100), ticks: [0.6], txt: 'AQI ' + fv(nz(n.aqi)) };
 if (k === 'uv') return { lab: I18N.ours('uv'), bar: bar(n.uv, 0, 11), ticks: [3 / 11, 6 / 11], txt: I18N.ours('uv') + ' ' + fv(n.uv) };
 if (k === 'pressure') return { lab: I18N.ours('m_press'), bar: bar(n.press, 970, 1050), txt: fv(n.press) + ' hPa' };
@@ -1075,15 +1075,14 @@ var lw = iw * 0.4, rx = ix + iw * 0.78, rw = iw * 0.22, WL = { ls: R(WD.size * 0
 var blk = null, cells = null;
 function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.removeChild(tt); return ww; }
 if (!compact && M.ok && ROS.length >= 3) {
-var ROW = { top: Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * 0.9 }, LF = F(RD(hb * 0.075, 10), '700'), lmax = 0, cmax = 0;
+var ROW = { top: Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * 0.9 }, LF = F(RD(hb * 0.075, 10), '700'), lmax = 0;
 ['m_hum', 'uv', 'm_press', 'm_rain'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF));
-I18N.ours('compass').split(',').forEach((cp) => { cmax = Mx(cmax, mW(cp, LF)); });
-cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), cmpW: cmax * 1.1 + u(8), left: ROS };
+cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), left: ROS };
 blk = { divX: ix + lw + u(14), cL: ix + lw + u(22), cR: rx - u(22) };
 if (blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
 }
 function meterRowH(i, r, which) {
-var C = cells, LF = C.LF, rh = (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - C.cmpW;
+var C = cells, LF = C.LF, rh = (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - u(4);
 var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segW = (x1 - x0 - 9 * sg) / 10, segH = Mx(2, R(rh * 0.42)), lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
 var pk = r.peak === null || r.peak === undefined ? -1 : Mn(9, Math.round(r.peak * 10) - 1);
 text(cg, r.lab, x0 - u(8), cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW, ls: R(LF.size * 0.1) }).setAttribute('data-sw-cell', which);
@@ -1095,7 +1094,6 @@ else if (bits === 1) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 
 else if (DIMW) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
 }
 (r.ticks || []).forEach((f) => { mk('rect', { x: R(x0 + f * (10 * segW + 9 * sg)), y: R(cy + segH / 2 + u(2)), width: Mx(1, u(1.5)), height: u(4), fill: GLOW, 'data-sw-rtick': 1 }, cg); });
-if (r.cmp) text(cg, r.cmp, ix + lw, cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW, ls: R(LF.size * 0.1) }).setAttribute('data-sw-compass', 1);
 (debug[which] = debug[which] || []).push(r.lab);
 }
 var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
