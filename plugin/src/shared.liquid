@@ -1181,7 +1181,7 @@ if (width(lt) + width(rt) + u(12) <= iw) return true;
 g.removeChild(rt);
 });
 }
-faceplate(root, u(3), u(3), UW - u(6), UH - u(6));
+// no outer faceplate (owner)
 var MG = view === 1 ? Mx(2, R(UH * 0.011)) : u(view === 4 ? 8 : 14), GP = view === 1 ? Mx(2, R(UH * 0.0096)) : u(view === 4 ? 8 : 14);
 var X0 = MG, Y0 = MG, W0 = UW - 2 * MG, H0 = UH - 2 * MG;
 function smallFace(h, w) { return h / z < 160 || (h / z < 230 && !(w > h * 1.8)); }
