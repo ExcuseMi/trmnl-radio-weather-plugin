@@ -9,11 +9,11 @@ time_zone: Europe/Berlin
 custom_fields:
   lat_lon: '52.52,13.41'
   unit: celsius
-  days_shown: auto
-  dial_span: 24h
   hide_title_bar: 'false'
 
 variables:
   trmnl:
+    user:
+      locale: nl
     plugin_settings:
       instance_name: Stereo Weather
