@@ -2,7 +2,7 @@
 {%- assign cf = trmnl.plugin_settings.custom_fields_values -%}
 {%- if weather -%}{%- assign current = weather.current -%}{%- assign hourly = weather.hourly -%}{%- assign daily = weather.daily -%}{%- assign error = weather.error -%}{%- assign reason = weather.reason -%}{%- assign utc_offset_seconds = weather.utc_offset_seconds -%}{%- endif -%}
 {%- capture sw_icon -%}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="2" y="13" width="4" height="9" fill="#000"/><rect x="2" y="9" width="4" height="2" fill="#000"/><rect x="8" y="6" width="4" height="16" fill="#000"/><rect x="8" y="2" width="4" height="2" fill="#000"/><rect x="14" y="10" width="4" height="12" fill="#000"/><rect x="14" y="6" width="4" height="2" fill="#000"/><rect x="20" y="16" width="2" height="6" fill="#000"/></svg>{%- endcapture -%}
-<div class="layout">
+<div class="layout gap--none">
  <div class="sw-stage w--[100cqw] h--[100cqh]" data-sw-view="{{ view }}"></div>
 </div>
 {%- assign sw_hide = cf.hide_title_bar | append: '' -%}
@@ -34,7 +34,6 @@ var SW_CFG = {
 locale: {{ sw_loc | json }},
 unit: {{ cf.unit | default: 'celsius' | json }},
 location: {{ cf.lat_lon | default: '' | json }},
-glass: {{ cf.glass | default: 'dark' | json }},
 hideTitle: {% if sw_hide == 'true' or sw_hide == 'yes' %}true{% else %}false{% endif %},
 view: {{ view | default: 1 }}
 };
@@ -537,17 +536,17 @@ rArc = Mx(rArc, fh * 0.3);
 var AL = AM;
 while (AL > 0 && (rArc + kOf(AL, mkW)) * Math.sin(AL) + mkW / 2 > fw / 2 - fm) AL -= 0.01;
 function at(f, rad) { var an = -A + 2 * A * Mx(-0.03, Mn(1.03, f)); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
-function arc(rad, f0, f1, sw, col) {
+function arc(rad, f0, f1, sw, col, par) {
 var p0 = at(f0, rad), p1 = at(f1, rad);
 return mk('path', { d: 'M' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1) + ' A' + rad + ' ' + rad + ' 0 0 1 ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1),
-fill: 'none', stroke: col || ink, 'stroke-width': sw, 'shape-rendering': GPX }, g);
+fill: 'none', stroke: col || ink, 'stroke-width': sw, 'shape-rendering': GPX }, par || g);
 }
 var SC = F(RD(fh * (o.small ? 0.085 : 0.065) * (vu ? 1.5 : 1), o.small ? 12 : 11), o.small ? '700' : '500');
 arc(rArc, 0, 1, lw);
 faceEl.setAttribute('data-sw-pivot', [cx, py, rArc + (o.band ? R(fh * 0.045) + lw : lw / 2)].join(' '));
 if (o.band) {
 var bw = R(fh * 0.045);
-arc(rArc + bw / 2 + lw, o.band[0], o.band[1], bw, o.bandCol || ink);
+glowDigits((hg) => { arc(rArc + bw / 2 + lw, o.band[0], o.band[1], bw, o.bandCol || ink, hg); });
 }
 o.ticks.forEach((tk) => {
 var p0 = at(tk.f, rArc), p1 = at(tk.f, rArc - (tk.major ? fh * 0.07 : fh * 0.035));
@@ -621,7 +620,7 @@ return [[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[
 }
 var NEEDLE = bits === 4 ? fillOf('gray-15', '#222') : ink;
 if (bits === 4) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55', '#999'), 'shape-rendering': GPX }, ng);
-mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': o.chan, 'data-sw-meter': MN }, ng);
+glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); });
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
 tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Mx(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
@@ -724,13 +723,13 @@ marks: lo === null ? [] : [{ f: f(lo), label: I18N.lo, lo: true }, { f: f(hi), l
 icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'], name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: 'hPa', });
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
-var LCD = SW_CFG.glass === 'light' && bits >= 2 && !darkMode;
+var LCD = bits >= 2 && !darkMode;
 var GLASSD = LCD ? paper : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25', '#333') : (bits === 2 ? fillOf(darkMode ? 'gray-75' : 'gray-15', '#333') : paper);
 var GLOW = LCD || bits === 1 ? ink : (darkMode ? ink : paper);
 var GHOSTD = null;
 var DIMW = bits === 4 ? fillOf(LCD ? 'gray-75' : (darkMode ? 'gray-55' : 'gray-45'), '#777') : (bits === 2 ? fillOf('gray-60', '#bbb') : null);
 var lightPanel = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !m || (+m[1] + +m[2] + +m[3]) > 384; })();
-var GREYGLOW = bits === 4 && !color && lightPanel;
+var GREYGLOW = bits === 4 && !color && lightPanel, GLOWD = bits === 4 && !color && darkMode;
 var DIGIT = AMBER ? AMBER : GLOW;
 var RAINDIG = color && RED !== ink ? RED : DIGIT;
 var glowN = 0;
@@ -744,6 +743,7 @@ mk('stop', { offset: '100%', 'stop-color': '#c9862c' }, rg);
 return 'url(#' + id + ')';
 }
 if (GREYGLOW) return fillOf('gray-70', '#ddd');
+if (darkMode && bits >= 2) return GLASSD;
 if (FACE_OR) return FACE_OR;
 return bits === 4 ? fillOf('gray-70', '#eee') : paper;
 }
@@ -768,7 +768,7 @@ mk('path', { d: dd + ' Z', fill: st[2] < 1 ? dith(st[0], st[1], st[2]) : st[0], 
 });
 }
 function glowDigits(draw) {
-if (LCD || (!FULL && !GREYGLOW)) return draw(null);
+if (LCD || (!FULL && !GREYGLOW && !GLOWD)) return draw(null);
 var id = 'swhalo' + view + '-' + (glowN++);
 var f = mk('filter', { id: id, x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
 mk('feGaussianBlur', { stdDeviation: Mx(2, u(4)) }, f);
@@ -874,7 +874,7 @@ if (on && !LAMP) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw
 if (!on) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, fill: 'none', stroke: ink, 'stroke-width': 1 }, cr), g);
 return lw0;
 }
-var tw2 = 0, lit = on && (FULL || GREYGLOW), bpad = on && !color ? sp.size * 0.5 : 0;
+var tw2 = 0, lit = on && (FULL || GREYGLOW || GLOWD), bpad = on && !color ? sp.size * 0.5 : 0;
 function word(hg) { var tt = text(hg || g, str, x + bpad, y, sp, { ls: R(sp.size * 0.15), fill: lit ? (FULL ? AMBER : GLOW) : col }); tw2 = width(tt); if (!hg) tt.setAttribute('data-sw-status', 1); }
 if (lit) glowDigits(word); else word(null);
 if (bpad) { var lb = rrect(g, R(x), R(y - sp.size * 1.05), R(tw2 + 2 * bpad), R(sp.size * 1.4), R(sp.size * 0.3), 'none', col, Mx(1, R(sp.size * 0.1))); lb.setAttribute('data-sw-lampbox', 1); }
@@ -1059,6 +1059,13 @@ if (compact) {
 return;
 }
 mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
+if (M.ok && !M.rain) {
+var dTop = cells ? cells.ROW.top : y + h * 0.3, dBot = cells ? cells.ROW.lab : y + h * 0.9, dM = (dTop + dBot) / 2, DB = F(WD.size * 1.7, '800');
+fitText(g, I18N.ours('no_rain'), rx + rw / 2, dM - WD.size * 0.2, DB, rw - u(4), { anchor: 'middle', ls: R(DB.size * 0.1), fill: GLOW });
+fitText(g, I18N.ours('next_h', SPAN), rx + rw / 2, dM + WD.size * 1.9, WD, rw - u(4), { anchor: 'middle', ls: R(WD.size * 0.15), fill: GLOW });
+debug.clock = { str: '', boxes: [] };
+return;
+}
 if (cells) {
 var RW = cells.ROW, hdS = !M.rain ? I18N.ours('no_rain') : I18N.ours(wetKey(M.rain.now ? 'until' : 'from'));
 fitText(g, hdS, rx, RW.top + WD.size * 0.8, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
@@ -1362,6 +1369,23 @@ one();
 }, one);
 });
 }
+function watch(st) {
+var scr = st.closest('.screen') || document.documentElement, busy = false, timer = null;
+function sig() { return st.clientWidth + 'x' + st.clientHeight + '|' + scr.className + '|' + document.documentElement.className; }
+var last = sig();
+function again() {
+if (busy) return;
+var s = sig();
+if (s === last) return;
+busy = true; last = s;
+try { while (st.firstChild) st.removeChild(st.firstChild); st.removeAttribute('data-sw-debug'); st.removeAttribute('data-sw-error'); draw(st); } catch (e) { st.setAttribute('data-sw-error', String(e && e.message)); }
+busy = false;
+}
+function sched() { clearTimeout(timer); timer = setTimeout(again, 150); }
+window.addEventListener('resize', sched);
+if (window.ResizeObserver) new ResizeObserver(sched).observe(st);
+if (window.MutationObserver) { var mo = new MutationObserver(sched); mo.observe(scr, { attributes: true, attributeFilter: ['class'] }); mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] }); }
+}
 function start() {
 var host = (script && script.closest('.view')) || document;
 var stages = host.querySelectorAll('.sw-stage');
@@ -1370,6 +1394,7 @@ var st = stages[i];
 if (st.getAttribute('data-sw-done')) continue;
 st.setAttribute('data-sw-done', '1');
 try { draw(st); } catch (e) { st.setAttribute('data-sw-error', String(e && e.message) + ' @ ' + String(e && e.stack || e)); throw e; }
+watch(st);
 }
 }
 function whenReady() {
