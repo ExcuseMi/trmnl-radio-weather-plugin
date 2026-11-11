@@ -1030,8 +1030,8 @@ var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') |
 [I18N.ours('uv'), M.now.uv !== null && M.now.uv >= 6], ['SMOG', M.now.aqi !== null && M.now.aqi > 60]];
 var innerD = u(bits === 1 ? 9 : 6), sy = Mx(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
 if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
-if (bits === 1) flags = flags.filter((f) => f[1]);
-var noRow = !compact && !flags.length, lampBottom = noRow ? y + innerD + u(2) : sy + ST.size * 0.45;
+flags = flags.filter((f) => f[1]);
+var noRow = false, lampBottom = sy + ST.size * 0.45;
 if (!compact) {
 var room = iw - u(20) - (() => { var tc = text(g, 'OPEN-METEO', 0, 0, ST, { ls: R(ST.size * 0.15) }); var tw = width(tc); g.removeChild(tc); return tw; })();
 var rowW = (fl, sp) => { return fl.reduce((a, f) => { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 ? 2.3 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
