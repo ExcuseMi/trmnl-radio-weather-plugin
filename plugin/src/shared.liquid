@@ -51,7 +51,7 @@
   hideTitle: {% if sw_hide == 'true' or sw_hide == 'yes' %}true{% else %}false{% endif %},
   view: {{ view | default: 1 }}
  };
- var GPX = 'geometricPrecision', script = document.currentScript, MX = Math.max, MN = Math.min, FL = Math.floor;
+ var GPX = 'geometricPrecision', script = document.currentScript, Mx = Math.max, Mn = Math.min, Fl = Math.floor;
 // ==== MODEL_BEGIN ====
 var SWModel = (function () {
  function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; }
@@ -134,14 +134,14 @@ var SWModel = (function () {
   var ht = list(h, 'time'), tt = list(h, 'temperature_2m'), tp = list(h, 'precipitation_probability');
   var tc = list(h, 'weather_code'), td = list(h, 'is_day');
   for (var s = 0; s < ht.length && out.length < 24; s += step) {
-   var end = MN(s + step, ht.length - 1);       // the slot runs to the next slot's first hour
-   var span = tt.slice(s, MX(end, s) + 1);
+   var end = Mn(s + step, ht.length - 1);       // the slot runs to the next slot's first hour
+   var span = tt.slice(s, Mx(end, s) + 1);
    var m2 = minMax(span);
    var sev = 0;
-   for (var k = s; k < MX(s + 1, end); k++) sev = MX(sev, severity(tc[k]));
-   out.push({ label: hourOf(ht[s]), lo: m2.lo, hi: m2.hi, rain: maxOf(tp.slice(s, MX(s + 1, end))),
+   for (var k = s; k < Mx(s + 1, end); k++) sev = Mx(sev, severity(tc[k]));
+   out.push({ label: hourOf(ht[s]), lo: m2.lo, hi: m2.hi, rain: maxOf(tp.slice(s, Mx(s + 1, end))),
     sev: sev, first: s === 0, missing: m2.lo === null,
-    icon: worstKind(tc.slice(s, MX(s + 1, end))), day: num(td[s]) !== 0 });
+    icon: worstKind(tc.slice(s, Mx(s + 1, end))), day: num(td[s]) !== 0 });
   }
   return out;
  }
@@ -163,7 +163,7 @@ var SWModel = (function () {
   }
   if (from < 0) return null;
   var k0 = hours[from].icon, type = k0 === 'snow' ? 'snow' : (k0 === 'hail' ? 'hail' : 'rain');
-  return { from: from, to: to, fromLabel: hours[from].h + ':00', toLabel: hours[MN(to + 1, hours.length - 1)].h + ':00',
+  return { from: from, to: to, fromLabel: hours[from].h + ':00', toLabel: hours[Mn(to + 1, hours.length - 1)].h + ':00',
    now: from === 0, type: type };
  }
  function ageMinutes(localIso, offsetSec, renderedAtSec) {
@@ -324,7 +324,7 @@ var I18N = (function () {
   return [[x, y0], [x + h, y0 + h], [x + h, y1 - h], [x, y1], [x - h, y1 - h], [x - h, y0 + h]];
  }
  function segShapes(x, y, w, h, t) {
-  var g = MX(1, t * 0.16);
+  var g = Mx(1, t * 0.16);
   var xl = x + t / 2, xr = x + w - t / 2, yt = y + t / 2, ym = y + h / 2, yb = y + h - t / 2;
   return {
    a: hseg(xl + g, xr - g, yt, t), g: hseg(xl + g, xr - g, ym, t), d: hseg(xl + g, xr - g, yb, t),
@@ -342,7 +342,7 @@ var I18N = (function () {
   var rect = stage.getBoundingClientRect();
   var z = rect.width / W || 1;
   var UW = R(W * z), UH = R(H * z);
-  var ox = rect.left - FL(rect.left), oy = rect.top - FL(rect.top);
+  var ox = rect.left - Fl(rect.left), oy = rect.top - Fl(rect.top);
   function u(cssPx) { return R(cssPx * z); }
   function colorOf(v, dflt) {
    if (!v) return dflt;
@@ -368,7 +368,7 @@ var I18N = (function () {
    var ref = fallback;
    if (f && f.url && f.color && bits === 2 && !/^rgb\(255, 255, 255\)$/.test(f.color)) f = { color: f.color };
    if (f && f.url && f.size) {
-    var id = 'swp' + view + '-' + (patN++) + '-' + FL(Math.random() * 1e6);
+    var id = 'swp' + view + '-' + (patN++) + '-' + Fl(Math.random() * 1e6);
     var s = f.size * z;
     var p = mk('pattern', { id: id, patternUnits: 'userSpaceOnUse', width: s, height: s, x: 0, y: 0 }, defs);
     if (f.color) mk('rect', { width: s, height: s, fill: f.color }, p);
@@ -422,7 +422,7 @@ var I18N = (function () {
    var best = nat[0];
    nat.forEach(function (q) { if (q.size <= sp.size * 1.04 && q.size >= best.size) best = q; });
    var size = best.size;
-   if (sp.size >= nat[2].size * 2 * 0.96) size = nat[2].size * FL(sp.size / nat[2].size + 0.04), best = nat[2];
+   if (sp.size >= nat[2].size * 2 * 0.96) size = nat[2].size * Fl(sp.size / nat[2].size + 0.04), best = nat[2];
    return { family: best.family, size: size, weight: parseInt(weight, 10) >= 600 ? '700' : '400' };
   }
   function text(parent, str, x, y, sp, opts) {
@@ -451,7 +451,7 @@ var I18N = (function () {
    var b = { height: sp.size * 0.7, y: -sp.size * 0.7 };
    try { b = t.getBBox(); } catch (e) { /* estimate */ }
    root.removeChild(t);
-   var c = MN(Math.abs(b.y), sp.size) * 0.98;
+   var c = Mn(Math.abs(b.y), sp.size) * 0.98;
    capCache[k] = c > 0 ? c : sp.size * 0.7;
    return capCache[k];
   }
@@ -493,10 +493,10 @@ var I18N = (function () {
   }
   var M = SWModel.build(SW_RAW, SW_CFG);
   function faceplate(g, x, y, w, h) {
-   var r = u(10), bw = MX(2, u(2));
+   var r = u(10), bw = Mx(2, u(2));
    if (PLATE) {
     rrect(g, x, y, w, h, r, PLATE);
-    for (var yy = y + u(3); yy < y + h - u(3); yy += MX(3, u(3))) {
+    for (var yy = y + u(3); yy < y + h - u(3); yy += Mx(3, u(3))) {
      mk('rect', { x: x + u(4), y: R(yy), width: w - u(8), height: 1, fill: BRUSH }, g);
     }
     mk('path', { d: 'M' + (x + r) + ' ' + (y + bw * 1.5) + ' H' + (x + w - r) + ' M' + (x + bw * 1.5) + ' ' + (y + r) + ' V' + (y + h - r),
@@ -507,24 +507,24 @@ var I18N = (function () {
      stroke: SHADE, 'stroke-width': bw, fill: 'none' }, g);
    }
    rrect(g, x + bw / 2, y + bw / 2, w - bw, h - bw, r, 'none', ink, bw);
-   if (!PLATE) rrect(g, x + u(4), y + u(4), w - u(8), h - u(8), MX(2, r - u(3)), 'none', ink, 1);
+   if (!PLATE) rrect(g, x + u(4), y + u(4), w - u(8), h - u(8), Mx(2, r - u(3)), 'none', ink, 1);
   }
   function icon(g, kind, cx, cy, sz, isDay) {
    if (!kind) return;
    var ig = mk('g', { 'data-sw-icon': 'drawn', 'data-sw-now': ICON_NOW ? 1 : null }, g);
-   mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.3), fill: 'none', stroke: ICON_INK || ink, 'stroke-width': MX(2, R(sz * 0.06)) }, ig);
+   mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.3), fill: 'none', stroke: ICON_INK || ink, 'stroke-width': Mx(2, R(sz * 0.06)) }, ig);
    mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.07), fill: ICON_INK || ink }, ig);
    return ig;
   }
   var debug = { view: view, z: z, W: UW, H: UH };
   var deg = '°';
   // ================= hybrid receiver =================
-  var TS = MX(1, (spec('label', 16).size / z) / 16);
+  var TS = Mx(1, (spec('label', 16).size / z) / 16);
   debug.ts = TS; debug.palette = { color: color, red: RED !== ink, yel: !!YEL, blue: !!BLUE }; debug.labelPx = spec('label', 16).size / z;
-  function RD(px, minCss) { return MX(px, u(minCss)) * TS; }
+  function RD(px, minCss) { return Mx(px, u(minCss)) * TS; }
   var FAM = LG.family;
   function F(px, w) {
-   var q = { family: FAM, size: MX(8, R(px)), weight: w || '700' };
+   var q = { family: FAM, size: Mx(8, R(px)), weight: w || '700' };
    return PIXFONT ? pixel(q, q.weight) : q;
   }
   function tStr(v) { return v === null || v === undefined ? '--' : SWModel.fmt(v) + deg; }
@@ -545,7 +545,7 @@ var I18N = (function () {
    var name = wiName(kind, isDay), s = name && WI[name];
    if (!s) { iconsUsed.drawn++; return drawnIcon(g, kind, cx, cy, sz, isDay); }
    iconsUsed.wi++;
-   var vb = s.vb, k = sz * 1.4 / MX(vb[2], vb[3]);
+   var vb = s.vb, k = sz * 1.4 / Mx(vb[2], vb[3]);
    var ig = mk('g', { transform: 'translate(' + (cx - vb[2] * k / 2 - vb[0] * k).toFixed(1) + ' ' + (cy - vb[3] * k / 2 - vb[1] * k).toFixed(1) + ') scale(' + k.toFixed(4) + ')',
     fill: ICON_INK || ink, 'shape-rendering': GPX, 'data-sw-icon': name, 'data-sw-now': ICON_NOW ? 1 : null }, g);
    for (var i = 0; i < s.nodes.length; i++) {
@@ -562,18 +562,18 @@ var I18N = (function () {
    var name = wiName(kind, isDay), s = name && WI[name], bb, per, vb = s ? s.vb : [0, 0, 0, 0];
    if (s) {
     if (!s.ink) { var tg = mk('g', {}, root); var i0 = icon(tg, kind, 0, 0, 100, isDay); s.ink = i0.getBBox(); iconsUsed.wi--; root.removeChild(tg); }
-    bb = s.ink; per = 1.4 / MX(vb[2], vb[3]);
+    bb = s.ink; per = 1.4 / Mx(vb[2], vb[3]);
    } else { bb = { x: -0.33, y: -0.33, width: 0.66, height: 0.66 }; per = 1; }
-   var sz = MX(1, MN(hWant / (bb.height * per), (box.b - box.t) / (bb.height * per), (box.r - box.l) / (bb.width * per)));
+   var sz = Mx(1, Mn(hWant / (bb.height * per), (box.b - box.t) / (bb.height * per), (box.r - box.l) / (bb.width * per)));
    var k = sz * per, w = bb.width * k, h = bb.height * k;
-   var icy = MX(box.t + h / 2, MN(box.b - h / 2, cy)), icx = box.r - w / 2;
+   var icy = Mx(box.t + h / 2, Mn(box.b - h / 2, cy)), icx = box.r - w / 2;
    var ib = { l: R(icx - w / 2), r: R(box.r), t: R(icy - h / 2), b: R(icy + h / 2), w: w, h: h };
    if (!dry && kind) icon(g, kind, icx - (bb.x + bb.width / 2 - vb[0] - vb[2] / 2) * k, icy - (bb.y + bb.height / 2 - vb[1] - vb[3] / 2) * k, sz, isDay);
    return ib;
   }
   var clipK = 0, meterK = 0;
   function meter(g, x, y, w, h, o) {
-   var lw = MX(2, u(2.5)), MN = meterK++;
+   var lw = Mx(2, u(2.5)), MN = meterK++;
    rrect(g, x, y, w, h, u(10), ink);
    var fx = x + u(7), fy = y + u(7), fw = w - u(14), fh = h - u(14);
    var FF = faceFill(fx, fy, fw, fh);
@@ -584,37 +584,37 @@ var I18N = (function () {
    var fx0 = fx, fy0 = fy;
    var badge = null, topBox = null, bm = u(10);
    if (o.badge) {
-    var BG = F(RD(MN(fh, fw) * 0.055, 10), '800'), bp = BG.size * 0.45;
+    var BG = F(RD(Mn(fh, fw) * 0.055, 10), '800'), bp = BG.size * 0.45;
     var bt0 = text(g, o.badge, 0, 0, BG); var btw = width(bt0); g.removeChild(bt0);
     var bwd = btw + 2 * bp, bht = BG.size * 1.3;
     badge = { x: o.badge === 'R' ? fx0 + fw - bm - bwd : fx0 + bm, y: fy0 + bm, w: bwd, h: bht, sp: BG };
     topBox = { l: badge.x, r: badge.x + badge.w, t: badge.y, b: badge.y + badge.h };
    }
    if (o.captioned && o.name) {
-    var CP = o.captioned.family ? o.captioned : F(MX(HS.size, badge ? badge.sp.size * 1.1 : RD(fh * 0.075, 12)), '700'), cg = CP.size * 0.5;
+    var CP = o.captioned.family ? o.captioned : F(Mx(HS.size, badge ? badge.sp.size * 1.1 : RD(fh * 0.075, 12)), '700'), cg = CP.size * 0.5;
     var capRoom = fw * 0.6 - (badge ? badge.w + cg : 0), capY = (badge ? badge.y + badge.h / 2 : fy0 + bm + CP.size * 0.65) + CP.size * 0.36;
     var capX = !badge ? fx0 + fw / 2 : (o.badge === 'R' ? badge.x - cg : badge.x + badge.w + cg);
     var ct = fitText(g, o.name, capX, capY, CP, capRoom, { anchor: !badge ? 'middle' : (o.badge === 'R' ? 'end' : 'start'), ls: R(CP.size * 0.08), noShrink: !!o.captioned.family });
     ct.setAttribute('data-sw-caption', MN);
     if (o.chan === 'R') debug.rainCaption = ct.textContent;
     var cl = parseFloat(ct.getAttribute('x')), cb = { l: cl, r: cl + width(ct), t: capY - CP.size * 0.8, b: capY + CP.size * 0.25 };
-    topBox = topBox ? { l: MN(topBox.l, cb.l), r: MX(topBox.r, cb.r), t: MN(topBox.t, cb.t), b: MX(topBox.b, cb.b) } : cb;
+    topBox = topBox ? { l: Mn(topBox.l, cb.l), r: Mx(topBox.r, cb.r), t: Mn(topBox.t, cb.t), b: Mx(topBox.b, cb.b) } : cb;
    }
-   var fhE = MN(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
+   var fhE = Mn(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
    var shortFace = fh < fw * 0.42;
    var A = (shortFace ? 52 : 42) * Math.PI / 180;
    var pyy = fy + fh * 0.86;            // the hub low in the face (owner's reference)
-   var rArc = MN(fw * 0.43 / Math.sin(A), (pyy - fy - fh * (shortFace ? 0.13 : 0.2)));
+   var rArc = Mn(fw * 0.43 / Math.sin(A), (pyy - fy - fh * (shortFace ? 0.13 : 0.2)));
    var cx = fx + fw / 2, py = pyy;
    var MK = F(RD(fh * (o.small ? 0.07 : 0.05), o.small ? 11 : 10), '700'), bm = R(fh * 0.045) + lw * 2, fm = u(10), AM = A * 1.06;
    function wOf(str) { var t0 = text(g, str, 0, 0, MK), tw = width(t0); g.removeChild(t0); return tw; }
-   var mkW = MX(wOf(I18N.lo), wOf(I18N.hi), wOf(I18N.ours('now')));
+   var mkW = Mx(wOf(I18N.lo), wOf(I18N.hi), wOf(I18N.ours('now')));
    function kOf(an, tw) { return bm + fh * 0.05 + u(3) + tw / 2 * Math.abs(Math.sin(an)) + MK.size * 0.63 * Math.cos(an); }
-   for (var ai = 0; ai <= 8; ai++) rArc = MN(rArc, (py - fy0 - fm - MK.size * 0.63) / Math.cos(AM * ai / 8) - kOf(AM * ai / 8, mkW));
-   rArc = MX(rArc, fh * 0.3);
+   for (var ai = 0; ai <= 8; ai++) rArc = Mn(rArc, (py - fy0 - fm - MK.size * 0.63) / Math.cos(AM * ai / 8) - kOf(AM * ai / 8, mkW));
+   rArc = Mx(rArc, fh * 0.3);
    var AL = AM;
    while (AL > 0 && (rArc + kOf(AL, mkW)) * Math.sin(AL) + mkW / 2 > fw / 2 - fm) AL -= 0.01;
-   function at(f, rad) { var an = -A + 2 * A * MX(-0.03, MN(1.03, f)); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
+   function at(f, rad) { var an = -A + 2 * A * Mx(-0.03, Mn(1.03, f)); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
    function arc(rad, f0, f1, sw, col) {
     var p0 = at(f0, rad), p1 = at(f1, rad);
     return mk('path', { d: 'M' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1) + ' A' + rad + ' ' + rad + ' 0 0 1 ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1),
@@ -629,32 +629,32 @@ var I18N = (function () {
    }
    o.ticks.forEach(function (tk) {
     var p0 = at(tk.f, rArc), p1 = at(tk.f, rArc - (tk.major ? fh * 0.07 : fh * 0.035));
-    mk('line', { x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], stroke: ink, 'stroke-width': tk.major ? lw : MX(1, R(lw * 0.6)), 'shape-rendering': GPX }, g);
+    mk('line', { x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], stroke: ink, 'stroke-width': tk.major ? lw : Mx(1, R(lw * 0.6)), 'shape-rendering': GPX }, g);
    });
    var labs = o.ticks.filter(function (tk) { return tk.label !== undefined; }), compact = o.small || fw / z < 420;
    if (compact) SC = F(SC.size * 1.12, SC.weight);
    var placed = [];
-   var nv = o.needle === null ? -0.03 : MX(-0.03, MN(1.03, o.needle));
+   var nv = o.needle === null ? -0.03 : Mx(-0.03, Mn(1.03, o.needle));
    var ang = -A + 2 * A * nv, ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux;
    var tipR = rArc + fh * 0.025, tailR = fh * 0.1;
-   var wBase = bits === 1 ? 3 : MX(3, u(3)), wTip = bits === 1 ? 1 : MX(1, u(0.8));
+   var wBase = bits === 1 ? 3 : Mx(3, u(3)), wTip = bits === 1 ? 1 : Mx(1, u(0.8));
    function boxOf(tk) {
     var pl = at(tk.f, rArc - fh * 0.07 - SC.size * 0.85), t0 = text(g, tk.label, 0, 0, SC), tw = width(t0);
     g.removeChild(t0);
-    var ko = MX(3, u(5)) / 2;
+    var ko = Mx(3, u(5)) / 2;
     return { tk: tk, x: pl[0], y: pl[1], l: pl[0] - tw / 2 - SC.size * 0.3 - ko, r: pl[0] + tw / 2 + SC.size * 0.3 + ko, t: pl[1] - SC.size * 0.65 - ko, b: pl[1] + SC.size * 0.65 + ko };
    }
    function onNeedle(bx) { for (var k = 0; k <= 40; k++) { var xx = cx + ux * tipR * k / 40, yy = py + uy * tipR * k / 40;
     if (xx > bx.l - wBase && xx < bx.r + wBase && yy > bx.t - wBase && yy < bx.b + wBase) return true; } return false; }
    var nl = labs.length - 1;
-   for (var ks = compact ? MX(1, Math.ceil(nl / 2)) : 1; ks <= MX(1, nl); ks++) {
+   for (var ks = compact ? Mx(1, Math.ceil(nl / 2)) : 1; ks <= Mx(1, nl); ks++) {
     if (nl % ks) continue;
     var sel = labs.filter(function (tk, i) { return i % ks === 0; }).map(boxOf);
     if (ks >= nl || sel.every(function (bx, i) { return (i === 0 || i === sel.length - 1 || !onNeedle(bx)) &&
      sel.every(function (q, j) { return j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > q.b; }); })) { placed = sel; break; }
    }
    var scaleLabels = placed;
-   var mks = (o.marks || []).map(function (m) { return { m: m, tw: wOf(m.label), an: MX(-AL, MN(AL, -A + 2 * A * MX(-0.03, MN(1.03, m.f)))) }; });
+   var mks = (o.marks || []).map(function (m) { return { m: m, tw: wOf(m.label), an: Mx(-AL, Mn(AL, -A + 2 * A * Mx(-0.03, Mn(1.03, m.f)))) }; });
    function mkBox(q) { var rc = rArc + kOf(q.an, q.tw), x0 = cx + rc * Math.sin(q.an), y0 = py - rc * Math.cos(q.an);
     return { x: x0, y: y0, l: x0 - q.tw / 2, r: x0 + q.tw / 2, t: y0 - MK.size * 0.63, b: y0 + MK.size * 0.63 }; }
    function hit(p, q) { return p.r + u(4) > q.l && q.r + u(4) > p.l && p.b + u(2) > q.t && q.b + u(2) > p.t; }
@@ -663,7 +663,7 @@ var I18N = (function () {
     mks.forEach(function (q, i) {
      if (topBox && hit(mkBox(q), topBox)) { q.an += badge ? (o.badge === 'L' ? 0.02 : -0.02) : (q.an <= 0 ? -0.02 : 0.02); moved = true; }
      if (i && hit(mkBox(mks[0]), mkBox(q))) { var d = mks[0].an <= q.an ? 0.01 : -0.01; mks[0].an -= d; q.an += d; moved = true; }
-     q.an = MX(-AL, MN(AL, q.an));
+     q.an = Mx(-AL, Mn(AL, q.an));
     });
     if (!moved) break;
    }
@@ -690,7 +690,7 @@ var I18N = (function () {
    mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': o.chan, 'data-sw-meter': MN }, ng);
    scaleLabels.forEach(function (bx) {
     var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
-    tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', MX(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
+    tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Mx(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
     tl2.setAttribute('stroke-linejoin', 'round'); tl2.setAttribute('data-sw-scale', MN);
    });
    var pad = fh * 0.06;
@@ -698,18 +698,18 @@ var I18N = (function () {
    var cornerTxt = (o.captioned || (PIXFONT && o.small) ? o.unitName : o.shortName + ' ' + o.unitName).trim();
    var BIG = F(fh * (o.captioned ? 0.15 : 0.11), '700');
    var ly1 = fy + fh * 0.92;
-   var clearHub = cx - fx - pad - MX(u(16), fh * 0.14);
-   var cRoom = MX(u(30), MN(freeW(ly1 - BIG.size * 0.8), clearHub));
+   var clearHub = cx - fx - pad - Mx(u(16), fh * 0.14);
+   var cRoom = Mx(u(30), Mn(freeW(ly1 - BIG.size * 0.8), clearHub));
    var nt = cornerTxt ? fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) }) : null;
    debug.cornerPrint = debug.cornerPrint || [];
-   if (nt) debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - MX(u(5), fh * 0.035)), gap: R(2 * MX(u(5), fh * 0.035)) });
+   if (nt) debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - Mx(u(5), fh * 0.035)), gap: R(2 * Mx(u(5), fh * 0.035)) });
    (debug.names = debug.names || []).push((o.captioned ? o.name + ' ' + o.unitName : (nt ? nt.textContent : '')).trim());
    (debug.marks = debug.marks || []).push({ chan: o.chan, labels: mks.map(function (q) { return q.m.label; }) });
    if (o.needle !== null && (o.needle < -0.001 || o.needle > 1.001)) {
     var over = o.needle > 1, LW = F(fh * 0.045, '800'), lword = I18N.ours(over ? 'over' : 'under');
     var endLab = placed.length ? placed[over ? placed.length - 1 : 0] : null, pe = at(over ? 1.03 : -0.03, rArc - fh * 0.1);
     var nX = function (yy) { return cx + (py - yy) * Math.tan(ang); }, nm = wBase + u(2), gapN = nm + u(3);
-    var hubR = MX(u(5), fh * 0.035) + u(4);
+    var hubR = Mx(u(5), fh * 0.035) + u(4);
     var others = placed.concat(mks.map(mkBox), nt ? [{ l: parseFloat(nt.getAttribute('x')), r: parseFloat(nt.getAttribute('x')) + width(nt), t: ly1 - BIG.size, b: ly1 }] : [],
      [{ l: cx - hubR, r: cx + hubR, t: py - hubR, b: py + hubR }]);
     if (topBox) others.push(topBox);
@@ -737,10 +737,10 @@ var I18N = (function () {
     if (!pick) pick = [lword, over ? pe[0] - lw0 : pe[0], pe[1] + fh * 0.03];
     text(g, pick[0], pick[1], pick[2], LW).setAttribute('data-sw-limit', MN);
    }
-   var hubR = MX(u(5), fh * 0.035);
+   var hubR = Mx(u(5), fh * 0.035);
    if (bits === 4) mk('circle', { cx: R(cx + u(2)), cy: R(py + u(2)), r: R(hubR), fill: FULL ? 'rgb(0,0,0,0.25)' : fillOf('gray-55', '#999'), 'shape-rendering': GPX }, g);
    mk('circle', { cx: R(cx), cy: R(py), r: R(hubR), fill: ink, 'shape-rendering': GPX }, g);
-   mk('circle', { cx: R(cx), cy: R(py), r: R(MX(1.5, hubR * 0.35)), fill: bits === 1 ? paper : fillOf('gray-60', '#aaa'), 'shape-rendering': GPX }, g);
+   mk('circle', { cx: R(cx), cy: R(py), r: R(Mx(1.5, hubR * 0.35)), fill: bits === 1 ? paper : fillOf('gray-60', '#aaa'), 'shape-rendering': GPX }, g);
    if (badge) {
     var br = rrect(g, badge.x, badge.y, badge.w, badge.h, R(badge.h * 0.3), ink); br.setAttribute('data-sw-badge', MN); br.setAttribute('data-sw-badge-ch', o.badge);
     text(g, o.badge, badge.x + badge.w / 2, badge.y + badge.h * 0.5 + badge.sp.size * 0.36, badge.sp, { anchor: 'middle', fill: paper });
@@ -749,13 +749,13 @@ var I18N = (function () {
    return { fx: fx, fy: fy, fw: fw, fh: fh };
   }
   function niceScale(lo, hi, even) {
-   var steps = [1, 2, 5, 10, 20, 25, 50], span = MX(hi - lo, M.unit === 'F' ? 15 : 8);
+   var steps = [1, 2, 5, 10, 20, 25, 50], span = Mx(hi - lo, M.unit === 'F' ? 15 : 8);
    for (var i = 0; i < steps.length; i++) {
-    var st = steps[i], a0 = FL(lo / st) * st, b0 = Math.ceil(hi / st) * st;
+    var st = steps[i], a0 = Fl(lo / st) * st, b0 = Math.ceil(hi / st) * st;
     if (b0 - a0 < span) b0 = a0 + Math.ceil(span / st) * st;
     if ((b0 - a0) / st <= 5) return { a: a0, b: b0 + (even && ((b0 - a0) / st) % 2 ? st : 0), major: st, minor: st % 5 === 0 ? st / 5 : (st % 2 === 0 ? st / 2 : st / 5) };
    }
-   return { a: FL(lo / 50) * 50, b: Math.ceil(hi / 50) * 50, major: 50, minor: 10 };
+   return { a: Fl(lo / 50) * 50, b: Math.ceil(hi / 50) * 50, major: 50, minor: 10 };
   }
   function tempMeter(g, x, y, w, h, small, badge, captioned, feels) {
    var tl = M.today.lo, th = M.today.hi, nv = feels ? M.now.feels : M.now.temp;
@@ -793,19 +793,19 @@ var I18N = (function () {
    if (kind === 'temperature' || kind === 'feels') return tempMeter(g, x, y, w, h, small, badge, cap, kind === 'feels');
    var o = { chan: DIAL_CH[kind], v: null, a: 0, b: 100, major: 50, minor: 10, name: '', shortName: '', unitName: '', mark: null, band: null }, ts;
    if (kind === 'wind') {
-    ts = topScale(MX(n.wind || 0, n.gust || 0, nz(t.gustMax) || 0, M.unit === 'F' ? 25 : 40), [10, 25, 50, 100]);
+    ts = topScale(Mx(n.wind || 0, n.gust || 0, nz(t.gustMax) || 0, M.unit === 'F' ? 25 : 40), [10, 25, 50, 100]);
     o.v = n.wind; o.b = ts.b; o.major = ts.major; o.minor = ts.minor; o.mark = nz(t.gustMax); o.markLabel = I18N.ours('gust'); o.band = WTHR;
     o.name = I18N.wind; o.shortName = I18N.wind; o.unitName = WUNIT;
    } else if (kind === 'humidity') { o.v = n.hum; o.name = dialName(kind); o.shortName = I18N.ours('hum'); o.unitName = '%'; }
    else if (kind === 'uv') {
-    ts = topScale(MX(n.uv || 0, nz(t.uvMax) || 0, 11), [3, 6, 10]);
+    ts = topScale(Mx(n.uv || 0, nz(t.uvMax) || 0, 11), [3, 6, 10]);
     o.v = n.uv; o.b = ts.b; o.major = ts.major; o.minor = ts.minor; o.mark = nz(t.uvMax); o.markLabel = I18N.hi; o.band = 6; o.name = 'UV'; o.unitName = cap ? '' : 'UV';
    } else if (kind === 'aqi') {
-    ts = topScale(MX(nz(n.aqi) || 0, nz(t.aqiMax) || 0, 100), [10, 25, 50, 100]);
+    ts = topScale(Mx(nz(n.aqi) || 0, nz(t.aqiMax) || 0, 100), [10, 25, 50, 100]);
     o.v = nz(n.aqi); o.b = ts.b; o.major = ts.major; o.minor = ts.minor; o.mark = nz(t.aqiMax); o.markLabel = I18N.hi; o.band = 60; o.name = 'AQI'; o.unitName = cap ? '' : 'AQI';
    } else if (kind === 'pressure') {
     var pb = n.press === null ? 1013 : n.press;
-    o.a = FL((pb - 25) / 25) * 25; o.b = o.a + 50; o.major = 25; o.minor = 5; o.v = n.press; o.name = I18N.ours('pressure'); o.unitName = 'HPA';
+    o.a = Fl((pb - 25) / 25) * 25; o.b = o.a + 50; o.major = 25; o.minor = 5; o.v = n.press; o.name = I18N.ours('pressure'); o.unitName = 'HPA';
    }
    return linMeter(g, x, y, w, h, small, badge, cap, o);
   }
@@ -833,7 +833,7 @@ var I18N = (function () {
   function faceFill(fx1, fy1, fw1, fh1) {
    if (FULL) {
     var id = 'swlamp' + view + '-' + (glowN++);
-    var rg = mk('radialGradient', { id: id, gradientUnits: 'userSpaceOnUse', cx: R(fx1 + fw1 / 2), cy: R(fy1 + fh1 * 0.58), r: R(MX(fw1, fh1) * 0.62) }, defs);
+    var rg = mk('radialGradient', { id: id, gradientUnits: 'userSpaceOnUse', cx: R(fx1 + fw1 / 2), cy: R(fy1 + fh1 * 0.58), r: R(Mx(fw1, fh1) * 0.62) }, defs);
     mk('stop', { offset: '0%', 'stop-color': '#ffe3a3' }, rg);
     mk('stop', { offset: '55%', 'stop-color': '#f7c25e' }, rg);
     mk('stop', { offset: '100%', 'stop-color': '#c9862c' }, rg);
@@ -848,7 +848,7 @@ var I18N = (function () {
   function dith(a, b, dn) {
    var pid = 'swd' + view + '-' + (lampN++), pat = mk('pattern', { id: pid, patternUnits: 'userSpaceOnUse', width: 4, height: 4 }, defs);
    mk('rect', { width: 4, height: 4, fill: a }, pat);
-   for (var c = 0; c < 16; c++) if (BAYER[c] < dn * 16) mk('rect', { x: c % 4, y: FL(c / 4), width: 1, height: 1, fill: b }, pat);
+   for (var c = 0; c < 16; c++) if (BAYER[c] < dn * 16) mk('rect', { x: c % 4, y: Fl(c / 4), width: 1, height: 1, fill: b }, pat);
    return 'url(#' + pid + ')';
   }
   function lampGrey(g, x, y, w, h) {
@@ -859,7 +859,7 @@ var I18N = (function () {
     var dd = '', ecx = x + w * 0.5, ecy = y + h * 0.85;
     for (var k = 0; k < 64; k++) {
      var an = k / 64 * Math.PI * 2;
-     dd += (k ? ' L' : 'M') + MX(x, MN(x + w, ecx + w * 0.5 * st[3] * Math.cos(an))).toFixed(1) + ' ' + MX(y, MN(y + h, ecy + h * 0.85 * st[3] * Math.sin(an))).toFixed(1);
+     dd += (k ? ' L' : 'M') + Mx(x, Mn(x + w, ecx + w * 0.5 * st[3] * Math.cos(an))).toFixed(1) + ' ' + Mx(y, Mn(y + h, ecy + h * 0.85 * st[3] * Math.sin(an))).toFixed(1);
     }
     mk('path', { d: dd + ' Z', fill: st[2] < 1 ? dith(st[0], st[1], st[2]) : st[0], 'data-sw-lamp': i }, lg);
    });
@@ -868,7 +868,7 @@ var I18N = (function () {
    if (!FULL && !GREYGLOW) return draw(null);
    var id = 'swhalo' + view + '-' + (glowN++);
    var f = mk('filter', { id: id, x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
-   mk('feGaussianBlur', { stdDeviation: MX(2, u(4)) }, f);
+   mk('feGaussianBlur', { stdDeviation: Mx(2, u(4)) }, f);
    var ct = mk('feComponentTransfer', {}, f);
    mk('feFuncA', { type: 'linear', slope: 0.75 }, ct);
    var hg = mk('g', { filter: 'url(#' + id + ')', 'data-sw-halo': '1' }, root);
@@ -887,7 +887,7 @@ var I18N = (function () {
   var RAINC = BLUE || (RED !== ink ? RED : ink);
   var bevelN = 0;
   function insetBevel(g, x, y, w, h, r, onGlass) {
-   if (bits === 1) { rrect(g, x + 1.5, y + 1.5, w - 3, h - 3, MX(0, r - 1), 'none', ink, 1); return; }
+   if (bits === 1) { rrect(g, x + 1.5, y + 1.5, w - 3, h - 3, Mx(0, r - 1), 'none', ink, 1); return; }
    var id = 'swbevel' + view + '-' + (bevelN++);
    var cp = mk('clipPath', { id: id }, defs);
    rrect(cp, x, y, w, h, r);
@@ -924,11 +924,11 @@ var I18N = (function () {
    }
   }
   function seg7(g, x, y, dw, dh, str, col, ghost) {
-   var t = MX(3, dw * 0.18), gap = MX(2, R(dw * 0.22)), cx = x, box = null;
+   var t = Mx(3, dw * 0.18), gap = Mx(2, R(dw * 0.22)), cx = x, box = null;
    seg7.boxes = [];
    function poly(p, c, kind) {
     mk('polygon', { points: pts(p), fill: c, 'shape-rendering': GPX, 'data-sw-seg': kind }, g);
-    p.forEach(function (q) { box.l = MN(box.l, q[0]); box.r = MX(box.r, q[0]); });
+    p.forEach(function (q) { box.l = Mn(box.l, q[0]); box.r = Mx(box.r, q[0]); });
    }
    str.split('').forEach(function (ch, ci) {
     if (ch === '.') { var d = R(t * 1.2); mk('rect', { x: R(cx), y: R(y + dh - d), width: d, height: d, fill: col }, g); cx += d + gap; return; }
@@ -948,15 +948,15 @@ var I18N = (function () {
    return cx - x - gap;
   }
   function seg7W(dw, str) {
-   var t = MX(3, dw * 0.18), gap = MX(2, R(dw * 0.22)), w = 0;
+   var t = Mx(3, dw * 0.18), gap = Mx(2, R(dw * 0.22)), w = 0;
    str.split('').forEach(function (ch) { w += (ch === '.' ? R(t * 1.2) : ch === ':' ? R(t * 1.1) : dw) + gap; });
    return w - gap;
   }
   var NDIG = M.unit === 'F' ? 3 : 2, CELLS = '-' + '8'.repeat(NDIG) + '.8';
   function tempDigits() {
    if (M.now.temp === null) return '_' + ' '.repeat(NDIG - 2) + '--.-';
-   var v = Math.round(M.now.temp * 10) / 10, a = MN(Math.pow(10, NDIG) - 0.1, Math.abs(v));
-   var ip = String(FL(a + 1e-9)), dec = String(Math.round((a - FL(a + 1e-9)) * 10) % 10);
+   var v = Math.round(M.now.temp * 10) / 10, a = Mn(Math.pow(10, NDIG) - 0.1, Math.abs(v));
+   var ip = String(Fl(a + 1e-9)), dec = String(Math.round((a - Fl(a + 1e-9)) * 10) % 10);
    var cells = ((v < 0 ? '-' : '') + ip).padStart(NDIG + 1, ' ');
    return (cells.charAt(0) === ' ' ? '_' : '') + cells.slice(cells.charAt(0) === ' ' ? 1 : 0) + '.' + dec;
   }
@@ -1014,14 +1014,14 @@ var I18N = (function () {
    debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
    vfdBox(g, x, y, w, h);
    var ix = x + u(compact ? 16 : 30), iw = w - 2 * (ix - x);
-   var hb = MN(h, w * (compact ? 0.7 : 0.28));
+   var hb = Mn(h, w * (compact ? 0.7 : 0.28));
    var ST = F(RD(hb * (compact ? 0.085 : 0.075), 10), '700');
    var has = function (k) { return X1.some(function (hh) { return hh.icon === k; }); };
    var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain'), 'wi-umbrella'], [I18N.snow, has('snow'), 'wi-snowflake-cold'],
     [I18N.hail, has('hail'), 'wi-hail'], [I18N.thunder, has('storm') || has('hail'), 'wi-thunderstorm'],
     [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0), 'wi-thermometer'], [I18N.wind, M.now.wind !== null && M.now.wind >= WTHR, 'wi-strong-wind'],
     [I18N.ours('uv'), M.now.uv !== null && M.now.uv >= 6, 'wi-day-sunny'], ['SMOG', M.now.aqi !== null && M.now.aqi > 60, 'wi-smog']];
-   var innerD = u(bits === 1 ? 9 : 6), sy = MX(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
+   var innerD = u(bits === 1 ? 9 : 6), sy = Mx(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
    if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
    if (bits === 1) flags = flags.filter(function (f) { return f[1]; });
    var noRow = !compact && !flags.length, lampBottom = noRow ? y + innerD + u(2) : sy + ST.size * 0.45;
@@ -1070,16 +1070,16 @@ var I18N = (function () {
     var labs = ros.map(function (r) { return r.lab; }), lt0 = labs.map(function (l) { var tt = text(g, l, 0, 0, WD, WL); var ww = width(tt); g.removeChild(tt); return ww; });
     var strs = ros.map(function (r) { return r.v; }), gp = u(16), P = null;
     for (var k = 0; k < 7; k++) {
-     var cw = MX(u(6), R(cw0 * Math.pow(0.9, k))), SX = F(cw * 1.15, '700');
+     var cw = Mx(u(6), R(cw0 * Math.pow(0.9, k))), SX = F(cw * 1.15, '700');
      var sfxW = ros.map(function (r) { if (!r.sfx) return 0; var tt = text(g, r.sfx, 0, 0, SX); var ww = width(tt) + u(6); g.removeChild(tt); return ww; });
-     var colW = lt0.map(function (l, i) { return MX(l, seg7W(cw, strs[i]) + sfxW[i]); });
+     var colW = lt0.map(function (l, i) { return Mx(l, seg7W(cw, strs[i]) + sfxW[i]); });
      P = { ros: ros, labs: labs, cw: cw, strs: strs, colW: colW, sfxW: sfxW, SX: SX, gp: gp, ok: colW[0] + gp + colW[1] <= roomW, roomW: roomW };
      if (P.ok) break;
     }
     return P;
    }
    function drawPair(x0, P, which) {
-    var cx0 = x0, gap2 = MX(P.gp, (P.roomW - P.colW[0] - P.colW[1]) / 2);
+    var cx0 = x0, gap2 = Mx(P.gp, (P.roomW - P.colW[0] - P.colW[1]) / 2);
     P.strs.forEach(function (str2, i) {
      var cwid = P.colW[i], dwid2 = seg7W(P.cw, str2) + P.sfxW[i], lt = fitText(g, P.labs[i], cx0, y + h * 0.9, WD, cwid + u(4), WL);
      lt.setAttribute('x', R(cx0 + (cwid - width(lt)) / 2));
@@ -1094,7 +1094,7 @@ var I18N = (function () {
    if (!compact && M.ok) {
     var chB = R(h * 0.26), cwL = R(chB * 0.5);
     blk = fitPair(ROS.slice(0, 2), rw, cwL);
-    if (dry) { PR = fitPair(ROS.slice(2, 4), rw - u(4), cwL); var cwm = MN(blk.cw, PR.cw); if (blk.cw !== cwm) blk = fitPair(ROS.slice(0, 2), rw, cwm); if (PR.cw !== cwm) PR = fitPair(ROS.slice(2, 4), rw - u(4), cwm); }
+    if (dry) { PR = fitPair(ROS.slice(2, 4), rw - u(4), cwL); var cwm = Mn(blk.cw, PR.cw); if (blk.cw !== cwm) blk = fitPair(ROS.slice(0, 2), rw, cwm); if (PR.cw !== cwm) PR = fitPair(ROS.slice(2, 4), rw - u(4), cwm); }
     blk.divX = ix + rw + u(14); blk.cL = ix + rw + u(22); blk.cR = rx - u(22);
     if (!blk.ok || blk.cR - blk.cL < (function () { var d0 = R(h * 0.36), dw0 = R(d0 * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + d0 * 1.05; })()) blk = null;
    }
@@ -1102,7 +1102,7 @@ var I18N = (function () {
    var dh = R(h * (compact ? 0.46 : (noRow ? 0.66 : 0.56)));
    function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.25); }
    var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
-   var dyTop = compact ? y + h * 0.27 : MX(y + h * (noRow ? 0.14 : 0.25), lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2);
+   var dyTop = compact ? y + h * 0.27 : Mx(y + h * (noRow ? 0.14 : 0.25), lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2);
    while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh > dyEnd))) dh -= 2;
    var dw = R(dh * 0.5), dy = dyTop;
    var str = tempDigits();
@@ -1117,7 +1117,7 @@ var I18N = (function () {
     seg7(tg, 0, dy, dw, dh, str, DIGIT, null);
     var fl = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
     g.removeChild(tg);
-    ibox.r = ibox.l + dh * 0.85 + MX(0, avail - need(dh));
+    ibox.r = ibox.l + dh * 0.85 + Mx(0, avail - need(dh));
     var ib0 = iconFit(g, M.now.icon, M.now.day, ibox, hWant, dy + dh * 0.5, true);
     lx = blk.cL + avail / 2 - ((fl.l - dh * 0.4 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12))) / 2 - iconW;
    }
@@ -1136,13 +1136,13 @@ var I18N = (function () {
    if (blk) wt = fitText(g, condS, blk.cL + avail / 2, y + h * 0.9, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
    else if (!compact) wt = fitText(g, condS, lx, y + h * 0.9, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
    if (blk) {
-    mk('rect', { x: R(blk.divX), y: R(y + h * 0.3), width: MX(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
+    mk('rect', { x: R(blk.divX), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
     debug.readouts = []; debug.readoutKinds = ROK;
     drawPair(ix, blk, 'readouts');
    }
    if (!compact && !blk && M.ok) {
     var rdB = y + h * 0.9 - WD.size * 1.7, rdTop = rdB - WD.size * 2.7;
-    var under = MX(dy + dh, ib.b) + u(6) <= rdTop, rdW = (under ? rx - u(20) : ib.l - u(6)) - lx;
+    var under = Mx(dy + dh, ib.b) + u(6) <= rdTop, rdW = (under ? rx - u(20) : ib.l - u(6)) - lx;
     [[ROS[0].txt, rdB - WD.size * 1.7], [ROS[1].txt, rdB]].forEach(function (rd) {
      var rt = fitText(g, rd[0], lx, rd[1], WD, rdW, { fill: GLOW, ls: R(WD.size * 0.15) });
      if (width(rt) > rdW + 1 || rd[1] - WD.size < lampBottom + u(4)) g.removeChild(rt);
@@ -1151,7 +1151,7 @@ var I18N = (function () {
    if (compact) {
     return;
    }
-   mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: MX(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
+   mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
    if (dry && PR && blk) { debug.readoutsRight = []; drawPair(rx, PR, 'readoutsRight'); debug.clock = null; return; }
    fitText(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? I18N.ours(wetKey(M.rain.now ? 'until' : 'from')) : I18N.ours('no_rain')), rx, y + h * 0.36, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
    var ch = R(h * 0.3);
@@ -1166,7 +1166,7 @@ var I18N = (function () {
    vfdBox(g, x, y, w, h);
    debug.glassBox = [R(x), R(y), R(w), R(h)]; debug.origin = [R(rect.left * z), R(rect.top * z)];
    debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
-   var pad = MX(u(12), h * 0.07), ix = x + pad, iw = w - 2 * pad, iy = y + pad, ih = h - 2 * pad;
+   var pad = Mx(u(12), h * 0.07), ix = x + pad, iw = w - 2 * pad, iy = y + pad, ih = h - 2 * pad;
    var LN = F(RD(ih * 0.085, 11), '700'), SM2 = F(RD(ih * 0.065, 9), '600');
    var isz = ih * 0.4;
    var rowH = ih * 0.47;
@@ -1188,10 +1188,10 @@ var I18N = (function () {
    seg7(g, ux + sw + R(dw * 0.12), dy, sw, R(dh * 0.42), M.unit, DIGIT, null);
    var sy = iy + rowH + ih * 0.13, lo = M.today.lo, hi = M.today.hi, now = M.now.temp;
    if (M.ok && lo !== null && hi !== null && hi > lo && now !== null) {
-    var sx0 = dx, sx1 = dx + dwid, lwS = MX(1, u(1.5));
+    var sx0 = dx, sx1 = dx + dwid, lwS = Mx(1, u(1.5));
     mk('rect', { x: R(sx0), y: R(sy), width: R(sx1 - sx0), height: lwS, fill: GLOW }, g);
     [sx0, sx1].forEach(function (xx) { mk('rect', { x: R(xx), y: R(sy - u(4)), width: lwS, height: R(u(8)), fill: GLOW }, g); });
-    var f = MX(0, MN(1, (now - lo) / (hi - lo))), mx = sx0 + (sx1 - sx0) * f, ms = u(6);
+    var f = Mx(0, Mn(1, (now - lo) / (hi - lo))), mx = sx0 + (sx1 - sx0) * f, ms = u(6);
     mk('polygon', { points: [[mx, sy - u(1)], [mx - ms, sy - ms * 1.5], [mx + ms, sy - ms * 1.5]].map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '),
      fill: DIGIT, 'shape-rendering': GPX }, g);
     debug.slim = { f: f };
@@ -1203,8 +1203,8 @@ var I18N = (function () {
    if (width(wq) > iw - width(cw) - u(10)) {
     g.removeChild(wq);
     fitText(g, condTxt, ix, wy, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
-    var room = MX(u(20), dx - ix - u(8));
-    cw.setAttribute('x', R(ix)); cw.setAttribute('y', R(MX(iy + isz, ib.b) + SM2.size * 1.1));
+    var room = Mx(u(20), dx - ix - u(8));
+    cw.setAttribute('x', R(ix)); cw.setAttribute('y', R(Mx(iy + isz, ib.b) + SM2.size * 1.1));
     if (width(cw) > room) cw.textContent = 'OPEN-METEO';
    }
    var line = M.ok ? I18N.hi + ' ' + SWModel.fmt(hi) + '  ' + I18N.lo + ' ' + SWModel.fmt(lo) + '  \u00b7  ' +
@@ -1222,15 +1222,15 @@ var I18N = (function () {
   function smallFace(h, w) { return h / z < 160 || (h / z < 230 && !(w > h * 1.8)); }
   function dayRow(g0, x, y, w, h, d, on) {
    var g = mk('g', { 'data-sw-row': 1 }, g0);
-   var lw = MX(2, u(2));
+   var lw = Mx(2, u(2));
    if (SHADE) rrect(g, x + u(3), y + u(3), w, h, u(6), SHADE);
    rrect(g, x + lw / 2, y + lw / 2, w - lw, h - lw, u(6), paper, ink, lw);
-   var cy = y + h / 2, pad = MX(u(8), h * 0.18), gap = MX(u(6), h * 0.12);
+   var cy = y + h / 2, pad = Mx(u(8), h * 0.18), gap = Mx(u(6), h * 0.12);
    var k = 1, L, T, t2, lr, isz, labW, hiW, loW, need;
    function measure(str, sp) { var tt = text(g, str, 0, 0, sp, { ls: R(sp.size * 0.12) }); var ww = width(tt); g.removeChild(tt); return ww; }
    for (var tries = 0; tries < 12; tries++) {
     L = F(RD(h * 0.32 * k, 9), '700'); T = F(RD(h * 0.4 * k, 10), '700'); t2 = F(RD(h * 0.3 * k, 9), '500');
-    lr = R(MX(u(2), h * 0.07 * k)); isz = MN(h * 0.78, h * 0.78 * k);
+    lr = R(Mx(u(2), h * 0.07 * k)); isz = Mn(h * 0.78, h * 0.78 * k);
     labW = measure(dayName(d), L);
     hiW = measure('-88' + deg, T); loW = measure('-88' + deg, t2);
     need = pad + 2 * lr + gap + labW + gap + isz + gap + hiW + gap + loW + pad;
@@ -1238,12 +1238,12 @@ var I18N = (function () {
     k *= 0.9;
    }
    var cx0 = x + pad;
-   mk('circle', { cx: R(cx0 + lr), cy: R(cy), r: lr, fill: on ? (LAMP || ink) : paper, stroke: ink, 'stroke-width': MX(1, u(1.2)), 'shape-rendering': GPX }, g);
+   mk('circle', { cx: R(cx0 + lr), cy: R(cy), r: lr, fill: on ? (LAMP || ink) : paper, stroke: ink, 'stroke-width': Mx(1, u(1.2)), 'shape-rendering': GPX }, g);
    var labX = cx0 + 2 * lr + gap;
    var lt = text(g, dayName(d), labX, cy + L.size * 0.36, L, { ls: R(L.size * 0.12) });
-   if (on) mk('rect', { x: R(labX), y: R(cy + L.size * 0.62), width: R(width(lt)), height: MX(2, u(2)), fill: LAMP || ink }, g);
+   if (on) mk('rect', { x: R(labX), y: R(cy + L.size * 0.62), width: R(width(lt)), height: Mx(2, u(2)), fill: LAMP || ink }, g);
    var right = x + w - pad, loX = right, hiX = right - loW - gap;
-   var icX = MX(labX + labW + gap + isz / 2, (labX + labW + hiX - hiW) / 2);
+   var icX = Mx(labX + labW + gap + isz / 2, (labX + labW + hiX - hiW) / 2);
    icon(g, d.icon, icX, cy, isz, null);
    text(g, tStr(d.hi), hiX, cy + T.size * 0.36, T, { anchor: 'end' });
    text(g, tStr(d.lo), loX, cy + T.size * 0.36, t2, { anchor: 'end' });
@@ -1251,14 +1251,14 @@ var I18N = (function () {
   function keysRow(x, y, w, h, nd) {
    debug.days = 0;
    if (!M.days.length) {
-    var lw = MX(2, u(2)), P = F(RD(MN(h, w * 0.2) * 0.16, 12), '700');
+    var lw = Mx(2, u(2)), P = F(RD(Mn(h, w * 0.2) * 0.16, 12), '700');
     rrect(root, x + lw / 2, y + lw / 2, w - lw - u(3), h - lw - u(3), u(6), paper, ink, lw);
     text(root, I18N.ours('next_days'), x + w / 2, y + h / 2 - P.size * 0.2, P, { anchor: 'middle', ls: R(P.size * 0.25) });
     text(root, I18N.ours(M.ok ? 'no_forecast' : 'no_signal'), x + w / 2, y + h / 2 + P.size * 1.3, F(P.size * 0.8, '600'), { anchor: 'middle', ls: R(P.size * 0.2) });
     return;
    }
    if (h > w * 0.6) {
-    var rg = u(10), n = MX(1, MN(M.days.length || 1, 7, FL((h + rg) / (u(52) * TS + rg))));
+    var rg = u(10), n = Mx(1, Mn(M.days.length || 1, 7, Fl((h + rg) / (u(52) * TS + rg))));
     var rh = (h - rg * (n - 1)) / n;
     if (rh > u(90) * TS) { rh = u(90) * TS; }
     debug.days = n; debug.rows = true;
@@ -1274,19 +1274,19 @@ var I18N = (function () {
    days.forEach(function (d) { if (d.lo !== null && (lo === null || d.lo < lo)) lo = d.lo; if (d.hi !== null && (hi === null || d.hi > hi)) hi = d.hi; });
    if (lo === null) { lo = 0; hi = 1; }
    if (hi - lo < 1) hi = lo + 1;
-   var hb = MN(h, cw * 1.6);
-   var L = F(RD(MN(hb * 0.11, cw * 0.16), 11), '700'), T = F(RD(MN(hb * 0.15, cw * 0.24), 13), '800'), t2 = F(RD(MN(hb * 0.12, cw * 0.2), 12), '700');
-   var isz = MN(L.size * 2.2, cw * 0.35), rowY = y + MX(L.size, isz * 0.62) + u(4);
+   var hb = Mn(h, cw * 1.6);
+   var L = F(RD(Mn(hb * 0.11, cw * 0.16), 11), '700'), T = F(RD(Mn(hb * 0.15, cw * 0.24), 13), '800'), t2 = F(RD(Mn(hb * 0.12, cw * 0.2), 12), '700');
+   var isz = Mn(L.size * 2.2, cw * 0.35), rowY = y + Mx(L.size, isz * 0.62) + u(4);
    var BARV = 'A';
    function geo(Tc) {
-    var tp = rowY + isz * 0.7 + u(6), bt = BARV === 'B' ? y + h - t2.size * 1.35 : y + h - u(4), sH = MX(u(2), MN(u(3.5), (bt - tp) / 22)), sG = MX(bits === 1 ? 2 : 1, R(sH * 0.6));
-    return { T: Tc, top: tp, bot: bt, segH: sH, segG: sG, n: FL((bt - tp + sG) / (sH + sG)) };
+    var tp = rowY + isz * 0.7 + u(6), bt = BARV === 'B' ? y + h - t2.size * 1.35 : y + h - u(4), sH = Mx(u(2), Mn(u(3.5), (bt - tp) / 22)), sG = Mx(bits === 1 ? 2 : 1, R(sH * 0.6));
+    return { T: Tc, top: tp, bot: bt, segH: sH, segG: sG, n: Fl((bt - tp + sG) / (sH + sG)) };
    }
    var G = geo(T);
    if (PIXFONT) [21, 16, 12].some(function (c) { G = geo(F(c, '800')); return G.n >= 6; });
    T = G.T;
-   var pw = MX(u(14), MN(cw * 0.4, u(90))), top = G.top, bot = G.bot, segH = G.segH, segG = G.segG;   // owner: wider "volumes"
-   var NS = MX(PIXFONT ? 2 : 6, G.n);
+   var pw = Mx(u(14), Mn(cw * 0.4, u(90))), top = G.top, bot = G.bot, segH = G.segH, segG = G.segG;   // owner: wider "volumes"
+   var NS = Mx(PIXFONT ? 2 : 6, G.n);
    var LIT = FULL ? AMBER : (ORANGE || (bits === 4 ? fillOf('gray-20', '#333') : (bits === 2 ? fillOf('gray-15', '#333') : ink)));
    var PEAK = FULL ? '#ff5a00' : (color && RED !== ink ? RED : ink);
    var OFF = FULL ? 'rgb(0,0,0,0.08)' : (bits === 4 ? fillOf('gray-60', '#bbb') : (bits === 2 ? fillOf('gray-60', '#bbb') : null));
@@ -1297,12 +1297,12 @@ var I18N = (function () {
     var lmax = cw * 0.5 - u(14), lt = fitText(root, dayName(d), cx - u(10), rowY + LB.size * 0.36, LB, lmax, { anchor: 'end', ls: R(LB.size * 0.08) });
     icon(root, d.icon, cx + isz * 0.7, rowY, isz, null);
     if (lt) { lt.setAttribute('data-sw-day', R(x + cw * i) + ' ' + R(x + cw * (i + 1))); }
-    if (on && lt) mk('rect', { x: R(parseFloat(lt.getAttribute('x'))), y: R(rowY + LB.size * 0.62), width: R(width(lt)), height: MX(2, u(2.5)), fill: LAMP || ink }, root);
+    if (on && lt) mk('rect', { x: R(parseFloat(lt.getAttribute('x'))), y: R(rowY + LB.size * 0.62), width: R(width(lt)), height: Mx(2, u(2.5)), fill: LAMP || ink }, root);
     if (d.hi === null || d.lo === null) return;
-     var k0 = MX(0, MN(NS - 1, FL((d.lo - lo) / (hi - lo) * NS))), k1 = MX(k0, MN(NS - 1, Math.ceil((d.hi - lo) / (hi - lo) * NS) - 1));
+     var k0 = Mx(0, Mn(NS - 1, Fl((d.lo - lo) / (hi - lo) * NS))), k1 = Mx(k0, Mn(NS - 1, Math.ceil((d.hi - lo) / (hi - lo) * NS) - 1));
     var yOf = function (k) { return bot - (k + 1) * segH - k * segG; };
     var mW = function (str, sp) { var tt = text(root, str, 0, 0, sp); var ww = width(tt); root.removeChild(tt); return ww; };
-    var hiW = mW(tStr(d.hi), T), loW = mW(tStr(d.lo), t2), tg = u(6), bx = BARV === 'A' ? cx - (pw + tg + MX(hiW, loW)) / 2 : cx - pw / 2;
+    var hiW = mW(tStr(d.hi), T), loW = mW(tStr(d.lo), t2), tg = u(6), bx = BARV === 'A' ? cx - (pw + tg + Mx(hiW, loW)) / 2 : cx - pw / 2;
     for (var k = 0; k < NS; k++) {
      var litK = k >= k0 && k <= k1, fill = litK ? (k === k1 ? PEAK : LIT) : OFF;
      if (fill) mk('rect', { x: R(bx), y: R(yOf(k)), width: R(pw), height: R(segH), fill: fill, 'data-sw-led': litK ? (k === k1 ? 'peak' : 'lit') : 'off' }, root);
@@ -1310,7 +1310,7 @@ var I18N = (function () {
     }
     var yHi = yOf(k1), yLo = yOf(k0) + segH;
     if (BARV === 'A') {
-     var hy = MX(yHi + T.size * 0.72, top + T.size * 0.72), ly = MN(MX(yLo, hy + t2.size * 1.15), bot);
+     var hy = Mx(yHi + T.size * 0.72, top + T.size * 0.72), ly = Mn(Mx(yLo, hy + t2.size * 1.15), bot);
      text(root, tStr(d.hi), bx + pw + tg, hy, T);
      text(root, tStr(d.lo), bx + pw + tg, ly, t2);
     } else {
@@ -1321,8 +1321,8 @@ var I18N = (function () {
    });
   }
   function daysFit(w, minCss) {
-   var fit = MX(1, FL(w / (u(minCss) * TS))), n = parseInt(SW_CFG.days, 10);
-   return MX(1, MN(M.days.length || 1, 7, fit, n > 0 ? n : 7));
+   var fit = Mx(1, Fl(w / (u(minCss) * TS))), n = parseInt(SW_CFG.days, 10);
+   return Mx(1, Mn(M.days.length || 1, 7, fit, n > 0 ? n : 7));
   }
   var HS = F(RD(H0 * 0.03, 12), '700');
   function dialName(k) {
@@ -1330,11 +1330,11 @@ var I18N = (function () {
     : k === 'pressure' ? I18N.ours('pressure') : k === 'feels' ? I18N.ours('feels') : k.toUpperCase();
   }
   function meterRow(x, y, w, h, captions, kinds) {
-   var n = kinds.length, mw = FL((w - (n - 1) * GP) / n), capSp = null;
+   var n = kinds.length, mw = Fl((w - (n - 1) * GP) / n), capSp = null;
    if (captions) {
-    var fh = h - u(14), fw = mw - u(14), BG = F(RD(MN(fh, fw) * 0.055, 10), '800'), size = MX(HS.size, BG.size * 1.1);
+    var fh = h - u(14), fw = mw - u(14), BG = F(RD(Mn(fh, fw) * 0.055, 10), '800'), size = Mx(HS.size, BG.size * 1.1);
     var bwd = (function () { var t0 = text(root, 'L', 0, 0, BG); var ww = width(t0); root.removeChild(t0); return ww + 2 * BG.size * 0.45; })();
-    var size0 = size, floor = MX(HS.size, size * 0.6);
+    var size0 = size, floor = Mx(HS.size, size * 0.6);
     [false, true].some(function (allowShort) {
      for (size = size0; size >= floor * 0.99; size *= 0.9) {
       capSp = F(size, '700');
@@ -1364,12 +1364,12 @@ var I18N = (function () {
    vfd(root, X0, Y0, W0, vh2, true);
    meterRow(X0, Y0 + vh2 + GP, W0, H0 - vh2 - GP, false, [DL, DR]);
   } else if (view === 2) {
-   var mw3 = R(MN(W0 * 0.33, H0 * 1.15)), gw = W0 - 2 * mw3 - 2 * GP;
+   var mw3 = R(Mn(W0 * 0.33, H0 * 1.15)), gw = W0 - 2 * mw3 - 2 * GP;
    dial(DL, root, X0, Y0, mw3, H0, smallFace(H0, mw3), 'L');
    vfd(root, X0 + mw3 + GP, Y0, gw, H0, true);
    dial(DR, root, X0 + W0 - mw3, Y0, mw3, H0, smallFace(H0, mw3), 'R');
   } else if (view === 3 && H0 > W0 * 1.25) {
-   var vh5 = R(H0 * 0.22), mh5 = R(MN(H0 * 0.25, W0 * 0.62));
+   var vh5 = R(H0 * 0.22), mh5 = R(Mn(H0 * 0.25, W0 * 0.62));
    vfd(root, X0, Y0, W0, vh5, true);
    dial(DL, root, X0, Y0 + vh5 + GP, W0, mh5, smallFace(mh5, W0), 'L');
    dial(DR, root, X0, Y0 + vh5 + mh5 + 2 * GP, W0, mh5, smallFace(mh5, W0), 'R');
