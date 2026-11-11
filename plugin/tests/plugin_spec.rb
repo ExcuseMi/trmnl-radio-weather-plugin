@@ -401,6 +401,31 @@ RSpec.describe 'Stereo Weather' do
         expect(s.evaluate(ICON_CLEAR)).to be_empty
       end
     end
+
+    # Owner: the current icon should glow like the rest of the glass. Where the digits have a halo, the icon has one
+    # too: a blurred copy over the same box, with no icon marks of its own (so it is not counted twice).
+    ICON_HALO = <<~JS
+      (function () {
+        return [].slice.call(document.querySelectorAll('.sw-stage')).map(function (st) {
+          var ic = st.querySelector('[data-sw-icon][data-sw-now]'), r = ic.getBoundingClientRect();
+          var halos = [].slice.call(st.querySelectorAll('[data-sw-halo]'));
+          return { digits: halos.some(function (h) { return h.querySelector('[data-sw-seg]'); }),
+                   icon: halos.some(function (h) { var b = h.getBBox && h.getBoundingClientRect();
+                     return !h.querySelector('[data-sw-seg]') && !h.querySelector('[data-sw-icon]') && b.width > 0 &&
+                       Math.abs(b.left - r.left) < 3 && Math.abs(b.right - r.right) < 3 && Math.abs(b.top - r.top) < 3 && Math.abs(b.bottom - r.bottom) < 3; }) };
+        });
+      })()
+    JS
+    VIEWS.product(%w[clear drizzle]).each do |view, kind|
+      it "lets the #{kind} icon glow like the digits on v2 #{view}" do
+        s = draw(view:, device: 'v2', answer: { json: current(kind, true) })
+        debug(s)
+        got = s.evaluate(ICON_HALO)
+        expect(got).not_to be_empty
+        got.each { expect(it['icon']).to eq(it['digits']) }
+        expect(got.map { it['digits'] }).to include(true)
+      end
+    end
   end
 
   describe 'channel badges' do

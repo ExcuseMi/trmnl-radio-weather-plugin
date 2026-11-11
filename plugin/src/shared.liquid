@@ -723,7 +723,7 @@ var I18N = (function () {
    mk('rect', { x: fx, y: fy, width: fw, height: fh }, cp);
    var ng = mk('g', { 'clip-path': 'url(#' + id + ')' }, g);
    (debug.needles = debug.needles || []).push({ chan: o.chan, v: o.needle, shown: nv });
-   // an analog needle (owner): tapered, a counterweight tail, a soft shadow on greys, crisp on 1-bit, black in colour
+   // analog needle (owner): tapered, counterweight tail, soft shadow on greys
    function needlePts(ox, oy) {
     var b = [cx + ox, py + oy], t = [cx + ox + ux * tipR, py + oy + uy * tipR], k = [cx + ox - ux * tailR, py + oy - uy * tailR];
     return [[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[1] + ny * wBase / 2],
@@ -860,7 +860,7 @@ var I18N = (function () {
    if (color && YEL) return YEL;
    return bits === 4 ? fillOf('gray-70', '#eee') : paper;
   }
-  // the X meter backlight: a soft lamp at the bottom centre, ordered dithers between neighbouring greys (70, 75, white), no hard rings
+  // X meter backlight: soft lamp at bottom centre, dithers between neighbouring greys
   var lampN = 0, BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
   function dith(a, b, dn) {
    var pid = 'swd' + view + '-' + (lampN++), pat = mk('pattern', { id: pid, patternUnits: 'userSpaceOnUse', width: 4, height: 4 }, defs);
@@ -892,6 +892,12 @@ var I18N = (function () {
    var hg = mk('g', { filter: 'url(#' + id + ')', 'data-sw-halo': '1' }, root);
    draw(hg);
    return draw(null);
+  }
+  // the current icon glows like the digits (owner)
+  function glowIcon(g, draw) {
+   var r, n = [iconsUsed.wi, iconsUsed.drawn];
+   glowDigits(function (hg) { r = draw(hg || g); if (hg) { iconsUsed.wi = n[0]; iconsUsed.drawn = n[1]; [].forEach.call(hg.querySelectorAll('[data-sw-icon]'), function (e) { e.removeAttribute('data-sw-now'); e.removeAttribute('data-sw-icon'); }); } });
+   return r;
   }
   var LAMP = AMBER || YEL || (color && RED !== ink ? RED : null);
   debug.backlight = FULL ? 'full' : (ORANGE ? 'orange' : (color && YEL ? 'yellow' : (GREYGLOW ? 'grey' : 'none')));
@@ -1062,7 +1068,7 @@ var I18N = (function () {
    var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
    var dh = R(h * (compact ? 0.46 : 0.56));
    function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.05); }
-   // the digits end above the print under them: the condition, or the credit on its own row (it ran over "1.6", live)
+   // the digits end above the condition or the credit row (it ran over "1.6", live)
    var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
    var dyTop = compact ? y + h * 0.27 : Math.max(y + h * 0.25, lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2);
    while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh > dyEnd))) dh -= 2;
@@ -1091,7 +1097,7 @@ var I18N = (function () {
    var firstLit = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
    ICON_INK = GLOW; ICON_NOW = true;
    if (!compact) ibox.r = (firstLit ? firstLit.l : dx) - dh * 0.14;
-   var ib = iconFit(g, M.now.icon, M.now.day, ibox, hWant, compact ? y + h * 0.16 : dy + dh * 0.5);
+   var ib = glowIcon(g, function (gg) { return iconFit(gg, M.now.icon, M.now.day, ibox, hWant, compact ? y + h * 0.16 : dy + dh * 0.5); });
    ICON_INK = null; ICON_NOW = false;
    debug.digits.iconRight = ib.r;
    var sw = R(dw * 0.45);
@@ -1112,7 +1118,7 @@ var I18N = (function () {
     });
    }
    if (!compact && !blk && M.ok) {
-    // readouts left of the icon; with room under the digits and icon (X portrait) the rows run to the right divider
+    // readouts left of the icon; X portrait rows run to the right divider
     var rdB = y + h * 0.9 - WD.size * 1.7, rdTop = rdB - WD.size * 2.7;
     var under = Math.max(dy + dh, ib.b) + u(6) <= rdTop, rdW = (under ? rx - u(20) : ib.l - u(6)) - lx;
     [[humTxt(), rdB - WD.size * 1.7], [uvTxt(), rdB]].forEach(function (rd) {
@@ -1149,7 +1155,7 @@ var I18N = (function () {
    var dx = ix + iw - needQ(dh), dy = iy;
    debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(dx) };
    ICON_INK = GLOW; ICON_NOW = true;
-   var ib = iconFit(g, M.now.icon, M.now.day, { l: ix + u(4), t: iy + u(2), r: dx - u(8), b: iy + rowH }, rowH, iy + dh / 2);
+   var ib = glowIcon(g, function (gg) { return iconFit(gg, M.now.icon, M.now.day, { l: ix + u(4), t: iy + u(2), r: dx - u(8), b: iy + rowH }, rowH, iy + dh / 2); });
    ICON_INK = null; ICON_NOW = false;
    var dwid = seg7W(dw, str);
    glowDigits(function (hg) { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
@@ -1303,7 +1309,7 @@ var I18N = (function () {
    }
   }
   if (view === 4) {
-   // quadrant: the glass shows the temperature, so the one meter is the rain chance (owner: never the temperature twice)
+   // quadrant: the one meter is the rain chance (owner: never the temperature twice)
    if (H0 / z >= 260) {
     var qg = R(H0 * 0.42);
     vfd(root, X0, Y0, W0, qg, true);
