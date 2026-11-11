@@ -1103,8 +1103,8 @@ var dh = R(h * (compact ? 0.46 : (noRow ? 0.66 : 0.56)));
 function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.25); }
 var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
 var feelsOn = !compact && blk && M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2;
-var dyTop = compact ? y + h * 0.27 : Mx(y + h * (noRow ? 0.14 : 0.25), lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2) - (feelsOn ? WD.size * 2.2 : 0);
-while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh > dyEnd))) dh -= 2;
+var dyTop = compact ? y + h * 0.27 : Mx(y + h * (noRow ? 0.14 : 0.25), lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2) - (feelsOn ? WD.size * 1.2 : 0);
+while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh * (feelsOn ? 1.38 : 1) + (feelsOn ? u(6) : 0) > dyEnd))) dh -= 2;
 var dw = R(dh * 0.5), dy = dyTop;
 var str = tempDigits();
 debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(lx + iconW) };
@@ -1137,9 +1137,11 @@ seg7(g, dx + dwid + R(dw * 0.25) + sw + R(dw * 0.12), dy, sw, R(dh * 0.45), M.un
 if (blk) wt = fitText(g, condS, blk.cL + avail / 2, y + h * 0.9, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
 else if (!compact) wt = fitText(g, condS, lx, y + h * 0.9, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
 if (feelsOn) {
-var fl = I18N.ours('feels'), fs = fv(M.now.feels), fcw = Mx(u(8), R(WD.size * 0.6)), fy2 = y + h * 0.9 - WD.size * 1.9, flw = mW(fl, WD) * 1.15, fdw = seg7W(fcw, fs), fg = u(14), fx0 = blk.cL + avail / 2 - (flw + fg + fdw + u(5) + fcw * 0.7) / 2;
+var fl = I18N.ours('feels'), fs = fv(M.now.feels), fh2 = R(dh * 0.38), fcw = R(fh2 / 2), fy2 = y + h * 0.9 - WD.size * 1.6, flw = mW(fl, WD) * 1.15, fg = u(14), segs2 = fh2 >= u(16);
+var fdw = segs2 ? seg7W(fcw, fs) + u(5) + R(fcw * 0.6) : mW(fs + deg, WD) * 1.1, fx0 = blk.cL + avail / 2 - (flw + fg + fdw) / 2;
 text(g, fl, fx0, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.15) }).setAttribute('data-sw-feels', 1);
-glowDigits((hg) => { seg7(hg || g, fx0 + flw + fg, fy2 - fcw * 2, fcw, fcw * 2, fs, DIGIT, null); seg7(hg || g, fx0 + flw + fg + fdw + u(5), fy2 - fcw * 2, R(fcw * 0.7), R(fcw * 1.1), 'o', DIGIT, null); });
+if (segs2) glowDigits((hg) => { seg7(hg || g, fx0 + flw + fg, fy2 - fh2, fcw, fh2, fs, DIGIT, null); seg7(hg || g, fx0 + flw + fg + seg7W(fcw, fs) + u(5), fy2 - fh2, R(fcw * 0.6), R(fh2 * 0.45), 'o', DIGIT, null); });
+else text(g, fs + deg, fx0 + flw + fg, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.1) }).setAttribute('data-sw-feels-value', 1);
 }
 if (blk) {
 mk('rect', { x: R(blk.divX), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
