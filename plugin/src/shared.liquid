@@ -949,15 +949,17 @@ if (bits === 1) {
 var tf = on ? (LAMP && LAMP !== RED ? ink : paper) : ink, lh0 = R(sp.size * 1.4), ly0 = R(y - sp.size * 1.05);
 var tm = text(g, str, 0, 0, sp, { ls: R(sp.size * 0.15) }), tw0 = width(tm); g.removeChild(tm);
 var lw0 = Math.ceil(tw0 + sp.size), bx = R(x), cr = { 'shape-rendering': 'crispEdges', 'data-sw-status': 1 };
-if (on) mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP || ink }, cr), g);
-text(g, str, x + sp.size * 0.5, y, sp, { ls: R(sp.size * 0.15), fill: tf });
+if (on && LAMP) mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP }, cr), g);
+text(g, str, x + sp.size * 0.5, y, sp, { ls: R(sp.size * 0.15), fill: on && !LAMP ? ink : tf });
+if (on && !LAMP) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, rx: R(sp.size * 0.3), fill: 'none', stroke: ink, 'stroke-width': Mx(1, R(sp.size * 0.1)) }, cr), g);
 if (!on) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, fill: 'none', stroke: ink, 'stroke-width': 1 }, cr), g);
 return lw0;
 }
-var tw2 = 0, lit = on && (FULL || GREYGLOW);
-function word(hg) { var tt = text(hg || g, str, x, y, sp, { ls: R(sp.size * 0.15), fill: lit ? (FULL ? AMBER : GLOW) : col }); tw2 = width(tt); if (!hg) tt.setAttribute('data-sw-status', 1); }
+var tw2 = 0, lit = on && (FULL || GREYGLOW), bpad = on && !color ? sp.size * 0.5 : 0;
+function word(hg) { var tt = text(hg || g, str, x + bpad, y, sp, { ls: R(sp.size * 0.15), fill: lit ? (FULL ? AMBER : GLOW) : col }); tw2 = width(tt); if (!hg) tt.setAttribute('data-sw-status', 1); }
 if (lit) glowDigits(word); else word(null);
-return tw2;
+if (bpad) { var lb = rrect(g, R(x), R(y - sp.size * 1.05), R(tw2 + 2 * bpad), R(sp.size * 1.4), R(sp.size * 0.3), 'none', col, Mx(1, R(sp.size * 0.1))); lb.setAttribute('data-sw-lampbox', 1); }
+return tw2 + 2 * bpad;
 }
 function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
 function fv1(v) { return v === null ? '--' : (v < 10 ? (Math.round(v * 10) / 10).toFixed(1) : SWModel.fmt(v)); }
@@ -991,7 +993,7 @@ flags = flags.filter((f) => f[1]);
 var noRow = false, lampBottom = sy + ST.size * 0.45;
 if (!compact) {
 var room = iw - u(20) - (() => { var tc = text(g, 'OPEN-METEO', 0, 0, ST, { ls: R(ST.size * 0.3) }); var tw = width(tc); g.removeChild(tc); return tw + ST.size * 2.9 + u(14); })();
-var rowW = (fl, sp) => { return fl.reduce((a, f) => { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 ? 2.3 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
+var rowW = (fl, sp) => { return fl.reduce((a, f) => { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 || !color ? 2.3 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
 debug.lampFit = { need: R(rowW(flags, ST)), room: R(room) };
 while (rowW(flags, ST) > room && flags.some((f) => !f[1])) {
 for (var fi = flags.length - 1; fi >= 0; fi--) if (!flags[fi][1]) { flags.splice(fi, 1); break; }
