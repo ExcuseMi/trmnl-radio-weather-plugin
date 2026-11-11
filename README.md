@@ -42,6 +42,6 @@ ruby ../tools/sync_trmnl_i18n.rb   # re-sync TRMNL's translations
 
 Copyright (c) 2026 ExcuseMi. All rights reserved. No licence is granted to copy, modify or redistribute this code.
 
-The weather texts in `plugin/src/shared.liquid` (between the `I18N_TRMNL` markers) come from
+The weather texts (the `sw_i18n` capture in each `plugin/src/<view>.liquid`, the slots between the `I18N_TRMNL` markers in `shared.liquid`) come from
 [usetrmnl/trmnl-i18n](https://github.com/usetrmnl/trmnl-i18n) and stay under its MIT licence; see
 [third_party/trmnl-i18n-LICENSE](third_party/trmnl-i18n-LICENSE). The weather icons are loaded from trmnl.com and are not part of this repository.
