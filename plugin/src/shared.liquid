@@ -45,6 +45,7 @@ var SW_CFG = {
  days: {{ cf.days_shown | default: 'auto' | json }},
  span: {{ cf.dial_span | default: '24h' | json }},
  dials: [{{ cf.left_dial | default: 'temperature' | json }}, {{ cf.middle_dial | default: 'none' | json }}, {{ cf.right_dial | default: 'rain' | json }}],
+ glass: {{ cf.glass | default: 'dark' | json }},
  readouts: [{{ cf.readout_1 | default: 'humidity' | json }}, {{ cf.readout_2 | default: 'uv' | json }}, {{ cf.readout_3 | default: 'wind' | json }}, {{ cf.readout_4 | default: 'feels' | json }}],
  label: '',
  location: {{ cf.lat_lon | default: '' | json }},
@@ -822,10 +823,12 @@ function draw(stage) {
    name: I18N.rainChance, shortName: I18N.ours('rain'), unitName: '%', });
  }
  var darkMode = (function () { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
- var GLASSD = bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25', '#333') : (bits === 2 ? fillOf(darkMode ? 'gray-75' : 'gray-15', '#333') : paper);
- var GLOW = bits === 1 ? ink : (darkMode ? ink : paper);
- var GHOSTD = null;
- var DIMW = bits === 4 ? fillOf(darkMode ? 'gray-55' : 'gray-45', '#777') : null;
+ // glass setting: dark VFD (default) or light LCD (light ground, black segments, light ghosts, no halos); 1-bit keeps its window
+ var LCD = SW_CFG.glass === 'light' && bits >= 2 && !darkMode;
+ var GLASSD = LCD ? fillOf('gray-70', '#ddd') : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25', '#333') : (bits === 2 ? fillOf(darkMode ? 'gray-75' : 'gray-15', '#333') : paper);
+ var GLOW = LCD || bits === 1 ? ink : (darkMode ? ink : paper);
+ var GHOSTD = LCD && bits === 4 ? fillOf('gray-60', '#bbb') : null;
+ var DIMW = bits === 4 ? fillOf(LCD ? 'gray-50' : (darkMode ? 'gray-55' : 'gray-45'), '#777') : (LCD ? ink : null);
  var lightPanel = (function () { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !m || (+m[1] + +m[2] + +m[3]) > 384; })();
  var GREYGLOW = bits === 4 && !color && lightPanel;
  var DIGIT = AMBER ? AMBER : (color && RED !== ink ? RED : GLOW);
@@ -865,7 +868,7 @@ function draw(stage) {
   });
  }
  function glowDigits(draw) {
-  if (!FULL && !GREYGLOW) return draw(null);
+  if (LCD || (!FULL && !GREYGLOW)) return draw(null);
   var id = 'swhalo' + view + '-' + (glowN++);
   var f = mk('filter', { id: id, x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
   mk('feGaussianBlur', { stdDeviation: Mx(2, u(4)) }, f);
@@ -883,7 +886,7 @@ function draw(stage) {
  var LAMP = AMBER || YEL || (color && RED !== ink ? RED : null);
  debug.backlight = FULL ? 'full' : (ORANGE ? 'orange' : (color && YEL ? 'yellow' : (GREYGLOW ? 'grey' : 'none')));
  debug.orange = { digits: String(ORANGE), face: String(FACE_OR) };
- debug.glass = String(GLASSD); debug.paper = String(paper); debug.glow = String(GLOW);
+ debug.glass = String(GLASSD); debug.lcd = LCD; debug.paper = String(paper); debug.glow = String(GLOW);
  var RAINC = BLUE || (RED !== ink ? RED : ink);
  var bevelN = 0;
  function insetBevel(g, x, y, w, h, r, onGlass) {
@@ -928,7 +931,7 @@ function draw(stage) {
   seg7.boxes = [];
   function poly(p, c, kind) {
    mk('polygon', { points: pts(p), fill: c, 'shape-rendering': GPX, 'data-sw-seg': kind }, g);
-   p.forEach(function (q) { box.l = Mn(box.l, q[0]); box.r = Mx(box.r, q[0]); });
+   if (kind === 'lit') p.forEach(function (q) { box.l = Mn(box.l, q[0]); box.r = Mx(box.r, q[0]); });
   }
   str.split('').forEach(function (ch, ci) {
    if (ch === '.') { var d = R(t * 1.2); mk('rect', { x: R(cx), y: R(y + dh - d), width: d, height: d, fill: col }, g); cx += d + gap; return; }
@@ -941,7 +944,7 @@ function draw(stage) {
    if (ch === '_') on = '';
    var segs = signCell ? 'g' : 'abcdefg';
    box = { ch: ch, x0: R(cx), x1: R(cx + dw), l: Infinity, r: -Infinity };
-   segs.split('').forEach(function (k) { if (on.indexOf(k) >= 0) poly(sh[k], col, 'lit'); });
+   segs.split('').forEach(function (k) { if (on.indexOf(k) >= 0) poly(sh[k], col, 'lit'); else if (ghost && ch !== '_' && ch !== ' ') poly(sh[k], ghost, 'ghost'); });
    seg7.boxes.push({ ch: box.ch, x0: box.x0, x1: box.x1, l: isFinite(box.l) ? R(box.l) : null, r: isFinite(box.r) ? R(box.r) : null });
    cx += dw + gap;
   });
@@ -1065,9 +1068,8 @@ function draw(stage) {
   var rx = ix + iw * 0.72, rw = iw * 0.28, WL = { ls: R(WD.size * 0.15), fill: GLOW };
   var blk = null, cells = null;
   function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.removeChild(tt); return ww; }
-  // the glass grid (owner rules): 28 / 44 / 28 columns, two equal readout cells per side column, one digit size,
-  // one unit size, one label size and one baseline for all cells; values right-aligned in cells sized for the
-  // declared longest value; the right column holds the rain timing on a rainy day, readouts 3 and 4 when dry
+  // the glass grid (owner rules): 28/44/28 columns, two equal cells per side, one digit, unit and label size and
+  // baseline for all cells, values in cells sized for the declared longest value; right: rain timing or readouts 3/4
   if (!compact && M.ok && ROS.length >= 4) {
    var cellGap = u(12), cellW = (rw - cellGap) / 2, ug = u(6);
    var ROW = { dTop: Mx(y + h * 0.33, lampBottom + u(6)), dBot: y + h * 0.62, bTop: y + h * 0.68, bH: Mx(u(5), R(h * 0.07)), lab: y + h * 0.9 };
@@ -1093,7 +1095,7 @@ function draw(stage) {
    var kg = mk('g', { 'data-sw-knob': dir === null ? 'none' : R(dir) }, pg), lw0 = Mx(1, u(1.5));
    for (var i = 0; i < 8; i++) { var an = i * Math.PI / 4, r1 = kr * 1.12, r2 = kr * (i ? 1.24 : 1.3);
     mk('line', { x1: (kx + r1 * Math.sin(an)).toFixed(1), y1: (ky - r1 * Math.cos(an)).toFixed(1), x2: (kx + r2 * Math.sin(an)).toFixed(1), y2: (ky - r2 * Math.cos(an)).toFixed(1), stroke: bits === 1 ? ink : (DIMW || GLOW), 'stroke-width': i ? lw0 : lw0 * 2, 'shape-rendering': GPX }, kg); }
-   if (bits !== 1) mk('circle', { cx: R(kx), cy: R(ky), r: R(kr), fill: fillOf(darkMode ? 'gray-60' : 'gray-35', '#555'), 'shape-rendering': GPX }, kg);
+   if (bits !== 1) mk('circle', { cx: R(kx), cy: R(ky), r: R(kr), fill: fillOf(LCD ? 'gray-55' : (darkMode ? 'gray-60' : 'gray-35'), '#555'), 'shape-rendering': GPX }, kg);
    mk('circle', { cx: R(kx), cy: R(ky), r: R(kr), fill: 'none', stroke: bits === 1 ? ink : GLOW, 'stroke-width': Mx(1, u(2)), 'shape-rendering': GPX }, kg);
    if (dir !== null) { var a2 = dir * Math.PI / 180, pw = Mx(2, u(3));
     glowDigits(function (hg) { mk('line', { x1: (kx + kr * 0.3 * Math.sin(a2)).toFixed(1), y1: (ky - kr * 0.3 * Math.cos(a2)).toFixed(1), x2: (kx + kr * 0.88 * Math.sin(a2)).toFixed(1), y2: (ky - kr * 0.88 * Math.cos(a2)).toFixed(1), stroke: DIGIT, 'stroke-width': pw, 'stroke-linecap': 'round', 'shape-rendering': GPX }, hg || kg); }); }
@@ -1101,15 +1103,13 @@ function draw(stage) {
   function cell(x0, r, which) {
    var C = cells, cw2 = C.cw, uw = r.sfxMax ? mW(r.sfxMax, C.SX) + ug : 0, gw = seg7W(cw2, r.longest) + uw;
    var cg = mk('g', { 'data-sw-rcell': which + ':' + (debug[which] || []).length, 'data-sw-cw': cw2, 'data-sw-x': R(x0), 'data-sw-w': R(C.cellW) }, g);
-   // the value and its unit centred over the bar as one group in fixed digit cells, the digits right-aligned in theirs
    var vr = x0 + (C.cellW - gw) / 2 + gw - uw, dx2 = vr - seg7W(cw2, r.v);
    glowDigits(function (hg) { seg7(hg || cg, dx2, C.ROW.dTop, cw2, cw2 * 2, r.v, DIGIT, hg ? null : GHOSTD); });
    if (r.clock) debug.clock = { str: r.v, boxes: seg7.boxes };
    if (r.sfx) glowDigits(function (hg) { text(hg || cg, r.sfx, vr + ug, C.ROW.dTop + cw2 * 2, C.SX, { fill: DIGIT }).setAttribute('data-sw-runit', 1); });
    var kr = r.knob !== undefined ? cw2 * 0.6 : 0, bw = C.cellW - (kr ? kr * 2.6 + ug : 0);
    if (kr) knob(cg, x0 + C.cellW - kr * 1.3, C.ROW.bTop + C.ROW.bH / 2, kr, r.knob);
-   if (!r.noBar) {   // a 10-segment signal meter under the value: lit in the glow, the rest a dim ghost (outlined on 1-bit)
-    var sg = Mx(2, u(3)), sw2 = (bw - 9 * sg) / 10, lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
+   if (!r.noBar) {    var sg = Mx(2, u(3)), sw2 = (bw - 9 * sg) / 10, lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
     for (var i = 0; i < 10; i++) {
      var sx2 = x0 + i * (sw2 + sg), on = i < lit;
      if (on) glowDigits(function (hg) { mk('rect', { x: R(sx2), y: R(C.ROW.bTop), width: R(sw2), height: C.ROW.bH, fill: DIGIT, 'data-sw-rseg': hg ? null : 'lit' }, hg || cg); });

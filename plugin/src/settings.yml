@@ -182,6 +182,17 @@ custom_fields:
   - Rain today: rain_mm
   - Sun (sunset, then sunrise): sun
   default: feels
+- keyname: glass
+  field_type: select
+  name: Glass
+  description: The display window in the middle. Dark is the fluorescent display of the receiver; light is an 80s LCD.
+  description-nl: Het venster in het midden. Donker is het fluorescentiedisplay van de receiver; licht is een LCD uit de jaren 80.
+  description-de: Das Fenster in der Mitte. Dunkel ist das Fluoreszenzdisplay des Receivers; hell ein LCD der 80er.
+  description-fr: La vitre au milieu. Sombre, l'afficheur fluorescent du récepteur; clair, un LCD des années 80.
+  options:
+  - Dark (VFD): dark
+  - Light (LCD): light
+  default: dark
 - keyname: hide_title_bar
   field_type: boolean
   name: Hide Title Bar
