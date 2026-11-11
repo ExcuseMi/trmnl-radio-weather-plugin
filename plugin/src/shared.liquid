@@ -828,7 +828,7 @@ var I18N = (function () {
   }
   // the top of a 0-based scale in round steps, at most five majors
   function topScale(hi, steps) {
-   for (var i = 0; i < steps.length; i++) { var st = steps[i], b = Math.ceil(hi / st) * st; if (b / st <= 5) return { b: b, major: st, minor: st % 5 === 0 ? st / 5 : (st % 3 === 0 ? st / 3 : st / 2) }; }
+   for (var i = 0; i < steps.length; i++) { var st = steps[i], b = Math.ceil(hi / st) * st; if (b / st <= 4) return { b: b, major: st, minor: st % 5 === 0 ? st / 5 : (st % 3 === 0 ? st / 3 : st / 2) }; }
    var st2 = steps[steps.length - 1]; return { b: Math.ceil(hi / st2) * st2, major: st2, minor: st2 / 5 };
   }
   var DIAL_CH = { temperature: 'T', rain: 'R', wind: 'W', humidity: 'H', uv: 'U', aqi: 'Q', pressure: 'P', feels: 'F' };
@@ -851,7 +851,7 @@ var I18N = (function () {
     o.v = nz(n.aqi); o.b = ts.b; o.major = ts.major; o.minor = ts.minor; o.mark = nz(t.aqiMax); o.markLabel = I18N.hi; o.band = 60; o.name = 'AQI'; o.unitName = cap ? '' : 'AQI';
    } else if (kind === 'pressure') {
     var pb = n.press === null ? 1013 : n.press;
-    o.a = Math.floor((pb - 25) / 10) * 10; o.b = o.a + 50; o.major = 10; o.minor = 5; o.v = n.press; o.name = I18N.ours('pressure'); o.unitName = 'HPA';
+    o.a = Math.floor((pb - 25) / 25) * 25; o.b = o.a + 50; o.major = 25; o.minor = 5; o.v = n.press; o.name = I18N.ours('pressure'); o.unitName = 'HPA';
    }
    return linMeter(g, x, y, w, h, small, badge, cap, o);
   }

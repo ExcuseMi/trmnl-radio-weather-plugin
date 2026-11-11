@@ -7,7 +7,7 @@ polling_verb: get
 framework_version: 3.4.6
 serverless_language:
 refresh_interval_floor:
-polling_url: 'https://api.open-meteo.com/v1/forecast?latitude={{ lat_lon | split: '','' | first | strip }}&longitude={{ lat_lon | split: '','' | last | strip }}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day,uv_index&hourly=temperature_2m,precipitation_probability,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_hours=48&forecast_days=14&temperature_unit={{ unit }}&wind_speed_unit={% if unit == ''fahrenheit'' %}mph{% else %}kmh{% endif %}'
+polling_url: 'https://api.open-meteo.com/v1/forecast?latitude={{ lat_lon | split: '','' | first | strip }}&longitude={{ lat_lon | split: '','' | last | strip }}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index&hourly=temperature_2m,precipitation_probability,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_gusts_10m_max,precipitation_sum&timezone=auto&forecast_hours=48&forecast_days=14&temperature_unit={{ unit }}&wind_speed_unit={% if unit == ''fahrenheit'' %}mph{% else %}kmh{% endif %}'
 polling_headers: ''
 polling_body:
 id: 535432
@@ -58,6 +58,58 @@ custom_fields:
   - 12 hours: 12h
   - 24 hours: 24h
   default: 24h
+- keyname: left_dial
+  field_type: select
+  name: Left Dial
+  description: What the left needle meter shows.
+  description-nl: Wat de linker meter toont.
+  description-de: Was das linke Zeigerinstrument zeigt.
+  description-fr: Ce que le cadran de gauche montre.
+  options:
+  - Temperature: temperature
+  - Rain chance: rain
+  - Wind: wind
+  - Humidity: humidity
+  - UV: uv
+  - Air quality: aqi
+  - Air pressure: pressure
+  - Feels like: feels
+  default: temperature
+- keyname: right_dial
+  field_type: select
+  name: Right Dial
+  description: What the right needle meter shows.
+  description-nl: Wat de rechter meter toont.
+  description-de: Was das rechte Zeigerinstrument zeigt.
+  description-fr: Ce que le cadran de droite montre.
+  options:
+  - Temperature: temperature
+  - Rain chance: rain
+  - Wind: wind
+  - Humidity: humidity
+  - UV: uv
+  - Air quality: aqi
+  - Air pressure: pressure
+  - Feels like: feels
+  default: rain
+- keyname: middle_dial
+  field_type: select
+  name: Middle Dial
+  description: A third meter between the two, on the TRMNL X full screen only.
+  description-nl: Een derde meter in het midden, alleen op het volledige scherm van de TRMNL X.
+  description-de: Ein drittes Instrument in der Mitte, nur auf dem vollen Bildschirm des TRMNL X.
+  description-fr: Un troisième cadran au milieu, seulement sur l'écran complet du TRMNL X.
+  options:
+  - None: none
+  - Temperature: temperature
+  - Rain chance: rain
+  - Wind: wind
+  - Humidity: humidity
+  - UV: uv
+  - Air quality: aqi
+  - Air pressure: pressure
+  - Feels like: feels
+  default: none
 - keyname: hide_title_bar
   field_type: boolean
   name: Hide Title Bar
