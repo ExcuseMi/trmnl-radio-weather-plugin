@@ -1076,12 +1076,12 @@ function draw(stage) {
    var all = ROS.slice(0, 2).concat(right), cw = Mn(R((ROW.dBot - ROW.dTop) / 2), R(h * 0.13)), SX;
    for (var k = 0; k < 14; k++) {
     SX = F(cw * 1.05, '700');
-    if (all.every((r) => seg7W(cw, r.longest) + (r.sfxMax ? mW(r.sfxMax, SX) + ug : 0) + (r.knob !== undefined ? cw * 2 + ug : 0) <= cellW)) break;
+    if (all.every((r) => seg7W(cw, r.longest) + (r.sfxMax ? mW(r.sfxMax, SX) + ug : 0) <= cellW)) break;
     cw = R(cw * 0.9);
    }
-   // the label size: the longest label of any option in any language fits a cell
-   var LKEYS = ['humidity', 'gust', 'feels', 'pressure', 'rain', 'sunrise', 'sunset', 'uv', 'wind', 'rain_from', 'snow_from', 'hail_from', 'raining_now', 'until'], lmax = 0;
-   Object.keys(OURS).forEach(function (l) { LKEYS.forEach(function (key) { var v = (OURS[l].split('|')[OURS_KEYS.indexOf(key)] || '').trim(); if (v && v.length >= 7) lmax = Mx(lmax, mW(v, WD)); }); });
+   // the label size: the longest label of any option in the current language fits a cell (owner review)
+   var LKEYS = ['humidity', 'gust', 'feels', 'pressure', 'rain', 'sunrise', 'sunset', 'uv', 'rain_from', 'snow_from', 'hail_from', 'raining_now', 'until'], lmax = mW(I18N.wind, WD);
+   LKEYS.forEach(function (key) { lmax = Mx(lmax, mW(I18N.ours(key), WD)); });
    all.forEach(function (r) { lmax = Mx(lmax, mW(r.lab, WD)); });
    var WDl = lmax > cellW + u(4) ? F(WD.size * (cellW + u(4)) / lmax, WD.weight) : WD;
    cells = { cw: cw, SX: SX, WD: WDl, ROW: ROW, cellW: cellW, gap: cellGap, left: ROS.slice(0, 2), right: right };
@@ -1089,8 +1089,8 @@ function draw(stage) {
    if (cw < u(5) || blk.cR - blk.cL < (function () { var d0 = R(h * 0.36), dw0 = R(d0 * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + d0 * 1.05; })()) { blk = null; cells = null; }
   }
   // a rotary knob (owner): the pointer turned to where the wind comes from, N tick at the top, 8 scale ticks
-  function knob(kx, ky, kr, dir) {
-   var kg = mk('g', { 'data-sw-knob': dir === null ? 'none' : R(dir) }, g), lw0 = Mx(1, u(1.5));
+  function knob(pg, kx, ky, kr, dir) {
+   var kg = mk('g', { 'data-sw-knob': dir === null ? 'none' : R(dir) }, pg), lw0 = Mx(1, u(1.5));
    for (var i = 0; i < 8; i++) { var an = i * Math.PI / 4, r1 = kr * 1.12, r2 = kr * (i ? 1.24 : 1.3);
     mk('line', { x1: (kx + r1 * Math.sin(an)).toFixed(1), y1: (ky - r1 * Math.cos(an)).toFixed(1), x2: (kx + r2 * Math.sin(an)).toFixed(1), y2: (ky - r2 * Math.cos(an)).toFixed(1), stroke: bits === 1 ? ink : (DIMW || GLOW), 'stroke-width': i ? lw0 : lw0 * 2, 'shape-rendering': GPX }, kg); }
    if (bits !== 1) mk('circle', { cx: R(kx), cy: R(ky), r: R(kr), fill: fillOf(darkMode ? 'gray-60' : 'gray-35', '#555'), 'shape-rendering': GPX }, kg);
@@ -1099,21 +1099,25 @@ function draw(stage) {
     glowDigits(function (hg) { mk('line', { x1: (kx + kr * 0.3 * Math.sin(a2)).toFixed(1), y1: (ky - kr * 0.3 * Math.cos(a2)).toFixed(1), x2: (kx + kr * 0.88 * Math.sin(a2)).toFixed(1), y2: (ky - kr * 0.88 * Math.cos(a2)).toFixed(1), stroke: DIGIT, 'stroke-width': pw, 'stroke-linecap': 'round', 'shape-rendering': GPX }, hg || kg); }); }
   }
   function cell(x0, r, which) {
-   var C = cells, cw2 = C.cw, kw = r.knob !== undefined ? cw2 * 2 + ug : 0, vr = x0 + C.cellW - kw - (r.sfxMax ? mW(r.sfxMax, C.SX) + ug : 0), dx2 = vr - seg7W(cw2, r.v);
-   glowDigits(function (hg) { seg7(hg || g, dx2, C.ROW.dTop, cw2, cw2 * 2, r.v, DIGIT, hg ? null : GHOSTD); });
-   if (kw) knob(x0 + C.cellW - cw2, C.ROW.dTop + cw2, cw2 * 0.76, r.knob);
+   var C = cells, cw2 = C.cw, uw = r.sfxMax ? mW(r.sfxMax, C.SX) + ug : 0, gw = seg7W(cw2, r.longest) + uw;
+   var cg = mk('g', { 'data-sw-rcell': which + ':' + (debug[which] || []).length, 'data-sw-cw': cw2, 'data-sw-x': R(x0), 'data-sw-w': R(C.cellW) }, g);
+   // the value and its unit centred over the bar as one group in fixed digit cells, the digits right-aligned in theirs
+   var vr = x0 + (C.cellW - gw) / 2 + gw - uw, dx2 = vr - seg7W(cw2, r.v);
+   glowDigits(function (hg) { seg7(hg || cg, dx2, C.ROW.dTop, cw2, cw2 * 2, r.v, DIGIT, hg ? null : GHOSTD); });
    if (r.clock) debug.clock = { str: r.v, boxes: seg7.boxes };
-   if (r.sfx) glowDigits(function (hg) { text(hg || g, r.sfx, vr + ug, C.ROW.dTop + cw2 * 2, C.SX, { fill: DIGIT }); });
+   if (r.sfx) glowDigits(function (hg) { text(hg || cg, r.sfx, vr + ug, C.ROW.dTop + cw2 * 2, C.SX, { fill: DIGIT }).setAttribute('data-sw-runit', 1); });
+   var kr = r.knob !== undefined ? cw2 * 0.6 : 0, bw = C.cellW - (kr ? kr * 2.6 + ug : 0);
+   if (kr) knob(cg, x0 + C.cellW - kr * 1.3, C.ROW.bTop + C.ROW.bH / 2, kr, r.knob);
    if (!r.noBar) {   // a 10-segment signal meter under the value: lit in the glow, the rest a dim ghost (outlined on 1-bit)
-    var sg = Mx(2, u(3)), sw2 = (C.cellW - 9 * sg) / 10, lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
+    var sg = Mx(2, u(3)), sw2 = (bw - 9 * sg) / 10, lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
     for (var i = 0; i < 10; i++) {
      var sx2 = x0 + i * (sw2 + sg), on = i < lit;
-     if (on) glowDigits(function (hg) { mk('rect', { x: R(sx2), y: R(C.ROW.bTop), width: R(sw2), height: C.ROW.bH, fill: DIGIT, 'data-sw-rseg': hg ? null : 'lit' }, hg || g); });
-     else if (bits === 1) mk('rect', { x: R(sx2) + 0.5, y: R(C.ROW.bTop) + 0.5, width: R(sw2) - 1, height: C.ROW.bH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, g);
-     else if (DIMW) mk('rect', { x: R(sx2), y: R(C.ROW.bTop), width: R(sw2), height: C.ROW.bH, fill: DIMW, 'data-sw-rseg': 'off' }, g);
+     if (on) glowDigits(function (hg) { mk('rect', { x: R(sx2), y: R(C.ROW.bTop), width: R(sw2), height: C.ROW.bH, fill: DIGIT, 'data-sw-rseg': hg ? null : 'lit' }, hg || cg); });
+     else if (bits === 1) mk('rect', { x: R(sx2) + 0.5, y: R(C.ROW.bTop) + 0.5, width: R(sw2) - 1, height: C.ROW.bH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
+     else if (DIMW) mk('rect', { x: R(sx2), y: R(C.ROW.bTop), width: R(sw2), height: C.ROW.bH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
     }
    }
-   var lt = text(g, r.lab, x0 + C.cellW / 2, C.ROW.lab, C.WD, { anchor: 'middle', fill: GLOW, ls: R(C.WD.size * 0.12) });
+   var lt = text(cg, r.lab, x0 + C.cellW / 2, C.ROW.lab, C.WD, { anchor: 'middle', fill: GLOW, ls: R(C.WD.size * 0.12) });
    lt.setAttribute('data-sw-cell', which);
    (debug[which] = debug[which] || []).push(r.v);
   }
