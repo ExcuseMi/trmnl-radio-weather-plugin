@@ -27,6 +27,8 @@ RSpec.describe 'Stereo Weather' do
     a['current']['temperature_2m'] = cur
     a
   end
+  # the today band in the scale's middle (the marks near the arc's top)
+  def marks_top = shifted(7.0, 1.4, 13.1).tap { it['daily']['temperature_2m_min'][0] = 6.4; it['daily']['temperature_2m_max'][0] = 8.1 }
   EXTREMES = { '104.5 F' => [104.5, 84, 108, 'fahrenheit', '104.5'], '112 F' => [112, 92, 115, 'fahrenheit', '112.0'],
                '-40 F' => [-40, -45, -28, 'fahrenheit', '-40.0'], '-23.5 C' => [-23.5, -28, -17, 'celsius', '-23.5'],
                '1.6 C' => [1.6, 1.4, 13.1, 'celsius', '1.6'] }.freeze
@@ -349,15 +351,51 @@ RSpec.describe 'Stereo Weather' do
       expect(debug(draw(device: 'v2', fields: { 'language' => 'de' }))['rainCaption']).to start_with('NIEDERSCHLAG')
     end
 
-    # Owner (photo of the X): TEMPERATUUR and REGENKANS under the meters were too small to read.
-    it 'writes the captions under the meters at a readable size (X and OG, nl)' do
+    # Owner change (2026-11-11, replaces "captions under the meters"): TEMPERATUUR / REGENKANS move INSIDE each dial
+    # face at the top, beside the L / R badge (after L, before R), large and readable; the strip under the meters
+    # goes, so the dials get taller. Measured in the browser: the caption inside its face on the badge's row, at
+    # least as tall as before (3 % of the screen), the meters ending right above the glass.
+    CAPTIONS = <<~JS
+      (function () {
+        var out = [], re = /^(TEMPERATUUR|TEMP|REGENKANS|NEERSLAG|REGEN)$/;
+        document.querySelectorAll('.sw-stage [data-sw-face]').forEach(function (f) {
+          var n = f.getAttribute('data-sw-face'), st = f.closest('.sw-stage'), fb = f.getBoundingClientRect();
+          var cap = [].slice.call(st.querySelectorAll('svg text')).filter(function (t) { return re.test(t.textContent.trim()) && !t.closest('[data-sw-halo]'); })
+            .map(function (t) { return { t: t.textContent.trim(), b: t.getBoundingClientRect() }; })
+            .filter(function (c) { return c.b.left >= fb.left && c.b.right <= fb.right && c.b.top >= fb.top && c.b.bottom <= fb.bottom; })[0];
+          if (!cap) { out.push({ face: n, cap: null }); return; }
+          var bd = st.querySelector('[data-sw-badge="' + n + '"]'), bb = bd && bd.getBoundingClientRect();
+          out.push({ face: n, cap: cap.t, h: cap.b.height / window.innerHeight, top: (cap.b.top - fb.top) / fb.height,
+            badge: bd ? bd.getAttribute('data-sw-badge-ch') : null, afterBadge: bb ? cap.b.left >= bb.right : null, beforeBadge: bb ? cap.b.right <= bb.left : null,
+            sameRow: bb ? Math.min(cap.b.bottom, bb.bottom) - Math.max(cap.b.top, bb.top) > 0 : null, faceBottom: fb.bottom });
+        });
+        return out;
+      })()
+    JS
+    it 'writes the captions inside the dial faces at the top beside the L and R badges, readable (X and OG, nl)' do
       %w[v2 og_png].each do |device|
         s = draw(device:, fields: { 'language' => 'nl' })
+        d = debug(s)
+        caps = s.evaluate(CAPTIONS)
+        expect(caps.map { it['cap'] }).to eq(%w[TEMPERATUUR REGENKANS])
+        expect(caps.map { it['h'] }.min).to be >= 0.03
+        expect(caps.map { it['top'] }.max).to be < 0.12                 # on the badge's row at the top of the face
+        expect(caps.map { it['sameRow'] }).to all(be(true))
+        expect(caps[0]['badge']).to eq('L').and(satisfy { caps[0]['afterBadge'] })
+        expect(caps[1]['badge']).to eq('R').and(satisfy { caps[1]['beforeBadge'] })
+        # no strip under the meters: the glass starts one gap below the dials
+        glass_top = s.evaluate("document.querySelector('.sw-stage').getBoundingClientRect().top") + d['glassBox'][1] / d['z']
+        expect(glass_top - caps[0]['faceBottom']).to be < 30
+        expect(label_problems(s)).to be_empty
+      end
+    end
+
+    # the today marks at the top of the scale (6.4..8.1 on a 1.4..13.1 day) sit beside the caption, never on it
+    it 'keeps the top marks clear of the caption inside the face' do
+      %w[v2 og_png].each do |device|
+        s = draw(device:, fields: { 'language' => 'nl' }, answer: { json: marks_top })
         debug(s)
-        # the caption box height over the screen height (the SVG units differ per device)
-        sizes = s.evaluate("[].slice.call(document.querySelectorAll('.sw-stage svg text')).filter(function(t){return /^(TEMPERATUUR|REGENKANS|NEERSLAG)$/.test(t.textContent.trim())}).map(function(t){return t.getBoundingClientRect().height / window.innerHeight})")
-        expect(sizes.size).to eq(2)
-        expect(sizes.min).to be >= 0.03
+        expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
       end
     end
   end
@@ -596,7 +634,6 @@ RSpec.describe 'Stereo Weather' do
         return out;})()
     JS
     # the today band in the scale's middle (the marks near the arc's top), and a cool day on 0..10 with the needle at 4
-    def marks_top = shifted(7.0, 1.4, 13.1).tap { it['daily']['temperature_2m_min'][0] = 6.4; it['daily']['temperature_2m_max'][0] = 8.1 }
     def cool_day = shifted(4.2, 0.2, 9.4).tap { it['daily']['temperature_2m_min'][0] = 3.8; it['daily']['temperature_2m_max'][0] = 5.0 }
     screens = [['og_png', :landscape, nil, nil], ['og_png', :portrait, nil, nil], ['v2', :landscape, nil, nil], ['v2', :portrait, nil, nil],
                ['v2', :landscape, 'large', nil], ['v2', :landscape, nil, 'gray-4'], ['og_plus', :landscape, nil, 'gray-4'],

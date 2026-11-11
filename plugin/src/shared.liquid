@@ -25,8 +25,7 @@
   offset: {{ utc_offset_seconds | default: 0 }},
   renderedAt: {{ trmnl.system.timestamp_utc | default: 0 }}
  };
- // the language: the Language setting, else the user's TRMNL locale (owner: i18n); day names via l_date; the
- // words from TRMNL's own texts (embedded below, l_word only reaches a few) and our small dictionary
+ // the language: the setting, else the TRMNL locale; day names via l_date, words from TRMNL's texts and ours
  {%- assign sw_lang = cf.language | default: 'auto' -%}
  {%- if sw_lang == 'auto' or sw_lang == '' -%}{%- assign sw_loc = trmnl.user.locale | default: 'en' -%}{%- else -%}{%- assign sw_loc = sw_lang -%}{%- endif -%}
  {%- comment -%} only TRMNL's locales reach l_date (an unknown one breaks the render): else its base language, else English {%- endcomment -%}
@@ -53,7 +52,7 @@
  var script = document.currentScript;
 
 // ==== MODEL_BEGIN ====
-// Pure: Open-Meteo answer + settings in, numbers out. No DOM. Tested in test/model/run.js.
+// Pure: answer + settings in, numbers out. No DOM. test/model/run.js.
 var SWModel = (function () {
  function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; }
  function list(o, k) { return (o && Array.isArray(o[k])) ? o[k] : []; }
@@ -76,7 +75,6 @@ var SWModel = (function () {
   86: 'SNOW SHOWERS', 95: 'THUNDERSTORM', 96: 'HAIL STORM', 99: 'HAIL STORM' };
  function word(code) { code = num(code); return code === null ? '' : (WORDS[code] || ''); }
 
- // The icon a WMO code shows; clear and partly cloudy turn to their night form when isDay is 0.
  var KIND_RANK = { clear: 0, partly: 1, cloud: 2, fog: 3, drizzle: 4, rain: 5, sleet: 6, snow: 7, heavy: 8, storm: 9, hail: 10 };
  function kind(code) {
   code = num(code);
@@ -93,7 +91,6 @@ var SWModel = (function () {
   if (code === 2) return 'partly';
   return 'clear';
  }
- // the most telling icon over several hours: the highest rank wins
  function worstKind(codes) {
   var best = null;
   for (var i = 0; i < codes.length; i++) {
@@ -156,7 +153,6 @@ var SWModel = (function () {
   return out;
  }
 
- // The next n hours as they come: hour label, temperature, rain chance, icon, day or night.
  function hoursAhead(raw, n) {
   var h = raw.hourly || {}, out = [];
   var ht = list(h, 'time'), tt = list(h, 'temperature_2m'), tp = list(h, 'precipitation_probability');
@@ -167,7 +163,6 @@ var SWModel = (function () {
   }
   return out;
  }
- // When it rains in the hours given: the first and last hour at or above the chance, or a wet code.
  function rainWindow(hours, chance) {
   var from = -1, to = -1;
   for (var i = 0; i < hours.length; i++) {
@@ -175,12 +170,10 @@ var SWModel = (function () {
    if (wet) { if (from < 0) from = i; to = i; } else if (from >= 0) break;
   }
   if (from < 0) return null;
-  // what falls first: snow or hail say so on the glass ("SNOW FROM 17:00"), anything else is rain
   var k0 = hours[from].icon, type = k0 === 'snow' ? 'snow' : (k0 === 'hail' ? 'hail' : 'rain');
   return { from: from, to: to, fromLabel: hours[from].h + ':00', toLabel: hours[Math.min(to + 1, hours.length - 1)].h + ':00',
    now: from === 0, type: type };
  }
- // Minutes between the data's own time (local) and the render (UTC seconds); null when either is missing.
  function ageMinutes(localIso, offsetSec, renderedAtSec) {
   var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(localIso || ''));
   if (!m || !renderedAtSec) return null;
@@ -248,8 +241,7 @@ var SWModel = (function () {
 var I18N_SLOTS = ["w.temperature","w.low_high_short","w.today","p.precipitation_probability","p.precipitation","p.wind","t.snow","c1000","c1003","c1009","c1087","c1135","c1147","c1150","c1153","c1168","c1171","c1183","c1189","c1195","c1198","c1201","c1213","c1219","c1225","c1237","c1246","c1264","c1276","c1000n","c1003n"];
 var I18N_TRMNL = {"cs":"Teplota|Min/Max|Dnes||||Sněžení|Slunečno|Polojasno|Zataženo|Bouřky|Mlha|Mrznoucí mlha|Slabé mrholení|Mrholení|Mrznoucí mrholení|Silné mrznoucí mrholení|Slabý déšť|Mírný déšť|Silný déšť|Slabý mrznoucí déšť|Silný mrznoucí déšť|Slabé sněžení|Mírné sněžení|Silné sněžení|Ledové krupky|Průtrž mračen|Silné krupobití|Bouřka s deštěm|Jasno","da":"Temperatur||I dag|||||Solrigt|Let skyet|Overskyet|Torden|Tåge|Frosttåge|Let støvregn|Støvregn|Underafkølet finregn|Kraftig frost|Let regn|Moderat regn|Kraftig regn|Let frost|Kraftig frost|Let sne|Moderat sne|Kraftig sne|Hagl|Styrtregn|Kraftig isdannelse|Torden og regn|Klart","de-AT":"","de":"Temperatur|Min/Max|heute|Niederschlagswahrscheinlichkeit|Niederschlag||Schnee|sonnig|teilweise bewölkt|bedeckt|Gewitter|Nebel|gefrierender Nebel|leichter Nieselregen|Nieselregen|gefrierender Nieselregen|starker Gefrierregen|leichter Regen|mäßiger Regen|starker Regen|leichter Gefrierregen|starker Gefrierregen|leichter Schneefall|mäßiger Schneefall|starker Schneefall|Eiskörner|Wolkenbruch|starker Eisregen|Gewitter mit Regen|klar","en":"Temperature|L/H|Today|Precipitation Probability|Precipitation|Wind|Snow|Sunny|Partly Cloudy|Overcast|Thunder|Fog|Freezing Fog|Light Drizzle|Drizzle|Freeze Drizzle|Heavy Freeze|Light Rain|Moderate Rain|Heavy Rain|Light Freeze|Heavy Freeze|Light Snow|Moderate Snow|Heavy Snow|Ice Pellets|Torrential Rain|Heavy Ice|Thunder & Rain|Clear","en-AU":"","en-GB":"","es-ES":"Temperatura|Mín/Máx|Hoy||||Nieve|Soleado|Parcialmente Nublado|Cubierto|Tormenta|Niebla|Niebla Helada|Llovizna Ligera|Llovizna|Llovizna Helada|Llovizna Helada Fuerte|Lluvia Ligera|Lluvia Moderada|Lluvia Fuerte|Lluvia Helada Ligera|Lluvia Helada Fuerte|Nieve Ligera|Nieve Moderada|Nieve Fuerte|Granizo|Lluvia Torrencial|Granizo Fuerte|Tormenta con Lluvia|Despejado","fr":"Température|Min/Max|Aujourd'hui||||Neige|Ensoleillé|Partiellement nuageux|Couvert|Orage|Brouillard|Brouillard verglaçant|Bruine légère|Bruine|Bruine verglaçante|Gel intense|Pluie légère|Pluie modérée|Pluie intense|Gel léger|Gel intense|Neige légère|Neige modérée|Neige intense|Granules de glace|Pluie torrentielle|Glace intense|Orage et pluie|Dégagé","gu":"","he":"טמפרטורה||היום","hi":"","hu":"Hőmérséklet||Ma|||||Napos|Részben felhős|Borult|Mennydörgés|Köd|Zúzmarás köd|Enyhe szitálás|Szitálás|Fagyos szitálás|Erős fagy|Enyhe eső|Mérsékelt eső|Erős eső|Enyhe fagy|Erős fagy|Enyhe havazás|Mérsékelt havazás|Erős havazás|Jégdarabok|Felhőszakadás|Erős jég|Zivatar és eső|Tiszta","id":"","is":"Hiti||Í dag|||||Sólskin|Hálfskýjað|Alskýjað|Þrumur|Þoka|Frostþoka|Dálítil súld|Úði|Frosinn úði|Mikið frost|Dálítil rigning|Miðlungs rigning|Mikil rigning|Dálítil ísing|Mikil ísing|Dálítil snjókoma|Miðlungs snjókoma|Mikil snjókoma|Haglél|Úrfelli|Mikil ísmyndun|Þrumur & rigning|Heiðskírt","it":"Temperatura||Oggi","ja":"温度||今日","ko":"온도|최저/최고|오늘||||눈|맑음|구름 많음|흐림|천둥|안개|어는 안개|약한 이슬비|이슬비|어는 이슬비|강한 어는 이슬비|약한 비|비|강한 비|약한 어는 비|어는 비|약한 눈|눈|강한 눈|얼음싸라기|호우|싸락우박|뇌우","lt":"Temperatūra|Ž/A|Šiandien||||Sniegas|Saulėta|Mažai debesuota|Apsiniaukę|Perkūnija|Rūkas|Šalantis rūkas|Lengva dulksna|Dulksna|Šalanti dulksna|Stipri šalanti dulksna|Lengvas lietus|Lietus|Labai stiprus lietus|Šalanti dulksna|Šalantis lietus|Nedidelis sniegas|Sniegas|Labai stiprus sniegas|Ledo kruša|Labai stipri liūtis|Kruša|Perkūnija ir stiprus lietus|Giedra","nl":"Temperatuur||Vandaag|||||Zonnig|Deels Bewolkt|Zwaar Bewolkt|Onweer|Mist|Ijzige mist|Lichte Motregen|Motregen|Ijzel|Zware Ijzel|Lichte Regen|Matige Regen|Zware Regen|Lichte Ijzel|Zware Ijzel|Lichte Sneeuw|Matige Sneeuw|Zware Sneeuw|Ijsregen|Stortregen|Zware Ijzel|Onweer & Regen|Helder","no":"Temperatur||I dag|Sannsynlighet for nedbør|Nedbør|Vind","pl":"Temperatura|min/max|Dziś|Prawdopodobieństwo opadów|Opady|Wiatr|Opady śniegu|Słonecznie|Częściowe zachmurzenie|Całkowite zachmurzenie|Możliwe burze|Mgła|Marznąca mgła|Przelotna mżawka|Mżawka|Marznąca mżawka|Intensywne opady marznącej mżawki|Słabe opady deszczu|Umiarkowane opady deszczu|Intensywne opady deszczu|Słabe opady marznącego deszczu|Intensywne opady marznącego deszczu|Słabe opady śniegu|Umiarkowane opady śniegu|Intensywne opady śniegu|Deszcz lodowy|Przelotne ulewne deszcze|Przelotny intensywny deszcz lodowy|Burza z intensywnymi opadami deszczu|Bezchmurnie","pt-BR":"Temperatura||Hoje|||||Ensolarado|Parcialmente Nublado|Encoberto|Trovoadas|Nevoeiro|Nevoeiro Congelante|Garoa Leve|Garoa|Garoa Congelante|Geada Forte|Chuva Leve|Chuva Moderada|Chuva Forte|Geada Leve|Geada Forte|Neve Leve|Neve Moderada|Neve Pesada|Granizo|Chuva Torrencial|Gelo Pesado|Trovões e Chuva|Limpo","ro":"Temperatură|Min/Max|Astăzi|Probabilitate de precipitații|Precipitații|Vânt|Ninsoare|Însorit|Parțial noros|Acoperit|Descărcări electrice|Ceață|Ceață care îngheață|Burniță ușoară|Burniță|Burniță care îngheață|Îngheț puternic|Ploaie ușoară|Ploaie moderată|Ploaie puternică|Îngheț ușor|Îngheț puternic|Ninsoare ușoară|Ninsoare moderată|Ninsoare puternică|Granule de gheață|Ploaie torențială|Averse abundente de granule de gheață|Ploaie cu descărcări electrice|Senin","ru":"Температура||Сегодня|||||Солнечно|Переменная облачность|Пасмурно|Гроза|Туман|Ледяной туман|Небольшая морось|Морось|Ледяная морось|Сильный ледяной дождь|Небольшой дождь|Умеренный дождь|Сильный дождь|Лёгкий ледяной дождь|Сильный ледяной дождь|Небольшой снег|Умеренный снег|Сильный снег|Ледяная крупа|Ливневый дождь|Сильный лёд|Гроза и дождь|Ясно","sk":"Teplota|Min/Max|Dnes||||Sneženie|Jasno|Polooblačno|Zatiahnuté|Búrka|Hmla|Mrznúca hmla|Slabé mrholenie|Mrholenie|Mrznúce mrholenie|Silný mráz|Slabý dážď|Mierny dážď|Silný dážď|Slabý mráz|Silný mráz|Slabé sneženie|Mierne sneženie|Silné sneženie|Ľadové krúpy|Prívalový dážď|Silná poľadovica|Búrka s dažďom|Jasná obloha","sl":"Temperatura|N/V|Danes||||Sneg|Sončno|Delno oblačno|Pooblačeno|Grmenje|Megla|Ledena megla|Šibko rosenje|Rosenje|Zmrzujoče rosenje|Močna poledica|Šibek dež|Zmeren dež|Močan dež|Šibka poledica|Močna poledica|Šibek sneg|Zmeren sneg|Močan sneg|Ledene kroglice|Silovit dež|Močan led|Grmenje in dež|Jasno","sv":"","uk":"Температура|Мін/Макс|Сьогодні|Ймовірність опадів|Опади|Вітер|Сніг|Сонячно|Мінлива хмарність|Суцільна хмарність|Грім|Туман|Переохолоджений туман|Слабка мряка|Мряка|Переохолоджена мряка|Сильна переохолоджена мряка|Слабкий дощ|Помірний дощ|Сильний дощ|Слабкий переохолоджений дощ|Сильний переохолоджений дощ|Слабкий сніг|Помірний сніг|Сильний сніг|Льодяна крупа|Злива|Сильна льодяна крупа|Гроза з дощем|Ясно","zh-CN":"温度||今天||||下雪|晴天|局部多云|阴天|打雷|大雾|冻雾|小细雨|细雨|冻细雨|严重霜冻|小雨|中雨|大雨|小霜冻|大霜冻|小雪|中雪|大雪|冰雹|暴雨|冰雹|雷雨|晴朗","zh-HK":"氣溫|低/高|今日||||有雪|天晴|部分時間多雲|密雲|雷暴|霧|冰霧|毛毛雨|細雨|凍毛雨|嚴重結冰|微雨|中雨|大雨|輕微結冰|嚴重結冰|微雪|中雪|大雪|冰珠|暴雨|大冰|雷雨|天色良好"};
 // ==== I18N_TRMNL_END ====
-// Our own short labels, only for what TRMNL's texts do not cover (owner: TRMNL's words first). One string per
-// locale in OURS_KEYS order; a missing locale or key falls back to English.
+// our labels where TRMNL's texts have none, one string per locale in OURS_KEYS order; missing: English
 var OURS_KEYS = ['temp_s', 'rain', 'rain_from', 'rain_until', 'until', 'raining_now', 'no_rain', 'dry', 'next_h', 'dry_h',
  'frost', 'no_signal', 'no_forecast', 'next_days', 'over', 'under', 'now', 'rain_chance', 'wind', 'temperature', 'today', 'lh',
  'snow', 'hail', 'snow_from', 'snow_until', 'snowing_now', 'hail_from', 'hail_until', 'hailing_now', 'hum', 'uv', 'humidity'];
@@ -271,9 +263,9 @@ var OURS = {
  pl: 'TEMP|DESZCZ|DESZCZ OD|DESZCZ DO|DO|PADA|BEZ DESZCZU|SUCHO|KOLEJNE {n} H|SUCHO {n} H|MRÓZ|BRAK SYGNAŁU|BRAK PROGNOZY|KOLEJNE DNI|POWYŻEJ|PONIŻEJ|TERAZ|SZANSA OPADÓW|WIATR|TEMPERATURA|DZIŚ|MIN/MAKS|ŚNIEG|GRAD|ŚNIEG OD|ŚNIEG DO|PADA ŚNIEG|GRAD OD|GRAD DO|PADA GRAD',
  cs: 'TEPL|DÉŠŤ|DÉŠŤ OD|DÉŠŤ DO|DO|PRŠÍ|BEZ DEŠTĚ|SUCHO|DALŠÍCH {n} H|SUCHO {n} H|MRÁZ|BEZ SIGNÁLU|BEZ PŘEDPOVĚDI|DALŠÍ DNY|NAD|POD|TEĎ|ŠANCE SRÁŽEK|VÍTR|TEPLOTA|DNES|MIN/MAX|SNÍH|KRUPOBITÍ|SNÍH OD|SNÍH DO|SNĚŽÍ|KRUPOBITÍ OD|KRUPOBITÍ DO|PADÁ KRUPOBITÍ'
 };
-// our condition names where TRMNL's weather file is still English (ja, it, no, sv), in the I18N_SLOTS condition order
+// conditions where TRMNL's file is still English, in the I18N_SLOTS condition order
 var OURS_COND = {"ja": "晴れ|晴れ時々曇り|曇り|雷|霧|着氷性の霧|弱い霧雨|霧雨|着氷性の霧雨|強い着氷性の霧雨|小雨|雨|大雨|弱い着氷性の雨|強い着氷性の雨|小雪|雪|大雪|凍雨|豪雨|雷雨|快晴|晴れ時々曇り", "it": "SOLEGGIATO|PARZIALMENTE NUVOLOSO|COPERTO|TUONI|NEBBIA|NEBBIA GELATA|PIOVIGGINE DEBOLE|PIOVIGGINE|PIOVIGGINE GELATA|GELICIDIO FORTE|PIOGGIA DEBOLE|PIOGGIA MODERATA|PIOGGIA FORTE|PIOGGIA GELATA DEBOLE|PIOGGIA GELATA FORTE|NEVE DEBOLE|NEVE MODERATA|NEVE FORTE|GRANULI DI GHIACCIO|PIOGGIA TORRENZIALE|TEMPORALE|SERENO|PARZIALMENTE NUVOLOSO", "no": "SOL|DELVIS SKYET|OVERSKYET|TORDEN|TÅKE|FRYSETÅKE|LETT YR|YR|UNDERKJØLT YR|KRAFTIG UNDERKJØLT YR|LETT REGN|MODERAT REGN|KRAFTIG REGN|LETT UNDERKJØLT REGN|KRAFTIG UNDERKJØLT REGN|LETT SNØ|MODERAT SNØ|KRAFTIG SNØ|ISKORN|STYRTREGN|TORDENBYGER|KLART|DELVIS SKYET", "sv": "SOLIGT|HALVKLART|MULET|ÅSKA|DIMMA|UNDERKYLD DIMMA|LÄTT DUGGREGN|DUGGREGN|UNDERKYLT DUGGREGN|KRAFTIGT UNDERKYLT DUGGREGN|LÄTT REGN|MÅTTLIGT REGN|KRAFTIGT REGN|LÄTT UNDERKYLT REGN|KRAFTIGT UNDERKYLT REGN|LÄTT SNÖ|MÅTTLIG SNÖ|KRAFTIG SNÖ|ISKORN|SKYFALL|ÅSKA OCH REGN|KLART|HALVKLART"};
-// Open-Meteo WMO code -> the nearest WeatherAPI code, whose day / night text TRMNL's native Weather plugin has
+// WMO code -> the nearest WeatherAPI code (TRMNL's Weather plugin texts)
 var WMO_TO_WAPI = { 0: 1000, 1: 1003, 2: 1003, 3: 1009, 45: 1135, 48: 1147, 51: 1150, 53: 1153, 55: 1153, 56: 1168, 57: 1171,
  61: 1183, 63: 1189, 65: 1195, 66: 1198, 67: 1201, 71: 1213, 73: 1219, 75: 1225, 77: 1237, 80: 1183, 81: 1195, 82: 1246,
  85: 1213, 86: 1225, 95: 1276, 96: 1264, 99: 1264 };
@@ -288,7 +280,6 @@ var I18N = (function () {
  }
  function up(s) { try { return String(s).toLocaleUpperCase(loc); } catch (e) { return String(s).toUpperCase(); } }
  var EN = data('en');
- // TRMNL's text in the chosen language; one that is only TRMNL's English placeholder does not count
  function trmnl(key) {
   for (var i = 0; i < chain.length; i++) { var d = data(chain[i]); if (d && d[key] && (english || d[key] !== EN[key])) return up(d[key]); }
   return null;
@@ -299,7 +290,6 @@ var I18N = (function () {
   for (var i = 0; i < chain.length && !v; i++) v = oursIn(chain[i], key);
   return String(v || oursIn('en', key) || key).replace('{n}', n === undefined ? '' : n);
  }
- // l_word's answer (TRMNL's live texts), unless it is "Translation missing", the key, empty, or only English
  function lw(key, tkey) {
   var v = typeof SW_LW !== 'undefined' ? SW_LW[key] : null;
   if (typeof v !== 'string' || !v.trim() || /translation missing/i.test(v) || v === key) return null;
@@ -376,7 +366,6 @@ var I18N = (function () {
   var ox = rect.left - Math.floor(rect.left), oy = rect.top - Math.floor(rect.top);
   function u(cssPx) { return R(cssPx * z); }
 
-  // ---- paint, all from the framework so themes, bit depth and dark mode follow
   function colorOf(v, dflt) {
    if (!v) return dflt;
    if (typeof v === 'string') return v;
@@ -435,9 +424,7 @@ var I18N = (function () {
   var FULL = /screen--color-full/.test(cls);
   var BLUE = hue('blue');
 
-  // the warm lamp look, only where the panel can show it (owner, option C): amber glow and digits on full colour,
-  // the real orange ink on 7a; 4bwry, 3bwy and 6a solid yellow faces, red digits, yellow lamps; 3bwr white faces
-  // and red digits; nothing dithered
+  // warm lamp look only where the panel can show it (owner, option C); solid colours, nothing dithered
   var SEVEN = /screen--color-7a/.test(cls);
   var ORANGE = SEVEN ? fillOf('orange', null) : null;
   var FACE_OR = ORANGE;
@@ -447,7 +434,6 @@ var I18N = (function () {
   var BRUSH = bits === 4 ? fillOf('gray-70', '#ddd') : null;
   var SHADE = bits >= 2 ? fillOf(bits === 4 ? 'gray-45' : 'gray-40', '#888') : null;
 
-  // ---- type, measured from the framework's own roles
   function spec(role, fallbackPx) {
    var t = null;
    try { t = TP ? TP.type(role, opt) : null; } catch (e) { t = null; }
@@ -538,7 +524,6 @@ var I18N = (function () {
   var M = SWModel.build(SW_RAW, SW_CFG);
 
   // ---------------- hi-fi furniture
-  // the faceplate: a fine bezel, light top-left and shade lower-right, brushed hairlines on grey screens
   function faceplate(g, x, y, w, h) {
    var r = u(10), bw = Math.max(2, u(2));
    if (PLATE) {
@@ -571,7 +556,7 @@ var I18N = (function () {
 
 
   // ================= hybrid receiver =================
-  // the framework's text scale (Large Text) applied to the captions; RD keeps small print readable on any face
+  // the framework's text scale on the captions; RD keeps small print readable
   var TS = Math.max(1, (spec('label', 16).size / z) / 16);
   debug.ts = TS; debug.palette = { color: color, red: RED !== ink, yel: !!YEL, blue: !!BLUE }; debug.labelPx = spec('label', 16).size / z;
   function RD(px, minCss) { return Math.max(px, u(minCss)) * TS; }
@@ -590,7 +575,6 @@ var I18N = (function () {
    if (h.t === null) return; if (lo === null || h.t < lo) lo = h.t; if (hi === null || h.t > hi) hi = h.t; }); return { lo: lo, hi: hi }; })();
   var portrait = UW / UH < 1.15;
   var station = (SW_CFG.label || '').toUpperCase();
-  // the credit; with the title bar hidden the location and time join it on the glass (owner)
   var CREDIT = (SW_CFG.hideTitle || view !== 1 ? (M.now.sync ? M.now.sync + '  \u00b7  ' : '') : '') + 'OPEN-METEO';
   var ICON_INK = null, ICON_NOW = false, drawnIcon = icon, iconsUsed = { wi: 0, drawn: 0 };
   function wiName(kind, isDay) { return (WI_MAP[kind] || [])[isDay === null ? 2 : (isDay === false ? 1 : 0)]; }
@@ -612,8 +596,7 @@ var I18N = (function () {
    return ig;
   };
   debug.icons = iconsUsed;
-  // A wi-* icon's ink is bigger than its nominal size and differs per icon (live: the sun rays reached the digits and
-  // the lamp row), so the layout fits the measured ink: at most hWant tall, inside box, right-aligned, centred on cy.
+  // a wi-* icon's ink differs per icon, so the layout fits the measured ink: at most hWant tall, inside box
   function iconFit(g, kind, isDay, box, hWant, cy, dry) {
    var name = wiName(kind, isDay), s = name && WI[name], bb, per, vb = s ? s.vb : [0, 0, 0, 0];
    if (s) {
@@ -638,17 +621,29 @@ var I18N = (function () {
    if (GREYGLOW) lampGrey(g, fx, fy, fw, fh);
    insetBevel(g, fx, fy, fw, fh, u(5));
    var fx0 = fx, fy0 = fy;
-   var badge = null;
+   var badge = null, topBox = null, bm = u(10);
    if (o.badge) {
     var BG = F(RD(Math.min(fh, fw) * 0.055, 10), '800'), bp = BG.size * 0.45;
     var bt0 = text(g, o.badge, 0, 0, BG); var btw = width(bt0); g.removeChild(bt0);
-    var bwd = btw + 2 * bp, bht = BG.size * 1.3, bm = u(10);
+    var bwd = btw + 2 * bp, bht = BG.size * 1.3;
     badge = { x: o.badge === 'R' ? fx0 + fw - bm - bwd : fx0 + bm, y: fy0 + bm, w: bwd, h: bht, sp: BG };
+    topBox = { l: badge.x, r: badge.x + badge.w, t: badge.y, b: badge.y + badge.h };
+   }
+   // the caption inside the face on the badge's row: after L, before R (owner 2026-11-11)
+   if (o.captioned && o.name) {
+    var CP = F(Math.max(HS.size, badge ? badge.sp.size * 1.1 : RD(fh * 0.075, 12)), '700'), cg = CP.size * 0.5;
+    var capRoom = fw * 0.6 - (badge ? badge.w + cg : 0), capY = (badge ? badge.y + badge.h / 2 : fy0 + bm + CP.size * 0.65) + CP.size * 0.36;
+    var capX = !badge ? fx0 + fw / 2 : (o.badge === 'R' ? badge.x - cg : badge.x + badge.w + cg);
+    var ct = fitText(g, o.name, capX, capY, CP, capRoom, { anchor: !badge ? 'middle' : (o.badge === 'R' ? 'end' : 'start'), ls: R(CP.size * 0.08) });
+    ct.setAttribute('data-sw-caption', MN);
+    if (o.chan === 'R') debug.rainCaption = ct.textContent;
+    var cl = parseFloat(ct.getAttribute('x')), cb = { l: cl, r: cl + width(ct), t: capY - CP.size * 0.8, b: capY + CP.size * 0.25 };
+    topBox = topBox ? { l: Math.min(topBox.l, cb.l), r: Math.max(topBox.r, cb.r), t: Math.min(topBox.t, cb.t), b: Math.max(topBox.b, cb.b) } : cb;
    }
    var fhE = Math.min(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
    var shortFace = fh < fw * 0.42;
    var A = (shortFace ? 52 : 42) * Math.PI / 180;
-   var pyy = fy + fh * 0.86;            // the owner's reference: the hub visible low in the face, the tail below it
+   var pyy = fy + fh * 0.86;            // the hub low in the face (owner's reference)
    var rArc = Math.min(fw * 0.43 / Math.sin(A), (pyy - fy - fh * (shortFace ? 0.13 : 0.2)));
    var cx = fx + fw / 2, py = pyy;
    var MK = F(RD(fh * (o.small ? 0.07 : 0.05), o.small ? 11 : 10), '700'), bm = R(fh * 0.045) + lw * 2, fm = u(10), AM = A * 1.06;
@@ -706,7 +701,7 @@ var I18N = (function () {
    for (var it = 0; it < 80; it++) {
     var moved = false;
     mks.forEach(function (q, i) {
-     if (badge && hit(mkBox(q), { l: badge.x, r: badge.x + badge.w, t: badge.y, b: badge.y + badge.h })) { q.an += o.badge === 'L' ? 0.02 : -0.02; moved = true; }
+     if (topBox && hit(mkBox(q), topBox)) { q.an += badge ? (o.badge === 'L' ? 0.02 : -0.02) : (q.an <= 0 ? -0.02 : 0.02); moved = true; }
      if (i && hit(mkBox(mks[0]), mkBox(q))) { var d = mks[0].an <= q.an ? 0.01 : -0.01; mks[0].an -= d; q.an += d; moved = true; }
      q.an = Math.max(-AL, Math.min(AL, q.an));
     });
@@ -723,7 +718,6 @@ var I18N = (function () {
    mk('rect', { x: fx, y: fy, width: fw, height: fh }, cp);
    var ng = mk('g', { 'clip-path': 'url(#' + id + ')' }, g);
    (debug.needles = debug.needles || []).push({ chan: o.chan, v: o.needle, shown: nv });
-   // analog needle (owner): tapered, counterweight tail, soft shadow on greys
    function needlePts(ox, oy) {
     var b = [cx + ox, py + oy], t = [cx + ox + ux * tipR, py + oy + uy * tipR], k = [cx + ox - ux * tailR, py + oy - uy * tailR];
     return [[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[1] + ny * wBase / 2],
@@ -739,14 +733,12 @@ var I18N = (function () {
     tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Math.max(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
     tl2.setAttribute('stroke-linejoin', 'round'); tl2.setAttribute('data-sw-scale', MN);
    });
-   // the print in the lower-left corner, outside the sweep (the owner's reference): the unit, or, where no
-   // caption sits under the meter, the short name with the unit, so every meter says what it shows
+   // the corner print: the unit, or, uncaptioned, the short name with the unit
    var pad = fh * 0.06;
    function freeW(yTop) { return cx - (py - yTop) * Math.tan(A + 0.08) - fx - pad - u(4); }
    var cornerTxt = o.captioned || (PIXFONT && o.small) ? o.unitName : o.shortName + ' ' + o.unitName;
    var BIG = F(fh * (o.captioned ? 0.15 : 0.11), '700');
    var ly1 = fy + fh * 0.92;
-   // never under the pivot or its tail: the print ends well left of the hub (owner, X half_horizontal)
    var clearHub = cx - fx - pad - Math.max(u(16), fh * 0.14);
    var cRoom = Math.max(u(30), Math.min(freeW(ly1 - BIG.size * 0.8), clearHub));
    var nt = fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) });
@@ -754,19 +746,16 @@ var I18N = (function () {
    debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - Math.max(u(5), fh * 0.035)), gap: R(2 * Math.max(u(5), fh * 0.035)) });
    (debug.names = debug.names || []).push(o.captioned ? o.name + ' ' + o.unitName : nt.textContent);
    if (o.needle !== null && (o.needle < -0.001 || o.needle > 1.001)) {
-    // OVER / UNDER: below the end number beside the needle, never on a number, mark, print, hub or the needle
-    // (review: it sat on the 0 with the needle through it); the old spot inside the arc is the last resort
+    // OVER / UNDER: below the end number beside the needle, on nothing else; inside the arc as the last resort
     var over = o.needle > 1, LW = F(fh * 0.045, '800'), lword = I18N.ours(over ? 'over' : 'under');
     var endLab = placed.length ? placed[over ? placed.length - 1 : 0] : null, pe = at(over ? 1.03 : -0.03, rArc - fh * 0.1);
-    // the needle's x at a height; a box beside it clears it at its top (outer side) or bottom (inner side)
     var nX = function (yy) { return cx + (py - yy) * Math.tan(ang); }, nm = wBase + u(2), gapN = nm + u(3);
     var hubR = Math.max(u(5), fh * 0.035) + u(4);
     var others = placed.concat(mks.map(mkBox), [{ l: parseFloat(nt.getAttribute('x')), r: parseFloat(nt.getAttribute('x')) + width(nt), t: ly1 - BIG.size, b: ly1 },
      { l: cx - hubR, r: cx + hubR, t: py - hubR, b: py + hubR }]);
-    if (badge) others.push({ l: badge.x, r: badge.x + badge.w, t: badge.y, b: badge.y + badge.h });
+    if (topBox) others.push(topBox);
     function onNeedleAll(bx) { for (var k = -8; k <= 40; k++) { var xx = cx + ux * tipR * k / 40, yy = py + uy * tipR * k / 40;
      if (xx > bx.l - nm && xx < bx.r + nm && yy > bx.t - nm && yy < bx.b + nm) return true; } return false; }
-    // the word, then (small face, long word) the short form against the mark it passed: "< MIN", "> MAX"
     var pick = null, lw0 = 0;
     [lword, (over ? '> ' : '< ') + (over ? I18N.hi : I18N.lo)].some(function (wd) {
      var lt0 = text(g, wd, 0, 0, LW), ltw = width(lt0), lbb = { y: -LW.size * 0.95, height: LW.size * 1.2 };
@@ -778,7 +767,7 @@ var I18N = (function () {
       cands.push(over ? [nX(yy - asc - nm) + gapN, yy] : [nX(yy - asc - nm) - gapN - ltw, yy]);
       cands.push(over ? [nX(yy + desc + nm) - gapN - ltw, yy] : [nX(yy + desc + nm) + gapN, yy]);
      }
-     cands.push([fx + fw - u(8) - ltw, ly1 - desc]);   // a small face: the free lower-right corner (the needle leaves it, the print is left)
+     cands.push([fx + fw - u(8) - ltw, ly1 - desc]);   // a small face: the free lower-right corner
      return cands.some(function (c) {
       var bx = { l: c[0], r: c[0] + ltw, t: c[1] - asc, b: c[1] + desc };
       if (bx.l < fx + u(6) || bx.r > fx + fw - u(6) || bx.t < fy0 + u(6) || bx.b > fy + fh - u(5)) return false;
@@ -794,7 +783,7 @@ var I18N = (function () {
    mk('circle', { cx: R(cx), cy: R(py), r: R(hubR), fill: ink, 'shape-rendering': 'geometricPrecision' }, g);
    mk('circle', { cx: R(cx), cy: R(py), r: R(Math.max(1.5, hubR * 0.35)), fill: bits === 1 ? paper : fillOf('gray-60', '#aaa'), 'shape-rendering': 'geometricPrecision' }, g);
    if (badge) {
-    rrect(g, badge.x, badge.y, badge.w, badge.h, R(badge.h * 0.3), ink);
+    var br = rrect(g, badge.x, badge.y, badge.w, badge.h, R(badge.h * 0.3), ink); br.setAttribute('data-sw-badge', MN); br.setAttribute('data-sw-badge-ch', o.badge);
     text(g, o.badge, badge.x + badge.w / 2, badge.y + badge.h * 0.5 + badge.sp.size * 0.36, badge.sp, { anchor: 'middle', fill: paper });
     (debug.badges = debug.badges || []).push(o.badge);
    }
@@ -835,12 +824,11 @@ var I18N = (function () {
     name: I18N.rainChance, shortName: I18N.ours('rain'), unitName: '%', });
   }
 
-  // smoked glass: light digits in dark grey (16 greys), a clear bezelled window on 1-bit. Dark mode (owner decision):
-  // the night glass, still the darkest part with light digits; the framework mirrors greys, so ask for the light end
+  // smoked glass: light digits in dark grey, a clear window on 1-bit; dark mode keeps the night glass (owner)
   var darkMode = (function () { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
   var GLASSD = bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25', '#333') : (bits === 2 ? fillOf(darkMode ? 'gray-75' : 'gray-15', '#333') : paper);
   var GLOW = bits === 1 ? ink : (darkMode ? ink : paper);
-  var GHOSTD = null;          // no unlit segments (owner decision); the fixed cells keep the layout still
+  var GHOSTD = null;          // no unlit segments (owner)
   var DIMW = bits === 4 ? fillOf(darkMode ? 'gray-55' : 'gray-45', '#777') : null;
   var lightPanel = (function () { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !m || (+m[1] + +m[2] + +m[3]) > 384; })();
   var GREYGLOW = bits === 4 && !color && lightPanel;
@@ -860,7 +848,6 @@ var I18N = (function () {
    if (color && YEL) return YEL;
    return bits === 4 ? fillOf('gray-70', '#eee') : paper;
   }
-  // X meter backlight: soft lamp at bottom centre, dithers between neighbouring greys
   var lampN = 0, BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
   function dith(a, b, dn) {
    var pid = 'swd' + view + '-' + (lampN++), pat = mk('pattern', { id: pid, patternUnits: 'userSpaceOnUse', width: 4, height: 4 }, defs);
@@ -872,9 +859,8 @@ var I18N = (function () {
    var id = 'swlampg' + view + '-' + (lampN++), g70 = fillOf('gray-55', '#aaa'), g75 = fillOf('gray-70', '#ddd');
    var cp = mk('clipPath', { id: id }, defs); rrect(cp, x, y, w, h, u(5));
    var lg = mk('g', { 'clip-path': 'url(#' + id + ')' }, g);
-   // the plateau (white) holds the whole dial; the falloff is outside it, toward the corners
    [[g70, g75, 0.25, 1.35], [g70, g75, 0.5, 1.2], [g70, g75, 0.75, 1.08], [g75, paper, 0.25, 0.97], [g75, paper, 0.5, 0.87], [g75, paper, 0.75, 0.78], [paper, paper, 1, 0.7]].forEach(function (st, i) {
-    var dd = '', ecx = x + w * 0.5, ecy = y + h * 0.85;      // low and central, by the pivot; the points stay inside the face
+    var dd = '', ecx = x + w * 0.5, ecy = y + h * 0.85;
     for (var k = 0; k < 64; k++) {
      var an = k / 64 * Math.PI * 2;
      dd += (k ? ' L' : 'M') + Math.max(x, Math.min(x + w, ecx + w * 0.5 * st[3] * Math.cos(an))).toFixed(1) + ' ' + Math.max(y, Math.min(y + h, ecy + h * 0.85 * st[3] * Math.sin(an))).toFixed(1);
@@ -893,7 +879,6 @@ var I18N = (function () {
    draw(hg);
    return draw(null);
   }
-  // the current icon glows like the digits (owner)
   function glowIcon(g, draw) {
    var r, n = [iconsUsed.wi, iconsUsed.drawn];
    glowDigits(function (hg) { r = draw(hg || g); if (hg) { iconsUsed.wi = n[0]; iconsUsed.drawn = n[1]; [].forEach.call(hg.querySelectorAll('[data-sw-icon]'), function (e) { e.removeAttribute('data-sw-now'); e.removeAttribute('data-sw-icon'); }); } });
@@ -956,7 +941,7 @@ var I18N = (function () {
     var leadOne = ch === '1' && !afterDigit && /[0-9]/.test(str.charAt(ci + 1));   // "17:00", "13.0": close the gap a little
     var shift = ch === '1' && afterDigit ? -(dw - t) / 2 : (leadOne ? gap * 0.6 : (ch === '-' && str.charAt(ci + 1) === '1' ? dw - t : 0));
     var sh = segShapes(cx + shift, y, dw, dh, t), on = GLYPH[ch] || '';
-    // only lit segments (owner decision); '_' is a blank sign cell, the minus its only segment
+    // only lit segments (owner); '_' is a blank sign cell
     var signCell = (ch === '_' || ch === '-') && ci === 0 && str.charAt(str.length - 2) === '.';
     if (ch === '_') on = '';
     var segs = signCell ? 'g' : 'abcdefg';
@@ -972,8 +957,7 @@ var I18N = (function () {
    str.split('').forEach(function (ch) { w += (ch === '.' ? R(t * 1.2) : ch === ':' ? R(t * 1.1) : dw) + gap; });
    return w - gap;
   }
-  // Fixed full-width cells, right-aligned like a real LCD, so the decimal point never moves (owner): a sign cell,
-  // two digits in Celsius and three in Fahrenheit ("-23.5", " 1.6", "104.5", "-40.0"), the point, one decimal
+  // fixed full-width cells, right-aligned like a real LCD (owner): sign, 2 (C) or 3 (F) digits, point, one decimal
   var NDIG = M.unit === 'F' ? 3 : 2, CELLS = '-' + '8'.repeat(NDIG) + '.8';
   function tempDigits() {
    if (M.now.temp === null) return '_' + ' '.repeat(NDIG - 2) + '--.-';
@@ -1056,7 +1040,7 @@ var I18N = (function () {
     crMoved.setAttribute('y', R(y + h * 0.88 - WD.size * 1.6));
    }
    var rx = ix + iw * 0.72, rw = iw * 0.28, WL = { ls: R(WD.size * 0.15), fill: GLOW };
-   // left block mirroring the right one: HUMIDITY % and UV as small digits; glass too narrow keeps the small text
+   // left block mirroring the right one: two readouts as small digits; a narrow glass keeps the small text
    var blk = null;
    if (!compact && M.ok) {
     var labs = [I18N.ours('humidity') + ' %', I18N.ours('uv')], lt0 = labs.map(function (l) { var tt = text(g, l, 0, 0, WD, WL); var ww = width(tt); g.removeChild(tt); return ww; });
@@ -1068,7 +1052,6 @@ var I18N = (function () {
    var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
    var dh = R(h * (compact ? 0.46 : 0.56));
    function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.05); }
-   // the digits end above the condition or the credit row (it ran over "1.6", live)
    var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
    var dyTop = compact ? y + h * 0.27 : Math.max(y + h * 0.25, lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2);
    while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh > dyEnd))) dh -= 2;
@@ -1077,12 +1060,11 @@ var I18N = (function () {
    debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(lx + iconW) };
    var dwid = seg7W(dw, str), iconW = compact ? 0 : dh * 1.05;
    var lx = (blk ? blk.cL : ix) + (avail - need(dh)) / 2;
-   // the icon's ink about as tall as the digits, between the lamp row, the condition word, the left divider (or the
-   // glass) and the first lit digit; wider than the reserved width only by the row's slack
+   // the icon's ink about as tall as the digits, between the lamp row, the word, the divider and the first lit digit
    var ibox = compact ? { l: crMoved ? ix + pillW + u(16) : x + w - u(16) - hb * 0.24, t: y + innerD + u(6), r: x + w - u(16), b: y + h * 0.27 - u(crMoved ? 10 : 6) }
     : { l: (blk ? blk.cL : ix) + u(4), t: lampBottom + u(4), r: 0, b: y + h * 0.9 - WD.size - u(5) };
    var hWant = compact ? hb * (crMoved ? 0.3 : 0.24) : dh * 1.15;
-   if (blk) {      // centre what is seen (icon to the unit's end), not the blank cells in front of the digits
+   if (blk) {      // centre what is seen (icon to the unit's end), not the blank cells
     var tg = mk('g', {}, g);
     seg7(tg, 0, dy, dw, dh, str, DIGIT, null);
     var fl = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
@@ -1118,7 +1100,6 @@ var I18N = (function () {
     });
    }
    if (!compact && !blk && M.ok) {
-    // readouts left of the icon; X portrait rows run to the right divider
     var rdB = y + h * 0.9 - WD.size * 1.7, rdTop = rdB - WD.size * 2.7;
     var under = Math.max(dy + dh, ib.b) + u(6) <= rdTop, rdW = (under ? rx - u(20) : ib.l - u(6)) - lx;
     [[humTxt(), rdB - WD.size * 1.7], [uvTxt(), rdB]].forEach(function (rd) {
@@ -1261,8 +1242,7 @@ var I18N = (function () {
    var G = geo(T);
    if (PIXFONT) [21, 16, 12].some(function (c) { G = geo(F(c, '800')); return G.n >= 6; });
    T = G.T;
-   // segmented audio level bars (owner, the original ask): a fixed count of thin LED segments per day on the
-   // shared scale, lit from the low to the high, a brighter peak-hold segment at the high, unlit segments faint
+   // segmented level bars (owner): thin LED segments per day on the shared scale, lit low to high, a peak-hold at the high
    var pw = Math.max(u(14), Math.min(cw * 0.22, u(40))), top = G.top, bot = G.bot, segH = G.segH, segG = G.segG;
    var NS = Math.max(PIXFONT ? 2 : 6, G.n);
    var LIT = FULL ? AMBER : (ORANGE || (bits === 4 ? fillOf('gray-20', '#333') : (bits === 2 ? fillOf('gray-15', '#333') : ink)));
@@ -1297,19 +1277,11 @@ var I18N = (function () {
   }
   var HS = F(RD(H0 * 0.03, 12), '700');
   function meterPair(x, y, w, h, captions) {
-   var capH = captions ? HS.size * 1.6 : 0, mh = h - capH, mw = Math.floor((w - GP) / 2);
-   tempMeter(root, x, y, mw, mh, smallFace(mh, mw), 'L', captions);
-   rainMeter(root, x + mw + GP, y, w - mw - GP, mh, smallFace(mh, mw), 'R', captions);
-   if (captions) {
-    fitText(root, I18N.temperature, x + mw / 2, y + mh + HS.size * 1.25, HS, mw - u(8), { anchor: 'middle', ls: R(HS.size * 0.3) });
-    var rcW = (function () { var tt = text(root, I18N.rainChance, 0, 0, HS, { ls: R(HS.size * 0.3) }); var ww = width(tt); root.removeChild(tt); return ww; })();
-    var rcText = rcW > (w - mw - GP) * 0.6 ? I18N.precipitation : I18N.rainChance;   // over 60 % of the meter: TRMNL's short word
-    debug.rainCaption = rcText;
-    fitText(root, rcText, x + mw + GP + (w - mw - GP) / 2, y + mh + HS.size * 1.25, HS, w - mw - GP - u(8), { anchor: 'middle', ls: R(HS.size * 0.3) });
-   }
+   var mw = Math.floor((w - GP) / 2);
+   tempMeter(root, x, y, mw, h, smallFace(h, mw), 'L', captions);
+   rainMeter(root, x + mw + GP, y, w - mw - GP, h, smallFace(h, mw), 'R', captions);
   }
   if (view === 4) {
-   // quadrant: the one meter is the rain chance (owner: never the temperature twice)
    if (H0 / z >= 260) {
     var qg = R(H0 * 0.42);
     vfd(root, X0, Y0, W0, qg, true);
@@ -1341,14 +1313,13 @@ var I18N = (function () {
    meterPair(X0, Y0 + vh3 + GP, W0, H0 - vh3 - kh3 - 2 * GP, false);
    keysRow(X0, Y0 + H0 - kh3, W0, kh3, daysFit(W0, 110));
   } else {
-   // the sync time lives in the title bar's instance slot only; never on the faceplate (owner)
    var top = Y0;
    var portrait = UW / UH < 1.15;
-   var keyH = R(H0 * (portrait ? 0.22 : 0.25)), vh = R(H0 * (portrait ? 0.22 : 0.28));   // owner: meters at the reference height, the week a quarter
+   var keyH = R(H0 * (portrait ? 0.22 : 0.25)), vh = R(H0 * (portrait ? 0.22 : 0.28));
    var mh = H0 - (top - Y0) - keyH - vh - 2 * GP;
    var mhCap = R((W0 - GP) / 2 * 0.8 + HS.size * 1.6);
    if (mh > mhCap) { var extra = mh - mhCap; mh = mhCap; vh += R(extra * 0.6); keyH += R(extra * 0.4); }
-   meterPair(X0, top, W0, mh, true);       // the owner's reference: captions under the meters
+   meterPair(X0, top, W0, mh, true);       // captions inside the faces (owner 2026-11-11); the old strip's height stays in the dials
    vfd(root, X0, top + mh + GP, W0, vh, false);
    keysRow(X0, Y0 + H0 - keyH, W0, keyH, daysFit(W0, 150));
   }
@@ -1356,11 +1327,9 @@ var I18N = (function () {
   stage.setAttribute('data-sw-debug', JSON.stringify(debug));
  }
 
- // ---- TRMNL's own weather icons (help.trmnl.com "Weather icons"), fetched once and drawn inline
- // so they take the panel's ink (or a light glow on dark glass). A failed fetch keeps the drawn icon.
+ // TRMNL's own weather icons, fetched once and drawn inline in the panel's ink; a failed fetch keeps the drawn icon
  var WI_BASE = 'https://trmnl.com/images/plugins/weather/';
- // WMO code family (SWModel.kind) and day/night -> the closest wi-* icon
- // [day, night, whole day (a forecast day has no day or night)]
+ // kind and [day, night, whole day] -> the closest wi-* icon
  var WI_MAP = { clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
   cloud: ['wi-cloudy', 'wi-cloudy', 'wi-cloudy'], fog: ['wi-day-fog', 'wi-night-fog', 'wi-fog'],
   drizzle: ['wi-day-sprinkle', 'wi-night-alt-sprinkle', 'wi-sprinkle'], rain: ['wi-day-rain', 'wi-night-alt-rain', 'wi-rain'],
