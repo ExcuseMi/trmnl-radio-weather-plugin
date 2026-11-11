@@ -595,7 +595,7 @@ if (o.chan === 'R') debug.rainCaption = ct.textContent;
 var cl = parseFloat(ct.getAttribute('x')), capBox = { l: cl, r: cl + width(ct), t: capY - CP.size * 0.8, b: capY + CP.size * 0.25 };
 }
 var fhE = Mn(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
-var shortFace = fh < fw * 0.42, vu = shortFace && o.captioned;
+var shortFace = fh < fw * 0.42, vu = o.captioned && fh < fw * 0.5;
 var A = (shortFace ? 52 : 42) * Math.PI / 180, pyy = fy + fh * 0.86, rArc;
 if (vu) { A = Math.PI * 0.42; pyy = fy + fh - fh * 0.1 - u(9); rArc = Mn(fw * 0.4 / Math.sin(A), pyy - fy0 - u(6) - fh * 0.045 - lw - u(3)); }
 else rArc = Mn(fw * 0.43 / Math.sin(A), (pyy - fy - fh * (shortFace ? 0.13 : 0.2)));
@@ -1003,7 +1003,7 @@ debug.lamps = flags.map((f) => (f[1] ? '+' : '-') + f[0]);
 flags.forEach((fl) => { sx += status(g, fl[0], sx, sy, ST, fl[1]) + ST.size * 1.4; });
 }
 if (!compact) {
-var plC = bits === 1 || LCD ? ink : (DIMW || GLOW), plH = R(ST.size * 1.6), plM = u(10);
+var plC = bits === 1 || LCD ? ink : (DIMW || GLOW), plH = R(ST.size * 1.6), plM = u(5);
 var plT = text(g, 'OPEN-METEO', 0, 0, ST, { anchor: 'middle', ls: R(ST.size * 0.3), fill: bits === 1 ? ink : (LCD ? ink : GLASSD) }), plW = width(plT) + plH * 1.8;
 var plX = R(x + w - plM - plW), plY = R(y + plM), sr = Mx(2, R(plH * 0.17)), bvl = Mx(1, R(u(1)));
 var plR = rrect(g, plX, plY, plW, plH, R(plH * 0.22), bits === 1 ? paper : (LCD ? fillOf('gray-80', '#ddd') : fillOf('gray-45', '#777')), plC, Mx(1, R(u(1.2))));
@@ -1287,7 +1287,7 @@ var glass = bits === 4, bg = glass ? GLASSD : paper, fg = glass ? GLOW : ink, g 
 var fb = frame(g, x, y, w - u(3), h - u(3), bg, glass && !LCD); x = fb.fx + u(4); y = fb.fy; w = fb.fw - u(8); h = fb.fh;
 var dnW = days.reduce((m2, d) => Mx(m2, D.mW(dayName(d), D.L)), 0), labW = dnW + D.L.size * 2.6 + u(16), x0 = x + labW, x1 = x + w - u(14) - D.mW('-88°', D.t2), xOf = (v) => x0 + (v - a0) / (b0 - a0) * (x1 - x0);
 var SC2 = F(Mx(9, D.t2.size * 0.85), '600'), top = y + u(8) + SC2.size, rows = days.length, rh = (y + h - u(8) - top) / rows;
-for (var v = a0; v <= b0 + 1e-9; v += st) { mk('rect', { x: R(xOf(v)), y: R(top - u(4)), width: 1, height: u(4), fill: fg }, g); text(g, SWModel.fmt(v) + deg, xOf(v), top - u(6), SC2, { anchor: 'middle', fill: fg }); }
+for (var v = a0; v <= b0 + 1e-9; v += st) { mk('rect', { x: R(xOf(v)), y: R(top - u(4)), width: 1, height: u(4), fill: fg }, g); var nT = text(g, SWModel.fmt(v), 0, 0, SC2), nW = width(nT); g.removeChild(nT); text(g, SWModel.fmt(v) + deg, xOf(v) - nW / 2, top - u(6), SC2, { fill: fg }); }
 days.forEach((d, i) => {
 var cy = top + (i + 0.5) * rh;
 text(g, dayName(d), x + u(10), cy + D.L.size * 0.36, D.L, { fill: fg, ls: R(D.L.size * 0.08) });
@@ -1408,8 +1408,8 @@ keysRow(X0, Y0 + H0 - kh3, W0, kh3, daysFit(W0, 110));
 var top = Y0;
 var portrait = UW / UH < 1.15;
 var big = UW / z >= 1040;
-var mh = R(H0 * (portrait ? 0.3 : (big ? 0.28 : 0.32))), vh = R(H0 * (portrait ? 0.3 : 0.34)), keyH = H0 - mh - vh - 2 * GP;
-if (!portrait) { var mhCap = R((W0 - GP) / 2 * 0.42); if (mh > mhCap) { vh += mh - mhCap; mh = mhCap; } }
+var mh = R(H0 * (portrait ? 0.3 : 0.32)), vh = R(H0 * (portrait ? 0.3 : 0.34)), keyH = H0 - mh - vh - 2 * GP;
+if (!portrait) { var mhCap = R((W0 - GP) / 2 * 0.5); if (mh > mhCap) { vh += mh - mhCap; mh = mhCap; } }
 meterRow(X0, top, W0, mh, true);
 vfd(root, X0, top + mh + GP, W0, vh, false);
 keysRow(X0, Y0 + H0 - keyH, W0, keyH, daysFit(W0, 150, big ? 5 : 4));
