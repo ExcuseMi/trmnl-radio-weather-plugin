@@ -554,16 +554,16 @@ ig.appendChild(c);
 return ig;
 };
 debug.icons = iconsUsed;
-function iconFit(g, kind, isDay, box, hWant, cy, dry) {
+function iconFit(g, kind, isDay, box, hWant, cy, dry, szFix) {
 var name = wiName(kind, isDay), s = name && WI[name], bb, per, vb = s ? s.vb : [0, 0, 0, 0];
 if (s) {
 if (!s.ink) { var tg = mk('g', {}, root); var i0 = icon(tg, kind, 0, 0, 100, isDay); s.ink = i0.getBBox(); iconsUsed.wi--; root.removeChild(tg); }
 bb = s.ink; per = 1.4 / Mx(vb[2], vb[3]);
 } else { bb = { x: -0.33, y: -0.33, width: 0.66, height: 0.66 }; per = 1; }
-var sz = Mx(1, Mn(hWant / (bb.height * per), (box.b - box.t) / (bb.height * per), (box.r - box.l) / (bb.width * per)));
+var sz = szFix || Mx(1, Mn(hWant / (bb.height * per), (box.b - box.t) / (bb.height * per), (box.r - box.l) / (bb.width * per)));
 var k = sz * per, w = bb.width * k, h = bb.height * k;
 var icy = Mx(box.t + h / 2, Mn(box.b - h / 2, cy)), icx = box.r - w / 2;
-var ib = { l: R(icx - w / 2), r: R(box.r), t: R(icy - h / 2), b: R(icy + h / 2), w: w, h: h };
+var ib = { l: R(icx - w / 2), r: R(box.r), t: R(icy - h / 2), b: R(icy + h / 2), w: w, h: h, sz: sz };
 if (!dry && kind) icon(g, kind, icx - (bb.x + bb.width / 2 - vb[0] - vb[2] / 2) * k, icy - (bb.y + bb.height / 2 - vb[1] - vb[3] / 2) * k, sz, isDay);
 return ib;
 }
@@ -683,7 +683,7 @@ o.icons.forEach((nm, i) => { var ip = at((2 * i + 1) / 8, irad); icon(g, nm, ip[
 }
 mks.forEach((q) => {
 var m = q.m, r0 = rArc + bm + u(2), r1 = rArc + bm + fh * 0.05, t0 = at(m.f, r0), t1 = at(m.f - 0.012, r1), t2 = at(m.f + 0.012, r1);
-mk('polygon', { points: [t0, t1, t2].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: ink, 'shape-rendering': GPX }, g);
+mk('polygon', { points: [t0, t1, t2].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: m.lo ? 'none' : ink, stroke: m.lo ? ink : null, 'stroke-width': m.lo ? Mx(1, R(lw * 0.4)) : null, 'shape-rendering': GPX }, g);
 if (nolab) return;
 var bx = mkBox(q);
 text(g, m.label, bx.x, bx.y + MK.size * 0.37, MK, { anchor: 'middle' }).setAttribute('data-sw-mark', MN);
@@ -789,7 +789,7 @@ ticks.push({ f: f(vv), major: major, label: major ? String(vv) : undefined, skip
 }
 return meter(g, x, y, w, h, { chan: 'T', badge: badge, captioned: captioned, ticks: ticks, needle: nv === null ? null : f(nv), small: small,
 band: tl !== null && th !== null ? [f(tl), f(th)] : null,
-marks: [tl !== null ? { f: f(tl), label: I18N.lo } : null, th !== null ? { f: f(th), label: I18N.hi } : null].filter(Boolean),
+marks: [tl !== null ? { f: f(tl), label: I18N.lo, lo: true } : null, th !== null ? { f: f(th), label: I18N.hi } : null].filter(Boolean),
 name: I18N.temperature, shortName: I18N.ours('temp_s'), unitName: deg + M.unit, });
 }
 function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
@@ -801,7 +801,7 @@ var ps = M.hours.slice(0, 24).map((q) => q.pr).filter((q) => q !== null), pn = M
 if (pn !== null) ps.push(pn);
 var lo = ps.length ? Mn.apply(null, ps) : null, hi = ps.length ? Mx.apply(null, ps) : null;
 return meter(g, x, y, w, h, { chan: 'R', badge: badge, captioned: captioned, ticks: ticks, needle: pn === null ? null : f(pn), band: lo === null ? null : [f(lo), f(hi)], small: small,
-marks: lo === null ? [] : [{ f: f(lo), label: I18N.lo }, { f: f(hi), label: I18N.hi }],
+marks: lo === null ? [] : [{ f: f(lo), label: I18N.lo, lo: true }, { f: f(hi), label: I18N.hi }],
 icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'], name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: 'hPa', });
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
@@ -1288,10 +1288,11 @@ var fb = frame(g, x, y, w - u(3), h - u(3), bg, glass && !LCD); x = fb.fx + u(4)
 var dnW = days.reduce((m2, d) => Mx(m2, D.mW(dayName(d), D.L)), 0), labW = dnW + D.L.size * 2.6 + u(16), x0 = x + labW, x1 = x + w - u(14) - D.mW('-88°', D.t2), xOf = (v) => x0 + (v - a0) / (b0 - a0) * (x1 - x0);
 var SC2 = F(Mx(9, D.t2.size * 0.85), '600'), top = y + u(8) + SC2.size, rows = days.length, rh = (y + h - u(8) - top) / rows;
 for (var v = a0; v <= b0 + 1e-9; v += st) { mk('rect', { x: R(xOf(v)), y: R(top - u(4)), width: 1, height: u(4), fill: fg }, g); var nT = text(g, SWModel.fmt(v), 0, 0, SC2), nW = width(nT); g.removeChild(nT); text(g, SWModel.fmt(v) + deg, xOf(v) - nW / 2, top - u(6), SC2, { fill: fg }); }
+var dsz = Mn.apply(null, days.map((d) => iconFit(g, d.icon, null, { l: 0, r: 1e5, t: -1e5, b: 1e5 }, rh * 0.8, 0, true).sz).concat([1e5]));
 days.forEach((d, i) => {
 var cy = top + (i + 0.5) * rh;
 text(g, dayName(d), x + u(10), cy + D.L.size * 0.36, D.L, { fill: fg, ls: R(D.L.size * 0.08) });
-ICON_INK = fg; iconFit(g, d.icon, null, { l: x + u(10) + dnW + D.L.size * 0.2, r: x + u(10) + dnW + D.L.size * 2.1, t: cy - rh * 0.4, b: cy + rh * 0.4 }, rh * 0.8, cy, false); ICON_INK = null;
+ICON_INK = fg; iconFit(g, d.icon, null, { l: x + u(10) + dnW + D.L.size * 0.2, r: x + u(10) + dnW + D.L.size * 2.1, t: cy - rh * 0.4, b: cy + rh * 0.4 }, rh * 0.8, cy, false, dsz); ICON_INK = null;
 mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: glass ? DIMW : fillOf('gray-60', '#bbb') }, g);
 if (d.hi === null || d.lo === null) return;
 var xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = Mx(3, u(5));
