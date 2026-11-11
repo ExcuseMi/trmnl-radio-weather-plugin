@@ -597,7 +597,7 @@ var cl = parseFloat(ct.getAttribute('x')), capBox = { l: cl, r: cl + width(ct), 
 var fhE = Mn(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
 var shortFace = fh < fw * 0.42, vu = o.captioned && fh < fw * 0.5;
 var A = (shortFace ? 52 : 42) * Math.PI / 180, pyy = fy + fh * 0.86, rArc;
-if (vu) { A = Math.PI * 0.42; pyy = fy + fh - fh * 0.1 - u(9); rArc = Mn(fw * 0.4 / Math.sin(A), pyy - fy0 - u(6) - fh * 0.045 - lw - u(3)); }
+if (vu) { A = Math.PI * 0.42; pyy = fy + fh - fh * 0.1 - u(9); rArc = Mn(fw * 0.4 / Math.sin(A), pyy - fy0 - u(6) - fh * 0.095 - lw * 2 - u(3)); }
 else rArc = Mn(fw * 0.43 / Math.sin(A), (pyy - fy - fh * (shortFace ? 0.13 : 0.2)));
 var cx = fx + fw / 2, py = pyy;
 if (vu && topBox) {   // the arc may rise beside the caption, never under it
@@ -1358,8 +1358,8 @@ if (captions) {
 var fh = h - u(14), fw = mw - u(14), BG = F(RD(Mn(fh, fw) * 0.055, 10), '800'), size = Mx(HS.size, BG.size * 1.1);
 var bwd = (() => { var t0 = text(root, 'L', 0, 0, BG); var ww = width(t0); root.removeChild(t0); return ww + 2 * BG.size * 0.45; })();
 var size0 = size, floor = Mx(HS.size, size * 0.6);
-[false, true, true].some((allowShort, pass) => {
-for (size = size0; size >= (pass === 2 ? u(9) : floor) * 0.99; size *= 0.9) {
+[false, false, true].some((allowShort, pass) => {
+for (size = size0; size >= (pass ? u(9) : floor) * 0.99; size *= 0.9) {
 capSp = F(size, '700');
 if (kinds.every((k, i) => {
 var nm = dialName(k), room = fw / 2 - fh * 0.22 - u(14);
