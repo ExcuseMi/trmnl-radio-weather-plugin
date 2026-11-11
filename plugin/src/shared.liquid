@@ -1262,7 +1262,7 @@ text(g, tStr(d.lo), xa - u(8), cy + D.t2.size * 0.36, D.t2, { anchor: 'end', fil
 text(g, tStr(d.hi), xb + u(8), cy + D.t2.size * 0.36, D.t2, { fill: fg });
 });
 if (M.now.temp !== null) { var px = R(xOf(M.now.temp)), PC = RED !== ink ? RED : fg;
-mk('rect', { x: px - Mx(1, u(1)), y: R(top), width: Mx(2, u(2)), height: R(y + h - u(8) - top), fill: PC, 'data-sw-pointer': 1 }, g);
+mk('rect', { x: px - Mx(1, u(1)) / 2, y: R(top), width: Mx(1, u(1)), height: R(y + h - u(8) - top), fill: PC, 'data-sw-pointer': 1 }, g);
 mk('polygon', { points: [[px, top + u(6)], [px - u(5), top - u(2)], [px + u(5), top - u(2)]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: PC }, g); }
 }
 // C: tape counters: per day a small window with the high over the low in segment digits
