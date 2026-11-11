@@ -821,7 +821,7 @@ for (var c = 0; c < 16; c++) if (BAYER[c] < dn * 16) mk('rect', { x: c % 4, y: F
 return 'url(#' + pid + ')';
 }
 function lampGrey(g, x, y, w, h) {
-var id = 'swlampg' + view + '-' + (lampN++), g70 = fillOf('gray-55', '#aaa'), g75 = fillOf('gray-70', '#ddd');
+var id = 'swlampg' + view + '-' + (lampN++), g70 = fillOf('gray-65', '#bbb'), g75 = fillOf('gray-75', '#eee');
 var cp = mk('clipPath', { id: id }, defs); rrect(cp, x, y, w, h, u(4));
 var lg = mk('g', { 'clip-path': 'url(#' + id + ')' }, g);
 [[g70, g75, 0.25, 1.35], [g70, g75, 0.5, 1.2], [g70, g75, 0.75, 1.08], [g75, paper, 0.25, 0.97], [g75, paper, 0.5, 0.87], [g75, paper, 0.75, 0.78], [paper, paper, 1, 0.7]].forEach((st, i) => {
