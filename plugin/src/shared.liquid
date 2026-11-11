@@ -990,7 +990,7 @@ if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
 flags = flags.filter((f) => f[1]);
 var noRow = false, lampBottom = sy + ST.size * 0.45;
 if (!compact) {
-var room = iw - u(20) - (() => { var tc = text(g, 'OPEN-METEO', 0, 0, ST, { ls: R(ST.size * 0.3) }); var tw = width(tc); g.removeChild(tc); return tw + ST.size * 1.6; })();
+var room = iw - u(20) - (() => { var tc = text(g, 'OPEN-METEO', 0, 0, ST, { ls: R(ST.size * 0.3) }); var tw = width(tc); g.removeChild(tc); return tw + ST.size * 2.9 + u(14); })();
 var rowW = (fl, sp) => { return fl.reduce((a, f) => { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 ? 2.3 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
 debug.lampFit = { need: R(rowW(flags, ST)), room: R(room) };
 while (rowW(flags, ST) > room && flags.some((f) => !f[1])) {
@@ -1001,11 +1001,23 @@ debug.lamps = flags.map((f) => (f[1] ? '+' : '-') + f[0]);
 flags.forEach((fl) => { sx += status(g, fl[0], sx, sy, ST, fl[1]) + ST.size * 1.4; });
 }
 if (!compact) {
-var plC = bits === 1 || LCD ? ink : (DIMW || GLOW), pp = ST.size * 0.6, plE = x + w - u(30) - pp;
-var plT = text(g, 'OPEN-METEO', plE, sy, ST, { anchor: 'end', ls: R(ST.size * 0.3), fill: plC }), plW = width(plT);
-plT.setAttribute('font-style', 'italic'); plT.setAttribute('font-weight', '800');
-var plH = ST.size * 1.55, plR = rrect(g, R(plE - plW - pp), R(sy - ST.size * 0.78 - (plH - ST.size) / 2 + ST.size * 0.1), R(plW + 2 * pp), R(plH), R(plH * 0.28), 'none', plC, Mx(1, R(u(1.2))));
+var plC = bits === 1 || LCD ? ink : (DIMW || GLOW), plH = R(ST.size * 1.6), plM = u(10);
+var plT = text(g, 'OPEN-METEO', 0, 0, ST, { anchor: 'middle', ls: R(ST.size * 0.3), fill: bits === 1 ? ink : (LCD ? ink : GLASSD) }), plW = width(plT) + plH * 1.8;
+var plX = R(x + w - plM - plW), plY = R(y + plM), sr = Mx(2, R(plH * 0.17)), bvl = Mx(1, R(u(1)));
+var plR = rrect(g, plX, plY, plW, plH, R(plH * 0.22), bits === 1 ? paper : (LCD ? fillOf('gray-80', '#ddd') : fillOf('gray-45', '#777')), plC, Mx(1, R(u(1.2))));
 plR.setAttribute('data-sw-plate', 1);
+if (bits > 1) {
+var bl = LCD ? paper : fillOf('gray-65', '#aaa'), bd = LCD ? fillOf('gray-50', '#999') : fillOf('gray-25', '#333'), bq = R(plH * 0.22);
+mk('path', { d: 'M' + (plX + bq) + ' ' + (plY + bvl * 1.5) + ' H' + (plX + plW - bq) + ' M' + (plX + bvl * 1.5) + ' ' + (plY + bq) + ' V' + (plY + plH - bq), stroke: bl, 'stroke-width': bvl, fill: 'none' }, g);
+mk('path', { d: 'M' + (plX + bq) + ' ' + (plY + plH - bvl * 1.5) + ' H' + (plX + plW - bq) + ' M' + (plX + plW - bvl * 1.5) + ' ' + (plY + bq) + ' V' + (plY + plH - bq), stroke: bd, 'stroke-width': bvl, fill: 'none' }, g);
+}
+[[plX + plH * 0.45, 35], [plX + plW - plH * 0.45, -50]].forEach((sc) => {
+var sa = sc[1] * Math.PI / 180, cy5 = plY + plH / 2, dx5 = Math.cos(sa) * sr * 0.75, dy5 = Math.sin(sa) * sr * 0.75;
+mk('circle', { cx: R(sc[0]), cy: R(cy5), r: sr, fill: bits === 1 ? 'none' : (LCD ? fillOf('gray-60', '#aaa') : fillOf('gray-65', '#aaa')), stroke: plC, 'stroke-width': 1 }, g);
+mk('line', { x1: sc[0] - dx5, y1: cy5 - dy5, x2: sc[0] + dx5, y2: cy5 + dy5, stroke: bits === 1 || LCD ? ink : GLASSD, 'stroke-width': Mx(1, R(sr * 0.28)) }, g);
+});
+plT.setAttribute('text-anchor', 'start'); plT.setAttribute('x', R(plX + plH * 0.9)); plT.setAttribute('y', R(plY + plH / 2 + ST.size * 0.36));
+plT.setAttribute('font-style', 'italic'); plT.setAttribute('font-weight', '800'); g.appendChild(plT);
 }
 var pillW = 0;
 if (compact) pillW = status(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry')), ix, sy, ST, !M.ok || !!M.rain);
