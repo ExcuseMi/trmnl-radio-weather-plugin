@@ -997,7 +997,7 @@ var RO_ORDER = ['humidity', 'uv', 'wind', 'aqi', 'pressure', 'rain_mm'];
 function readout(k) {
 var n = M.now, t = M.today, c = compass(n.dir), F_ = M.unit === 'F';
 var bar = (v, lo, hi) => v === null ? null : Mx(0, Mn(1, (v - lo) / (hi - lo)));
-if (k === 'wind') return { lab: I18N.wind, bar: bar(n.wind, 0, F_ ? 40 : 60), peak: bar(nz(t.gustMax), 0, F_ ? 40 : 60), txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
+if (k === 'wind') return { lab: I18N.wind, bar: bar(n.wind, 0, F_ ? 40 : 60), txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
 if (k === 'aqi') return { lab: 'AQI', bar: bar(nz(n.aqi), 0, 100), ticks: [0.6], txt: 'AQI ' + fv(nz(n.aqi)) };
 if (k === 'uv') return { lab: I18N.ours('uv'), bar: bar(n.uv, 0, 11), ticks: [3 / 11, 6 / 11], txt: I18N.ours('uv') + ' ' + fv(n.uv) };
 if (k === 'pressure') return { lab: I18N.ours('m_press'), bar: bar(n.press, 970, 1050), txt: fv(n.press) + ' hPa' };
@@ -1026,7 +1026,7 @@ var ST = F(RD(hb * (compact ? 0.085 : 0.075), 10), '700');
 var has = (k) => { return X1.some((hh) => hh.icon === k); };
 var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain')], [I18N.snow, has('snow')],
 [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
-[I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, M.now.wind !== null && M.now.wind >= WTHR],
+[I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, (M.now.wind !== null && M.now.wind >= WTHR) || (nz(M.today.gustMax) !== null && M.today.gustMax >= (M.unit === 'F' ? 30 : 50))],
 [I18N.ours('uv'), M.now.uv !== null && M.now.uv >= 6], ['SMOG', M.now.aqi !== null && M.now.aqi > 60]];
 var innerD = u(bits === 1 ? 9 : 6), sy = Mx(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
 if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
@@ -1084,11 +1084,9 @@ if (blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
 function meterRowH(i, r, which) {
 var C = cells, LF = C.LF, rh = (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - u(4);
 var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segW = (x1 - x0 - 9 * sg) / 10, segH = Mx(2, R(rh * 0.42)), lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
-var pk = r.peak === null || r.peak === undefined ? -1 : Mn(9, Math.round(r.peak * 10) - 1);
 text(cg, r.lab, x0 - u(8), cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW, ls: R(LF.size * 0.1) }).setAttribute('data-sw-cell', which);
 for (var k = 0; k < 10; k++) {
 var sx = x0 + k * (segW + sg), on = k < lit, sy = R(cy - segH / 2);
-if (k === pk && k >= lit) { glowDigits((hg) => { mk('rect', { x: R(sx), y: R(cy - segH * 0.8), width: R(segW), height: R(segH * 1.6), fill: DIGIT, 'data-sw-rseg': hg ? null : 'peak' }, hg || cg); }); continue; }
 if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIGIT, 'data-sw-rseg': hg ? null : 'lit' }, hg || cg); });
 else if (bits === 1) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
 else if (DIMW) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
