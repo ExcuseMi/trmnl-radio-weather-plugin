@@ -46,7 +46,7 @@ days: {{ cf.days_shown | default: 'auto' | json }},
 span: {{ cf.dial_span | default: '24h' | json }},
 dials: [{{ cf.left_dial | default: 'temperature' | json }}, {{ cf.middle_dial | default: 'none' | json }}, {{ cf.right_dial | default: 'rain' | json }}],
 glass: {{ cf.glass | default: 'dark' | json }},
-readouts: [{{ cf.readout_1 | default: 'humidity' | json }}, {{ cf.readout_2 | default: 'uv' | json }}, {{ cf.readout_3 | default: 'wind' | json }}, {{ cf.readout_4 | default: 'gust' | json }}, {{ cf.meter_5 | default: 'aqi' | json }}, {{ cf.meter_6 | default: 'pressure' | json }}],
+readouts: [{{ cf.readout_1 | default: 'humidity' | json }}, {{ cf.readout_2 | default: 'uv' | json }}, {{ cf.readout_3 | default: 'wind' | json }}, {{ cf.readout_4 | default: 'aqi' | json }}, {{ cf.meter_5 | default: 'pressure' | json }}, {{ cf.meter_6 | default: 'none' | json }}],
 label: '',
 location: {{ cf.lat_lon | default: '' | json }},
 hideTitle: {% if sw_hide == 'true' or sw_hide == 'yes' %}true{% else %}false{% endif %},
@@ -993,12 +993,11 @@ return tw2;
 function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
 function fv1(v) { return v === null ? '--' : (v < 10 ? (Math.round(v * 10) / 10).toFixed(1) : SWModel.fmt(v)); }
 function compass(d) { if (d === null) return ''; var pts = I18N.ours('compass').split(','); return pts.length === 8 ? pts[Math.round(d / 45) % 8] : ''; }
-var RO_ORDER = ['humidity', 'uv', 'wind', 'gust', 'aqi', 'pressure', 'rain_mm'];
+var RO_ORDER = ['humidity', 'uv', 'wind', 'aqi', 'pressure', 'rain_mm'];
 function readout(k) {
 var n = M.now, t = M.today, c = compass(n.dir), F_ = M.unit === 'F';
 var bar = (v, lo, hi) => v === null ? null : Mx(0, Mn(1, (v - lo) / (hi - lo)));
-if (k === 'wind') return { lab: I18N.wind, cmp: c, bar: bar(n.wind, 0, F_ ? 40 : 60), txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
-if (k === 'gust') return { lab: I18N.ours('m_gust'), cmp: c, bar: bar(nz(t.gustMax), 0, F_ ? 50 : 80), txt: I18N.ours('gust') + ' ' + fv(nz(t.gustMax)) };
+if (k === 'wind') return { lab: I18N.wind, cmp: c, bar: bar(n.wind, 0, F_ ? 40 : 60), peak: bar(nz(t.gustMax), 0, F_ ? 40 : 60), txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
 if (k === 'aqi') return { lab: 'AQI', bar: bar(nz(n.aqi), 0, 100), ticks: [0.6], txt: 'AQI ' + fv(nz(n.aqi)) };
 if (k === 'uv') return { lab: I18N.ours('uv'), bar: bar(n.uv, 0, 11), ticks: [3 / 11, 6 / 11], txt: I18N.ours('uv') + ' ' + fv(n.uv) };
 if (k === 'pressure') return { lab: I18N.ours('m_press'), bar: bar(n.press, 970, 1050), txt: fv(n.press) + ' hPa' };
@@ -1006,12 +1005,12 @@ if (k === 'rain_mm') return { lab: I18N.ours('m_rain'), bar: bar(nz(t.rainMm), 0
 return { lab: I18N.ours('m_hum'), bar: bar(n.hum, 0, 100), txt: I18N.ours('hum') + ' ' + fv(n.hum, '%') };
 }
 function pickReadouts(shown) {
-var want = SW_CFG.readouts.map((k, i) => RO_ORDER.indexOf(k) >= 0 ? k : ['humidity', 'uv', 'wind', 'gust', 'aqi', 'pressure'][i]), out = [];
+var want = SW_CFG.readouts.map((k, i) => k === 'gust' ? 'wind' : (k === 'none' || RO_ORDER.indexOf(k) >= 0 ? k : ['humidity', 'uv', 'wind', 'aqi', 'pressure', 'none'][i])).filter((k) => k !== 'none'), out = [];
 var fixed = want.filter((k, i) => shown.indexOf(k) < 0 && want.indexOf(k) === i);
 want.forEach((k, i) => {
 if (shown.indexOf(k) < 0 && want.indexOf(k) === i) { out.push(k); return; }
 var at = RO_ORDER.indexOf(k);
-for (var n = 1; n <= 7; n++) { var c = RO_ORDER[(at + n) % 7]; if (shown.indexOf(c) < 0 && fixed.indexOf(c) < 0 && out.indexOf(c) < 0) { out.push(c); return; } }
+for (var n = 1; n <= 6; n++) { var c = RO_ORDER[(at + n) % 6]; if (shown.indexOf(c) < 0 && fixed.indexOf(c) < 0 && out.indexOf(c) < 0) { out.push(c); return; } }
 out.push(k);
 });
 return out;
@@ -1075,20 +1074,22 @@ crMoved.setAttribute('y', R(y + h * 0.88 - WD.size * 1.6));
 var lw = iw * 0.4, rx = ix + iw * 0.78, rw = iw * 0.22, WL = { ls: R(WD.size * 0.15), fill: GLOW };
 var blk = null, cells = null;
 function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.removeChild(tt); return ww; }
-if (!compact && M.ok && ROS.length >= 6) {
+if (!compact && M.ok && ROS.length >= 3) {
 var ROW = { top: Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * 0.9 }, LF = F(RD(hb * 0.075, 10), '700'), lmax = 0, cmax = 0;
-['m_hum', 'uv', 'm_press', 'm_rain', 'm_gust'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF));
+['m_hum', 'uv', 'm_press', 'm_rain'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF));
 I18N.ours('compass').split(',').forEach((cp) => { cmax = Mx(cmax, mW(cp, LF)); });
-cells = { nM: 6, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), cmpW: cmax * 1.1 + u(8), left: ROS.slice(0, 6) };
+cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), cmpW: cmax * 1.1 + u(8), left: ROS };
 blk = { divX: ix + lw + u(14), cL: ix + lw + u(22), cR: rx - u(22) };
 if (blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
 }
 function meterRowH(i, r, which) {
 var C = cells, LF = C.LF, rh = (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - C.cmpW;
-var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segW = (x1 - x0 - 9 * sg) / 10, segH = Mx(2, R(rh * 0.5)), lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
+var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segW = (x1 - x0 - 9 * sg) / 10, segH = Mx(2, R(rh * 0.42)), lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
+var pk = r.peak === null || r.peak === undefined ? -1 : Mn(9, Math.round(r.peak * 10) - 1);
 text(cg, r.lab, x0 - u(8), cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW, ls: R(LF.size * 0.1) }).setAttribute('data-sw-cell', which);
 for (var k = 0; k < 10; k++) {
 var sx = x0 + k * (segW + sg), on = k < lit, sy = R(cy - segH / 2);
+if (k === pk && k >= lit) { glowDigits((hg) => { mk('rect', { x: R(sx), y: R(cy - segH * 0.8), width: R(segW), height: R(segH * 1.6), fill: DIGIT, 'data-sw-rseg': hg ? null : 'peak' }, hg || cg); }); continue; }
 if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIGIT, 'data-sw-rseg': hg ? null : 'lit' }, hg || cg); });
 else if (bits === 1) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
 else if (DIMW) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);

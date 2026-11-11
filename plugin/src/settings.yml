@@ -123,7 +123,6 @@ custom_fields:
   - Humidity: humidity
   - UV: uv
   - Wind: wind
-  - Gusts: gust
   - Air quality: aqi
   - Air pressure: pressure
   - Rain today: rain_mm
@@ -139,7 +138,6 @@ custom_fields:
   - Humidity: humidity
   - UV: uv
   - Wind: wind
-  - Gusts: gust
   - Air quality: aqi
   - Air pressure: pressure
   - Rain today: rain_mm
@@ -155,7 +153,6 @@ custom_fields:
   - Humidity: humidity
   - UV: uv
   - Wind: wind
-  - Gusts: gust
   - Air quality: aqi
   - Air pressure: pressure
   - Rain today: rain_mm
@@ -171,11 +168,10 @@ custom_fields:
   - Humidity: humidity
   - UV: uv
   - Wind: wind
-  - Gusts: gust
   - Air quality: aqi
   - Air pressure: pressure
   - Rain today: rain_mm
-  default: gust
+  default: aqi
 - keyname: meter_5
   field_type: select
   name: Meter 5
@@ -187,27 +183,26 @@ custom_fields:
   - Humidity: humidity
   - UV: uv
   - Wind: wind
-  - Gusts: gust
-  - Air quality: aqi
-  - Air pressure: pressure
-  - Rain today: rain_mm
-  default: aqi
-- keyname: meter_6
-  field_type: select
-  name: Meter 6
-  description: The sixth channel meter (on screens with room for six).
-  description-nl: De zesde kanaalmeter (op schermen met plaats voor zes).
-  description-de: Das sechste Kanalinstrument (auf Bildschirmen mit Platz für sechs).
-  description-fr: Le sixième vumètre (sur les écrans avec de la place pour six).
-  options:
-  - Humidity: humidity
-  - UV: uv
-  - Wind: wind
-  - Gusts: gust
   - Air quality: aqi
   - Air pressure: pressure
   - Rain today: rain_mm
   default: pressure
+- keyname: meter_6
+  field_type: select
+  name: Meter 6
+  description: An optional sixth channel meter (off by default).
+  description-nl: Een optionele zesde kanaalmeter (standaard uit).
+  description-de: Ein optionales sechstes Kanalinstrument (standardmäßig aus).
+  description-fr: Un sixième vumètre en option (désactivé par défaut).
+  options:
+  - false: none
+  - Humidity: humidity
+  - UV: uv
+  - Wind: wind
+  - Air quality: aqi
+  - Air pressure: pressure
+  - Rain today: rain_mm
+  default: none
 - keyname: glass
   field_type: select
   name: Glass
