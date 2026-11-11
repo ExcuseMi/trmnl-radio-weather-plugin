@@ -153,7 +153,7 @@ return out;
 function rainWindow(hours, chance) {
 var from = -1, to = -1;
 for (var i = 0; i < hours.length; i++) {
-var wet = (hours[i].p !== null && hours[i].p >= chance) || hours[i].wet;
+var wet = (hours[i].p !== null && hours[i].p >= chance) || (hours[i].wet && (hours[i].p === null || hours[i].p >= 30 || (hours[i].mm || 0) >= 0.3));
 if (wet) { if (from < 0) from = i; to = i; } else if (from >= 0) break;
 }
 if (from < 0) return null;
@@ -982,7 +982,7 @@ vfdBox(g, x, y, w, h);
 var ix = x + u(compact ? 16 : 30), iw = w - 2 * (ix - x);
 var hb = Mn(h, w * (compact ? 0.7 : 0.28));
 var ST = F(RD(hb * (compact ? 0.085 : 0.075), 10), '700');
-var has = (k) => { return X1.some((hh) => hh.icon === k); };
+var has = (k) => { return X1.some((hh) => hh.icon === k && !(hh.p !== null && hh.p < 30 && (hh.mm || 0) < 0.3)); };
 var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain')], [I18N.snow, has('snow')],
 [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
 [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, (M.now.wind !== null && M.now.wind >= (M.unit === 'F' ? 31 : 50)) || (nz(M.today.gustMax) !== null && M.today.gustMax >= (M.unit === 'F' ? 47 : 75))],
@@ -1059,7 +1059,7 @@ blk = { divX: ix + lw + u(14), cL: ix + lw + u(22), cR: rx - u(22) };
 if (blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
 }
 function meterRowH(i, r, which) {
-var ZC = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? [fillOf('gray-35', '#666'), fillOf('gray-35', '#666'), ink]
+var ZC = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-35', '#666'), fillOf('gray-35', '#666'), ink] : [fillOf('gray-35', '#bbb'), GLOW, GLOW])
 : LCD ? [fillOf('gray-50', '#777'), fillOf('gray-20', '#333'), ink] : [fillOf('gray-80', '#ddd'), GLOW, GLOW];
 var C = cells, LF = C.LF, rh = (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - u(4);
 var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segH = Mx(2, R(rh * 0.42)), nodata = r.bar === null || r.bar === undefined, lit = nodata ? 0 : Math.round(r.bar * 10);
@@ -1283,7 +1283,7 @@ days.forEach((d) => { if (d.lo !== null && (lo === null || d.lo < lo)) lo = d.lo
 if (M.now.temp !== null) { lo = lo === null ? M.now.temp : Mn(lo, M.now.temp); hi = hi === null ? M.now.temp : Mx(hi, M.now.temp); }
 if (lo === null) { lo = 0; hi = 10; }
 var st = F_ ? 10 : 5, a0 = Fl(lo / st) * st - (lo - Fl(lo / st) * st < 1 ? st : 0), b0 = Math.ceil(hi / st) * st + (Math.ceil(hi / st) * st - hi < 1 ? st : 0);
-var glass = bits === 4, bg = glass ? GLASSD : paper, fg = glass ? GLOW : ink, g = mk('g', { 'data-sw-dial': 1 }, root);
+var glass = bits >= 2, bg = glass ? GLASSD : paper, fg = glass ? GLOW : ink, g = mk('g', { 'data-sw-dial': 1 }, root);
 var fb = frame(g, x, y, w - u(3), h - u(3), bg, glass && !LCD); x = fb.fx + u(4); y = fb.fy; w = fb.fw - u(8); h = fb.fh;
 var dnW = days.reduce((m2, d) => Mx(m2, D.mW(dayName(d), D.L)), 0), labW = dnW + D.L.size * 2.6 + u(16), x0 = x + labW, x1 = x + w - u(14) - D.mW('-88°', D.t2), xOf = (v) => x0 + (v - a0) / (b0 - a0) * (x1 - x0);
 var SC2 = F(Mx(9, D.t2.size * 0.85), '600'), top = y + u(8) + SC2.size, rows = days.length, rh = (y + h - u(8) - top) / rows;
