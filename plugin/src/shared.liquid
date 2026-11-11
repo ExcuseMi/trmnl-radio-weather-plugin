@@ -1291,7 +1291,7 @@ for (var v = a0; v <= b0 + 1e-9; v += st) { mk('rect', { x: R(xOf(v)), y: R(top 
 days.forEach((d, i) => {
 var cy = top + (i + 0.5) * rh;
 text(g, dayName(d), x + u(10), cy + D.L.size * 0.36, D.L, { fill: fg, ls: R(D.L.size * 0.08) });
-ICON_INK = fg; icon(g, d.icon, x + u(10) + dnW + D.L.size * 1.4, cy, D.L.size * 1.7, null); ICON_INK = null;
+ICON_INK = fg; iconFit(g, d.icon, null, { l: x + u(10) + dnW + D.L.size * 0.2, r: x + u(10) + dnW + D.L.size * 2.1, t: cy - rh * 0.4, b: cy + rh * 0.4 }, rh * 0.8, cy, false); ICON_INK = null;
 mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: glass ? DIMW : fillOf('gray-60', '#bbb') }, g);
 if (d.hi === null || d.lo === null) return;
 var xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = Mx(3, u(5));
