@@ -2,6 +2,7 @@
 
 require 'json'
 require 'time'
+require 'yaml'
 
 # `trmnlp test` (add `--report report` for a page of every screen drawn). The hybrid receiver: two needle
 # meters, the smoked-glass display, the day keys.
@@ -10,7 +11,8 @@ RSpec.describe 'Stereo Weather' do
   VIEWS = %w[full half_horizontal half_vertical quadrant].freeze
   def self.fixture(name) = JSON.parse(File.read(File.join(FIXTURES, "#{name}.json")))
   def fixture(name) = self.class.fixture(name)
-  def meteo(answer) = { 'https://api.open-meteo.com/*' => answer }
+  # the weather and (step 4) the air quality, two polling URLs; the air answer may be missing or broken
+  def meteo(answer, aq = { json: fixture('aq') }) = { 'https://api.open-meteo.com/*' => answer, 'https://air-quality-api.open-meteo.com/*' => aq }
   # ten minutes after a sample's own time: the data reads as fresh
   def fresh_now(answer, plus: 600)
     t = answer.dig('current', 'time')
@@ -29,6 +31,14 @@ RSpec.describe 'Stereo Weather' do
   end
   # the today band in the scale's middle (the marks near the arc's top)
   def marks_top = shifted(7.0, 1.4, 13.1).tap { it['daily']['temperature_2m_min'][0] = 6.4; it['daily']['temperature_2m_max'][0] = 8.1 }
+  # the sample day with every reading gone (old answer, nulls): needles at rest, readouts --
+  def blind
+    a = fixture('mixed')
+    %w[temperature_2m apparent_temperature relative_humidity_2m wind_speed_10m uv_index wind_gusts_10m wind_direction_10m pressure_msl].each { a['current'][it] = nil }
+    %w[temperature_2m precipitation_probability].each { a['hourly'][it] = [nil] * 48 }
+    %w[temperature_2m_max temperature_2m_min uv_index_max wind_gusts_10m_max precipitation_sum].each { a['daily'][it] = [nil] * 14 }
+    a
+  end
   EXTREMES = { '104.5 F' => [104.5, 84, 108, 'fahrenheit', '104.5'], '112 F' => [112, 92, 115, 'fahrenheit', '112.0'],
                '-40 F' => [-40, -45, -28, 'fahrenheit', '-40.0'], '-23.5 C' => [-23.5, -28, -17, 'celsius', '-23.5'],
                '1.6 C' => [1.6, 1.4, 13.1, 'celsius', '1.6'] }.freeze
@@ -40,10 +50,10 @@ RSpec.describe 'Stereo Weather' do
   end
   let(:drawn) { "document.querySelector('[data-sw-debug],[data-sw-error]') !== null" }
 
-  def draw(view: 'full', device: 'og_png', fields: {}, answer: nil, now: :fresh, **)
+  def draw(view: 'full', device: 'og_png', fields: {}, answer: nil, now: :fresh, aq: nil, **)
     data = answer || { json: fixture('mixed') }
     now = data[:json] && data[:json]['current'] ? fresh_now(data[:json]) : nil if now == :fresh
-    trmnl.render(view:, device:, mocks: meteo(data), custom_fields: custom_fields.merge(fields), now:,
+    trmnl.render(view:, device:, mocks: aq ? meteo(data, aq) : meteo(data), custom_fields: custom_fields.merge(fields), now:,
                  wait_for: drawn, **)
   end
 
@@ -331,8 +341,9 @@ RSpec.describe 'Stereo Weather' do
         answer['current']['temperature_2m'] = -1.4
         d = debug(draw(device:, answer: { json: answer }))['digits']
         first = d['boxes'].find { it['l'] }
-        # owner (photo of the X): a little more space between the icon and the temperature
-        expect(first['l'] - d['iconRight']).to be_between(d['dh'] * 0.18, d['dh'] * 0.3)
+        # owner (X render, 2026-11-11): "I think the weather icon is still too close to the main number. That makes it
+        # hard to read from far away." About 0.4 dh between the icon's ink and the first lit digit (was 0.22).
+        expect(first['l'] - d['iconRight']).to be_between(d['dh'] * 0.35, d['dh'] * 0.5)
       end
     end
 
@@ -397,6 +408,80 @@ RSpec.describe 'Stereo Weather' do
         debug(s)
         expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
       end
+    end
+  end
+
+  describe 'choosable dials' do
+    # Owner (2026-11-11): the left and right dials are settings (defaults temperature and rain chance, so existing
+    # devices are unchanged), a middle dial (default none) shows only on the X full view; only added keys, never a
+    # renamed or retyped one (a rename wiped users' saved values once). The quadrant keeps "never the temperature twice".
+    settings = YAML.safe_load(File.read(File.join(__dir__, '..', 'src', 'settings.yml')))
+    fields = settings['custom_fields'].to_h { [it['keyname'], it] }
+    DIAL_KINDS = %w[temperature rain wind humidity uv aqi pressure feels].freeze
+
+    it 'adds the dial fields with the old defaults and keeps every existing key as it was' do
+      expect(fields.keys).to include('left_dial', 'right_dial', 'middle_dial')
+      expect(fields['left_dial']['default']).to eq('temperature')
+      expect(fields['right_dial']['default']).to eq('rain')
+      expect(fields['middle_dial']['default']).to eq('none')
+      %w[left_dial right_dial middle_dial].each do |k|
+        expect(fields[k]['field_type']).to eq('select')
+        expect(fields[k]['options'].map(&:values).flatten).to include(*DIAL_KINDS)
+      end
+      { 'author_info' => 'author_bio', 'lat_lon' => 'lat_lon', 'unit' => 'select', 'days_shown' => 'select', 'dial_span' => 'select',
+        'hide_title_bar' => 'boolean', 'language' => 'select' }.each { |k, t| expect(fields.dig(k, 'field_type')).to eq(t) }
+    end
+
+    it 'draws the chosen dials: wind left, air quality right (X and OG full)' do
+      %w[v2 og_png].each do |device|
+        s = draw(device:, fields: { 'left_dial' => 'wind', 'right_dial' => 'aqi', 'language' => 'nl' })
+        d = debug(s)
+        expect(d['needles'].map { it['chan'] }).to eq(%w[W Q])
+        expect(d['names'].join(' ')).to include('WIND KM/H').and include('AQI')
+        expect(d['marks'].map { it['labels'] }).to eq([['VLAAG'], ['MAX']])   # today's gust and today's worst air
+        expect(d['badges']).to eq(%w[L R])
+        expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
+      end
+    end
+
+    it 'shows the middle dial on the X full view only' do
+      f = { 'middle_dial' => 'humidity' }
+      expect(debug(draw(device: 'v2', fields: f))['needles'].map { it['chan'] }).to eq(%w[T H R])
+      expect(debug(draw(device: 'og_png', fields: f))['needles'].map { it['chan'] }).to eq(%w[T R])
+      expect(debug(draw(device: 'v2', orientation: :portrait, fields: f))['needles'].map { it['chan'] }).to eq(%w[T R])
+      expect(debug(draw(device: 'v2', view: 'half_horizontal', fields: f))['needles'].map { it['chan'] }).to eq(%w[T R])
+      s = draw(device: 'v2', fields: f.merge('language' => 'nl'))
+      expect(debug(s)['badges']).to eq(%w[L R])
+      expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
+    end
+
+    it 'keeps the quadrant off the temperature, whatever the dials say' do
+      c = debug(draw(view: 'quadrant', device: 'v2', fields: { 'left_dial' => 'wind', 'right_dial' => 'temperature' }))['needles'].map { it['chan'] }
+      expect(c).to eq(%w[W])
+      c = debug(draw(view: 'quadrant', device: 'v2', fields: { 'left_dial' => 'feels', 'right_dial' => 'temperature' }))['needles'].map { it['chan'] }
+      expect(c).to eq(%w[R])
+    end
+
+    DIAL_KINDS.each do |kind|
+      %w[v2 og_png].each do |device|
+        it "draws the #{kind} dial with its scale, marks and words in place (#{device}, nl, and with the data missing)" do
+          s = draw(device:, fields: { 'left_dial' => kind, 'right_dial' => kind == 'rain' ? 'temperature' : 'rain', 'language' => 'nl' })
+          d = debug(s)
+          expect(d['needles'].first['v']).not_to be_nil
+          expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
+          # the readings gone (old answer, no air data): needle at rest, no marks, nothing crashes
+          s = draw(device:, fields: { 'left_dial' => kind, 'right_dial' => 'rain', 'language' => 'nl' }, answer: { json: blind }, aq: { json: {} })
+          d = debug(s)
+          expect(d['needles'].first['shown']).to eq(-0.03)
+          expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
+        end
+      end
+    end
+
+    it 'asks Open-Meteo for the gusts, the wind direction, the pressure, the UV and rain of the day' do
+      run = trmnl.transform(mocks:, custom_fields:)
+      url = run.requests.map { it[:url] }.find { it.include?('api.open-meteo.com') }
+      %w[wind_gusts_10m wind_direction_10m pressure_msl uv_index_max wind_gusts_10m_max precipitation_sum].each { expect(url).to include(it) }
     end
   end
 

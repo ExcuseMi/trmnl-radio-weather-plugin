@@ -44,6 +44,7 @@
   unit: {{ cf.unit | default: 'celsius' | json }},
   days: {{ cf.days_shown | default: 'auto' | json }},
   span: {{ cf.dial_span | default: '24h' | json }},
+  dials: [{{ cf.left_dial | default: 'temperature' | json }}, {{ cf.middle_dial | default: 'none' | json }}, {{ cf.right_dial | default: 'rain' | json }}],
   label: '',
   location: {{ cf.lat_lon | default: '' | json }},
   hideTitle: {% if sw_hide == 'true' or sw_hide == 'yes' %}true{% else %}false{% endif %},
@@ -185,8 +186,8 @@ var SWModel = (function () {
   cfg = cfg || {};
   var interval = ({ '1h': 1, '2h': 1, '3h': 1, daily: 1 })[cfg.interval] ? cfg.interval : '3h';
   var model = { ok: false, unit: cfg.unit === 'fahrenheit' ? 'F' : 'C', interval: interval, slots: [],
-   now: { temp: null, feels: null, hum: null, uv: null, wind: null, word: '', icon: null, day: true, sync: null, rain6: null },
-   today: { lo: null, hi: null }, hours: [], days: [], rain: null, age: null, reason: null };
+   now: { temp: null, feels: null, hum: null, uv: null, wind: null, gust: null, dir: null, press: null, word: '', icon: null, day: true, sync: null, rain6: null },
+   today: { lo: null, hi: null, uvMax: null, gustMax: null, rainMm: null }, hours: [], days: [], rain: null, age: null, reason: null };
   if (!raw || raw.error || (!raw.hourly && !raw.daily && !raw.current)) {
    model.reason = (raw && raw.reason) ? String(raw.reason).slice(0, 160) : 'NO DATA FROM OPEN-METEO';
    return model;
@@ -198,7 +199,7 @@ var SWModel = (function () {
    feels: num(c.apparent_temperature),
    hum: num(c.relative_humidity_2m),
    uv: num(c.uv_index),
-   wind: num(c.wind_speed_10m),
+   wind: num(c.wind_speed_10m), gust: num(c.wind_gusts_10m), dir: num(c.wind_direction_10m), press: num(c.pressure_msl),
    word: word(c.weather_code),
    code: num(c.weather_code),
    icon: kind(c.weather_code),
@@ -207,7 +208,7 @@ var SWModel = (function () {
   };
   var d = raw.daily || {};
   var tmm = minMax([list(d, 'temperature_2m_min')[0], list(d, 'temperature_2m_max')[0]]);
-  model.today = { lo: tmm.lo, hi: tmm.hi };
+  model.today = { lo: tmm.lo, hi: tmm.hi, uvMax: num(list(d, 'uv_index_max')[0]), gustMax: num(list(d, 'wind_gusts_10m_max')[0]), rainMm: num(list(d, 'precipitation_sum')[0]) };
   model.slots = slotsFor(raw, interval);
   model.hours = hoursAhead(raw, 25);
   model.days = slotsFor(raw, 'daily');
@@ -244,24 +245,25 @@ var I18N_TRMNL = {"cs":"Teplota|Min/Max|Dnes||||Sněžení|Slunečno|Polojasno|Z
 // our labels where TRMNL's texts have none, one string per locale in OURS_KEYS order; missing: English
 var OURS_KEYS = ['temp_s', 'rain', 'rain_from', 'rain_until', 'until', 'raining_now', 'no_rain', 'dry', 'next_h', 'dry_h',
  'frost', 'no_signal', 'no_forecast', 'next_days', 'over', 'under', 'now', 'rain_chance', 'wind', 'temperature', 'today', 'lh',
- 'snow', 'hail', 'snow_from', 'snow_until', 'snowing_now', 'hail_from', 'hail_until', 'hailing_now', 'hum', 'uv', 'humidity'];
+ 'snow', 'hail', 'snow_from', 'snow_until', 'snowing_now', 'hail_from', 'hail_until', 'hailing_now', 'hum', 'uv', 'humidity',
+ 'gust', 'pressure', 'feels', 'compass'];
 var OURS = {
- en: 'TEMP|RAIN|RAIN FROM|RAIN UNTIL|UNTIL|RAINING NOW|NO RAIN|DRY|NEXT {n} H|DRY {n} H|FROST|NO SIGNAL|NO FORECAST|NEXT DAYS|OVER|UNDER|NOW|RAIN CHANCE|WIND|TEMPERATURE|TODAY|L/H|SNOW|HAIL|SNOW FROM|SNOW UNTIL|SNOWING NOW|HAIL FROM|HAIL UNTIL|HAIL NOW|HUM|UV|HUMIDITY',
- de: 'TEMP|REGEN|REGEN AB|REGEN BIS|BIS|ES REGNET|KEIN REGEN|TROCKEN|NÄCHSTE {n} STD|TROCKEN {n} STD|FROST|KEIN SIGNAL|KEINE VORHERSAGE|NÄCHSTE TAGE|ÜBER|UNTER|JETZT|REGENRISIKO|WIND|TEMPERATUR|HEUTE|T/H|SCHNEE|HAGEL|SCHNEE AB|SCHNEE BIS|ES SCHNEIT|HAGEL AB|HAGEL BIS|ES HAGELT',
- fr: "TEMP|PLUIE|PLUIE DÈS|PLUIE JUSQU'À|JUSQU'À|IL PLEUT|PAS DE PLUIE|SEC|PROCHAINES {n} H|SEC {n} H|GEL|PAS DE SIGNAL|PAS DE PRÉVISION|PROCHAINS JOURS|AU-DESSUS|EN DESSOUS|MAINTENANT|RISQUE DE PLUIE|VENT|TEMPÉRATURE|AUJOURD'HUI|MIN/MAX|NEIGE|GRÊLE|NEIGE DÈS|NEIGE JUSQU'À|IL NEIGE|GRÊLE DÈS|GRÊLE JUSQU'À|IL GRÊLE",
- es: 'TEMP|LLUVIA|LLUVIA DESDE|LLUVIA HASTA|HASTA|LLUEVE|SIN LLUVIA|SECO|PRÓXIMAS {n} H|SECO {n} H|HELADA|SIN SEÑAL|SIN PRONÓSTICO|PRÓXIMOS DÍAS|ENCIMA|DEBAJO|AHORA|RIESGO DE LLUVIA|VIENTO|TEMPERATURA|HOY|MÍN/MÁX|NIEVE|GRANIZO|NIEVE DESDE|NIEVE HASTA|NIEVA|GRANIZO DESDE|GRANIZO HASTA|GRANIZA',
- it: 'TEMP|PIOGGIA|PIOGGIA DALLE|PIOGGIA FINO|FINO ALLE|PIOVE|NIENTE PIOGGIA|ASCIUTTO|PROSSIME {n} ORE|ASCIUTTO {n} ORE|GELO|NESSUN SEGNALE|NESSUNA PREVISIONE|PROSSIMI GIORNI|SOPRA|SOTTO|ORA|RISCHIO PIOGGIA|VENTO|TEMPERATURA|OGGI|MIN/MAX|NEVE|GRANDINE|NEVE DALLE|NEVE FINO|NEVICA|GRANDINE DALLE|GRANDINE FINO|GRANDINA',
- nl: 'TEMP|REGEN|REGEN VANAF|REGEN TOT|TOT|HET REGENT|GEEN REGEN|DROOG|KOMENDE {n} UUR|DROOG {n} UUR|VORST|GEEN SIGNAAL|GEEN VERWACHTING|KOMENDE DAGEN|BOVEN|ONDER|NU|REGENKANS|WIND|TEMPERATUUR|VANDAAG|MIN/MAX|SNEEUW|HAGEL|SNEEUW VANAF|SNEEUW TOT|HET SNEEUWT|HAGEL VANAF|HAGEL TOT|HET HAGELT|VOCHT|UV|VOCHTIGHEID',
- pt: 'TEMP|CHUVA|CHUVA ÀS|CHUVA ATÉ|ATÉ|CHOVENDO|SEM CHUVA|SECO|PRÓXIMAS {n} H|SECO {n} H|GEADA|SEM SINAL|SEM PREVISÃO|PRÓXIMOS DIAS|ACIMA|ABAIXO|AGORA|CHANCE DE CHUVA|VENTO|TEMPERATURA|HOJE|MÍN/MÁX|NEVE|GRANIZO|NEVE ÀS|NEVE ATÉ|NEVANDO|GRANIZO ÀS|GRANIZO ATÉ|GRANIZANDO',
- ja: '気温|雨|雨の開始|雨の終了|終了|降雨中|雨なし|雨なし|今後{n}時間|{n}時間 雨なし|霜|受信なし|予報なし|週間予報|超過|未満|現在|降水確率|風|気温|今日|最低/最高|雪|ひょう|雪の開始|雪の終了|降雪中|ひょうの開始|ひょうの終了|降ひょう中',
- ko: '기온|비|비 시작|비 그침|종료|비 오는 중|비 없음|비 없음|향후 {n}시간|{n}시간 비 없음|서리|신호 없음|예보 없음|주간 예보|초과|미만|현재|강수 확률|바람|기온|오늘|최저/최고|눈|우박|눈 시작|눈 그침|눈 오는 중|우박 시작|우박 그침|우박 내리는 중',
- 'zh-CN': '气温|雨|开始下雨|雨停|至|正在下雨|无雨|无雨|未来{n}小时|{n}小时无雨|霜冻|无信号|无预报|未来几天|超出|低于|现在|降水概率|风|气温|今天|最低/最高|雪|冰雹|开始下雪|雪停|正在下雪|开始下冰雹|冰雹停|正在下冰雹',
- 'zh-HK': '氣溫|雨|開始下雨|雨停|至|正在下雨|無雨|無雨|未來{n}小時|{n}小時無雨|霜凍|無信號|無預報|未來數天|超出|低於|現在|降雨概率|風|氣溫|今天|最低/最高|雪|冰雹|開始下雪|雪停|正在下雪|開始下冰雹|冰雹停|正在下冰雹',
- sv: 'TEMP|REGN|REGN FRÅN|REGN TILL|TILL|DET REGNAR|INGET REGN|TORRT|KOMMANDE {n} TIM|TORRT {n} TIM|FROST|INGEN SIGNAL|INGEN PROGNOS|KOMMANDE DAGAR|ÖVER|UNDER|NU|REGNRISK|VIND|TEMPERATUR|IDAG|MIN/MAX|SNÖ|HAGEL|SNÖ FRÅN|SNÖ TILL|DET SNÖAR|HAGEL FRÅN|HAGEL TILL|DET HAGLAR',
- da: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NÆSTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN PROGNOSE|NÆSTE DAGE|OVER|UNDER|NU|REGNRISIKO|VIND|TEMPERATUR|I DAG|MIN/MAX|SNE|HAGL|SNE FRA|SNE TIL|DET SNER|HAGL FRA|HAGL TIL|DET HAGLER',
- no: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NESTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN VARSEL|NESTE DAGER|OVER|UNDER|NÅ|NEDBØRSSJANSE|VIND|TEMPERATUR|I DAG|MIN/MAKS|SNØ|HAGL|SNØ FRA|SNØ TIL|DET SNØR|HAGL FRA|HAGL TIL|DET HAGLER',
- pl: 'TEMP|DESZCZ|DESZCZ OD|DESZCZ DO|DO|PADA|BEZ DESZCZU|SUCHO|KOLEJNE {n} H|SUCHO {n} H|MRÓZ|BRAK SYGNAŁU|BRAK PROGNOZY|KOLEJNE DNI|POWYŻEJ|PONIŻEJ|TERAZ|SZANSA OPADÓW|WIATR|TEMPERATURA|DZIŚ|MIN/MAKS|ŚNIEG|GRAD|ŚNIEG OD|ŚNIEG DO|PADA ŚNIEG|GRAD OD|GRAD DO|PADA GRAD',
- cs: 'TEPL|DÉŠŤ|DÉŠŤ OD|DÉŠŤ DO|DO|PRŠÍ|BEZ DEŠTĚ|SUCHO|DALŠÍCH {n} H|SUCHO {n} H|MRÁZ|BEZ SIGNÁLU|BEZ PŘEDPOVĚDI|DALŠÍ DNY|NAD|POD|TEĎ|ŠANCE SRÁŽEK|VÍTR|TEPLOTA|DNES|MIN/MAX|SNÍH|KRUPOBITÍ|SNÍH OD|SNÍH DO|SNĚŽÍ|KRUPOBITÍ OD|KRUPOBITÍ DO|PADÁ KRUPOBITÍ'
+ en: 'TEMP|RAIN|RAIN FROM|RAIN UNTIL|UNTIL|RAINING NOW|NO RAIN|DRY|NEXT {n} H|DRY {n} H|FROST|NO SIGNAL|NO FORECAST|NEXT DAYS|OVER|UNDER|NOW|RAIN CHANCE|WIND|TEMPERATURE|TODAY|L/H|SNOW|HAIL|SNOW FROM|SNOW UNTIL|SNOWING NOW|HAIL FROM|HAIL UNTIL|HAIL NOW|HUM|UV|HUMIDITY|GUST|PRESSURE|FEELS LIKE|N,NE,E,SE,S,SW,W,NW',
+ de: 'TEMP|REGEN|REGEN AB|REGEN BIS|BIS|ES REGNET|KEIN REGEN|TROCKEN|NÄCHSTE {n} STD|TROCKEN {n} STD|FROST|KEIN SIGNAL|KEINE VORHERSAGE|NÄCHSTE TAGE|ÜBER|UNTER|JETZT|REGENRISIKO|WIND|TEMPERATUR|HEUTE|T/H|SCHNEE|HAGEL|SCHNEE AB|SCHNEE BIS|ES SCHNEIT|HAGEL AB|HAGEL BIS|ES HAGELT||||BÖE|LUFTDRUCK|GEFÜHLT|N,NO,O,SO,S,SW,W,NW',
+ fr: "TEMP|PLUIE|PLUIE DÈS|PLUIE JUSQU'À|JUSQU'À|IL PLEUT|PAS DE PLUIE|SEC|PROCHAINES {n} H|SEC {n} H|GEL|PAS DE SIGNAL|PAS DE PRÉVISION|PROCHAINS JOURS|AU-DESSUS|EN DESSOUS|MAINTENANT|RISQUE DE PLUIE|VENT|TEMPÉRATURE|AUJOURD'HUI|MIN/MAX|NEIGE|GRÊLE|NEIGE DÈS|NEIGE JUSQU'À|IL NEIGE|GRÊLE DÈS|GRÊLE JUSQU'À|IL GRÊLE||||RAFALE|PRESSION|RESSENTI|N,NE,E,SE,S,SO,O,NO",
+ es: 'TEMP|LLUVIA|LLUVIA DESDE|LLUVIA HASTA|HASTA|LLUEVE|SIN LLUVIA|SECO|PRÓXIMAS {n} H|SECO {n} H|HELADA|SIN SEÑAL|SIN PRONÓSTICO|PRÓXIMOS DÍAS|ENCIMA|DEBAJO|AHORA|RIESGO DE LLUVIA|VIENTO|TEMPERATURA|HOY|MÍN/MÁX|NIEVE|GRANIZO|NIEVE DESDE|NIEVE HASTA|NIEVA|GRANIZO DESDE|GRANIZO HASTA|GRANIZA||||RACHA|PRESIÓN|SENSACIÓN|N,NE,E,SE,S,SO,O,NO',
+ it: 'TEMP|PIOGGIA|PIOGGIA DALLE|PIOGGIA FINO|FINO ALLE|PIOVE|NIENTE PIOGGIA|ASCIUTTO|PROSSIME {n} ORE|ASCIUTTO {n} ORE|GELO|NESSUN SEGNALE|NESSUNA PREVISIONE|PROSSIMI GIORNI|SOPRA|SOTTO|ORA|RISCHIO PIOGGIA|VENTO|TEMPERATURA|OGGI|MIN/MAX|NEVE|GRANDINE|NEVE DALLE|NEVE FINO|NEVICA|GRANDINE DALLE|GRANDINE FINO|GRANDINA||||RAFFICA|PRESSIONE|PERCEPITA|N,NE,E,SE,S,SO,O,NO',
+ nl: 'TEMP|REGEN|REGEN VANAF|REGEN TOT|TOT|HET REGENT|GEEN REGEN|DROOG|KOMENDE {n} UUR|DROOG {n} UUR|VORST|GEEN SIGNAAL|GEEN VERWACHTING|KOMENDE DAGEN|BOVEN|ONDER|NU|REGENKANS|WIND|TEMPERATUUR|VANDAAG|MIN/MAX|SNEEUW|HAGEL|SNEEUW VANAF|SNEEUW TOT|HET SNEEUWT|HAGEL VANAF|HAGEL TOT|HET HAGELT|VOCHT|UV|VOCHTIGHEID|VLAAG|LUCHTDRUK|GEVOEL|N,NO,O,ZO,Z,ZW,W,NW',
+ pt: 'TEMP|CHUVA|CHUVA ÀS|CHUVA ATÉ|ATÉ|CHOVENDO|SEM CHUVA|SECO|PRÓXIMAS {n} H|SECO {n} H|GEADA|SEM SINAL|SEM PREVISÃO|PRÓXIMOS DIAS|ACIMA|ABAIXO|AGORA|CHANCE DE CHUVA|VENTO|TEMPERATURA|HOJE|MÍN/MÁX|NEVE|GRANIZO|NEVE ÀS|NEVE ATÉ|NEVANDO|GRANIZO ÀS|GRANIZO ATÉ|GRANIZANDO||||RAJADA|PRESSÃO|SENSAÇÃO|N,NE,L,SE,S,SO,O,NO',
+ ja: '気温|雨|雨の開始|雨の終了|終了|降雨中|雨なし|雨なし|今後{n}時間|{n}時間 雨なし|霜|受信なし|予報なし|週間予報|超過|未満|現在|降水確率|風|気温|今日|最低/最高|雪|ひょう|雪の開始|雪の終了|降雪中|ひょうの開始|ひょうの終了|降ひょう中||||突風|気圧|体感|',
+ ko: '기온|비|비 시작|비 그침|종료|비 오는 중|비 없음|비 없음|향후 {n}시간|{n}시간 비 없음|서리|신호 없음|예보 없음|주간 예보|초과|미만|현재|강수 확률|바람|기온|오늘|최저/최고|눈|우박|눈 시작|눈 그침|눈 오는 중|우박 시작|우박 그침|우박 내리는 중||||돌풍|기압|체감|',
+ 'zh-CN': '气温|雨|开始下雨|雨停|至|正在下雨|无雨|无雨|未来{n}小时|{n}小时无雨|霜冻|无信号|无预报|未来几天|超出|低于|现在|降水概率|风|气温|今天|最低/最高|雪|冰雹|开始下雪|雪停|正在下雪|开始下冰雹|冰雹停|正在下冰雹||||阵风|气压|体感|',
+ 'zh-HK': '氣溫|雨|開始下雨|雨停|至|正在下雨|無雨|無雨|未來{n}小時|{n}小時無雨|霜凍|無信號|無預報|未來數天|超出|低於|現在|降雨概率|風|氣溫|今天|最低/最高|雪|冰雹|開始下雪|雪停|正在下雪|開始下冰雹|冰雹停|正在下冰雹||||陣風|氣壓|體感|',
+ sv: 'TEMP|REGN|REGN FRÅN|REGN TILL|TILL|DET REGNAR|INGET REGN|TORRT|KOMMANDE {n} TIM|TORRT {n} TIM|FROST|INGEN SIGNAL|INGEN PROGNOS|KOMMANDE DAGAR|ÖVER|UNDER|NU|REGNRISK|VIND|TEMPERATUR|IDAG|MIN/MAX|SNÖ|HAGEL|SNÖ FRÅN|SNÖ TILL|DET SNÖAR|HAGEL FRÅN|HAGEL TILL|DET HAGLAR||||BY|LUFTTRYCK|KÄNNS SOM|N,NO,O,SO,S,SV,V,NV',
+ da: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NÆSTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN PROGNOSE|NÆSTE DAGE|OVER|UNDER|NU|REGNRISIKO|VIND|TEMPERATUR|I DAG|MIN/MAX|SNE|HAGL|SNE FRA|SNE TIL|DET SNER|HAGL FRA|HAGL TIL|DET HAGLER||||VINDSTØD|LUFTTRYK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV',
+ no: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NESTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN VARSEL|NESTE DAGER|OVER|UNDER|NÅ|NEDBØRSSJANSE|VIND|TEMPERATUR|I DAG|MIN/MAKS|SNØ|HAGL|SNØ FRA|SNØ TIL|DET SNØR|HAGL FRA|HAGL TIL|DET HAGLER||||VINDKAST|LUFTTRYKK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV',
+ pl: 'TEMP|DESZCZ|DESZCZ OD|DESZCZ DO|DO|PADA|BEZ DESZCZU|SUCHO|KOLEJNE {n} H|SUCHO {n} H|MRÓZ|BRAK SYGNAŁU|BRAK PROGNOZY|KOLEJNE DNI|POWYŻEJ|PONIŻEJ|TERAZ|SZANSA OPADÓW|WIATR|TEMPERATURA|DZIŚ|MIN/MAKS|ŚNIEG|GRAD|ŚNIEG OD|ŚNIEG DO|PADA ŚNIEG|GRAD OD|GRAD DO|PADA GRAD||||PORYW|CIŚNIENIE|ODCZUWALNA|N,NE,E,SE,S,SW,W,NW',
+ cs: 'TEPL|DÉŠŤ|DÉŠŤ OD|DÉŠŤ DO|DO|PRŠÍ|BEZ DEŠTĚ|SUCHO|DALŠÍCH {n} H|SUCHO {n} H|MRÁZ|BEZ SIGNÁLU|BEZ PŘEDPOVĚDI|DALŠÍ DNY|NAD|POD|TEĎ|ŠANCE SRÁŽEK|VÍTR|TEPLOTA|DNES|MIN/MAX|SNÍH|KRUPOBITÍ|SNÍH OD|SNÍH DO|SNĚŽÍ|KRUPOBITÍ OD|KRUPOBITÍ DO|PADÁ KRUPOBITÍ||||NÁRAZ|TLAK|POCITOVÁ|S,SV,V,JV,J,JZ,Z,SZ'
 };
 // conditions where TRMNL's file is still English, in the I18N_SLOTS condition order
 var OURS_COND = {"ja": "晴れ|晴れ時々曇り|曇り|雷|霧|着氷性の霧|弱い霧雨|霧雨|着氷性の霧雨|強い着氷性の霧雨|小雨|雨|大雨|弱い着氷性の雨|強い着氷性の雨|小雪|雪|大雪|凍雨|豪雨|雷雨|快晴|晴れ時々曇り", "it": "SOLEGGIATO|PARZIALMENTE NUVOLOSO|COPERTO|TUONI|NEBBIA|NEBBIA GELATA|PIOVIGGINE DEBOLE|PIOVIGGINE|PIOVIGGINE GELATA|GELICIDIO FORTE|PIOGGIA DEBOLE|PIOGGIA MODERATA|PIOGGIA FORTE|PIOGGIA GELATA DEBOLE|PIOGGIA GELATA FORTE|NEVE DEBOLE|NEVE MODERATA|NEVE FORTE|GRANULI DI GHIACCIO|PIOGGIA TORRENZIALE|TEMPORALE|SERENO|PARZIALMENTE NUVOLOSO", "no": "SOL|DELVIS SKYET|OVERSKYET|TORDEN|TÅKE|FRYSETÅKE|LETT YR|YR|UNDERKJØLT YR|KRAFTIG UNDERKJØLT YR|LETT REGN|MODERAT REGN|KRAFTIG REGN|LETT UNDERKJØLT REGN|KRAFTIG UNDERKJØLT REGN|LETT SNØ|MODERAT SNØ|KRAFTIG SNØ|ISKORN|STYRTREGN|TORDENBYGER|KLART|DELVIS SKYET", "sv": "SOLIGT|HALVKLART|MULET|ÅSKA|DIMMA|UNDERKYLD DIMMA|LÄTT DUGGREGN|DUGGREGN|UNDERKYLT DUGGREGN|KRAFTIGT UNDERKYLT DUGGREGN|LÄTT REGN|MÅTTLIGT REGN|KRAFTIGT REGN|LÄTT UNDERKYLT REGN|KRAFTIGT UNDERKYLT REGN|LÄTT SNÖ|MÅTTLIG SNÖ|KRAFTIG SNÖ|ISKORN|SKYFALL|ÅSKA OCH REGN|KLART|HALVKLART"};
@@ -736,23 +738,24 @@ var I18N = (function () {
    // the corner print: the unit, or, uncaptioned, the short name with the unit
    var pad = fh * 0.06;
    function freeW(yTop) { return cx - (py - yTop) * Math.tan(A + 0.08) - fx - pad - u(4); }
-   var cornerTxt = o.captioned || (PIXFONT && o.small) ? o.unitName : o.shortName + ' ' + o.unitName;
+   var cornerTxt = (o.captioned || (PIXFONT && o.small) ? o.unitName : o.shortName + ' ' + o.unitName).trim();
    var BIG = F(fh * (o.captioned ? 0.15 : 0.11), '700');
    var ly1 = fy + fh * 0.92;
    var clearHub = cx - fx - pad - Math.max(u(16), fh * 0.14);
    var cRoom = Math.max(u(30), Math.min(freeW(ly1 - BIG.size * 0.8), clearHub));
-   var nt = fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) });
+   var nt = cornerTxt ? fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) }) : null;
    debug.cornerPrint = debug.cornerPrint || [];
-   debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - Math.max(u(5), fh * 0.035)), gap: R(2 * Math.max(u(5), fh * 0.035)) });
-   (debug.names = debug.names || []).push(o.captioned ? o.name + ' ' + o.unitName : nt.textContent);
+   if (nt) debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - Math.max(u(5), fh * 0.035)), gap: R(2 * Math.max(u(5), fh * 0.035)) });
+   (debug.names = debug.names || []).push((o.captioned ? o.name + ' ' + o.unitName : (nt ? nt.textContent : '')).trim());
+   (debug.marks = debug.marks || []).push({ chan: o.chan, labels: mks.map(function (q) { return q.m.label; }) });
    if (o.needle !== null && (o.needle < -0.001 || o.needle > 1.001)) {
     // OVER / UNDER: below the end number beside the needle, on nothing else; inside the arc as the last resort
     var over = o.needle > 1, LW = F(fh * 0.045, '800'), lword = I18N.ours(over ? 'over' : 'under');
     var endLab = placed.length ? placed[over ? placed.length - 1 : 0] : null, pe = at(over ? 1.03 : -0.03, rArc - fh * 0.1);
     var nX = function (yy) { return cx + (py - yy) * Math.tan(ang); }, nm = wBase + u(2), gapN = nm + u(3);
     var hubR = Math.max(u(5), fh * 0.035) + u(4);
-    var others = placed.concat(mks.map(mkBox), [{ l: parseFloat(nt.getAttribute('x')), r: parseFloat(nt.getAttribute('x')) + width(nt), t: ly1 - BIG.size, b: ly1 },
-     { l: cx - hubR, r: cx + hubR, t: py - hubR, b: py + hubR }]);
+    var others = placed.concat(mks.map(mkBox), nt ? [{ l: parseFloat(nt.getAttribute('x')), r: parseFloat(nt.getAttribute('x')) + width(nt), t: ly1 - BIG.size, b: ly1 }] : [],
+     [{ l: cx - hubR, r: cx + hubR, t: py - hubR, b: py + hubR }]);
     if (topBox) others.push(topBox);
     function onNeedleAll(bx) { for (var k = -8; k <= 40; k++) { var xx = cx + ux * tipR * k / 40, yy = py + uy * tipR * k / 40;
      if (xx > bx.l - nm && xx < bx.r + nm && yy > bx.t - nm && yy < bx.b + nm) return true; } return false; }
@@ -798,9 +801,9 @@ var I18N = (function () {
    }
    return { a: Math.floor(lo / 50) * 50, b: Math.ceil(hi / 50) * 50, major: 50, minor: 10 };
   }
-  function tempMeter(g, x, y, w, h, small, badge, captioned) {
-   var tl = M.today.lo, th = M.today.hi;
-   var vals = [day24.lo, day24.hi, tl, th].filter(function (v) { return v !== null; });
+  function tempMeter(g, x, y, w, h, small, badge, captioned, feels) {
+   var tl = M.today.lo, th = M.today.hi, nv = feels ? M.now.feels : M.now.temp;
+   var vals = [day24.lo, day24.hi, tl, th, feels ? nv : null].filter(function (v) { return v !== null; });
    var lo = vals.length ? Math.min.apply(null, vals) : 0, hi = vals.length ? Math.max.apply(null, vals) : 10;
    var sc = niceScale(lo, hi, small || (w - u(14)) / z < 420), a = sc.a, b = sc.b;
    debug.scale = { a: a, b: b, major: sc.major, lo: lo, hi: hi };
@@ -810,11 +813,53 @@ var I18N = (function () {
     var vv = Math.round(v * 10) / 10, major = Math.abs(vv / sc.major - Math.round(vv / sc.major)) < 1e-6;
     ticks.push({ f: f(vv), major: major, label: major ? String(vv) : undefined, skip: major && Math.round((vv - a) / sc.major) % 2 === 1 && vv !== b });
    }
-   return meter(g, x, y, w, h, { chan: 'T', badge: badge, captioned: captioned, ticks: ticks, needle: M.now.temp === null ? null : f(M.now.temp), small: small,
-    band: tl !== null && th !== null ? [f(tl), f(th)] : null,
-    marks: [tl !== null ? { f: f(tl), label: I18N.lo } : null, th !== null ? { f: f(th), label: I18N.hi } : null].filter(Boolean),
-    name: I18N.temperature, shortName: I18N.ours('temp_s'), unitName: deg + M.unit, });
+   return meter(g, x, y, w, h, { chan: feels ? 'F' : 'T', badge: badge, captioned: captioned, ticks: ticks, needle: nv === null ? null : f(nv), small: small,
+    band: !feels && tl !== null && th !== null ? [f(tl), f(th)] : null,
+    marks: feels ? [] : [tl !== null ? { f: f(tl), label: I18N.lo } : null, th !== null ? { f: f(th), label: I18N.hi } : null].filter(Boolean),
+    name: feels ? I18N.ours('feels') : I18N.temperature, shortName: feels ? I18N.ours('feels') : I18N.ours('temp_s'), unitName: deg + M.unit, });
   }
+  // a linear dial from a to b: wind, humidity, UV, air quality, pressure
+  function linMeter(g, x, y, w, h, small, badge, captioned, o) {
+   var a = o.a, b = o.b, f = function (v) { return (v - a) / (b - a); }, ticks = [];
+   for (var v = a; v <= b + 1e-9; v += o.minor) { var vv = Math.round(v * 10) / 10, mj = Math.abs(vv / o.major - Math.round(vv / o.major)) < 1e-6; ticks.push({ f: f(vv), major: mj, label: mj ? String(vv) : undefined }); }
+   return meter(g, x, y, w, h, { chan: o.chan, badge: badge, captioned: captioned, ticks: ticks, needle: o.v === null ? null : f(o.v), small: small,
+    band: o.band ? [f(o.band), 1] : null, bandCol: RAINC, marks: o.mark !== null && o.mark !== undefined ? [{ f: f(o.mark), label: o.markLabel }] : [],
+    name: o.name, shortName: o.shortName, unitName: o.unitName });
+  }
+  // the top of a 0-based scale in round steps, at most five majors
+  function topScale(hi, steps) {
+   for (var i = 0; i < steps.length; i++) { var st = steps[i], b = Math.ceil(hi / st) * st; if (b / st <= 5) return { b: b, major: st, minor: st % 5 === 0 ? st / 5 : (st % 3 === 0 ? st / 3 : st / 2) }; }
+   var st2 = steps[steps.length - 1]; return { b: Math.ceil(hi / st2) * st2, major: st2, minor: st2 / 5 };
+  }
+  var DIAL_CH = { temperature: 'T', rain: 'R', wind: 'W', humidity: 'H', uv: 'U', aqi: 'Q', pressure: 'P', feels: 'F' };
+  function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
+  function dial(kind, g, x, y, w, h, small, badge, cap) {
+   var n = M.now, t = M.today;
+   if (kind === 'rain') return rainMeter(g, x, y, w, h, small, badge, cap);
+   if (kind === 'temperature' || kind === 'feels') return tempMeter(g, x, y, w, h, small, badge, cap, kind === 'feels');
+   var o = { chan: DIAL_CH[kind], v: null, a: 0, b: 100, major: 50, minor: 10, name: '', shortName: '', unitName: '', mark: null, band: null }, ts;
+   if (kind === 'wind') {
+    ts = topScale(Math.max(n.wind || 0, n.gust || 0, nz(t.gustMax) || 0, M.unit === 'F' ? 25 : 40), [10, 25, 50, 100]);
+    o.v = n.wind; o.b = ts.b; o.major = ts.major; o.minor = ts.minor; o.mark = nz(t.gustMax); o.markLabel = I18N.ours('gust'); o.band = WTHR;
+    o.name = I18N.wind; o.shortName = I18N.wind; o.unitName = WUNIT;
+   } else if (kind === 'humidity') { o.v = n.hum; o.name = I18N.ours('humidity'); o.shortName = I18N.ours('hum'); o.unitName = '%'; }
+   else if (kind === 'uv') {
+    ts = topScale(Math.max(n.uv || 0, nz(t.uvMax) || 0, 11), [3, 6, 10]);
+    o.v = n.uv; o.b = ts.b; o.major = ts.major; o.minor = ts.minor; o.mark = nz(t.uvMax); o.markLabel = I18N.hi; o.band = 6; o.name = 'UV'; o.unitName = cap ? '' : 'UV';
+   } else if (kind === 'aqi') {
+    ts = topScale(Math.max(nz(n.aqi) || 0, nz(t.aqiMax) || 0, 100), [10, 25, 50, 100]);
+    o.v = nz(n.aqi); o.b = ts.b; o.major = ts.major; o.minor = ts.minor; o.mark = nz(t.aqiMax); o.markLabel = I18N.hi; o.band = 60; o.name = 'AQI'; o.unitName = cap ? '' : 'AQI';
+   } else if (kind === 'pressure') {
+    var pb = n.press === null ? 1013 : n.press;
+    o.a = Math.floor((pb - 25) / 10) * 10; o.b = o.a + 50; o.major = 10; o.minor = 5; o.v = n.press; o.name = I18N.ours('pressure'); o.unitName = 'HPA';
+   }
+   return linMeter(g, x, y, w, h, small, badge, cap, o);
+  }
+  var WUNIT = M.unit === 'F' ? 'MPH' : 'KM/H', WTHR = M.unit === 'F' ? 20 : 30;
+  function kindOk(k, dflt) { return DIAL_CH[k] ? k : dflt; }
+  var DL = kindOk(SW_CFG.dials[0], 'temperature'), DR = kindOk(SW_CFG.dials[2], 'rain'), DM = DIAL_CH[SW_CFG.dials[1]] ? SW_CFG.dials[1] : null;
+  // the quadrant's one meter: never the temperature (owner); the right dial, else the left, else the rain
+  var DQ = [DR, DL].filter(function (k) { return k !== 'temperature' && k !== 'feels'; })[0] || 'rain';
   function rainMeter(g, x, y, w, h, small, badge, captioned) {
    var ticks = [];
    for (var v = 0; v <= 100; v += 10) ticks.push({ f: v / 100, major: v % 50 === 0, label: v % 50 === 0 ? String(v) : undefined });
@@ -1051,14 +1096,14 @@ var I18N = (function () {
    }
    var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
    var dh = R(h * (compact ? 0.46 : 0.56));
-   function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.05); }
+   function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.25); }
    var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
    var dyTop = compact ? y + h * 0.27 : Math.max(y + h * 0.25, lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2);
    while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh > dyEnd))) dh -= 2;
    var dw = R(dh * 0.5), dy = dyTop;
    var str = tempDigits();
    debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(lx + iconW) };
-   var dwid = seg7W(dw, str), iconW = compact ? 0 : dh * 1.05;
+   var dwid = seg7W(dw, str), iconW = compact ? 0 : dh * 1.25;   // the icon and, owner 2026-11-11, a 0.4 dh gap before the digits
    var lx = (blk ? blk.cL : ix) + (avail - need(dh)) / 2;
    // the icon's ink about as tall as the digits, between the lamp row, the word, the divider and the first lit digit
    var ibox = compact ? { l: crMoved ? ix + pillW + u(16) : x + w - u(16) - hb * 0.24, t: y + innerD + u(6), r: x + w - u(16), b: y + h * 0.27 - u(crMoved ? 10 : 6) }
@@ -1069,16 +1114,16 @@ var I18N = (function () {
     seg7(tg, 0, dy, dw, dh, str, DIGIT, null);
     var fl = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
     g.removeChild(tg);
-    ibox.r = ibox.l + dh * 1.05 + Math.max(0, avail - need(dh));
+    ibox.r = ibox.l + dh * 0.85 + Math.max(0, avail - need(dh));
     var ib0 = iconFit(g, M.now.icon, M.now.day, ibox, hWant, dy + dh * 0.5, true);
-    lx = blk.cL + avail / 2 - ((fl.l - dh * 0.22 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12))) / 2 - iconW;
+    lx = blk.cL + avail / 2 - ((fl.l - dh * 0.4 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12))) / 2 - iconW;
    }
    var dx = lx + iconW;
    glowDigits(function (hg) { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
    debug.digits.boxes = seg7.boxes;
    var firstLit = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
    ICON_INK = GLOW; ICON_NOW = true;
-   if (!compact) ibox.r = (firstLit ? firstLit.l : dx) - dh * 0.22;
+   if (!compact) ibox.r = (firstLit ? firstLit.l : dx) - dh * 0.4;
    var ib = glowIcon(g, function (gg) { return iconFit(gg, M.now.icon, M.now.day, ibox, hWant, compact ? y + h * 0.16 : dy + dh * 0.5); });
    ICON_INK = null; ICON_NOW = false;
    debug.digits.iconRight = ib.r;
@@ -1136,7 +1181,7 @@ var I18N = (function () {
    var dx = ix + iw - needQ(dh), dy = iy;
    debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(dx) };
    ICON_INK = GLOW; ICON_NOW = true;
-   var ib = glowIcon(g, function (gg) { return iconFit(gg, M.now.icon, M.now.day, { l: ix + u(4), t: iy + u(2), r: dx - u(8), b: iy + rowH }, rowH, iy + dh / 2); });
+   var ib = glowIcon(g, function (gg) { return iconFit(gg, M.now.icon, M.now.day, { l: ix + u(4), t: iy + u(2), r: dx - dh * 0.4, b: iy + rowH }, rowH, iy + dh / 2); });
    ICON_INK = null; ICON_NOW = false;
    var dwid = seg7W(dw, str);
    glowDigits(function (hg) { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
@@ -1276,33 +1321,32 @@ var I18N = (function () {
    return Math.max(1, Math.min(M.days.length || 1, 7, fit, n > 0 ? n : 7));
   }
   var HS = F(RD(H0 * 0.03, 12), '700');
-  function meterPair(x, y, w, h, captions) {
-   var mw = Math.floor((w - GP) / 2);
-   tempMeter(root, x, y, mw, h, smallFace(h, mw), 'L', captions);
-   rainMeter(root, x + mw + GP, y, w - mw - GP, h, smallFace(h, mw), 'R', captions);
+  function meterRow(x, y, w, h, captions, kinds) {
+   var n = kinds.length, mw = Math.floor((w - (n - 1) * GP) / n);
+   kinds.forEach(function (k, i) { dial(k, root, x + i * (mw + GP), y, i === n - 1 ? w - i * (mw + GP) : mw, h, smallFace(h, mw), i === 0 ? 'L' : (i === n - 1 ? 'R' : null), captions); });
   }
   if (view === 4) {
    if (H0 / z >= 260) {
     var qg = R(H0 * 0.42);
     vfd(root, X0, Y0, W0, qg, true);
-    rainMeter(root, X0, Y0 + qg + GP, W0, H0 - qg - GP, true);
+    dial(DQ, root, X0, Y0 + qg + GP, W0, H0 - qg - GP, true);
    } else {
     vfdQuad(root, X0, Y0, W0, H0);
    }
   } else if (view === 2 && W0 < H0 * 2.4) {
    var vh2 = R(H0 * 0.34);
    vfd(root, X0, Y0, W0, vh2, true);
-   meterPair(X0, Y0 + vh2 + GP, W0, H0 - vh2 - GP, false);
+   meterRow(X0, Y0 + vh2 + GP, W0, H0 - vh2 - GP, false, [DL, DR]);
   } else if (view === 2) {
    var mw3 = R(Math.min(W0 * 0.33, H0 * 1.15)), gw = W0 - 2 * mw3 - 2 * GP;
-   tempMeter(root, X0, Y0, mw3, H0, smallFace(H0, mw3), 'L');
+   dial(DL, root, X0, Y0, mw3, H0, smallFace(H0, mw3), 'L');
    vfd(root, X0 + mw3 + GP, Y0, gw, H0, true);
-   rainMeter(root, X0 + W0 - mw3, Y0, mw3, H0, smallFace(H0, mw3), 'R');
+   dial(DR, root, X0 + W0 - mw3, Y0, mw3, H0, smallFace(H0, mw3), 'R');
   } else if (view === 3 && H0 > W0 * 1.25) {
    var vh5 = R(H0 * 0.22), mh5 = R(Math.min(H0 * 0.25, W0 * 0.62));
    vfd(root, X0, Y0, W0, vh5, true);
-   tempMeter(root, X0, Y0 + vh5 + GP, W0, mh5, smallFace(mh5, W0), 'L');
-   rainMeter(root, X0, Y0 + vh5 + mh5 + 2 * GP, W0, mh5, smallFace(mh5, W0), 'R');
+   dial(DL, root, X0, Y0 + vh5 + GP, W0, mh5, smallFace(mh5, W0), 'L');
+   dial(DR, root, X0, Y0 + vh5 + mh5 + 2 * GP, W0, mh5, smallFace(mh5, W0), 'R');
    var ky5 = Y0 + vh5 + 2 * mh5 + 3 * GP;
    keysRow(X0, ky5, W0, Y0 + H0 - ky5, daysFit(W0, 110));
   } else if (view === 3) {
@@ -1310,16 +1354,18 @@ var I18N = (function () {
    var mp3 = H0 - vh3 - kh3 - 2 * GP, cap3 = R((W0 - GP) / 2 * 0.85);
    if (mp3 > cap3) { var ex3 = mp3 - cap3; vh3 += R(ex3 * 0.5); kh3 += ex3 - R(ex3 * 0.5); }
    vfd(root, X0, Y0, W0, vh3, true);
-   meterPair(X0, Y0 + vh3 + GP, W0, H0 - vh3 - kh3 - 2 * GP, false);
+   meterRow(X0, Y0 + vh3 + GP, W0, H0 - vh3 - kh3 - 2 * GP, false, [DL, DR]);
    keysRow(X0, Y0 + H0 - kh3, W0, kh3, daysFit(W0, 110));
   } else {
    var top = Y0;
    var portrait = UW / UH < 1.15;
    var keyH = R(H0 * (portrait ? 0.22 : 0.25)), vh = R(H0 * (portrait ? 0.22 : 0.28));
    var mh = H0 - (top - Y0) - keyH - vh - 2 * GP;
-   var mhCap = R((W0 - GP) / 2 * 0.8 + HS.size * 1.6);
+   // the middle dial only where it fits: the X full view in landscape (owner)
+   var kinds = DM && !portrait && UW / z >= 1040 ? [DL, DM, DR] : [DL, DR];
+   var mhCap = R((W0 - (kinds.length - 1) * GP) / kinds.length * 0.8 + HS.size * 1.6);
    if (mh > mhCap) { var extra = mh - mhCap; mh = mhCap; vh += R(extra * 0.6); keyH += R(extra * 0.4); }
-   meterPair(X0, top, W0, mh, true);       // captions inside the faces (owner 2026-11-11); the old strip's height stays in the dials
+   meterRow(X0, top, W0, mh, true, kinds);       // captions inside the faces (owner 2026-11-11); the old strip's height stays in the dials
    vfd(root, X0, top + mh + GP, W0, vh, false);
    keysRow(X0, Y0 + H0 - keyH, W0, keyH, daysFit(W0, 150));
   }
