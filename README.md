@@ -1,8 +1,8 @@
-# trmnl-stereo-weather-plugin
+# trmnl-radio-weather-plugin
 
-## Stereo Weather
+## Radio Weather
 
-![Stereo Weather on the TRMNL X](assets/screenshot.png)
+![Radio Weather on the TRMNL X](assets/screenshot.png)
 
 The weather as the front of an early-80s hi-fi receiver, for [TRMNL](https://trmnl.com) e-paper displays:
 

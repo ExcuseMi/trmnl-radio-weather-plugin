@@ -20,7 +20,7 @@ custom_fields:
   name: About This Plugin
   field_type: author_bio
   description: 'The weather as the front of an early-80s hi-fi receiver: a needle meter for the temperature now within today''s low and high, a needle meter for the chance of rain, a smoked-glass display with the temperature and the time the rain starts, and a key for each coming day.<br /><br />Data: <strong>Open-Meteo</strong> (open-meteo.com), no key needed.'
-  github_url: https://github.com/ExcuseMi/trmnl-stereo-weather-plugin
+  github_url: https://github.com/ExcuseMi/trmnl-radio-weather-plugin
   category: environment
 - keyname: lat_lon
   field_type: lat_lon
@@ -40,18 +40,6 @@ custom_fields:
   - Celsius: celsius
   - Fahrenheit: fahrenheit
   default: celsius
-- keyname: days_shown
-  field_type: select
-  name: Days Shown
-  description: Day keys for the coming days. Auto fits the screen; a larger number is reduced to what fits.
-  options:
-  - Auto: auto
-  - '3': '3'
-  - '4': '4'
-  - '5': '5'
-  - '6': '6'
-  - '7': '7'
-  default: auto
 - keyname: dial_span
   field_type: select
   name: Dial Span
@@ -261,6 +249,6 @@ custom_fields:
   - 简体中文: zh-CN
   - 繁體中文 (香港): zh-HK
   default: auto
-name: Stereo Weather
-description: Weather as a vintage hi-fi receiver
+name: Radio Weather
+description: Weather as a vintage radio receiver
 refresh_interval: 60
