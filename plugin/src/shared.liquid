@@ -1078,19 +1078,19 @@ var rx = ix + iw * 0.72, rw = iw * 0.28, WL = { ls: R(WD.size * 0.15), fill: GLO
 var blk = null, cells = null;
 function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.removeChild(tt); return ww; }
 if (!compact && M.ok && ROS.length >= 4) {
-var cellGap = u(12), cellW = (rw - cellGap) / 2, ug = u(6);
+var cellGap = u(12), cellW = (rw - cellGap) / 2, ug = u(6), colW = Mx(u(7), R(cellW * 0.1)), colG = u(8);
 var ROW = { dTop: Mx(y + h * 0.33, lampBottom + u(6)), dBot: y + h * 0.62, bTop: y + h * 0.68, bH: Mx(u(5), R(h * 0.07)), lab: y + h * 0.9 };
 var right = ROS.slice(2, 4), all = M.rain ? ROS.slice(0, 2) : ROS.slice(0, 4), cw = Mn(R((ROW.dBot - ROW.dTop) / 2), R(h * 0.13)), SX;
 for (var k = 0; k < 14; k++) {
 SX = F(cw * 1.05, '700');
-if (all.every((r) => seg7W(cw, r.longest) + (r.sfxMax ? mW(r.sfxMax, SX) + ug : 0) <= cellW)) break;
+if (all.every((r) => seg7W(cw, r.longest) + (r.sfxMax ? mW(r.sfxMax, SX) + ug : 0) + (r.knob !== undefined ? cw * 1.56 + ug : 0) <= cellW - colW - colG)) break;
 cw = R(cw * 0.9);
 }
 var LKEYS = ['humidity', 'gust', 'feels', 'pressure', 'rain', 'sunrise', 'sunset', 'uv', 'rain_from', 'snow_from', 'hail_from', 'raining_now', 'until'], lmax = mW(I18N.wind, WD);
 LKEYS.forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), WD)); });
 all.forEach((r) => { lmax = Mx(lmax, mW(r.lab, WD)); });
-var WDl = lmax > cellW + u(4) ? F(WD.size * (cellW + u(4)) / lmax, WD.weight) : WD;
-cells = { cw: cw, SX: SX, WD: WDl, ROW: ROW, cellW: cellW, gap: cellGap, left: ROS.slice(0, 2), right: right };
+var WDl = lmax > cellW - colW - colG + u(4) ? F(WD.size * (cellW - colW - colG + u(4)) / lmax, WD.weight) : WD;
+cells = { cw: cw, SX: SX, WD: WDl, ROW: ROW, cellW: cellW, gap: cellGap, colW: colW, colG: colG, left: ROS.slice(0, 2), right: right };
 blk = { divX: ix + rw + u(14), cL: ix + rw + u(22), cR: rx - u(22) };
 if (cw < u(5) || blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
 }
@@ -1104,22 +1104,22 @@ if (dir !== null) { var a2 = dir * Math.PI / 180, pw = Mx(2, u(3));
 glowDigits((hg) => { mk('line', { x1: (kx + kr * 0.3 * Math.sin(a2)).toFixed(1), y1: (ky - kr * 0.3 * Math.cos(a2)).toFixed(1), x2: (kx + kr * 0.88 * Math.sin(a2)).toFixed(1), y2: (ky - kr * 0.88 * Math.cos(a2)).toFixed(1), stroke: DIGIT, 'stroke-width': pw, 'stroke-linecap': 'round', 'shape-rendering': GPX }, hg || kg); }); }
 }
 function cell(x0, r, which) {
-var C = cells, cw2 = C.cw, uw = r.sfxMax ? mW(r.sfxMax, C.SX) + ug : 0, gw = seg7W(cw2, r.longest) + uw;
+var C = cells, cw2 = C.cw, uw = r.sfxMax ? mW(r.sfxMax, C.SX) + ug : 0, kr = r.knob !== undefined ? cw2 * 0.6 : 0, gw = seg7W(cw2, r.longest) + uw + (kr ? kr * 2.6 + ug : 0);
 var cg = mk('g', { 'data-sw-rcell': which + ':' + (debug[which] || []).length, 'data-sw-cw': cw2 }, g);
-var vr = x0 + (C.cellW - gw) / 2 + gw - uw, dx2 = vr - seg7W(cw2, r.v);
+var cx0 = x0 + C.colW + C.colG, cwid = C.cellW - C.colW - C.colG;
+var vr = cx0 + (cwid - gw) / 2 + seg7W(cw2, r.longest), dx2 = vr - seg7W(cw2, r.v);
 glowDigits((hg) => { seg7(hg || cg, dx2, C.ROW.dTop, cw2, cw2 * 2, r.v, DIGIT, hg ? null : GHOSTD); });
 if (r.sfx) glowDigits((hg) => { text(hg || cg, r.sfx, vr + ug, C.ROW.dTop + cw2 * 2, C.SX, { fill: DIGIT }).setAttribute('data-sw-runit', 1); });
-var kr = r.knob !== undefined ? cw2 * 0.6 : 0, bw = C.cellW - (kr ? kr * 2.6 + ug : 0);
-if (kr) knob(cg, x0 + C.cellW - kr * 1.3, C.ROW.bTop + C.ROW.bH / 2, kr, r.knob);
-if (!r.noBar) {    var sg = Mx(2, u(3)), sw2 = (bw - 9 * sg) / 10, lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
-for (var i = 0; i < 10; i++) {
-var sx2 = x0 + i * (sw2 + sg), on = i < lit;
-if (on) glowDigits((hg) => { mk('rect', { x: R(sx2), y: R(C.ROW.bTop), width: R(sw2), height: C.ROW.bH, fill: DIGIT, 'data-sw-rseg': hg ? null : 'lit' }, hg || cg); });
-else if (bits === 1) mk('rect', { x: R(sx2) + 0.5, y: R(C.ROW.bTop) + 0.5, width: R(sw2) - 1, height: C.ROW.bH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
-else if (DIMW) mk('rect', { x: R(sx2), y: R(C.ROW.bTop), width: R(sw2), height: C.ROW.bH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
+if (kr) knob(cg, vr + uw + ug + kr * 1.3, C.ROW.dTop + cw2, kr, r.knob);
+// the vertical LED column at the cell's left edge, filling from the bottom (owner): it also divides the cells
+var sg = Mx(2, u(3)), n2 = 10, sh2 = (C.ROW.lab - C.ROW.dTop - (n2 - 1) * sg) / n2, lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
+for (var i = 0; i < n2; i++) {
+var sy2 = C.ROW.lab - (i + 1) * sh2 - i * sg, on = i < lit;
+if (on) glowDigits((hg) => { mk('rect', { x: R(x0), y: R(sy2), width: R(C.colW), height: R(sh2), fill: DIGIT, 'data-sw-rseg': hg ? null : 'lit' }, hg || cg); });
+else if (bits === 1) mk('rect', { x: R(x0) + 0.5, y: R(sy2) + 0.5, width: R(C.colW) - 1, height: Mx(1, R(sh2) - 1), fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
+else if (DIMW) mk('rect', { x: R(x0), y: R(sy2), width: R(C.colW), height: R(sh2), fill: DIMW, 'data-sw-rseg': 'off' }, cg);
 }
-}
-var lt = text(cg, r.lab, x0 + C.cellW / 2, C.ROW.lab, C.WD, { anchor: 'middle', fill: GLOW, ls: R(C.WD.size * 0.12) });
+var lt = text(cg, r.lab, cx0 + cwid / 2, C.ROW.lab, C.WD, { anchor: 'middle', fill: GLOW, ls: R(C.WD.size * 0.12) });
 lt.setAttribute('data-sw-cell', which);
 (debug[which] = debug[which] || []).push(r.v);
 }
@@ -1360,8 +1360,8 @@ if (captions) {
 var fh = h - u(14), fw = mw - u(14), BG = F(RD(Mn(fh, fw) * 0.055, 10), '800'), size = Mx(HS.size, BG.size * 1.1);
 var bwd = (() => { var t0 = text(root, 'L', 0, 0, BG); var ww = width(t0); root.removeChild(t0); return ww + 2 * BG.size * 0.45; })();
 var size0 = size, floor = Mx(HS.size, size * 0.6);
-[false, true].some((allowShort) => {
-for (size = size0; size >= floor * 0.99; size *= 0.9) {
+[false, true, true].some((allowShort, pass) => {
+for (size = size0; size >= (pass === 2 ? u(9) : floor) * 0.99; size *= 0.9) {
 capSp = F(size, '700');
 if (kinds.every((k, i) => {
 var nm = dialName(k), room = fw / 2 - fh * 0.22 - u(14);
