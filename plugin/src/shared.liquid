@@ -45,6 +45,7 @@
   days: {{ cf.days_shown | default: 'auto' | json }},
   span: {{ cf.dial_span | default: '24h' | json }},
   dials: [{{ cf.left_dial | default: 'temperature' | json }}, {{ cf.middle_dial | default: 'none' | json }}, {{ cf.right_dial | default: 'rain' | json }}],
+  readouts: [{{ cf.readout_1 | default: 'humidity' | json }}, {{ cf.readout_2 | default: 'uv' | json }}],
   label: '',
   location: {{ cf.lat_lon | default: '' | json }},
   hideTitle: {% if sw_hide == 'true' or sw_hide == 'yes' %}true{% else %}false{% endif %},
@@ -1028,8 +1029,34 @@ var I18N = (function () {
    return tw2;
   }
   function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
-  function humTxt() { return I18N.ours('hum') + ' ' + fv(M.now.hum, '%'); }
-  function uvTxt() { return I18N.ours('uv') + ' ' + fv(M.now.uv); }
+  function fv1(v) { return v === null ? '--' : (v < 10 ? (Math.round(v * 10) / 10).toFixed(1) : SWModel.fmt(v)); }
+  function compass(d) { if (d === null) return ''; var pts = I18N.ours('compass').split(','); return pts.length === 8 ? pts[Math.round(d / 45) % 8] : ''; }
+  var RO_ORDER = ['wind', 'gust', 'aqi', 'feels', 'humidity', 'uv', 'pressure', 'rain_mm'];
+  // a readout: its label (with the unit), its digits, a text after the digits (the compass point), its short text form
+  function readout(k) {
+   var n = M.now, t = M.today, c = compass(n.dir);
+   if (k === 'wind') return { lab: I18N.wind + ' ' + WUNIT, v: fv(n.wind), sfx: c, txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
+   if (k === 'gust') return { lab: I18N.ours('gust') + ' ' + WUNIT, v: fv(nz(t.gustMax)), txt: I18N.ours('gust') + ' ' + fv(nz(t.gustMax)) };
+   if (k === 'aqi') return { lab: 'AQI', v: fv(nz(n.aqi)), txt: 'AQI ' + fv(nz(n.aqi)) };
+   if (k === 'feels') return { lab: I18N.ours('feels') + ' ' + deg + M.unit, v: fv(n.feels), txt: I18N.ours('feels') + ' ' + fv(n.feels, deg) };
+   if (k === 'uv') return { lab: I18N.ours('uv'), v: fv(n.uv), txt: I18N.ours('uv') + ' ' + fv(n.uv) };
+   if (k === 'pressure') return { lab: I18N.ours('pressure') + ' HPA', v: fv(n.press), txt: fv(n.press) + ' HPA' };
+   if (k === 'rain_mm') return { lab: I18N.ours('rain') + ' MM', v: fv1(nz(t.rainMm)), txt: I18N.ours('rain') + ' ' + fv1(nz(t.rainMm)) + ' MM' };
+   return { lab: I18N.ours('humidity') + ' %', v: fv(n.hum), txt: I18N.ours('hum') + ' ' + fv(n.hum, '%') };
+  }
+  // the chosen readouts; one already on a dial of this view is not repeated: the next free option takes its place
+  function pickReadouts(shown) {
+   var want = SW_CFG.readouts.map(function (k, i) { return RO_ORDER.indexOf(k) >= 0 ? k : (i ? 'uv' : 'humidity'); }), out = [];
+   var fixed = want.filter(function (k, i) { return shown.indexOf(k) < 0 && want.indexOf(k) === i; });
+   want.forEach(function (k, i) {
+    if (shown.indexOf(k) < 0 && want.indexOf(k) === i) { out.push(k); return; }
+    var at = RO_ORDER.indexOf(k);
+    for (var n = 1; n <= 8; n++) { var c = RO_ORDER[(at + n) % 8]; if (shown.indexOf(c) < 0 && fixed.indexOf(c) < 0 && out.indexOf(c) < 0) { out.push(c); return; } }
+    out.push(k);
+   });
+   return out;
+  }
+  var ROK = [], ROS = [];
   function vfd(g, x, y, w, h, compact) {
    debug.glassBox = [R(x), R(y), R(w), R(h)]; debug.origin = [R(rect.left * z), R(rect.top * z)];
    debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
@@ -1088,10 +1115,11 @@ var I18N = (function () {
    // left block mirroring the right one: two readouts as small digits; a narrow glass keeps the small text
    var blk = null;
    if (!compact && M.ok) {
-    var labs = [I18N.ours('humidity') + ' %', I18N.ours('uv')], lt0 = labs.map(function (l) { var tt = text(g, l, 0, 0, WD, WL); var ww = width(tt); g.removeChild(tt); return ww; });
-    var chB = R(h * 0.26), cwL = R(chB * 0.5), gp = u(16), strs = [M.now.hum, M.now.uv].map(function (v) { return v === null ? '--' : SWModel.fmt(v); });
-    var colW = lt0.map(function (l, i) { return Math.max(l, seg7W(cwL, strs[i])); });
-    blk = { labs: labs, cw: cwL, strs: strs, colW: colW, divX: ix + rw + u(14), cL: ix + rw + u(22), cR: rx - u(22), ok: colW[0] + gp + colW[1] <= rw };
+    var labs = ROS.map(function (r) { return r.lab; }), lt0 = labs.map(function (l) { var tt = text(g, l, 0, 0, WD, WL); var ww = width(tt); g.removeChild(tt); return ww; });
+    var chB = R(h * 0.26), cwL = R(chB * 0.5), gp = u(16), strs = ROS.map(function (r) { return r.v; }), SX = F(cwL * 1.3, '700');
+    var sfxW = ROS.map(function (r) { if (!r.sfx) return 0; var tt = text(g, r.sfx, 0, 0, SX); var ww = width(tt) + u(8); g.removeChild(tt); return ww; });
+    var colW = lt0.map(function (l, i) { return Math.max(l, seg7W(cwL, strs[i]) + sfxW[i]); });
+    blk = { labs: labs, cw: cwL, strs: strs, colW: colW, sfxW: sfxW, SX: SX, divX: ix + rw + u(14), cL: ix + rw + u(22), cR: rx - u(22), ok: colW[0] + gp + colW[1] <= rw };
     if (!blk.ok || blk.cR - blk.cL < (function () { var d0 = R(h * 0.36), dw0 = R(d0 * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + d0 * 1.05; })()) blk = null;
    }
    var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
@@ -1134,12 +1162,14 @@ var I18N = (function () {
    else if (!compact) wt = fitText(g, condS, lx, y + h * 0.9, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
    if (blk) {
     mk('rect', { x: R(blk.divX), y: R(y + h * 0.3), width: Math.max(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
-    debug.readouts = [];
+    debug.readouts = []; debug.readoutKinds = ROK;
     var cx0 = ix, gap2 = Math.max(u(16), (rw - blk.colW[0] - blk.colW[1]) / 2);
     blk.strs.forEach(function (str2, i) {
-     var cwid = blk.colW[i], dwid2 = seg7W(blk.cw, str2), lt = fitText(g, blk.labs[i], cx0, y + h * 0.9, WD, cwid + u(4), WL);
+     var cwid = blk.colW[i], dwid2 = seg7W(blk.cw, str2) + blk.sfxW[i], lt = fitText(g, blk.labs[i], cx0, y + h * 0.9, WD, cwid + u(4), WL);
      lt.setAttribute('x', R(cx0 + (cwid - width(lt)) / 2));
-     glowDigits(function (hg) { seg7(hg || g, cx0 + (cwid - dwid2) / 2, y + h * 0.44, blk.cw, R(blk.cw * 2), str2, DIGIT, hg ? null : GHOSTD); });
+     var dx2 = cx0 + (cwid - dwid2) / 2;
+     glowDigits(function (hg) { seg7(hg || g, dx2, y + h * 0.44, blk.cw, R(blk.cw * 2), str2, DIGIT, hg ? null : GHOSTD); });
+     if (ROS[i].sfx) glowDigits(function (hg) { text(hg || g, ROS[i].sfx, dx2 + dwid2 - blk.sfxW[i] + u(8), y + h * 0.44 + blk.cw * 2, blk.SX, { fill: DIGIT }); });
      debug.readouts.push(str2);
      cx0 += cwid + gap2;
     });
@@ -1147,7 +1177,7 @@ var I18N = (function () {
    if (!compact && !blk && M.ok) {
     var rdB = y + h * 0.9 - WD.size * 1.7, rdTop = rdB - WD.size * 2.7;
     var under = Math.max(dy + dh, ib.b) + u(6) <= rdTop, rdW = (under ? rx - u(20) : ib.l - u(6)) - lx;
-    [[humTxt(), rdB - WD.size * 1.7], [uvTxt(), rdB]].forEach(function (rd) {
+    [[ROS[0].txt, rdB - WD.size * 1.7], [ROS[1].txt, rdB]].forEach(function (rd) {
      var rt = fitText(g, rd[0], lx, rd[1], WD, rdW, { fill: GLOW, ls: R(WD.size * 0.15) });
      if (width(rt) > rdW + 1 || rd[1] - WD.size < lampBottom + u(4)) g.removeChild(rt);
     });
@@ -1213,7 +1243,7 @@ var I18N = (function () {
    var line = M.ok ? I18N.hi + ' ' + SWModel.fmt(hi) + '  ' + I18N.lo + ' ' + SWModel.fmt(lo) + '  \u00b7  ' +
     (M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry_h', SPAN)) : String(M.reason || '').toUpperCase();
    var lt = fitText(g, line, ix, ly, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
-   if (M.ok) [humTxt() + '  ' + uvTxt(), humTxt()].some(function (rd) {
+   if (M.ok) [ROS[0].txt + '  ' + ROS[1].txt, ROS[0].txt].some(function (rd) {
     var rt = text(g, rd, ix + iw, ly, LN, { anchor: 'end', ls: R(LN.size * 0.1), fill: GLOW });
     if (width(lt) + width(rt) + u(12) <= iw) return true;
     g.removeChild(rt);
@@ -1221,7 +1251,8 @@ var I18N = (function () {
   }
 
   faceplate(root, u(3), u(3), UW - u(6), UH - u(6));
-  var MG = u(view === 4 ? 8 : 14), GP = u(view === 4 ? 8 : 14);
+  // owner (X full, 2026-11-11): about half the old gaps between the dials, the glass and the days; the OG keeps more air
+  var MG = u(view === 4 ? 8 : (view === 1 ? (UW / z >= 1040 ? 8 : 11) : 14)), GP = u(view === 4 ? 8 : (view === 1 ? (UW / z >= 1040 ? 7 : 10) : 14));
   var X0 = MG, Y0 = MG, W0 = UW - 2 * MG, H0 = UH - 2 * MG;
   function smallFace(h, w) { return h / z < 160 || (h / z < 230 && !(w > h * 1.8)); }
   function dayRow(g0, x, y, w, h, d, on) {
@@ -1288,7 +1319,7 @@ var I18N = (function () {
    if (PIXFONT) [21, 16, 12].some(function (c) { G = geo(F(c, '800')); return G.n >= 6; });
    T = G.T;
    // segmented level bars (owner): thin LED segments per day on the shared scale, lit low to high, a peak-hold at the high
-   var pw = Math.max(u(14), Math.min(cw * 0.22, u(40))), top = G.top, bot = G.bot, segH = G.segH, segG = G.segG;
+   var pw = Math.max(u(14), Math.min(cw * 0.4, u(90))), top = G.top, bot = G.bot, segH = G.segH, segG = G.segG;   // owner: wider "volumes"
    var NS = Math.max(PIXFONT ? 2 : 6, G.n);
    var LIT = FULL ? AMBER : (ORANGE || (bits === 4 ? fillOf('gray-20', '#333') : (bits === 2 ? fillOf('gray-15', '#333') : ink)));
    var PEAK = FULL ? '#ff5a00' : (color && RED !== ink ? RED : ink);
@@ -1325,6 +1356,9 @@ var I18N = (function () {
    var n = kinds.length, mw = Math.floor((w - (n - 1) * GP) / n);
    kinds.forEach(function (k, i) { dial(k, root, x + i * (mw + GP), y, i === n - 1 ? w - i * (mw + GP) : mw, h, smallFace(h, mw), i === 0 ? 'L' : (i === n - 1 ? 'R' : null), captions); });
   }
+  var threeD = view === 1 && DM && !(UW / UH < 1.15) && UW / z >= 1040;
+  ROK = pickReadouts(view === 4 ? (H0 / z >= 260 ? [DQ] : []) : (threeD ? [DL, DM, DR] : [DL, DR])); ROS = ROK.map(readout);
+  debug.readoutKinds = ROK;
   if (view === 4) {
    if (H0 / z >= 260) {
     var qg = R(H0 * 0.42);
@@ -1362,9 +1396,9 @@ var I18N = (function () {
    var keyH = R(H0 * (portrait ? 0.22 : 0.25)), vh = R(H0 * (portrait ? 0.22 : 0.28));
    var mh = H0 - (top - Y0) - keyH - vh - 2 * GP;
    // the middle dial only where it fits: the X full view in landscape (owner)
-   var kinds = DM && !portrait && UW / z >= 1040 ? [DL, DM, DR] : [DL, DR];
+   var kinds = threeD ? [DL, DM, DR] : [DL, DR];
    var mhCap = R((W0 - (kinds.length - 1) * GP) / kinds.length * 0.8 + HS.size * 1.6);
-   if (mh > mhCap) { var extra = mh - mhCap; mh = mhCap; vh += R(extra * 0.6); keyH += R(extra * 0.4); }
+   if (mh > mhCap) { var extra = mh - mhCap; mh = mhCap; vh += R(extra * 0.75); keyH += R(extra * 0.25); }
    meterRow(X0, top, W0, mh, true, kinds);       // captions inside the faces (owner 2026-11-11); the old strip's height stays in the dials
    vfd(root, X0, top + mh + GP, W0, vh, false);
    keysRow(X0, Y0 + H0 - keyH, W0, keyH, daysFit(W0, 150));

@@ -110,6 +110,40 @@ custom_fields:
   - Air pressure: pressure
   - Feels like: feels
   default: none
+- keyname: readout_1
+  field_type: select
+  name: Readout 1
+  description: The first small readout on the left of the glass. A reading already on a dial is not repeated; the next free one takes its place.
+  description-nl: De eerste kleine uitlezing links op het glas. Wat al op een meter staat wordt niet herhaald; de volgende vrije optie komt in de plaats.
+  description-de: Die erste kleine Anzeige links auf dem Glas. Was schon ein Instrument zeigt, wird nicht wiederholt; die nächste freie Option tritt an ihre Stelle.
+  description-fr: Le premier petit affichage à gauche de la vitre. Une valeur déjà sur un cadran n'est pas répétée; l'option libre suivante prend sa place.
+  options:
+  - Wind: wind
+  - Gusts: gust
+  - Air quality: aqi
+  - Feels like: feels
+  - Humidity: humidity
+  - UV: uv
+  - Air pressure: pressure
+  - Rain today: rain_mm
+  default: humidity
+- keyname: readout_2
+  field_type: select
+  name: Readout 2
+  description: The second small readout on the left of the glass.
+  description-nl: De tweede kleine uitlezing links op het glas.
+  description-de: Die zweite kleine Anzeige links auf dem Glas.
+  description-fr: Le deuxième petit affichage à gauche de la vitre.
+  options:
+  - Wind: wind
+  - Gusts: gust
+  - Air quality: aqi
+  - Feels like: feels
+  - Humidity: humidity
+  - UV: uv
+  - Air pressure: pressure
+  - Rain today: rain_mm
+  default: uv
 - keyname: hide_title_bar
   field_type: boolean
   name: Hide Title Bar
