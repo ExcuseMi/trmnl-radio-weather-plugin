@@ -349,6 +349,60 @@ RSpec.describe 'Stereo Weather' do
     end
   end
 
+  describe 'the current icon on the glass' do
+    # Seen on the X (nl, light drizzle, day, 5.4 C): the sun rays touched the first digit and rose into the lamp row.
+    # A wi-* icon is drawn over its viewBox, so its ink is bigger than the nominal size the layout reserved, and the
+    # old check read only that nominal edge. Measured in the browser: the real ink box of the current icon keeps a
+    # clear margin to the lit digits, every text (lamps, condition word, credit), the dividers and the glass edge.
+    ICON_CLEAR = <<~JS
+      (function () {
+        var out = [], m = 4;
+        document.querySelectorAll('.sw-stage').forEach(function (st) {
+          var ic = st.querySelector('[data-sw-icon][data-sw-now]');
+          if (!ic) { out.push('no current icon'); return; }
+          var r = ic.getBoundingClientRect();
+          var win = st.querySelector('[data-sw-glass-inner]');
+          if (win) { var q = win.getBoundingClientRect();
+            if (r.left < q.left + m || r.right > q.right - m || r.top < q.top + m || r.bottom > q.bottom - m) out.push('icon on the glass edge'); }
+          [].slice.call(st.querySelectorAll('[data-sw-seg=lit], svg text, [data-sw-status], [data-sw-divider]')).forEach(function (e) {
+            if (e.closest('[data-sw-halo]') || ic.contains(e)) return;
+            var b = e.getBoundingClientRect();
+            if (!b.width) return;
+            var dx = Math.max(b.left - r.right, r.left - b.right), dy = Math.max(b.top - r.bottom, r.top - b.bottom);
+            if (Math.max(dx, dy) < m) out.push((e.textContent || e.getAttribute('data-sw-seg') || 'divider') + ' ' + Math.round(Math.max(dx, dy)) + 'px from the icon');
+          });
+        });
+        return out;
+      })()
+    JS
+    KINDS = { 'clear' => 0, 'partly' => 2, 'cloud' => 3, 'fog' => 45, 'drizzle' => 51, 'rain' => 61, 'heavy' => 65,
+              'sleet' => 56, 'snow' => 71, 'storm' => 95, 'hail' => 96 }.freeze
+    def current(kind, day)
+      fixture('mixed').tap { it['current']['temperature_2m'] = 5.4; it['current']['weather_code'] = KINDS[kind]; it['current']['is_day'] = day ? 1 : 0 }
+    end
+
+    KINDS.each_key do |kind|
+      [true, false].each do |day|
+        %w[og_png v2].each do |device|
+          it "keeps the #{day ? 'day' : 'night'} #{kind} icon clear of the digits, lamps and words (#{device} full)" do
+            s = draw(device:, answer: { json: current(kind, day) }, fields: { 'language' => 'nl' })
+            debug(s)
+            expect(s.evaluate(ICON_CLEAR)).to be_empty
+          end
+        end
+      end
+    end
+
+    # the small glasses too, with the widest icons (the sun, the sprinkle, the storm)
+    %w[clear drizzle storm].product([true, false], %w[og_png v2], VIEWS.drop(1)).each do |kind, day, device, view|
+      it "keeps the #{day ? 'day' : 'night'} #{kind} icon clear on #{device} #{view}" do
+        s = draw(view:, device:, answer: { json: current(kind, day) }, fields: { 'language' => 'nl' })
+        debug(s)
+        expect(s.evaluate(ICON_CLEAR)).to be_empty
+      end
+    end
+  end
+
   describe 'channel badges' do
     # L and R as small labels in the faces' outer top corners, not in the captions (owner decision).
     %w[full half_horizontal half_vertical].each do |view|
@@ -425,6 +479,42 @@ RSpec.describe 'Stereo Weather' do
         expect(order).to match(/\AN+S+N+S+\z/)
         knocked = s.evaluate("[].slice.call(document.querySelectorAll('.sw-stage [data-sw-scale]')).every(function(e){return e.getAttribute('paint-order') === 'stroke' && !!e.getAttribute('stroke')})")
         expect(knocked).to be(true)
+      end
+    end
+  end
+
+  describe 'past the scale' do
+    # Seen in review (X, fr, large text, -1.3 C under a 0..15 day; OG, de, -23.5 C): the UNDER word sat on the end
+    # number and the needle ran through it. Measured in the browser: the word inside its face, clear of the needle
+    # and (label_problems) of every other text.
+    LIMIT_WORD = <<~JS
+      (function () {
+        var out = [];
+        document.querySelectorAll('.sw-stage [data-sw-limit]').forEach(function (t) {
+          var n = t.getAttribute('data-sw-limit'), st = t.closest('.sw-stage'), b = t.getBBox();
+          var f = st.querySelector('[data-sw-face="' + n + '"]'), fb = f.getBBox(), ins = +f.getAttribute('data-sw-inset') + 1;
+          if (b.x < fb.x + ins || b.x + b.width > fb.x + fb.width - ins || b.y < fb.y + ins || b.y + b.height > fb.y + fb.height - ins) out.push('outside the face: ' + t.textContent);
+          var nd = st.querySelector('[data-sw-meter="' + n + '"]');
+          if (!nd) { out.push('no needle for ' + t.textContent); return; }
+          var pts = nd.getAttribute('points').split(' ').map(function (p) { return p.split(',').map(Number); }), tip = pts[0], tail = pts[2];
+          for (var k = 0; k <= 200; k++) {
+            var x = tail[0] + (tip[0] - tail[0]) * k / 200, y = tail[1] + (tip[1] - tail[1]) * k / 200;
+            if (x > b.x - 3 && x < b.x + b.width + 3 && y > b.y - 3 && y < b.y + b.height + 3) { out.push('needle through ' + t.textContent); break; }
+          }
+        });
+        return out;
+      })()
+    JS
+    { 'over' => 30.0, 'under' => -23.5 }.each do |side, temp|
+      %w[en de fr].product(%w[og_png v2], %w[full half_horizontal half_vertical]).each do |lang, device, view|
+        it "keeps the #{side} word clear of the needle and the numbers (#{lang} #{device} #{view})" do
+          answer = fixture('mixed')
+          answer['current']['temperature_2m'] = temp
+          s = draw(view:, device:, answer: { json: answer }, fields: { 'language' => lang }, text_scale: device == 'v2' && lang == 'fr' ? 'large' : nil)
+          debug(s)
+          expect(s.evaluate("document.querySelectorAll('.sw-stage [data-sw-limit]').length")).to be >= 1
+          expect(s.evaluate(LIMIT_WORD) + label_problems(s)).to be_empty
+        end
       end
     end
   end
@@ -789,12 +879,17 @@ RSpec.describe 'Stereo Weather' do
       end
     end
 
-    it 'keeps the small text readouts where the glass is too narrow for the block, never clipped' do
-      s = draw(device: 'v2', orientation: :portrait)
-      d = debug(s)
-      expect(d['readouts']).to be_nil.or eq(%w[91 2])
-      expect(texts(s)).to include('HUM 91%').and include('UV 2') unless d['readouts']
-      expect(label_problems(s)).to eq([])
+    # review (X portrait, de, 12.4 C): the icon left 80 px for the humidity line and it was dropped by one pixel
+    %w[en de].each do |lang|
+      it "keeps the small text readouts where the glass is too narrow for the block, never clipped (#{lang})" do
+        answer = fixture('mixed')
+        answer['current']['temperature_2m'] = 12.4
+        s = draw(device: 'v2', orientation: :portrait, fields: { 'language' => lang }, answer: { json: answer })
+        d = debug(s)
+        expect(d['readouts']).to be_nil.or eq(%w[91 2])
+        expect(texts(s)).to include('HUM 91%').and include('UV 2') unless d['readouts']
+        expect(label_problems(s)).to eq([])
+      end
     end
 
     it 'shows humidity and UV on the quadrant glass of the OG' do

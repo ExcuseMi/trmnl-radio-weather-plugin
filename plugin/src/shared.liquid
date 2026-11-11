@@ -559,8 +559,10 @@ var I18N = (function () {
 
   function icon(g, kind, cx, cy, sz, isDay) {
    if (!kind) return;
-   mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.3), fill: 'none', stroke: ICON_INK || ink, 'stroke-width': Math.max(2, R(sz * 0.06)) }, g);
-   mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.07), fill: ICON_INK || ink }, g);
+   var ig = mk('g', { 'data-sw-icon': 'drawn', 'data-sw-now': ICON_NOW ? 1 : null }, g);
+   mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.3), fill: 'none', stroke: ICON_INK || ink, 'stroke-width': Math.max(2, R(sz * 0.06)) }, ig);
+   mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.07), fill: ICON_INK || ink }, ig);
+   return ig;
   }
 
   var debug = { view: view, z: z, W: UW, H: UH };
@@ -590,15 +592,16 @@ var I18N = (function () {
   var station = (SW_CFG.label || '').toUpperCase();
   // the credit; with the title bar hidden the location and time join it on the glass (owner)
   var CREDIT = (SW_CFG.hideTitle || view !== 1 ? (M.now.sync ? M.now.sync + '  \u00b7  ' : '') : '') + 'OPEN-METEO';
-  var ICON_INK = null, drawnIcon = icon, iconsUsed = { wi: 0, drawn: 0 };
+  var ICON_INK = null, ICON_NOW = false, drawnIcon = icon, iconsUsed = { wi: 0, drawn: 0 };
+  function wiName(kind, isDay) { return (WI_MAP[kind] || [])[isDay === null ? 2 : (isDay === false ? 1 : 0)]; }
   icon = function (g, kind, cx, cy, sz, isDay) {
    if (!kind) return;
-   var name = (WI_MAP[kind] || [])[isDay === null ? 2 : (isDay === false ? 1 : 0)], s = name && WI[name];
+   var name = wiName(kind, isDay), s = name && WI[name];
    if (!s) { iconsUsed.drawn++; return drawnIcon(g, kind, cx, cy, sz, isDay); }
    iconsUsed.wi++;
    var vb = s.vb, k = sz * 1.4 / Math.max(vb[2], vb[3]);
    var ig = mk('g', { transform: 'translate(' + (cx - vb[2] * k / 2 - vb[0] * k).toFixed(1) + ' ' + (cy - vb[3] * k / 2 - vb[1] * k).toFixed(1) + ') scale(' + k.toFixed(4) + ')',
-    fill: ICON_INK || ink, 'shape-rendering': 'geometricPrecision', 'data-sw-icon': name }, g);
+    fill: ICON_INK || ink, 'shape-rendering': 'geometricPrecision', 'data-sw-icon': name, 'data-sw-now': ICON_NOW ? 1 : null }, g);
    for (var i = 0; i < s.nodes.length; i++) {
     var nd = s.nodes[i];
     if (nd.nodeType !== 1) continue;
@@ -606,8 +609,24 @@ var I18N = (function () {
     [c].concat([].slice.call(c.querySelectorAll('*'))).forEach(function (e) { e.removeAttribute('style'); e.removeAttribute('class'); if (e.getAttribute('fill') && e.getAttribute('fill') !== 'none') e.removeAttribute('fill'); });
     ig.appendChild(c);
    }
+   return ig;
   };
   debug.icons = iconsUsed;
+  // A wi-* icon's ink is bigger than its nominal size and differs per icon (live: the sun rays reached the digits and
+  // the lamp row), so the layout fits the measured ink: at most hWant tall, inside box, right-aligned, centred on cy.
+  function iconFit(g, kind, isDay, box, hWant, cy, dry) {
+   var name = wiName(kind, isDay), s = name && WI[name], bb, per, vb = s ? s.vb : [0, 0, 0, 0];
+   if (s) {
+    if (!s.ink) { var tg = mk('g', {}, root); var i0 = icon(tg, kind, 0, 0, 100, isDay); s.ink = i0.getBBox(); iconsUsed.wi--; root.removeChild(tg); }
+    bb = s.ink; per = 1.4 / Math.max(vb[2], vb[3]);
+   } else { bb = { x: -0.33, y: -0.33, width: 0.66, height: 0.66 }; per = 1; }
+   var sz = Math.max(1, Math.min(hWant / (bb.height * per), (box.b - box.t) / (bb.height * per), (box.r - box.l) / (bb.width * per)));
+   var k = sz * per, w = bb.width * k, h = bb.height * k;
+   var icy = Math.max(box.t + h / 2, Math.min(box.b - h / 2, cy)), icx = box.r - w / 2;
+   var ib = { l: R(icx - w / 2), r: R(box.r), t: R(icy - h / 2), b: R(icy + h / 2), w: w, h: h };
+   if (!dry && kind) icon(g, kind, icx - (bb.x + bb.width / 2 - vb[0] - vb[2] / 2) * k, icy - (bb.y + bb.height / 2 - vb[1] - vb[3] / 2) * k, sz, isDay);
+   return ib;
+  }
   var clipK = 0, meterK = 0;
   function meter(g, x, y, w, h, o) {
    var lw = Math.max(2, u(2.5)), MN = meterK++;
@@ -720,10 +739,6 @@ var I18N = (function () {
     tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Math.max(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
     tl2.setAttribute('stroke-linejoin', 'round'); tl2.setAttribute('data-sw-scale', MN);
    });
-   if (o.needle !== null && (o.needle < -0.001 || o.needle > 1.001)) {
-    var over = o.needle > 1, pe = at(over ? 1.03 : -0.03, rArc - fh * 0.1);
-    text(g, I18N.ours(over ? 'over' : 'under'), pe[0], pe[1] + fh * 0.03, F(fh * 0.045, '800'), { anchor: over ? 'end' : 'start' });
-   }
    // the print in the lower-left corner, outside the sweep (the owner's reference): the unit, or, where no
    // caption sits under the meter, the short name with the unit, so every meter says what it shows
    var pad = fh * 0.06;
@@ -738,6 +753,42 @@ var I18N = (function () {
    debug.cornerPrint = debug.cornerPrint || [];
    debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - Math.max(u(5), fh * 0.035)), gap: R(2 * Math.max(u(5), fh * 0.035)) });
    (debug.names = debug.names || []).push(o.captioned ? o.name + ' ' + o.unitName : nt.textContent);
+   if (o.needle !== null && (o.needle < -0.001 || o.needle > 1.001)) {
+    // OVER / UNDER: below the end number beside the needle, never on a number, mark, print, hub or the needle
+    // (review: it sat on the 0 with the needle through it); the old spot inside the arc is the last resort
+    var over = o.needle > 1, LW = F(fh * 0.045, '800'), lword = I18N.ours(over ? 'over' : 'under');
+    var endLab = placed.length ? placed[over ? placed.length - 1 : 0] : null, pe = at(over ? 1.03 : -0.03, rArc - fh * 0.1);
+    // the needle's x at a height; a box beside it clears it at its top (outer side) or bottom (inner side)
+    var nX = function (yy) { return cx + (py - yy) * Math.tan(ang); }, nm = wBase + u(2), gapN = nm + u(3);
+    var hubR = Math.max(u(5), fh * 0.035) + u(4);
+    var others = placed.concat(mks.map(mkBox), [{ l: parseFloat(nt.getAttribute('x')), r: parseFloat(nt.getAttribute('x')) + width(nt), t: ly1 - BIG.size, b: ly1 },
+     { l: cx - hubR, r: cx + hubR, t: py - hubR, b: py + hubR }]);
+    if (badge) others.push({ l: badge.x, r: badge.x + badge.w, t: badge.y, b: badge.y + badge.h });
+    function onNeedleAll(bx) { for (var k = -8; k <= 40; k++) { var xx = cx + ux * tipR * k / 40, yy = py + uy * tipR * k / 40;
+     if (xx > bx.l - nm && xx < bx.r + nm && yy > bx.t - nm && yy < bx.b + nm) return true; } return false; }
+    // the word, then (small face, long word) the short form against the mark it passed: "< MIN", "> MAX"
+    var pick = null, lw0 = 0;
+    [lword, (over ? '> ' : '< ') + (over ? I18N.hi : I18N.lo)].some(function (wd) {
+     var lt0 = text(g, wd, 0, 0, LW), ltw = width(lt0), lbb = { y: -LW.size * 0.95, height: LW.size * 1.2 };
+     try { lbb = lt0.getBBox(); } catch (e) { /* estimate */ }
+     g.removeChild(lt0); lw0 = lw0 || ltw;
+     var asc = -lbb.y, desc = lbb.y + lbb.height, cands = [], y0 = endLab ? endLab.b + asc + u(4) : pe[1] + fh * 0.03;
+     for (var row = 0; row < 4; row++) {
+      var yy = y0 + row * LW.size * 1.3;
+      cands.push(over ? [nX(yy - asc - nm) + gapN, yy] : [nX(yy - asc - nm) - gapN - ltw, yy]);
+      cands.push(over ? [nX(yy + desc + nm) - gapN - ltw, yy] : [nX(yy + desc + nm) + gapN, yy]);
+     }
+     cands.push([fx + fw - u(8) - ltw, ly1 - desc]);   // a small face: the free lower-right corner (the needle leaves it, the print is left)
+     return cands.some(function (c) {
+      var bx = { l: c[0], r: c[0] + ltw, t: c[1] - asc, b: c[1] + desc };
+      if (bx.l < fx + u(6) || bx.r > fx + fw - u(6) || bx.t < fy0 + u(6) || bx.b > fy + fh - u(5)) return false;
+      if (others.some(function (q) { return hit(bx, q); }) || onNeedleAll(bx)) return false;
+      pick = [wd, c[0], c[1]]; return true;
+     });
+    });
+    if (!pick) pick = [lword, over ? pe[0] - lw0 : pe[0], pe[1] + fh * 0.03];   // nothing fits: the old spot inside the arc
+    text(g, pick[0], pick[1], pick[2], LW).setAttribute('data-sw-limit', MN);
+   }
    var hubR = Math.max(u(5), fh * 0.035);
    if (bits === 4) mk('circle', { cx: R(cx + u(2)), cy: R(py + u(2)), r: R(hubR), fill: FULL ? 'rgb(0,0,0,0.25)' : fillOf('gray-55', '#999'), 'shape-rendering': 'geometricPrecision' }, g);
    mk('circle', { cx: R(cx), cy: R(py), r: R(hubR), fill: ink, 'shape-rendering': 'geometricPrecision' }, g);
@@ -1020,25 +1071,29 @@ var I18N = (function () {
    debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(lx + iconW) };
    var dwid = seg7W(dw, str), iconW = compact ? 0 : dh * 1.05;
    var lx = (blk ? blk.cL : ix) + (avail - need(dh)) / 2;
-   // the icon about as tall as the digits, centred on them; never into the lamp row or the condition word
-   function gszOf() { return Math.min(dh * 1.25, dh + 2 * (dy - lampBottom - u(3)), (y + h * 0.9 - WD.size - u(4) - dy - dh * 0.5) / 0.7 * 1.0); }
+   // the icon's ink about as tall as the digits, between the lamp row, the condition word, the left divider (or the
+   // glass) and the first lit digit; wider than the reserved width only by the row's slack
+   var ibox = compact ? { l: crMoved ? ix + pillW + u(16) : x + w - u(16) - hb * 0.24, t: y + innerD + u(6), r: x + w - u(16), b: y + h * 0.27 - u(crMoved ? 10 : 6) }
+    : { l: (blk ? blk.cL : ix) + u(4), t: lampBottom + u(4), r: 0, b: y + h * 0.9 - WD.size - u(5) };
+   var hWant = compact ? hb * (crMoved ? 0.3 : 0.24) : dh * 1.15;
    if (blk) {      // centre what is seen (icon to the unit's end), not the blank cells in front of the digits
-    var tg = mk('g', {}, g), gs0 = gszOf();
+    var tg = mk('g', {}, g);
     seg7(tg, 0, dy, dw, dh, str, DIGIT, null);
     var fl = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
     g.removeChild(tg);
-    lx = blk.cL + avail / 2 - ((fl.l - dh * 0.14 - 1.2 * gs0) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12))) / 2 - iconW;
+    ibox.r = ibox.l + dh * 1.05 + Math.max(0, avail - need(dh));
+    var ib0 = iconFit(g, M.now.icon, M.now.day, ibox, hWant, dy + dh * 0.5, true);
+    lx = blk.cL + avail / 2 - ((fl.l - dh * 0.14 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12))) / 2 - iconW;
    }
    var dx = lx + iconW;
    glowDigits(function (hg) { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
    debug.digits.boxes = seg7.boxes;
    var firstLit = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
-   ICON_INK = GLOW;
-   var gsz = blk ? gszOf() : Math.min(dh * 0.95, (y + h * 0.9 - WD.size - u(4) - dy - dh * 0.5) / 0.7), icx = (firstLit ? firstLit.l : dx) - dh * 0.14 - gsz * 0.6;
-   if (!compact) icon(g, M.now.icon, icx, dy + dh * 0.5, gsz, M.now.day);
-   else icon(g, M.now.icon, x + w - u(16) - hb * 0.11, y + h * 0.16, hb * 0.2, M.now.day);
-   ICON_INK = null;
-   debug.digits.iconRight = R(icx + gsz * 0.6);
+   ICON_INK = GLOW; ICON_NOW = true;
+   if (!compact) ibox.r = (firstLit ? firstLit.l : dx) - dh * 0.14;
+   var ib = iconFit(g, M.now.icon, M.now.day, ibox, hWant, compact ? y + h * 0.16 : dy + dh * 0.5);
+   ICON_INK = null; ICON_NOW = false;
+   debug.digits.iconRight = ib.r;
    var sw = R(dw * 0.45);
    seg7(g, dx + dwid + R(dw * 0.25), dy, sw, R(dh * 0.45), 'o', DIGIT, null);
    seg7(g, dx + dwid + R(dw * 0.25) + sw + R(dw * 0.12), dy, sw, R(dh * 0.45), M.unit, DIGIT, null);
@@ -1057,7 +1112,9 @@ var I18N = (function () {
     });
    }
    if (!compact && !blk && M.ok) {
-    var rdW = icx - gsz * 0.62 - lx - u(6), rdB = y + h * 0.9 - WD.size * 1.7;
+    // readouts left of the icon; with room under the digits and icon (X portrait) the rows run to the right divider
+    var rdB = y + h * 0.9 - WD.size * 1.7, rdTop = rdB - WD.size * 2.7;
+    var under = Math.max(dy + dh, ib.b) + u(6) <= rdTop, rdW = (under ? rx - u(20) : ib.l - u(6)) - lx;
     [[humTxt(), rdB - WD.size * 1.7], [uvTxt(), rdB]].forEach(function (rd) {
      var rt = fitText(g, rd[0], lx, rd[1], WD, rdW, { fill: GLOW, ls: R(WD.size * 0.15) });
      if (width(rt) > rdW + 1 || rd[1] - WD.size < lampBottom + u(4)) g.removeChild(rt);
@@ -1091,9 +1148,9 @@ var I18N = (function () {
    var dw = R(dh * 0.5), str = tempDigits();
    var dx = ix + iw - needQ(dh), dy = iy;
    debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(dx) };
-   ICON_INK = GLOW;
-   icon(g, M.now.icon, ix + isz * 0.5, iy + dh / 2, isz, M.now.day);
-   ICON_INK = null;
+   ICON_INK = GLOW; ICON_NOW = true;
+   var ib = iconFit(g, M.now.icon, M.now.day, { l: ix + u(4), t: iy + u(2), r: dx - u(8), b: iy + rowH }, rowH, iy + dh / 2);
+   ICON_INK = null; ICON_NOW = false;
    var dwid = seg7W(dw, str);
    glowDigits(function (hg) { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
    debug.digits.boxes = seg7.boxes;
@@ -1118,7 +1175,7 @@ var I18N = (function () {
     g.removeChild(wq);
     fitText(g, condTxt, ix, wy, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
     var room = Math.max(u(20), dx - ix - u(8));
-    cw.setAttribute('x', R(ix)); cw.setAttribute('y', R(iy + isz + SM2.size * 0.9));
+    cw.setAttribute('x', R(ix)); cw.setAttribute('y', R(Math.max(iy + isz, ib.b) + SM2.size * 1.1));
     if (width(cw) > room) cw.textContent = 'OPEN-METEO';
    }
    var line = M.ok ? I18N.hi + ' ' + SWModel.fmt(hi) + '  ' + I18N.lo + ' ' + SWModel.fmt(lo) + '  \u00b7  ' +
