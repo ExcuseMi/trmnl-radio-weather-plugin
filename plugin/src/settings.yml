@@ -8,7 +8,7 @@ framework_version: 3.4.6
 serverless_language:
 refresh_interval_floor:
 polling_url: |-
-  https://api.open-meteo.com/v1/forecast?latitude={{ lat_lon | split: ',' | first | strip }}&longitude={{ lat_lon | split: ',' | last | strip }}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index&hourly=temperature_2m,precipitation_probability,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_gusts_10m_max,precipitation_sum&timezone=auto&forecast_hours=48&forecast_days=14&temperature_unit={{ unit }}&wind_speed_unit={% if unit == 'fahrenheit' %}mph{% else %}kmh{% endif %}
+  https://api.open-meteo.com/v1/forecast?latitude={{ lat_lon | split: ',' | first | strip }}&longitude={{ lat_lon | split: ',' | last | strip }}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index&hourly=temperature_2m,precipitation_probability,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_gusts_10m_max,precipitation_sum,sunrise,sunset&timezone=auto&forecast_hours=48&forecast_days=14&temperature_unit={{ unit }}&wind_speed_unit={% if unit == 'fahrenheit' %}mph{% else %}kmh{% endif %}
   https://air-quality-api.open-meteo.com/v1/air-quality?latitude={{ lat_lon | split: ',' | first | strip }}&longitude={{ lat_lon | split: ',' | last | strip }}&current=european_aqi&hourly=european_aqi&timezone=auto&forecast_days=1
 polling_headers: ''
 polling_body:
@@ -146,6 +146,42 @@ custom_fields:
   - Air pressure: pressure
   - Rain today: rain_mm
   default: uv
+- keyname: readout_3
+  field_type: select
+  name: Readout 3 (dry days)
+  description: On a day without rain in the dial span the rain block shows two more readouts; this is the first.
+  description-nl: Op een dag zonder regen in het meterbereik toont het regenblok twee extra uitlezingen; dit is de eerste.
+  description-de: An einem Tag ohne Regen im Bereich der Instrumente zeigt der Regenblock zwei weitere Anzeigen; dies ist die erste.
+  description-fr: Un jour sans pluie dans la plage des cadrans, le bloc pluie montre deux affichages de plus; voici le premier.
+  options:
+  - Wind: wind
+  - Gusts: gust
+  - Air quality: aqi
+  - Feels like: feels
+  - Humidity: humidity
+  - UV: uv
+  - Air pressure: pressure
+  - Rain today: rain_mm
+  - Sun (sunset, then sunrise): sun
+  default: wind
+- keyname: readout_4
+  field_type: select
+  name: Readout 4 (dry days)
+  description: The second readout in the rain block on a dry day.
+  description-nl: De tweede uitlezing in het regenblok op een droge dag.
+  description-de: Die zweite Anzeige im Regenblock an einem trockenen Tag.
+  description-fr: Le deuxième affichage du bloc pluie un jour sec.
+  options:
+  - Wind: wind
+  - Gusts: gust
+  - Air quality: aqi
+  - Feels like: feels
+  - Humidity: humidity
+  - UV: uv
+  - Air pressure: pressure
+  - Rain today: rain_mm
+  - Sun (sunset, then sunrise): sun
+  default: feels
 - keyname: hide_title_bar
   field_type: boolean
   name: Hide Title Bar

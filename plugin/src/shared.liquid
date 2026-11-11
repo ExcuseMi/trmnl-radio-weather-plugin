@@ -29,7 +29,6 @@
  };
  {%- assign sw_lang = cf.language | default: 'auto' -%}
  {%- if sw_lang == 'auto' or sw_lang == '' -%}{%- assign sw_loc = trmnl.user.locale | default: 'en' -%}{%- else -%}{%- assign sw_loc = sw_lang -%}{%- endif -%}
- 
  {%- assign sw_ok = 'cs,da,de-AT,de,en,en-AU,en-GB,es-ES,fr,gu,he,hi,hu,id,is,it,ja,ko,lt,nl,no,pl,pt-BR,ro,ru,sk,sl,sv,uk,zh-CN,zh-HK' | split: ',' -%}
  {%- unless sw_ok contains sw_loc -%}
   {%- assign sw_base = sw_loc | split: '-' | first | split: '_' | first -%}
@@ -46,19 +45,17 @@
   days: {{ cf.days_shown | default: 'auto' | json }},
   span: {{ cf.dial_span | default: '24h' | json }},
   dials: [{{ cf.left_dial | default: 'temperature' | json }}, {{ cf.middle_dial | default: 'none' | json }}, {{ cf.right_dial | default: 'rain' | json }}],
-  readouts: [{{ cf.readout_1 | default: 'humidity' | json }}, {{ cf.readout_2 | default: 'uv' | json }}],
+  readouts: [{{ cf.readout_1 | default: 'humidity' | json }}, {{ cf.readout_2 | default: 'uv' | json }}, {{ cf.readout_3 | default: 'wind' | json }}, {{ cf.readout_4 | default: 'feels' | json }}],
   label: '',
   location: {{ cf.lat_lon | default: '' | json }},
   hideTitle: {% if sw_hide == 'true' or sw_hide == 'yes' %}true{% else %}false{% endif %},
   view: {{ view | default: 1 }}
  };
- var script = document.currentScript;
-
+ var GPX = 'geometricPrecision', script = document.currentScript, MX = Math.max, MN = Math.min, FL = Math.floor;
 // ==== MODEL_BEGIN ====
 var SWModel = (function () {
  function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; }
  function list(o, k) { return (o && Array.isArray(o[k])) ? o[k] : []; }
-
  function severity(code) {
   code = num(code);
   if (code === null) return 0;
@@ -68,14 +65,12 @@ var SWModel = (function () {
   if (code === 45 || code === 48) return 1;
   return 0;
  }
-
  var WORDS = { 0: 'CLEAR', 1: 'MOSTLY CLEAR', 2: 'PARTLY CLOUDY', 3: 'OVERCAST', 45: 'FOG', 48: 'RIME FOG',
   51: 'DRIZZLE', 53: 'DRIZZLE', 55: 'DRIZZLE', 56: 'ICY DRIZZLE', 57: 'ICY DRIZZLE', 61: 'LIGHT RAIN',
   63: 'RAIN', 65: 'HEAVY RAIN', 66: 'FREEZING RAIN', 67: 'FREEZING RAIN', 71: 'LIGHT SNOW', 73: 'SNOW',
   75: 'HEAVY SNOW', 77: 'SNOW GRAINS', 80: 'SHOWERS', 81: 'SHOWERS', 82: 'HEAVY SHOWERS', 85: 'SNOW SHOWERS',
   86: 'SNOW SHOWERS', 95: 'THUNDERSTORM', 96: 'HAIL STORM', 99: 'HAIL STORM' };
  function word(code) { code = num(code); return code === null ? '' : (WORDS[code] || ''); }
-
  var KIND_RANK = { clear: 0, partly: 1, cloud: 2, fog: 3, drizzle: 4, rain: 5, sleet: 6, snow: 7, heavy: 8, storm: 9, hail: 10 };
  function kind(code) {
   code = num(code);
@@ -100,7 +95,6 @@ var SWModel = (function () {
   }
   return best;
  }
-
  var DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
  function weekday(iso) {
   var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
@@ -111,7 +105,6 @@ var SWModel = (function () {
   var m = /T(\d{2})/.exec(String(iso || ''));
   return m ? m[1] : '--';
  }
-
  function minMax(vals) {
   var lo = null, hi = null;
   for (var i = 0; i < vals.length; i++) {
@@ -123,7 +116,6 @@ var SWModel = (function () {
   return { lo: lo, hi: hi };
  }
  function maxOf(vals) { return minMax(vals).hi; }
-
  function slotsFor(raw, interval) {
   var out = [];
   if (interval === 'daily') {
@@ -142,18 +134,17 @@ var SWModel = (function () {
   var ht = list(h, 'time'), tt = list(h, 'temperature_2m'), tp = list(h, 'precipitation_probability');
   var tc = list(h, 'weather_code'), td = list(h, 'is_day');
   for (var s = 0; s < ht.length && out.length < 24; s += step) {
-   var end = Math.min(s + step, ht.length - 1);       // the slot runs to the next slot's first hour
-   var span = tt.slice(s, Math.max(end, s) + 1);
+   var end = MN(s + step, ht.length - 1);       // the slot runs to the next slot's first hour
+   var span = tt.slice(s, MX(end, s) + 1);
    var m2 = minMax(span);
    var sev = 0;
-   for (var k = s; k < Math.max(s + 1, end); k++) sev = Math.max(sev, severity(tc[k]));
-   out.push({ label: hourOf(ht[s]), lo: m2.lo, hi: m2.hi, rain: maxOf(tp.slice(s, Math.max(s + 1, end))),
+   for (var k = s; k < MX(s + 1, end); k++) sev = MX(sev, severity(tc[k]));
+   out.push({ label: hourOf(ht[s]), lo: m2.lo, hi: m2.hi, rain: maxOf(tp.slice(s, MX(s + 1, end))),
     sev: sev, first: s === 0, missing: m2.lo === null,
-    icon: worstKind(tc.slice(s, Math.max(s + 1, end))), day: num(td[s]) !== 0 });
+    icon: worstKind(tc.slice(s, MX(s + 1, end))), day: num(td[s]) !== 0 });
   }
   return out;
  }
-
  function hoursAhead(raw, n) {
   var h = raw.hourly || {}, out = [];
   var ht = list(h, 'time'), tt = list(h, 'temperature_2m'), tp = list(h, 'precipitation_probability');
@@ -172,7 +163,7 @@ var SWModel = (function () {
   }
   if (from < 0) return null;
   var k0 = hours[from].icon, type = k0 === 'snow' ? 'snow' : (k0 === 'hail' ? 'hail' : 'rain');
-  return { from: from, to: to, fromLabel: hours[from].h + ':00', toLabel: hours[Math.min(to + 1, hours.length - 1)].h + ':00',
+  return { from: from, to: to, fromLabel: hours[from].h + ':00', toLabel: hours[MN(to + 1, hours.length - 1)].h + ':00',
    now: from === 0, type: type };
  }
  function ageMinutes(localIso, offsetSec, renderedAtSec) {
@@ -181,13 +172,12 @@ var SWModel = (function () {
   var dataUtc = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) / 1000 - (offsetSec || 0);
   return Math.round((renderedAtSec - dataUtc) / 60);
  }
-
  function build(raw, cfg) {
   cfg = cfg || {};
   var interval = ({ '1h': 1, '2h': 1, '3h': 1, daily: 1 })[cfg.interval] ? cfg.interval : '3h';
   var model = { ok: false, unit: cfg.unit === 'fahrenheit' ? 'F' : 'C', interval: interval, slots: [],
    now: { temp: null, feels: null, hum: null, uv: null, wind: null, gust: null, dir: null, press: null, aqi: null, word: '', icon: null, day: true, sync: null, rain6: null },
-   today: { lo: null, hi: null, uvMax: null, gustMax: null, rainMm: null, aqiMax: null }, hours: [], days: [], rain: null, age: null, reason: null };
+   today: { lo: null, hi: null, uvMax: null, gustMax: null, rainMm: null, aqiMax: null }, hours: [], days: [], rain: null, age: null, reason: null, sun: { up: false, at: null } };
   if (!raw || raw.error || (!raw.hourly && !raw.daily && !raw.current)) {
    model.reason = (raw && raw.reason) ? String(raw.reason).slice(0, 160) : 'NO DATA FROM OPEN-METEO';
    return model;
@@ -209,6 +199,8 @@ var SWModel = (function () {
   var d = raw.daily || {};
   var tmm = minMax([list(d, 'temperature_2m_min')[0], list(d, 'temperature_2m_max')[0]]);
   model.today = { lo: tmm.lo, hi: tmm.hi, uvMax: num(list(d, 'uv_index_max')[0]), gustMax: num(list(d, 'wind_gusts_10m_max')[0]), rainMm: num(list(d, 'precipitation_sum')[0]) };
+  var sr = list(d, 'sunrise'), ss = list(d, 'sunset'), nowT = String(c.time || ''), hm = function (iso) { var m = /T(\d{2}:\d{2})/.exec(String(iso || '')); return m ? m[1] : null; };
+  model.sun = nowT && sr[0] && nowT < sr[0] ? { up: true, at: hm(sr[0]) } : (nowT && ss[0] && nowT < ss[0] ? { up: false, at: hm(ss[0]) } : { up: true, at: hm(sr[1]) });
   model.slots = slotsFor(raw, interval);
   model.hours = hoursAhead(raw, 25);
   model.days = slotsFor(raw, 'daily');
@@ -224,48 +216,40 @@ var SWModel = (function () {
   if (!model.ok) model.reason = 'NO FORECAST IN THE ANSWER';
   return model;
  }
-
-
-
-
-
-
  function fmt(v) {
   if (v === null || v === undefined) return '--';
   var r = Math.round(v);
   return String(r === 0 ? 0 : r);
  }
-
  return { build: build, severity: severity, word: word, kind: kind, worstKind: worstKind, rainWindow: rainWindow,
   ageMinutes: ageMinutes, fmt: fmt };
 })();
 // ==== MODEL_END ====
-
 // ==== I18N_TRMNL_BEGIN ==== generated by tools/sync_trmnl_i18n.rb from usetrmnl/trmnl-i18n@d942836 (MIT); do not edit (the table: the view files)
 var I18N_SLOTS = ["w.temperature","w.low_high_short","w.today","p.precipitation_probability","p.precipitation","p.wind","t.snow","c1000","c1003","c1009","c1087","c1135","c1147","c1150","c1153","c1168","c1171","c1183","c1189","c1195","c1198","c1201","c1213","c1219","c1225","c1237","c1246","c1264","c1276","c1000n","c1003n"];
-var I18N_TRMNL = {% if sw_i18n and sw_i18n != '' %}{{ sw_i18n }}{% else %}{}{% endif %};   // the table itself lives in each view file (100 KB per file)
+var I18N_TRMNL = {% if sw_i18n and sw_i18n != '' %}{{ sw_i18n }}{% else %}{}{% endif %};
 // ==== I18N_TRMNL_END ====
 var OURS_KEYS = ['temp_s', 'rain', 'rain_from', 'rain_until', 'until', 'raining_now', 'no_rain', 'dry', 'next_h', 'dry_h',
  'frost', 'no_signal', 'no_forecast', 'next_days', 'over', 'under', 'now', 'rain_chance', 'wind', 'temperature', 'today', 'lh',
  'snow', 'hail', 'snow_from', 'snow_until', 'snowing_now', 'hail_from', 'hail_until', 'hailing_now', 'hum', 'uv', 'humidity',
- 'gust', 'pressure', 'feels', 'compass'];
+ 'gust', 'pressure', 'feels', 'compass', 'sunrise', 'sunset'];
 var OURS = {
- en: 'TEMP|RAIN|RAIN FROM|RAIN UNTIL|UNTIL|RAINING NOW|NO RAIN|DRY|NEXT {n} H|DRY {n} H|FROST|NO SIGNAL|NO FORECAST|NEXT DAYS|OVER|UNDER|NOW|RAIN CHANCE|WIND|TEMPERATURE|TODAY|L/H|SNOW|HAIL|SNOW FROM|SNOW UNTIL|SNOWING NOW|HAIL FROM|HAIL UNTIL|HAIL NOW|HUM|UV|HUMIDITY|GUST|PRESSURE|FEELS LIKE|N,NE,E,SE,S,SW,W,NW',
- de: 'TEMP|REGEN|REGEN AB|REGEN BIS|BIS|ES REGNET|KEIN REGEN|TROCKEN|NÄCHSTE {n} STD|TROCKEN {n} STD|FROST|KEIN SIGNAL|KEINE VORHERSAGE|NÄCHSTE TAGE|ÜBER|UNTER|JETZT|REGENRISIKO|WIND|TEMPERATUR|HEUTE|T/H|SCHNEE|HAGEL|SCHNEE AB|SCHNEE BIS|ES SCHNEIT|HAGEL AB|HAGEL BIS|ES HAGELT||||BÖE|LUFTDRUCK|GEFÜHLT|N,NO,O,SO,S,SW,W,NW',
- fr: "TEMP|PLUIE|PLUIE DÈS|PLUIE JUSQU'À|JUSQU'À|IL PLEUT|PAS DE PLUIE|SEC|PROCHAINES {n} H|SEC {n} H|GEL|PAS DE SIGNAL|PAS DE PRÉVISION|PROCHAINS JOURS|AU-DESSUS|EN DESSOUS|MAINTENANT|RISQUE DE PLUIE|VENT|TEMPÉRATURE|AUJOURD'HUI|MIN/MAX|NEIGE|GRÊLE|NEIGE DÈS|NEIGE JUSQU'À|IL NEIGE|GRÊLE DÈS|GRÊLE JUSQU'À|IL GRÊLE||||RAFALE|PRESSION|RESSENTI|N,NE,E,SE,S,SO,O,NO",
- es: 'TEMP|LLUVIA|LLUVIA DESDE|LLUVIA HASTA|HASTA|LLUEVE|SIN LLUVIA|SECO|PRÓXIMAS {n} H|SECO {n} H|HELADA|SIN SEÑAL|SIN PRONÓSTICO|PRÓXIMOS DÍAS|ENCIMA|DEBAJO|AHORA|RIESGO DE LLUVIA|VIENTO|TEMPERATURA|HOY|MÍN/MÁX|NIEVE|GRANIZO|NIEVE DESDE|NIEVE HASTA|NIEVA|GRANIZO DESDE|GRANIZO HASTA|GRANIZA||||RACHA|PRESIÓN|SENSACIÓN|N,NE,E,SE,S,SO,O,NO',
- it: 'TEMP|PIOGGIA|PIOGGIA DALLE|PIOGGIA FINO|FINO ALLE|PIOVE|NIENTE PIOGGIA|ASCIUTTO|PROSSIME {n} ORE|ASCIUTTO {n} ORE|GELO|NESSUN SEGNALE|NESSUNA PREVISIONE|PROSSIMI GIORNI|SOPRA|SOTTO|ORA|RISCHIO PIOGGIA|VENTO|TEMPERATURA|OGGI|MIN/MAX|NEVE|GRANDINE|NEVE DALLE|NEVE FINO|NEVICA|GRANDINE DALLE|GRANDINE FINO|GRANDINA||||RAFFICA|PRESSIONE|PERCEPITA|N,NE,E,SE,S,SO,O,NO',
- nl: 'TEMP|REGEN|REGEN VANAF|REGEN TOT|TOT|HET REGENT|GEEN REGEN|DROOG|KOMENDE {n} UUR|DROOG {n} UUR|VORST|GEEN SIGNAAL|GEEN VERWACHTING|KOMENDE DAGEN|BOVEN|ONDER|NU|REGENKANS|WIND|TEMPERATUUR|VANDAAG|MIN/MAX|SNEEUW|HAGEL|SNEEUW VANAF|SNEEUW TOT|HET SNEEUWT|HAGEL VANAF|HAGEL TOT|HET HAGELT|VOCHT|UV|VOCHTIGHEID|VLAAG|LUCHTDRUK|GEVOEL|N,NO,O,ZO,Z,ZW,W,NW',
- pt: 'TEMP|CHUVA|CHUVA ÀS|CHUVA ATÉ|ATÉ|CHOVENDO|SEM CHUVA|SECO|PRÓXIMAS {n} H|SECO {n} H|GEADA|SEM SINAL|SEM PREVISÃO|PRÓXIMOS DIAS|ACIMA|ABAIXO|AGORA|CHANCE DE CHUVA|VENTO|TEMPERATURA|HOJE|MÍN/MÁX|NEVE|GRANIZO|NEVE ÀS|NEVE ATÉ|NEVANDO|GRANIZO ÀS|GRANIZO ATÉ|GRANIZANDO||||RAJADA|PRESSÃO|SENSAÇÃO|N,NE,L,SE,S,SO,O,NO',
- ja: '気温|雨|雨の開始|雨の終了|終了|降雨中|雨なし|雨なし|今後{n}時間|{n}時間 雨なし|霜|受信なし|予報なし|週間予報|超過|未満|現在|降水確率|風|気温|今日|最低/最高|雪|ひょう|雪の開始|雪の終了|降雪中|ひょうの開始|ひょうの終了|降ひょう中||||突風|気圧|体感|',
- ko: '기온|비|비 시작|비 그침|종료|비 오는 중|비 없음|비 없음|향후 {n}시간|{n}시간 비 없음|서리|신호 없음|예보 없음|주간 예보|초과|미만|현재|강수 확률|바람|기온|오늘|최저/최고|눈|우박|눈 시작|눈 그침|눈 오는 중|우박 시작|우박 그침|우박 내리는 중||||돌풍|기압|체감|',
- 'zh-CN': '气温|雨|开始下雨|雨停|至|正在下雨|无雨|无雨|未来{n}小时|{n}小时无雨|霜冻|无信号|无预报|未来几天|超出|低于|现在|降水概率|风|气温|今天|最低/最高|雪|冰雹|开始下雪|雪停|正在下雪|开始下冰雹|冰雹停|正在下冰雹||||阵风|气压|体感|',
- 'zh-HK': '氣溫|雨|開始下雨|雨停|至|正在下雨|無雨|無雨|未來{n}小時|{n}小時無雨|霜凍|無信號|無預報|未來數天|超出|低於|現在|降雨概率|風|氣溫|今天|最低/最高|雪|冰雹|開始下雪|雪停|正在下雪|開始下冰雹|冰雹停|正在下冰雹||||陣風|氣壓|體感|',
- sv: 'TEMP|REGN|REGN FRÅN|REGN TILL|TILL|DET REGNAR|INGET REGN|TORRT|KOMMANDE {n} TIM|TORRT {n} TIM|FROST|INGEN SIGNAL|INGEN PROGNOS|KOMMANDE DAGAR|ÖVER|UNDER|NU|REGNRISK|VIND|TEMPERATUR|IDAG|MIN/MAX|SNÖ|HAGEL|SNÖ FRÅN|SNÖ TILL|DET SNÖAR|HAGEL FRÅN|HAGEL TILL|DET HAGLAR||||BY|LUFTTRYCK|KÄNNS SOM|N,NO,O,SO,S,SV,V,NV',
- da: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NÆSTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN PROGNOSE|NÆSTE DAGE|OVER|UNDER|NU|REGNRISIKO|VIND|TEMPERATUR|I DAG|MIN/MAX|SNE|HAGL|SNE FRA|SNE TIL|DET SNER|HAGL FRA|HAGL TIL|DET HAGLER||||VINDSTØD|LUFTTRYK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV',
- no: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NESTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN VARSEL|NESTE DAGER|OVER|UNDER|NÅ|NEDBØRSSJANSE|VIND|TEMPERATUR|I DAG|MIN/MAKS|SNØ|HAGL|SNØ FRA|SNØ TIL|DET SNØR|HAGL FRA|HAGL TIL|DET HAGLER||||VINDKAST|LUFTTRYKK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV',
- pl: 'TEMP|DESZCZ|DESZCZ OD|DESZCZ DO|DO|PADA|BEZ DESZCZU|SUCHO|KOLEJNE {n} H|SUCHO {n} H|MRÓZ|BRAK SYGNAŁU|BRAK PROGNOZY|KOLEJNE DNI|POWYŻEJ|PONIŻEJ|TERAZ|SZANSA OPADÓW|WIATR|TEMPERATURA|DZIŚ|MIN/MAKS|ŚNIEG|GRAD|ŚNIEG OD|ŚNIEG DO|PADA ŚNIEG|GRAD OD|GRAD DO|PADA GRAD||||PORYW|CIŚNIENIE|ODCZUWALNA|N,NE,E,SE,S,SW,W,NW',
- cs: 'TEPL|DÉŠŤ|DÉŠŤ OD|DÉŠŤ DO|DO|PRŠÍ|BEZ DEŠTĚ|SUCHO|DALŠÍCH {n} H|SUCHO {n} H|MRÁZ|BEZ SIGNÁLU|BEZ PŘEDPOVĚDI|DALŠÍ DNY|NAD|POD|TEĎ|ŠANCE SRÁŽEK|VÍTR|TEPLOTA|DNES|MIN/MAX|SNÍH|KRUPOBITÍ|SNÍH OD|SNÍH DO|SNĚŽÍ|KRUPOBITÍ OD|KRUPOBITÍ DO|PADÁ KRUPOBITÍ||||NÁRAZ|TLAK|POCITOVÁ|S,SV,V,JV,J,JZ,Z,SZ'
+ en: 'TEMP|RAIN|RAIN FROM|RAIN UNTIL|UNTIL|RAINING NOW|NO RAIN|DRY|NEXT {n} H|DRY {n} H|FROST|NO SIGNAL|NO FORECAST|NEXT DAYS|OVER|UNDER|NOW|RAIN CHANCE|WIND|TEMPERATURE|TODAY|L/H|SNOW|HAIL|SNOW FROM|SNOW UNTIL|SNOWING NOW|HAIL FROM|HAIL UNTIL|HAIL NOW|HUM|UV|HUMIDITY|GUST|PRESSURE|FEELS LIKE|N,NE,E,SE,S,SW,W,NW|SUNRISE|SUNSET',
+ de: 'TEMP|REGEN|REGEN AB|REGEN BIS|BIS|ES REGNET|KEIN REGEN|TROCKEN|NÄCHSTE {n} STD|TROCKEN {n} STD|FROST|KEIN SIGNAL|KEINE VORHERSAGE|NÄCHSTE TAGE|ÜBER|UNTER|JETZT|REGENRISIKO|WIND|TEMPERATUR|HEUTE|T/H|SCHNEE|HAGEL|SCHNEE AB|SCHNEE BIS|ES SCHNEIT|HAGEL AB|HAGEL BIS|ES HAGELT||||BÖE|LUFTDRUCK|GEFÜHLT|N,NO,O,SO,S,SW,W,NW|SONNENAUFGANG|SONNENUNTERGANG',
+ fr: "TEMP|PLUIE|PLUIE DÈS|PLUIE JUSQU'À|JUSQU'À|IL PLEUT|PAS DE PLUIE|SEC|PROCHAINES {n} H|SEC {n} H|GEL|PAS DE SIGNAL|PAS DE PRÉVISION|PROCHAINS JOURS|AU-DESSUS|EN DESSOUS|MAINTENANT|RISQUE DE PLUIE|VENT|TEMPÉRATURE|AUJOURD'HUI|MIN/MAX|NEIGE|GRÊLE|NEIGE DÈS|NEIGE JUSQU'À|IL NEIGE|GRÊLE DÈS|GRÊLE JUSQU'À|IL GRÊLE||||RAFALE|PRESSION|RESSENTI|N,NE,E,SE,S,SO,O,NO|LEVER DU SOLEIL|COUCHER DU SOLEIL",
+ es: 'TEMP|LLUVIA|LLUVIA DESDE|LLUVIA HASTA|HASTA|LLUEVE|SIN LLUVIA|SECO|PRÓXIMAS {n} H|SECO {n} H|HELADA|SIN SEÑAL|SIN PRONÓSTICO|PRÓXIMOS DÍAS|ENCIMA|DEBAJO|AHORA|RIESGO DE LLUVIA|VIENTO|TEMPERATURA|HOY|MÍN/MÁX|NIEVE|GRANIZO|NIEVE DESDE|NIEVE HASTA|NIEVA|GRANIZO DESDE|GRANIZO HASTA|GRANIZA||||RACHA|PRESIÓN|SENSACIÓN|N,NE,E,SE,S,SO,O,NO|AMANECER|ATARDECER',
+ it: 'TEMP|PIOGGIA|PIOGGIA DALLE|PIOGGIA FINO|FINO ALLE|PIOVE|NIENTE PIOGGIA|ASCIUTTO|PROSSIME {n} ORE|ASCIUTTO {n} ORE|GELO|NESSUN SEGNALE|NESSUNA PREVISIONE|PROSSIMI GIORNI|SOPRA|SOTTO|ORA|RISCHIO PIOGGIA|VENTO|TEMPERATURA|OGGI|MIN/MAX|NEVE|GRANDINE|NEVE DALLE|NEVE FINO|NEVICA|GRANDINE DALLE|GRANDINE FINO|GRANDINA||||RAFFICA|PRESSIONE|PERCEPITA|N,NE,E,SE,S,SO,O,NO|ALBA|TRAMONTO',
+ nl: 'TEMP|REGEN|REGEN VANAF|REGEN TOT|TOT|HET REGENT|GEEN REGEN|DROOG|KOMENDE {n} UUR|DROOG {n} UUR|VORST|GEEN SIGNAAL|GEEN VERWACHTING|KOMENDE DAGEN|BOVEN|ONDER|NU|REGENKANS|WIND|TEMPERATUUR|VANDAAG|MIN/MAX|SNEEUW|HAGEL|SNEEUW VANAF|SNEEUW TOT|HET SNEEUWT|HAGEL VANAF|HAGEL TOT|HET HAGELT|VOCHT|UV|VOCHTIGHEID|VLAAG|LUCHTDRUK|GEVOEL|N,NO,O,ZO,Z,ZW,W,NW|ZONSOPGANG|ZONSONDERGANG',
+ pt: 'TEMP|CHUVA|CHUVA ÀS|CHUVA ATÉ|ATÉ|CHOVENDO|SEM CHUVA|SECO|PRÓXIMAS {n} H|SECO {n} H|GEADA|SEM SINAL|SEM PREVISÃO|PRÓXIMOS DIAS|ACIMA|ABAIXO|AGORA|CHANCE DE CHUVA|VENTO|TEMPERATURA|HOJE|MÍN/MÁX|NEVE|GRANIZO|NEVE ÀS|NEVE ATÉ|NEVANDO|GRANIZO ÀS|GRANIZO ATÉ|GRANIZANDO||||RAJADA|PRESSÃO|SENSAÇÃO|N,NE,L,SE,S,SO,O,NO|NASCER DO SOL|PÔR DO SOL',
+ ja: '気温|雨|雨の開始|雨の終了|終了|降雨中|雨なし|雨なし|今後{n}時間|{n}時間 雨なし|霜|受信なし|予報なし|週間予報|超過|未満|現在|降水確率|風|気温|今日|最低/最高|雪|ひょう|雪の開始|雪の終了|降雪中|ひょうの開始|ひょうの終了|降ひょう中||||突風|気圧|体感||日の出|日の入',
+ ko: '기온|비|비 시작|비 그침|종료|비 오는 중|비 없음|비 없음|향후 {n}시간|{n}시간 비 없음|서리|신호 없음|예보 없음|주간 예보|초과|미만|현재|강수 확률|바람|기온|오늘|최저/최고|눈|우박|눈 시작|눈 그침|눈 오는 중|우박 시작|우박 그침|우박 내리는 중||||돌풍|기압|체감||일출|일몰',
+ 'zh-CN': '气温|雨|开始下雨|雨停|至|正在下雨|无雨|无雨|未来{n}小时|{n}小时无雨|霜冻|无信号|无预报|未来几天|超出|低于|现在|降水概率|风|气温|今天|最低/最高|雪|冰雹|开始下雪|雪停|正在下雪|开始下冰雹|冰雹停|正在下冰雹||||阵风|气压|体感||日出|日落',
+ 'zh-HK': '氣溫|雨|開始下雨|雨停|至|正在下雨|無雨|無雨|未來{n}小時|{n}小時無雨|霜凍|無信號|無預報|未來數天|超出|低於|現在|降雨概率|風|氣溫|今天|最低/最高|雪|冰雹|開始下雪|雪停|正在下雪|開始下冰雹|冰雹停|正在下冰雹||||陣風|氣壓|體感||日出|日落',
+ sv: 'TEMP|REGN|REGN FRÅN|REGN TILL|TILL|DET REGNAR|INGET REGN|TORRT|KOMMANDE {n} TIM|TORRT {n} TIM|FROST|INGEN SIGNAL|INGEN PROGNOS|KOMMANDE DAGAR|ÖVER|UNDER|NU|REGNRISK|VIND|TEMPERATUR|IDAG|MIN/MAX|SNÖ|HAGEL|SNÖ FRÅN|SNÖ TILL|DET SNÖAR|HAGEL FRÅN|HAGEL TILL|DET HAGLAR||||BY|LUFTTRYCK|KÄNNS SOM|N,NO,O,SO,S,SV,V,NV|SOLUPPGÅNG|SOLNEDGÅNG',
+ da: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NÆSTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN PROGNOSE|NÆSTE DAGE|OVER|UNDER|NU|REGNRISIKO|VIND|TEMPERATUR|I DAG|MIN/MAX|SNE|HAGL|SNE FRA|SNE TIL|DET SNER|HAGL FRA|HAGL TIL|DET HAGLER||||VINDSTØD|LUFTTRYK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV|SOLOPGANG|SOLNEDGANG',
+ no: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NESTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN VARSEL|NESTE DAGER|OVER|UNDER|NÅ|NEDBØRSSJANSE|VIND|TEMPERATUR|I DAG|MIN/MAKS|SNØ|HAGL|SNØ FRA|SNØ TIL|DET SNØR|HAGL FRA|HAGL TIL|DET HAGLER||||VINDKAST|LUFTTRYKK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV|SOLOPPGANG|SOLNEDGANG',
+ pl: 'TEMP|DESZCZ|DESZCZ OD|DESZCZ DO|DO|PADA|BEZ DESZCZU|SUCHO|KOLEJNE {n} H|SUCHO {n} H|MRÓZ|BRAK SYGNAŁU|BRAK PROGNOZY|KOLEJNE DNI|POWYŻEJ|PONIŻEJ|TERAZ|SZANSA OPADÓW|WIATR|TEMPERATURA|DZIŚ|MIN/MAKS|ŚNIEG|GRAD|ŚNIEG OD|ŚNIEG DO|PADA ŚNIEG|GRAD OD|GRAD DO|PADA GRAD||||PORYW|CIŚNIENIE|ODCZUWALNA|N,NE,E,SE,S,SW,W,NW|WSCHÓD SŁOŃCA|ZACHÓD SŁOŃCA',
+ cs: 'TEPL|DÉŠŤ|DÉŠŤ OD|DÉŠŤ DO|DO|PRŠÍ|BEZ DEŠTĚ|SUCHO|DALŠÍCH {n} H|SUCHO {n} H|MRÁZ|BEZ SIGNÁLU|BEZ PŘEDPOVĚDI|DALŠÍ DNY|NAD|POD|TEĎ|ŠANCE SRÁŽEK|VÍTR|TEPLOTA|DNES|MIN/MAX|SNÍH|KRUPOBITÍ|SNÍH OD|SNÍH DO|SNĚŽÍ|KRUPOBITÍ OD|KRUPOBITÍ DO|PADÁ KRUPOBITÍ||||NÁRAZ|TLAK|POCITOVÁ|S,SV,V,JV,J,JZ,Z,SZ|VÝCHOD SLUNCE|ZÁPAD SLUNCE'
 };
 var OURS_COND = {"ja": "晴れ|晴れ時々曇り|曇り|雷|霧|着氷性の霧|弱い霧雨|霧雨|着氷性の霧雨|強い着氷性の霧雨|小雨|雨|大雨|弱い着氷性の雨|強い着氷性の雨|小雪|雪|大雪|凍雨|豪雨|雷雨|快晴|晴れ時々曇り", "it": "SOLEGGIATO|PARZIALMENTE NUVOLOSO|COPERTO|TUONI|NEBBIA|NEBBIA GELATA|PIOVIGGINE DEBOLE|PIOVIGGINE|PIOVIGGINE GELATA|GELICIDIO FORTE|PIOGGIA DEBOLE|PIOGGIA MODERATA|PIOGGIA FORTE|PIOGGIA GELATA DEBOLE|PIOGGIA GELATA FORTE|NEVE DEBOLE|NEVE MODERATA|NEVE FORTE|GRANULI DI GHIACCIO|PIOGGIA TORRENZIALE|TEMPORALE|SERENO|PARZIALMENTE NUVOLOSO", "no": "SOL|DELVIS SKYET|OVERSKYET|TORDEN|TÅKE|FRYSETÅKE|LETT YR|YR|UNDERKJØLT YR|KRAFTIG UNDERKJØLT YR|LETT REGN|MODERAT REGN|KRAFTIG REGN|LETT UNDERKJØLT REGN|KRAFTIG UNDERKJØLT REGN|LETT SNØ|MODERAT SNØ|KRAFTIG SNØ|ISKORN|STYRTREGN|TORDENBYGER|KLART|DELVIS SKYET", "sv": "SOLIGT|HALVKLART|MULET|ÅSKA|DIMMA|UNDERKYLD DIMMA|LÄTT DUGGREGN|DUGGREGN|UNDERKYLT DUGGREGN|KRAFTIGT UNDERKYLT DUGGREGN|LÄTT REGN|MÅTTLIGT REGN|KRAFTIGT REGN|LÄTT UNDERKYLT REGN|KRAFTIGT UNDERKYLT REGN|LÄTT SNÖ|MÅTTLIG SNÖ|KRAFTIG SNÖ|ISKORN|SKYFALL|ÅSKA OCH REGN|KLART|HALVKLART"};
 var WMO_TO_WAPI = { 0: 1000, 1: 1003, 2: 1003, 3: 1009, 45: 1135, 48: 1147, 51: 1150, 53: 1153, 55: 1153, 56: 1168, 57: 1171,
@@ -321,7 +305,6 @@ var I18N = (function () {
   precipitation: english ? ours('rain') : (lw('precipitation', 'p.precipitation') || trmnl('p.precipitation') || ours('rain')), today: pick('w.today', 'today', 'today'), wind: pick('p.wind', 'wind', 'wind'),
   thunder: trmnl('c1087') || cond(95, true), snow: pick('t.snow', 'snow'), hail: ours('hail'), lo: (lh[0] || 'L').trim(), hi: (lh[1] || 'H').trim() };
 })();
-
  var NS = 'http://www.w3.org/2000/svg';
  function mk(tag, attrs, parent) {
   var e = document.createElementNS(NS, tag);
@@ -330,10 +313,8 @@ var I18N = (function () {
   return e;
  }
  function R(v) { return Math.round(v); }
-
  var GLYPH = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg',
   '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '', 'C': 'adef', 'F': 'aefg', 'o': 'abfg' };
-
  function hseg(x0, x1, y, t) {
   var h = t / 2;
   return [[x0, y], [x0 + h, y - h], [x1 - h, y - h], [x1, y], [x1 - h, y + h], [x0 + h, y + h]];
@@ -343,7 +324,7 @@ var I18N = (function () {
   return [[x, y0], [x + h, y0 + h], [x + h, y1 - h], [x, y1], [x - h, y1 - h], [x - h, y0 + h]];
  }
  function segShapes(x, y, w, h, t) {
-  var g = Math.max(1, t * 0.16);
+  var g = MX(1, t * 0.16);
   var xl = x + t / 2, xr = x + w - t / 2, yt = y + t / 2, ym = y + h / 2, yb = y + h - t / 2;
   return {
    a: hseg(xl + g, xr - g, yt, t), g: hseg(xl + g, xr - g, ym, t), d: hseg(xl + g, xr - g, yb, t),
@@ -352,7 +333,6 @@ var I18N = (function () {
   };
  }
  function pts(p) { return p.map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '); }
-
  function draw(stage) {
   var view = parseInt(stage.getAttribute('data-sw-view'), 10) || 1;
   var TP = window.TRMNLPaint || null;
@@ -362,9 +342,8 @@ var I18N = (function () {
   var rect = stage.getBoundingClientRect();
   var z = rect.width / W || 1;
   var UW = R(W * z), UH = R(H * z);
-  var ox = rect.left - Math.floor(rect.left), oy = rect.top - Math.floor(rect.top);
+  var ox = rect.left - FL(rect.left), oy = rect.top - FL(rect.top);
   function u(cssPx) { return R(cssPx * z); }
-
   function colorOf(v, dflt) {
    if (!v) return dflt;
    if (typeof v === 'string') return v;
@@ -378,8 +357,6 @@ var I18N = (function () {
     paper = colorOf(TP.semantic('canvas', opt), paper);
    }
   } catch (e) { /* defaults */ }
-
-
   var svg = mk('svg', { xmlns: NS, width: W, height: H, viewBox: [ox, oy, UW, UH].join(' '),
    display: 'block', 'shape-rendering': 'crispEdges' });
   var defs = mk('defs', {}, svg);
@@ -391,7 +368,7 @@ var I18N = (function () {
    var ref = fallback;
    if (f && f.url && f.color && bits === 2 && !/^rgb\(255, 255, 255\)$/.test(f.color)) f = { color: f.color };
    if (f && f.url && f.size) {
-    var id = 'swp' + view + '-' + (patN++) + '-' + Math.floor(Math.random() * 1e6);
+    var id = 'swp' + view + '-' + (patN++) + '-' + FL(Math.random() * 1e6);
     var s = f.size * z;
     var p = mk('pattern', { id: id, patternUnits: 'userSpaceOnUse', width: s, height: s, x: 0, y: 0 }, defs);
     if (f.color) mk('rect', { width: s, height: s, fill: f.color }, p);
@@ -422,7 +399,6 @@ var I18N = (function () {
   var RED = hue('red') || ink, YEL = hue('yellow');
   var FULL = /screen--color-full/.test(cls);
   var BLUE = hue('blue');
-
   var SEVEN = /screen--color-7a/.test(cls);
   var ORANGE = SEVEN ? fillOf('orange', null) : null;
   var FACE_OR = ORANGE;
@@ -431,7 +407,6 @@ var I18N = (function () {
   var PLATE = bits === 4 ? fillOf('gray-75', '#eee') : null;
   var BRUSH = bits === 4 ? fillOf('gray-70', '#ddd') : null;
   var SHADE = bits >= 2 ? fillOf(bits === 4 ? 'gray-45' : 'gray-40', '#888') : null;
-
   function spec(role, fallbackPx) {
    var t = null;
    try { t = TP ? TP.type(role, opt) : null; } catch (e) { t = null; }
@@ -439,17 +414,15 @@ var I18N = (function () {
    return { family: (t && t.fontFamily) || 'sans-serif', size: size * z, weight: (t && t.fontWeight) || '400' };
   }
   var SM = spec('label label--small', 12), MD = spec('label', 16), LG = spec('title', 21);
-
   var root = mk('g', {}, svg);
   stage.appendChild(svg);
-
   var PIXFONT = bits <= 2 && z < 1.5 && /trmnl|nico|block/i.test(String(LG.family)) && /trmnl|nico|block/i.test(String(SM.family));
   function pixel(sp, weight) {
    var nat = [SM, MD, LG].map(function (q) { return { family: q.family, size: Math.round(q.size) }; });
    var best = nat[0];
    nat.forEach(function (q) { if (q.size <= sp.size * 1.04 && q.size >= best.size) best = q; });
    var size = best.size;
-   if (sp.size >= nat[2].size * 2 * 0.96) size = nat[2].size * Math.floor(sp.size / nat[2].size + 0.04), best = nat[2];
+   if (sp.size >= nat[2].size * 2 * 0.96) size = nat[2].size * FL(sp.size / nat[2].size + 0.04), best = nat[2];
    return { family: best.family, size: size, weight: parseInt(weight, 10) >= 600 ? '700' : '400' };
   }
   function text(parent, str, x, y, sp, opts) {
@@ -478,7 +451,7 @@ var I18N = (function () {
    var b = { height: sp.size * 0.7, y: -sp.size * 0.7 };
    try { b = t.getBBox(); } catch (e) { /* estimate */ }
    root.removeChild(t);
-   var c = Math.min(Math.abs(b.y), sp.size) * 0.98;
+   var c = MN(Math.abs(b.y), sp.size) * 0.98;
    capCache[k] = c > 0 ? c : sp.size * 0.7;
    return capCache[k];
   }
@@ -500,7 +473,7 @@ var I18N = (function () {
    var plain = { fill: opts.fill, weight: opts.weight, ls: opts.ls };
    var words = [str];
    if (SHORTER[str]) words.push(SHORTER[str]);
-   var sizes = [sp, opts.smaller, { family: sp.family, size: sp.size * 0.85, weight: sp.weight }, { family: sp.family, size: sp.size * 0.7, weight: sp.weight }].filter(Boolean);
+   var sizes = opts.noShrink ? [sp] : [sp, opts.smaller, { family: sp.family, size: sp.size * 0.85, weight: sp.weight }, { family: sp.family, size: sp.size * 0.7, weight: sp.weight }].filter(Boolean);
    var t = null;
    for (var wi = 0; wi < words.length; wi++) {
     for (var si = 0; si < sizes.length; si++) {
@@ -518,14 +491,12 @@ var I18N = (function () {
    return mk('rect', { x: R(x), y: R(y), width: R(w), height: R(h), rx: r, ry: r, fill: fill || 'none',
     stroke: stroke || null, 'stroke-width': sw || null }, parent);
   }
-
   var M = SWModel.build(SW_RAW, SW_CFG);
-
   function faceplate(g, x, y, w, h) {
-   var r = u(10), bw = Math.max(2, u(2));
+   var r = u(10), bw = MX(2, u(2));
    if (PLATE) {
     rrect(g, x, y, w, h, r, PLATE);
-    for (var yy = y + u(3); yy < y + h - u(3); yy += Math.max(3, u(3))) {
+    for (var yy = y + u(3); yy < y + h - u(3); yy += MX(3, u(3))) {
      mk('rect', { x: x + u(4), y: R(yy), width: w - u(8), height: 1, fill: BRUSH }, g);
     }
     mk('path', { d: 'M' + (x + r) + ' ' + (y + bw * 1.5) + ' H' + (x + w - r) + ' M' + (x + bw * 1.5) + ' ' + (y + r) + ' V' + (y + h - r),
@@ -536,29 +507,24 @@ var I18N = (function () {
      stroke: SHADE, 'stroke-width': bw, fill: 'none' }, g);
    }
    rrect(g, x + bw / 2, y + bw / 2, w - bw, h - bw, r, 'none', ink, bw);
-   if (!PLATE) rrect(g, x + u(4), y + u(4), w - u(8), h - u(8), Math.max(2, r - u(3)), 'none', ink, 1);
+   if (!PLATE) rrect(g, x + u(4), y + u(4), w - u(8), h - u(8), MX(2, r - u(3)), 'none', ink, 1);
   }
-
   function icon(g, kind, cx, cy, sz, isDay) {
    if (!kind) return;
    var ig = mk('g', { 'data-sw-icon': 'drawn', 'data-sw-now': ICON_NOW ? 1 : null }, g);
-   mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.3), fill: 'none', stroke: ICON_INK || ink, 'stroke-width': Math.max(2, R(sz * 0.06)) }, ig);
+   mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.3), fill: 'none', stroke: ICON_INK || ink, 'stroke-width': MX(2, R(sz * 0.06)) }, ig);
    mk('circle', { cx: R(cx), cy: R(cy), r: R(sz * 0.07), fill: ICON_INK || ink }, ig);
    return ig;
   }
-
   var debug = { view: view, z: z, W: UW, H: UH };
-
   var deg = '°';
-
-
   // ================= hybrid receiver =================
-  var TS = Math.max(1, (spec('label', 16).size / z) / 16);
+  var TS = MX(1, (spec('label', 16).size / z) / 16);
   debug.ts = TS; debug.palette = { color: color, red: RED !== ink, yel: !!YEL, blue: !!BLUE }; debug.labelPx = spec('label', 16).size / z;
-  function RD(px, minCss) { return Math.max(px, u(minCss)) * TS; }
+  function RD(px, minCss) { return MX(px, u(minCss)) * TS; }
   var FAM = LG.family;
   function F(px, w) {
-   var q = { family: FAM, size: Math.max(8, R(px)), weight: w || '700' };
+   var q = { family: FAM, size: MX(8, R(px)), weight: w || '700' };
    return PIXFONT ? pixel(q, q.weight) : q;
   }
   function tStr(v) { return v === null || v === undefined ? '--' : SWModel.fmt(v) + deg; }
@@ -573,15 +539,15 @@ var I18N = (function () {
   var station = (SW_CFG.label || '').toUpperCase();
   var CREDIT = (SW_CFG.hideTitle || view !== 1 ? (M.now.sync ? M.now.sync + '  \u00b7  ' : '') : '') + 'OPEN-METEO';
   var ICON_INK = null, ICON_NOW = false, drawnIcon = icon, iconsUsed = { wi: 0, drawn: 0 };
-  function wiName(kind, isDay) { return (WI_MAP[kind] || [])[isDay === null ? 2 : (isDay === false ? 1 : 0)]; }
+  function wiName(kind, isDay) { return /^wi-/.test(kind) ? kind : (WI_MAP[kind] || [])[isDay === null ? 2 : (isDay === false ? 1 : 0)]; }
   icon = function (g, kind, cx, cy, sz, isDay) {
    if (!kind) return;
    var name = wiName(kind, isDay), s = name && WI[name];
    if (!s) { iconsUsed.drawn++; return drawnIcon(g, kind, cx, cy, sz, isDay); }
    iconsUsed.wi++;
-   var vb = s.vb, k = sz * 1.4 / Math.max(vb[2], vb[3]);
+   var vb = s.vb, k = sz * 1.4 / MX(vb[2], vb[3]);
    var ig = mk('g', { transform: 'translate(' + (cx - vb[2] * k / 2 - vb[0] * k).toFixed(1) + ' ' + (cy - vb[3] * k / 2 - vb[1] * k).toFixed(1) + ') scale(' + k.toFixed(4) + ')',
-    fill: ICON_INK || ink, 'shape-rendering': 'geometricPrecision', 'data-sw-icon': name, 'data-sw-now': ICON_NOW ? 1 : null }, g);
+    fill: ICON_INK || ink, 'shape-rendering': GPX, 'data-sw-icon': name, 'data-sw-now': ICON_NOW ? 1 : null }, g);
    for (var i = 0; i < s.nodes.length; i++) {
     var nd = s.nodes[i];
     if (nd.nodeType !== 1) continue;
@@ -596,18 +562,18 @@ var I18N = (function () {
    var name = wiName(kind, isDay), s = name && WI[name], bb, per, vb = s ? s.vb : [0, 0, 0, 0];
    if (s) {
     if (!s.ink) { var tg = mk('g', {}, root); var i0 = icon(tg, kind, 0, 0, 100, isDay); s.ink = i0.getBBox(); iconsUsed.wi--; root.removeChild(tg); }
-    bb = s.ink; per = 1.4 / Math.max(vb[2], vb[3]);
+    bb = s.ink; per = 1.4 / MX(vb[2], vb[3]);
    } else { bb = { x: -0.33, y: -0.33, width: 0.66, height: 0.66 }; per = 1; }
-   var sz = Math.max(1, Math.min(hWant / (bb.height * per), (box.b - box.t) / (bb.height * per), (box.r - box.l) / (bb.width * per)));
+   var sz = MX(1, MN(hWant / (bb.height * per), (box.b - box.t) / (bb.height * per), (box.r - box.l) / (bb.width * per)));
    var k = sz * per, w = bb.width * k, h = bb.height * k;
-   var icy = Math.max(box.t + h / 2, Math.min(box.b - h / 2, cy)), icx = box.r - w / 2;
+   var icy = MX(box.t + h / 2, MN(box.b - h / 2, cy)), icx = box.r - w / 2;
    var ib = { l: R(icx - w / 2), r: R(box.r), t: R(icy - h / 2), b: R(icy + h / 2), w: w, h: h };
    if (!dry && kind) icon(g, kind, icx - (bb.x + bb.width / 2 - vb[0] - vb[2] / 2) * k, icy - (bb.y + bb.height / 2 - vb[1] - vb[3] / 2) * k, sz, isDay);
    return ib;
   }
   var clipK = 0, meterK = 0;
   function meter(g, x, y, w, h, o) {
-   var lw = Math.max(2, u(2.5)), MN = meterK++;
+   var lw = MX(2, u(2.5)), MN = meterK++;
    rrect(g, x, y, w, h, u(10), ink);
    var fx = x + u(7), fy = y + u(7), fw = w - u(14), fh = h - u(14);
    var FF = faceFill(fx, fy, fw, fh);
@@ -618,41 +584,41 @@ var I18N = (function () {
    var fx0 = fx, fy0 = fy;
    var badge = null, topBox = null, bm = u(10);
    if (o.badge) {
-    var BG = F(RD(Math.min(fh, fw) * 0.055, 10), '800'), bp = BG.size * 0.45;
+    var BG = F(RD(MN(fh, fw) * 0.055, 10), '800'), bp = BG.size * 0.45;
     var bt0 = text(g, o.badge, 0, 0, BG); var btw = width(bt0); g.removeChild(bt0);
     var bwd = btw + 2 * bp, bht = BG.size * 1.3;
     badge = { x: o.badge === 'R' ? fx0 + fw - bm - bwd : fx0 + bm, y: fy0 + bm, w: bwd, h: bht, sp: BG };
     topBox = { l: badge.x, r: badge.x + badge.w, t: badge.y, b: badge.y + badge.h };
    }
    if (o.captioned && o.name) {
-    var CP = F(Math.max(HS.size, badge ? badge.sp.size * 1.1 : RD(fh * 0.075, 12)), '700'), cg = CP.size * 0.5;
+    var CP = o.captioned.family ? o.captioned : F(MX(HS.size, badge ? badge.sp.size * 1.1 : RD(fh * 0.075, 12)), '700'), cg = CP.size * 0.5;
     var capRoom = fw * 0.6 - (badge ? badge.w + cg : 0), capY = (badge ? badge.y + badge.h / 2 : fy0 + bm + CP.size * 0.65) + CP.size * 0.36;
     var capX = !badge ? fx0 + fw / 2 : (o.badge === 'R' ? badge.x - cg : badge.x + badge.w + cg);
-    var ct = fitText(g, o.name, capX, capY, CP, capRoom, { anchor: !badge ? 'middle' : (o.badge === 'R' ? 'end' : 'start'), ls: R(CP.size * 0.08) });
+    var ct = fitText(g, o.name, capX, capY, CP, capRoom, { anchor: !badge ? 'middle' : (o.badge === 'R' ? 'end' : 'start'), ls: R(CP.size * 0.08), noShrink: !!o.captioned.family });
     ct.setAttribute('data-sw-caption', MN);
     if (o.chan === 'R') debug.rainCaption = ct.textContent;
     var cl = parseFloat(ct.getAttribute('x')), cb = { l: cl, r: cl + width(ct), t: capY - CP.size * 0.8, b: capY + CP.size * 0.25 };
-    topBox = topBox ? { l: Math.min(topBox.l, cb.l), r: Math.max(topBox.r, cb.r), t: Math.min(topBox.t, cb.t), b: Math.max(topBox.b, cb.b) } : cb;
+    topBox = topBox ? { l: MN(topBox.l, cb.l), r: MX(topBox.r, cb.r), t: MN(topBox.t, cb.t), b: MX(topBox.b, cb.b) } : cb;
    }
-   var fhE = Math.min(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
+   var fhE = MN(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
    var shortFace = fh < fw * 0.42;
    var A = (shortFace ? 52 : 42) * Math.PI / 180;
    var pyy = fy + fh * 0.86;            // the hub low in the face (owner's reference)
-   var rArc = Math.min(fw * 0.43 / Math.sin(A), (pyy - fy - fh * (shortFace ? 0.13 : 0.2)));
+   var rArc = MN(fw * 0.43 / Math.sin(A), (pyy - fy - fh * (shortFace ? 0.13 : 0.2)));
    var cx = fx + fw / 2, py = pyy;
    var MK = F(RD(fh * (o.small ? 0.07 : 0.05), o.small ? 11 : 10), '700'), bm = R(fh * 0.045) + lw * 2, fm = u(10), AM = A * 1.06;
    function wOf(str) { var t0 = text(g, str, 0, 0, MK), tw = width(t0); g.removeChild(t0); return tw; }
-   var mkW = Math.max(wOf(I18N.lo), wOf(I18N.hi), wOf(I18N.ours('now')));
+   var mkW = MX(wOf(I18N.lo), wOf(I18N.hi), wOf(I18N.ours('now')));
    function kOf(an, tw) { return bm + fh * 0.05 + u(3) + tw / 2 * Math.abs(Math.sin(an)) + MK.size * 0.63 * Math.cos(an); }
-   for (var ai = 0; ai <= 8; ai++) rArc = Math.min(rArc, (py - fy0 - fm - MK.size * 0.63) / Math.cos(AM * ai / 8) - kOf(AM * ai / 8, mkW));
-   rArc = Math.max(rArc, fh * 0.3);
+   for (var ai = 0; ai <= 8; ai++) rArc = MN(rArc, (py - fy0 - fm - MK.size * 0.63) / Math.cos(AM * ai / 8) - kOf(AM * ai / 8, mkW));
+   rArc = MX(rArc, fh * 0.3);
    var AL = AM;
    while (AL > 0 && (rArc + kOf(AL, mkW)) * Math.sin(AL) + mkW / 2 > fw / 2 - fm) AL -= 0.01;
-   function at(f, rad) { var an = -A + 2 * A * Math.max(-0.03, Math.min(1.03, f)); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
+   function at(f, rad) { var an = -A + 2 * A * MX(-0.03, MN(1.03, f)); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
    function arc(rad, f0, f1, sw, col) {
     var p0 = at(f0, rad), p1 = at(f1, rad);
     return mk('path', { d: 'M' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1) + ' A' + rad + ' ' + rad + ' 0 0 1 ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1),
-     fill: 'none', stroke: col || ink, 'stroke-width': sw, 'shape-rendering': 'geometricPrecision' }, g);
+     fill: 'none', stroke: col || ink, 'stroke-width': sw, 'shape-rendering': GPX }, g);
    }
    var SC = F(RD(fh * (o.small ? 0.085 : 0.065), o.small ? 12 : 11), o.small ? '700' : '500');
    arc(rArc, 0, 1, lw);
@@ -663,32 +629,32 @@ var I18N = (function () {
    }
    o.ticks.forEach(function (tk) {
     var p0 = at(tk.f, rArc), p1 = at(tk.f, rArc - (tk.major ? fh * 0.07 : fh * 0.035));
-    mk('line', { x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], stroke: ink, 'stroke-width': tk.major ? lw : Math.max(1, R(lw * 0.6)), 'shape-rendering': 'geometricPrecision' }, g);
+    mk('line', { x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], stroke: ink, 'stroke-width': tk.major ? lw : MX(1, R(lw * 0.6)), 'shape-rendering': GPX }, g);
    });
    var labs = o.ticks.filter(function (tk) { return tk.label !== undefined; }), compact = o.small || fw / z < 420;
    if (compact) SC = F(SC.size * 1.12, SC.weight);
    var placed = [];
-   var nv = o.needle === null ? -0.03 : Math.max(-0.03, Math.min(1.03, o.needle));
+   var nv = o.needle === null ? -0.03 : MX(-0.03, MN(1.03, o.needle));
    var ang = -A + 2 * A * nv, ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux;
    var tipR = rArc + fh * 0.025, tailR = fh * 0.1;
-   var wBase = bits === 1 ? 3 : Math.max(3, u(3)), wTip = bits === 1 ? 1 : Math.max(1, u(0.8));
+   var wBase = bits === 1 ? 3 : MX(3, u(3)), wTip = bits === 1 ? 1 : MX(1, u(0.8));
    function boxOf(tk) {
     var pl = at(tk.f, rArc - fh * 0.07 - SC.size * 0.85), t0 = text(g, tk.label, 0, 0, SC), tw = width(t0);
     g.removeChild(t0);
-    var ko = Math.max(3, u(5)) / 2;
+    var ko = MX(3, u(5)) / 2;
     return { tk: tk, x: pl[0], y: pl[1], l: pl[0] - tw / 2 - SC.size * 0.3 - ko, r: pl[0] + tw / 2 + SC.size * 0.3 + ko, t: pl[1] - SC.size * 0.65 - ko, b: pl[1] + SC.size * 0.65 + ko };
    }
    function onNeedle(bx) { for (var k = 0; k <= 40; k++) { var xx = cx + ux * tipR * k / 40, yy = py + uy * tipR * k / 40;
     if (xx > bx.l - wBase && xx < bx.r + wBase && yy > bx.t - wBase && yy < bx.b + wBase) return true; } return false; }
    var nl = labs.length - 1;
-   for (var ks = compact ? Math.max(1, Math.ceil(nl / 2)) : 1; ks <= Math.max(1, nl); ks++) {
+   for (var ks = compact ? MX(1, Math.ceil(nl / 2)) : 1; ks <= MX(1, nl); ks++) {
     if (nl % ks) continue;
     var sel = labs.filter(function (tk, i) { return i % ks === 0; }).map(boxOf);
     if (ks >= nl || sel.every(function (bx, i) { return (i === 0 || i === sel.length - 1 || !onNeedle(bx)) &&
      sel.every(function (q, j) { return j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > q.b; }); })) { placed = sel; break; }
    }
    var scaleLabels = placed;
-   var mks = (o.marks || []).map(function (m) { return { m: m, tw: wOf(m.label), an: Math.max(-AL, Math.min(AL, -A + 2 * A * Math.max(-0.03, Math.min(1.03, m.f)))) }; });
+   var mks = (o.marks || []).map(function (m) { return { m: m, tw: wOf(m.label), an: MX(-AL, MN(AL, -A + 2 * A * MX(-0.03, MN(1.03, m.f)))) }; });
    function mkBox(q) { var rc = rArc + kOf(q.an, q.tw), x0 = cx + rc * Math.sin(q.an), y0 = py - rc * Math.cos(q.an);
     return { x: x0, y: y0, l: x0 - q.tw / 2, r: x0 + q.tw / 2, t: y0 - MK.size * 0.63, b: y0 + MK.size * 0.63 }; }
    function hit(p, q) { return p.r + u(4) > q.l && q.r + u(4) > p.l && p.b + u(2) > q.t && q.b + u(2) > p.t; }
@@ -697,13 +663,13 @@ var I18N = (function () {
     mks.forEach(function (q, i) {
      if (topBox && hit(mkBox(q), topBox)) { q.an += badge ? (o.badge === 'L' ? 0.02 : -0.02) : (q.an <= 0 ? -0.02 : 0.02); moved = true; }
      if (i && hit(mkBox(mks[0]), mkBox(q))) { var d = mks[0].an <= q.an ? 0.01 : -0.01; mks[0].an -= d; q.an += d; moved = true; }
-     q.an = Math.max(-AL, Math.min(AL, q.an));
+     q.an = MX(-AL, MN(AL, q.an));
     });
     if (!moved) break;
    }
    mks.forEach(function (q) {
     var m = q.m, t0 = at(m.f, rArc + bm + u(2)), t1 = at(m.f - 0.012, rArc + bm + fh * 0.05), t2 = at(m.f + 0.012, rArc + bm + fh * 0.05);
-    mk('polygon', { points: [t0, t1, t2].map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '), fill: ink, 'shape-rendering': 'geometricPrecision' }, g);
+    mk('polygon', { points: [t0, t1, t2].map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '), fill: ink, 'shape-rendering': GPX }, g);
     var bx = mkBox(q);
     text(g, m.label, bx.x, bx.y + MK.size * 0.37, MK, { anchor: 'middle' }).setAttribute('data-sw-mark', MN);
    });
@@ -720,11 +686,11 @@ var I18N = (function () {
      .map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' ');
    }
    var NEEDLE = bits === 4 ? fillOf('gray-15', '#222') : ink;
-   if (bits === 4) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55', '#999'), 'shape-rendering': 'geometricPrecision' }, ng);
+   if (bits === 4) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55', '#999'), 'shape-rendering': GPX }, ng);
    mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': o.chan, 'data-sw-meter': MN }, ng);
    scaleLabels.forEach(function (bx) {
     var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
-    tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Math.max(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
+    tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', MX(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
     tl2.setAttribute('stroke-linejoin', 'round'); tl2.setAttribute('data-sw-scale', MN);
    });
    var pad = fh * 0.06;
@@ -732,18 +698,18 @@ var I18N = (function () {
    var cornerTxt = (o.captioned || (PIXFONT && o.small) ? o.unitName : o.shortName + ' ' + o.unitName).trim();
    var BIG = F(fh * (o.captioned ? 0.15 : 0.11), '700');
    var ly1 = fy + fh * 0.92;
-   var clearHub = cx - fx - pad - Math.max(u(16), fh * 0.14);
-   var cRoom = Math.max(u(30), Math.min(freeW(ly1 - BIG.size * 0.8), clearHub));
+   var clearHub = cx - fx - pad - MX(u(16), fh * 0.14);
+   var cRoom = MX(u(30), MN(freeW(ly1 - BIG.size * 0.8), clearHub));
    var nt = cornerTxt ? fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) }) : null;
    debug.cornerPrint = debug.cornerPrint || [];
-   if (nt) debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - Math.max(u(5), fh * 0.035)), gap: R(2 * Math.max(u(5), fh * 0.035)) });
+   if (nt) debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - MX(u(5), fh * 0.035)), gap: R(2 * MX(u(5), fh * 0.035)) });
    (debug.names = debug.names || []).push((o.captioned ? o.name + ' ' + o.unitName : (nt ? nt.textContent : '')).trim());
    (debug.marks = debug.marks || []).push({ chan: o.chan, labels: mks.map(function (q) { return q.m.label; }) });
    if (o.needle !== null && (o.needle < -0.001 || o.needle > 1.001)) {
     var over = o.needle > 1, LW = F(fh * 0.045, '800'), lword = I18N.ours(over ? 'over' : 'under');
     var endLab = placed.length ? placed[over ? placed.length - 1 : 0] : null, pe = at(over ? 1.03 : -0.03, rArc - fh * 0.1);
     var nX = function (yy) { return cx + (py - yy) * Math.tan(ang); }, nm = wBase + u(2), gapN = nm + u(3);
-    var hubR = Math.max(u(5), fh * 0.035) + u(4);
+    var hubR = MX(u(5), fh * 0.035) + u(4);
     var others = placed.concat(mks.map(mkBox), nt ? [{ l: parseFloat(nt.getAttribute('x')), r: parseFloat(nt.getAttribute('x')) + width(nt), t: ly1 - BIG.size, b: ly1 }] : [],
      [{ l: cx - hubR, r: cx + hubR, t: py - hubR, b: py + hubR }]);
     if (topBox) others.push(topBox);
@@ -771,10 +737,10 @@ var I18N = (function () {
     if (!pick) pick = [lword, over ? pe[0] - lw0 : pe[0], pe[1] + fh * 0.03];
     text(g, pick[0], pick[1], pick[2], LW).setAttribute('data-sw-limit', MN);
    }
-   var hubR = Math.max(u(5), fh * 0.035);
-   if (bits === 4) mk('circle', { cx: R(cx + u(2)), cy: R(py + u(2)), r: R(hubR), fill: FULL ? 'rgb(0,0,0,0.25)' : fillOf('gray-55', '#999'), 'shape-rendering': 'geometricPrecision' }, g);
-   mk('circle', { cx: R(cx), cy: R(py), r: R(hubR), fill: ink, 'shape-rendering': 'geometricPrecision' }, g);
-   mk('circle', { cx: R(cx), cy: R(py), r: R(Math.max(1.5, hubR * 0.35)), fill: bits === 1 ? paper : fillOf('gray-60', '#aaa'), 'shape-rendering': 'geometricPrecision' }, g);
+   var hubR = MX(u(5), fh * 0.035);
+   if (bits === 4) mk('circle', { cx: R(cx + u(2)), cy: R(py + u(2)), r: R(hubR), fill: FULL ? 'rgb(0,0,0,0.25)' : fillOf('gray-55', '#999'), 'shape-rendering': GPX }, g);
+   mk('circle', { cx: R(cx), cy: R(py), r: R(hubR), fill: ink, 'shape-rendering': GPX }, g);
+   mk('circle', { cx: R(cx), cy: R(py), r: R(MX(1.5, hubR * 0.35)), fill: bits === 1 ? paper : fillOf('gray-60', '#aaa'), 'shape-rendering': GPX }, g);
    if (badge) {
     var br = rrect(g, badge.x, badge.y, badge.w, badge.h, R(badge.h * 0.3), ink); br.setAttribute('data-sw-badge', MN); br.setAttribute('data-sw-badge-ch', o.badge);
     text(g, o.badge, badge.x + badge.w / 2, badge.y + badge.h * 0.5 + badge.sp.size * 0.36, badge.sp, { anchor: 'middle', fill: paper });
@@ -783,13 +749,13 @@ var I18N = (function () {
    return { fx: fx, fy: fy, fw: fw, fh: fh };
   }
   function niceScale(lo, hi, even) {
-   var steps = [1, 2, 5, 10, 20, 25, 50], span = Math.max(hi - lo, M.unit === 'F' ? 15 : 8);
+   var steps = [1, 2, 5, 10, 20, 25, 50], span = MX(hi - lo, M.unit === 'F' ? 15 : 8);
    for (var i = 0; i < steps.length; i++) {
-    var st = steps[i], a0 = Math.floor(lo / st) * st, b0 = Math.ceil(hi / st) * st;
+    var st = steps[i], a0 = FL(lo / st) * st, b0 = Math.ceil(hi / st) * st;
     if (b0 - a0 < span) b0 = a0 + Math.ceil(span / st) * st;
     if ((b0 - a0) / st <= 5) return { a: a0, b: b0 + (even && ((b0 - a0) / st) % 2 ? st : 0), major: st, minor: st % 5 === 0 ? st / 5 : (st % 2 === 0 ? st / 2 : st / 5) };
    }
-   return { a: Math.floor(lo / 50) * 50, b: Math.ceil(hi / 50) * 50, major: 50, minor: 10 };
+   return { a: FL(lo / 50) * 50, b: Math.ceil(hi / 50) * 50, major: 50, minor: 10 };
   }
   function tempMeter(g, x, y, w, h, small, badge, captioned, feels) {
    var tl = M.today.lo, th = M.today.hi, nv = feels ? M.now.feels : M.now.temp;
@@ -827,19 +793,19 @@ var I18N = (function () {
    if (kind === 'temperature' || kind === 'feels') return tempMeter(g, x, y, w, h, small, badge, cap, kind === 'feels');
    var o = { chan: DIAL_CH[kind], v: null, a: 0, b: 100, major: 50, minor: 10, name: '', shortName: '', unitName: '', mark: null, band: null }, ts;
    if (kind === 'wind') {
-    ts = topScale(Math.max(n.wind || 0, n.gust || 0, nz(t.gustMax) || 0, M.unit === 'F' ? 25 : 40), [10, 25, 50, 100]);
+    ts = topScale(MX(n.wind || 0, n.gust || 0, nz(t.gustMax) || 0, M.unit === 'F' ? 25 : 40), [10, 25, 50, 100]);
     o.v = n.wind; o.b = ts.b; o.major = ts.major; o.minor = ts.minor; o.mark = nz(t.gustMax); o.markLabel = I18N.ours('gust'); o.band = WTHR;
     o.name = I18N.wind; o.shortName = I18N.wind; o.unitName = WUNIT;
-   } else if (kind === 'humidity') { o.v = n.hum; o.name = I18N.ours('humidity'); o.shortName = I18N.ours('hum'); o.unitName = '%'; }
+   } else if (kind === 'humidity') { o.v = n.hum; o.name = dialName(kind); o.shortName = I18N.ours('hum'); o.unitName = '%'; }
    else if (kind === 'uv') {
-    ts = topScale(Math.max(n.uv || 0, nz(t.uvMax) || 0, 11), [3, 6, 10]);
+    ts = topScale(MX(n.uv || 0, nz(t.uvMax) || 0, 11), [3, 6, 10]);
     o.v = n.uv; o.b = ts.b; o.major = ts.major; o.minor = ts.minor; o.mark = nz(t.uvMax); o.markLabel = I18N.hi; o.band = 6; o.name = 'UV'; o.unitName = cap ? '' : 'UV';
    } else if (kind === 'aqi') {
-    ts = topScale(Math.max(nz(n.aqi) || 0, nz(t.aqiMax) || 0, 100), [10, 25, 50, 100]);
+    ts = topScale(MX(nz(n.aqi) || 0, nz(t.aqiMax) || 0, 100), [10, 25, 50, 100]);
     o.v = nz(n.aqi); o.b = ts.b; o.major = ts.major; o.minor = ts.minor; o.mark = nz(t.aqiMax); o.markLabel = I18N.hi; o.band = 60; o.name = 'AQI'; o.unitName = cap ? '' : 'AQI';
    } else if (kind === 'pressure') {
     var pb = n.press === null ? 1013 : n.press;
-    o.a = Math.floor((pb - 25) / 25) * 25; o.b = o.a + 50; o.major = 25; o.minor = 5; o.v = n.press; o.name = I18N.ours('pressure'); o.unitName = 'HPA';
+    o.a = FL((pb - 25) / 25) * 25; o.b = o.a + 50; o.major = 25; o.minor = 5; o.v = n.press; o.name = I18N.ours('pressure'); o.unitName = 'HPA';
    }
    return linMeter(g, x, y, w, h, small, badge, cap, o);
   }
@@ -855,7 +821,6 @@ var I18N = (function () {
     marks: nowP !== null && Math.abs(nowP - (peak.p || 0)) > 8 ? [{ f: nowP / 100, label: I18N.ours('now') }] : [],
     name: I18N.rainChance, shortName: I18N.ours('rain'), unitName: '%', });
   }
-
   var darkMode = (function () { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
   var GLASSD = bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25', '#333') : (bits === 2 ? fillOf(darkMode ? 'gray-75' : 'gray-15', '#333') : paper);
   var GLOW = bits === 1 ? ink : (darkMode ? ink : paper);
@@ -868,7 +833,7 @@ var I18N = (function () {
   function faceFill(fx1, fy1, fw1, fh1) {
    if (FULL) {
     var id = 'swlamp' + view + '-' + (glowN++);
-    var rg = mk('radialGradient', { id: id, gradientUnits: 'userSpaceOnUse', cx: R(fx1 + fw1 / 2), cy: R(fy1 + fh1 * 0.58), r: R(Math.max(fw1, fh1) * 0.62) }, defs);
+    var rg = mk('radialGradient', { id: id, gradientUnits: 'userSpaceOnUse', cx: R(fx1 + fw1 / 2), cy: R(fy1 + fh1 * 0.58), r: R(MX(fw1, fh1) * 0.62) }, defs);
     mk('stop', { offset: '0%', 'stop-color': '#ffe3a3' }, rg);
     mk('stop', { offset: '55%', 'stop-color': '#f7c25e' }, rg);
     mk('stop', { offset: '100%', 'stop-color': '#c9862c' }, rg);
@@ -883,7 +848,7 @@ var I18N = (function () {
   function dith(a, b, dn) {
    var pid = 'swd' + view + '-' + (lampN++), pat = mk('pattern', { id: pid, patternUnits: 'userSpaceOnUse', width: 4, height: 4 }, defs);
    mk('rect', { width: 4, height: 4, fill: a }, pat);
-   for (var c = 0; c < 16; c++) if (BAYER[c] < dn * 16) mk('rect', { x: c % 4, y: Math.floor(c / 4), width: 1, height: 1, fill: b }, pat);
+   for (var c = 0; c < 16; c++) if (BAYER[c] < dn * 16) mk('rect', { x: c % 4, y: FL(c / 4), width: 1, height: 1, fill: b }, pat);
    return 'url(#' + pid + ')';
   }
   function lampGrey(g, x, y, w, h) {
@@ -894,7 +859,7 @@ var I18N = (function () {
     var dd = '', ecx = x + w * 0.5, ecy = y + h * 0.85;
     for (var k = 0; k < 64; k++) {
      var an = k / 64 * Math.PI * 2;
-     dd += (k ? ' L' : 'M') + Math.max(x, Math.min(x + w, ecx + w * 0.5 * st[3] * Math.cos(an))).toFixed(1) + ' ' + Math.max(y, Math.min(y + h, ecy + h * 0.85 * st[3] * Math.sin(an))).toFixed(1);
+     dd += (k ? ' L' : 'M') + MX(x, MN(x + w, ecx + w * 0.5 * st[3] * Math.cos(an))).toFixed(1) + ' ' + MX(y, MN(y + h, ecy + h * 0.85 * st[3] * Math.sin(an))).toFixed(1);
     }
     mk('path', { d: dd + ' Z', fill: st[2] < 1 ? dith(st[0], st[1], st[2]) : st[0], 'data-sw-lamp': i }, lg);
    });
@@ -903,7 +868,7 @@ var I18N = (function () {
    if (!FULL && !GREYGLOW) return draw(null);
    var id = 'swhalo' + view + '-' + (glowN++);
    var f = mk('filter', { id: id, x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
-   mk('feGaussianBlur', { stdDeviation: Math.max(2, u(4)) }, f);
+   mk('feGaussianBlur', { stdDeviation: MX(2, u(4)) }, f);
    var ct = mk('feComponentTransfer', {}, f);
    mk('feFuncA', { type: 'linear', slope: 0.75 }, ct);
    var hg = mk('g', { filter: 'url(#' + id + ')', 'data-sw-halo': '1' }, root);
@@ -922,7 +887,7 @@ var I18N = (function () {
   var RAINC = BLUE || (RED !== ink ? RED : ink);
   var bevelN = 0;
   function insetBevel(g, x, y, w, h, r, onGlass) {
-   if (bits === 1) { rrect(g, x + 1.5, y + 1.5, w - 3, h - 3, Math.max(0, r - 1), 'none', ink, 1); return; }
+   if (bits === 1) { rrect(g, x + 1.5, y + 1.5, w - 3, h - 3, MX(0, r - 1), 'none', ink, 1); return; }
    var id = 'swbevel' + view + '-' + (bevelN++);
    var cp = mk('clipPath', { id: id }, defs);
    rrect(cp, x, y, w, h, r);
@@ -937,7 +902,7 @@ var I18N = (function () {
      : [[6, fillOf('gray-60', '#aaa')], [4, fillOf('gray-50', '#888')], [2, fillOf('gray-40', '#666')]]);
    steps.forEach(function (st) {
     var d = u(st[0]);
-    mk('path', { d: rr(x, y, w, h, r) + ' ' + rr(x + d, y + d, w, h, r), 'fill-rule': 'evenodd', fill: st[1], 'shape-rendering': 'geometricPrecision' }, bg);
+    mk('path', { d: rr(x, y, w, h, r) + ' ' + rr(x + d, y + d, w, h, r), 'fill-rule': 'evenodd', fill: st[1], 'shape-rendering': GPX }, bg);
    });
   }
   function glassInner(g, x, y, w, h) {
@@ -959,11 +924,11 @@ var I18N = (function () {
    }
   }
   function seg7(g, x, y, dw, dh, str, col, ghost) {
-   var t = Math.max(3, dw * 0.18), gap = Math.max(2, R(dw * 0.22)), cx = x, box = null;
+   var t = MX(3, dw * 0.18), gap = MX(2, R(dw * 0.22)), cx = x, box = null;
    seg7.boxes = [];
    function poly(p, c, kind) {
-    mk('polygon', { points: pts(p), fill: c, 'shape-rendering': 'geometricPrecision', 'data-sw-seg': kind }, g);
-    p.forEach(function (q) { box.l = Math.min(box.l, q[0]); box.r = Math.max(box.r, q[0]); });
+    mk('polygon', { points: pts(p), fill: c, 'shape-rendering': GPX, 'data-sw-seg': kind }, g);
+    p.forEach(function (q) { box.l = MN(box.l, q[0]); box.r = MX(box.r, q[0]); });
    }
    str.split('').forEach(function (ch, ci) {
     if (ch === '.') { var d = R(t * 1.2); mk('rect', { x: R(cx), y: R(y + dh - d), width: d, height: d, fill: col }, g); cx += d + gap; return; }
@@ -983,26 +948,31 @@ var I18N = (function () {
    return cx - x - gap;
   }
   function seg7W(dw, str) {
-   var t = Math.max(3, dw * 0.18), gap = Math.max(2, R(dw * 0.22)), w = 0;
+   var t = MX(3, dw * 0.18), gap = MX(2, R(dw * 0.22)), w = 0;
    str.split('').forEach(function (ch) { w += (ch === '.' ? R(t * 1.2) : ch === ':' ? R(t * 1.1) : dw) + gap; });
    return w - gap;
   }
   var NDIG = M.unit === 'F' ? 3 : 2, CELLS = '-' + '8'.repeat(NDIG) + '.8';
   function tempDigits() {
    if (M.now.temp === null) return '_' + ' '.repeat(NDIG - 2) + '--.-';
-   var v = Math.round(M.now.temp * 10) / 10, a = Math.min(Math.pow(10, NDIG) - 0.1, Math.abs(v));
-   var ip = String(Math.floor(a + 1e-9)), dec = String(Math.round((a - Math.floor(a + 1e-9)) * 10) % 10);
+   var v = Math.round(M.now.temp * 10) / 10, a = MN(Math.pow(10, NDIG) - 0.1, Math.abs(v));
+   var ip = String(FL(a + 1e-9)), dec = String(Math.round((a - FL(a + 1e-9)) * 10) % 10);
    var cells = ((v < 0 ? '-' : '') + ip).padStart(NDIG + 1, ' ');
    return (cells.charAt(0) === ' ' ? '_' : '') + cells.slice(cells.charAt(0) === ' ' ? 1 : 0) + '.' + dec;
   }
   function cellsText(str) { return str.replace(/[_ ]/g, ''); }
-  function status(g, str, x, y, sp, on) {
+  function status(g, str, x, y, sp, on, ico) {
    var col = on ? GLOW : (DIMW || null);
    if (!col && bits !== 1) return 0;
    if (bits === 1) {
-    var t0 = text(g, str, x + sp.size * 0.5, y, sp, { ls: R(sp.size * 0.15), fill: on ? (LAMP ? ink : paper) : ink });
-    var lw0 = Math.ceil(width(t0) + sp.size), lh0 = R(sp.size * 1.4), ly0 = R(y - sp.size * 1.05), bx = R(x), cr = { 'shape-rendering': 'crispEdges', 'data-sw-status': 1 };
-    if (on) g.insertBefore(mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP || ink }, cr), g), t0);
+    var tf = on ? (LAMP ? ink : paper) : ink, lh0 = R(sp.size * 1.4), ly0 = R(y - sp.size * 1.05), iw0 = 0, ib = null;
+    var tm = text(g, str, 0, 0, sp, { ls: R(sp.size * 0.15) }), tw0 = width(tm); g.removeChild(tm);
+    var ibx = { l: x + sp.size * 0.45, t: ly0 + 1, r: x + sp.size * 1.9, b: ly0 + lh0 - 1 };
+    if (on && ico && WI[ico]) { ib = iconFit(g, ico, null, ibx, sp.size * 1.05, ly0 + lh0 / 2, true); iw0 = ib.w + sp.size * 0.3; }
+    var lw0 = Math.ceil(tw0 + sp.size + iw0), bx = R(x), cr = { 'shape-rendering': 'crispEdges', 'data-sw-status': 1 };
+    if (on) mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP || ink }, cr), g);
+    if (ib) { ICON_INK = tf; iconFit(g, ico, null, ibx, sp.size * 1.05, ly0 + lh0 / 2); ICON_INK = null; }
+    text(g, str, x + sp.size * 0.5 + iw0, y, sp, { ls: R(sp.size * 0.15), fill: tf });
     if (!on || LAMP) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, fill: 'none', stroke: ink, 'stroke-width': 1 }, cr), g);
     return lw0;
    }
@@ -1014,25 +984,26 @@ var I18N = (function () {
   function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
   function fv1(v) { return v === null ? '--' : (v < 10 ? (Math.round(v * 10) / 10).toFixed(1) : SWModel.fmt(v)); }
   function compass(d) { if (d === null) return ''; var pts = I18N.ours('compass').split(','); return pts.length === 8 ? pts[Math.round(d / 45) % 8] : ''; }
-  var RO_ORDER = ['wind', 'gust', 'aqi', 'feels', 'humidity', 'uv', 'pressure', 'rain_mm'];
+  var RO_ORDER = ['wind', 'gust', 'aqi', 'feels', 'humidity', 'uv', 'pressure', 'rain_mm', 'sun'];
   function readout(k) {
-   var n = M.now, t = M.today, c = compass(n.dir);
-   if (k === 'wind') return { lab: I18N.wind + ' ' + WUNIT, v: fv(n.wind), sfx: c, txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
-   if (k === 'gust') return { lab: I18N.ours('gust') + ' ' + WUNIT, v: fv(nz(t.gustMax)), txt: I18N.ours('gust') + ' ' + fv(nz(t.gustMax)) };
+   var n = M.now, t = M.today, c = compass(n.dir), wu = WUNIT.toLowerCase();
+   if (k === 'wind') return { lab: I18N.wind, v: fv(n.wind), sfx: wu + (c ? ' ' + c : ''), txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
+   if (k === 'gust') return { lab: I18N.ours('gust'), v: fv(nz(t.gustMax)), sfx: wu, txt: I18N.ours('gust') + ' ' + fv(nz(t.gustMax)) };
    if (k === 'aqi') return { lab: 'AQI', v: fv(nz(n.aqi)), txt: 'AQI ' + fv(nz(n.aqi)) };
-   if (k === 'feels') return { lab: I18N.ours('feels') + ' ' + deg + M.unit, v: fv(n.feels), txt: I18N.ours('feels') + ' ' + fv(n.feels, deg) };
+   if (k === 'feels') return { lab: I18N.ours('feels'), v: fv(n.feels), sfx: deg + M.unit, txt: I18N.ours('feels') + ' ' + fv(n.feels, deg) };
    if (k === 'uv') return { lab: I18N.ours('uv'), v: fv(n.uv), txt: I18N.ours('uv') + ' ' + fv(n.uv) };
-   if (k === 'pressure') return { lab: I18N.ours('pressure') + ' HPA', v: fv(n.press), txt: fv(n.press) + ' HPA' };
-   if (k === 'rain_mm') return { lab: I18N.ours('rain') + ' MM', v: fv1(nz(t.rainMm)), txt: I18N.ours('rain') + ' ' + fv1(nz(t.rainMm)) + ' MM' };
-   return { lab: I18N.ours('humidity') + ' %', v: fv(n.hum), txt: I18N.ours('hum') + ' ' + fv(n.hum, '%') };
+   if (k === 'pressure') return { lab: I18N.ours('pressure'), v: fv(n.press), sfx: 'hPa', txt: fv(n.press) + ' hPa' };
+   if (k === 'rain_mm') return { lab: I18N.ours('rain'), v: fv1(nz(t.rainMm)), sfx: 'mm', txt: I18N.ours('rain') + ' ' + fv1(nz(t.rainMm)) + ' mm' };
+   if (k === 'sun') { var sl = I18N.ours(M.sun.up ? 'sunrise' : 'sunset'); return { lab: sl, v: M.sun.at || '--:--', txt: sl + ' ' + (M.sun.at || '--:--') }; }
+   return { lab: I18N.ours('humidity'), v: fv(n.hum), sfx: '%', txt: I18N.ours('hum') + ' ' + fv(n.hum, '%') };
   }
   function pickReadouts(shown) {
-   var want = SW_CFG.readouts.map(function (k, i) { return RO_ORDER.indexOf(k) >= 0 ? k : (i ? 'uv' : 'humidity'); }), out = [];
+   var want = SW_CFG.readouts.map(function (k, i) { return RO_ORDER.indexOf(k) >= 0 ? k : ['humidity', 'uv', 'wind', 'feels'][i]; }), out = [];
    var fixed = want.filter(function (k, i) { return shown.indexOf(k) < 0 && want.indexOf(k) === i; });
    want.forEach(function (k, i) {
     if (shown.indexOf(k) < 0 && want.indexOf(k) === i) { out.push(k); return; }
     var at = RO_ORDER.indexOf(k);
-    for (var n = 1; n <= 8; n++) { var c = RO_ORDER[(at + n) % 8]; if (shown.indexOf(c) < 0 && fixed.indexOf(c) < 0 && out.indexOf(c) < 0) { out.push(c); return; } }
+    for (var n = 1; n <= 9; n++) { var c = RO_ORDER[(at + n) % 9]; if (shown.indexOf(c) < 0 && fixed.indexOf(c) < 0 && out.indexOf(c) < 0) { out.push(c); return; } }
     out.push(k);
    });
    return out;
@@ -1043,26 +1014,27 @@ var I18N = (function () {
    debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
    vfdBox(g, x, y, w, h);
    var ix = x + u(compact ? 16 : 30), iw = w - 2 * (ix - x);
-   var hb = Math.min(h, w * (compact ? 0.7 : 0.28));
+   var hb = MN(h, w * (compact ? 0.7 : 0.28));
    var ST = F(RD(hb * (compact ? 0.085 : 0.075), 10), '700');
    var has = function (k) { return X1.some(function (hh) { return hh.icon === k; }); };
-   var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain')], [I18N.snow, has('snow')],
-    [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
-    [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, M.now.wind !== null && M.now.wind >= (M.unit === 'F' ? 20 : 30)],
-    [I18N.ours('uv'), M.now.uv !== null && M.now.uv >= 6], ['SMOG', M.now.aqi !== null && M.now.aqi > 60]];
-   var innerD = u(bits === 1 ? 9 : 6), sy = Math.max(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
-   var lampBottom = sy + ST.size * 0.45;
+   var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain'), 'wi-umbrella'], [I18N.snow, has('snow'), 'wi-snowflake-cold'],
+    [I18N.hail, has('hail'), 'wi-hail'], [I18N.thunder, has('storm') || has('hail'), 'wi-thunderstorm'],
+    [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0), 'wi-thermometer'], [I18N.wind, M.now.wind !== null && M.now.wind >= WTHR, 'wi-strong-wind'],
+    [I18N.ours('uv'), M.now.uv !== null && M.now.uv >= 6, 'wi-day-sunny'], ['SMOG', M.now.aqi !== null && M.now.aqi > 60, 'wi-smog']];
+   var innerD = u(bits === 1 ? 9 : 6), sy = MX(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
    if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
+   if (bits === 1) flags = flags.filter(function (f) { return f[1]; });
+   var noRow = !compact && !flags.length, lampBottom = noRow ? y + innerD + u(2) : sy + ST.size * 0.45;
    if (!compact) {
     var room = iw - u(20) - (function () { var tc = text(g, 'OPEN-METEO', 0, 0, ST, { ls: R(ST.size * 0.15) }); var tw = width(tc); g.removeChild(tc); return tw; })();
-    var rowW = function (fl, sp) { return fl.reduce(function (a, f) { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 ? 2.3 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
+    var rowW = function (fl, sp) { return fl.reduce(function (a, f) { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 ? 2.3 + (f[1] && f[2] ? 1.4 : 0) : 1.4); g.removeChild(tt); return a + ww; }, 0); };
     debug.lampFit = { need: R(rowW(flags, ST)), room: R(room) };
     while (rowW(flags, ST) > room && flags.some(function (f) { return !f[1]; })) {
      for (var fi = flags.length - 1; fi >= 0; fi--) if (!flags[fi][1]) { flags.splice(fi, 1); break; }
     }
     while (rowW(flags, ST) > room && ST.size > u(8)) ST = F(ST.size * 0.9, ST.weight);
     debug.lamps = flags.map(function (f) { return (f[1] ? '+' : '-') + f[0]; });
-    flags.forEach(function (fl) { sx += status(g, fl[0], sx, sy, ST, fl[1]) + ST.size * 1.4; });
+    flags.forEach(function (fl) { sx += status(g, fl[0], sx, sy, ST, fl[1], fl[2]) + ST.size * 1.4; });
    }
    if (!compact) text(g, 'OPEN-METEO', x + w - u(compact ? 16 : 30), sy, ST, { anchor: 'end', ls: R(ST.size * 0.15), fill: bits === 1 ? ink : (DIMW || GLOW) });
    var pillW = 0;
@@ -1093,20 +1065,44 @@ var I18N = (function () {
     crMoved.setAttribute('y', R(y + h * 0.88 - WD.size * 1.6));
    }
    var rx = ix + iw * 0.72, rw = iw * 0.28, WL = { ls: R(WD.size * 0.15), fill: GLOW };
-   var blk = null;
+   var blk = null, dry = M.ok && !M.rain && ROS.length >= 4;
+   function fitPair(ros, roomW, cw0) {
+    var labs = ros.map(function (r) { return r.lab; }), lt0 = labs.map(function (l) { var tt = text(g, l, 0, 0, WD, WL); var ww = width(tt); g.removeChild(tt); return ww; });
+    var strs = ros.map(function (r) { return r.v; }), gp = u(16), P = null;
+    for (var k = 0; k < 7; k++) {
+     var cw = MX(u(6), R(cw0 * Math.pow(0.9, k))), SX = F(cw * 1.15, '700');
+     var sfxW = ros.map(function (r) { if (!r.sfx) return 0; var tt = text(g, r.sfx, 0, 0, SX); var ww = width(tt) + u(6); g.removeChild(tt); return ww; });
+     var colW = lt0.map(function (l, i) { return MX(l, seg7W(cw, strs[i]) + sfxW[i]); });
+     P = { ros: ros, labs: labs, cw: cw, strs: strs, colW: colW, sfxW: sfxW, SX: SX, gp: gp, ok: colW[0] + gp + colW[1] <= roomW, roomW: roomW };
+     if (P.ok) break;
+    }
+    return P;
+   }
+   function drawPair(x0, P, which) {
+    var cx0 = x0, gap2 = MX(P.gp, (P.roomW - P.colW[0] - P.colW[1]) / 2);
+    P.strs.forEach(function (str2, i) {
+     var cwid = P.colW[i], dwid2 = seg7W(P.cw, str2) + P.sfxW[i], lt = fitText(g, P.labs[i], cx0, y + h * 0.9, WD, cwid + u(4), WL);
+     lt.setAttribute('x', R(cx0 + (cwid - width(lt)) / 2));
+     var dx2 = cx0 + (cwid - dwid2) / 2;
+     glowDigits(function (hg) { seg7(hg || g, dx2, y + h * 0.44, P.cw, R(P.cw * 2), str2, DIGIT, hg ? null : GHOSTD); });
+     if (P.ros[i].sfx) glowDigits(function (hg) { text(hg || g, P.ros[i].sfx, dx2 + dwid2 - P.sfxW[i] + u(6), y + h * 0.44 + P.cw * 2, P.SX, { fill: DIGIT }); });
+     (debug[which] = debug[which] || []).push(str2);
+     cx0 += cwid + gap2;
+    });
+   }
+   var PR = null;
    if (!compact && M.ok) {
-    var labs = ROS.map(function (r) { return r.lab; }), lt0 = labs.map(function (l) { var tt = text(g, l, 0, 0, WD, WL); var ww = width(tt); g.removeChild(tt); return ww; });
-    var chB = R(h * 0.26), cwL = R(chB * 0.5), gp = u(16), strs = ROS.map(function (r) { return r.v; }), SX = F(cwL * 1.3, '700');
-    var sfxW = ROS.map(function (r) { if (!r.sfx) return 0; var tt = text(g, r.sfx, 0, 0, SX); var ww = width(tt) + u(8); g.removeChild(tt); return ww; });
-    var colW = lt0.map(function (l, i) { return Math.max(l, seg7W(cwL, strs[i]) + sfxW[i]); });
-    blk = { labs: labs, cw: cwL, strs: strs, colW: colW, sfxW: sfxW, SX: SX, divX: ix + rw + u(14), cL: ix + rw + u(22), cR: rx - u(22), ok: colW[0] + gp + colW[1] <= rw };
+    var chB = R(h * 0.26), cwL = R(chB * 0.5);
+    blk = fitPair(ROS.slice(0, 2), rw, cwL);
+    if (dry) { PR = fitPair(ROS.slice(2, 4), rw - u(4), cwL); var cwm = MN(blk.cw, PR.cw); if (blk.cw !== cwm) blk = fitPair(ROS.slice(0, 2), rw, cwm); if (PR.cw !== cwm) PR = fitPair(ROS.slice(2, 4), rw - u(4), cwm); }
+    blk.divX = ix + rw + u(14); blk.cL = ix + rw + u(22); blk.cR = rx - u(22);
     if (!blk.ok || blk.cR - blk.cL < (function () { var d0 = R(h * 0.36), dw0 = R(d0 * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + d0 * 1.05; })()) blk = null;
    }
    var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
-   var dh = R(h * (compact ? 0.46 : 0.56));
+   var dh = R(h * (compact ? 0.46 : (noRow ? 0.66 : 0.56)));
    function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.25); }
    var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
-   var dyTop = compact ? y + h * 0.27 : Math.max(y + h * 0.25, lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2);
+   var dyTop = compact ? y + h * 0.27 : MX(y + h * (noRow ? 0.14 : 0.25), lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2);
    while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh > dyEnd))) dh -= 2;
    var dw = R(dh * 0.5), dy = dyTop;
    var str = tempDigits();
@@ -1121,7 +1117,7 @@ var I18N = (function () {
     seg7(tg, 0, dy, dw, dh, str, DIGIT, null);
     var fl = seg7.boxes.filter(function (b) { return b.l !== null; })[0];
     g.removeChild(tg);
-    ibox.r = ibox.l + dh * 0.85 + Math.max(0, avail - need(dh));
+    ibox.r = ibox.l + dh * 0.85 + MX(0, avail - need(dh));
     var ib0 = iconFit(g, M.now.icon, M.now.day, ibox, hWant, dy + dh * 0.5, true);
     lx = blk.cL + avail / 2 - ((fl.l - dh * 0.4 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12))) / 2 - iconW;
    }
@@ -1140,22 +1136,13 @@ var I18N = (function () {
    if (blk) wt = fitText(g, condS, blk.cL + avail / 2, y + h * 0.9, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
    else if (!compact) wt = fitText(g, condS, lx, y + h * 0.9, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
    if (blk) {
-    mk('rect', { x: R(blk.divX), y: R(y + h * 0.3), width: Math.max(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
+    mk('rect', { x: R(blk.divX), y: R(y + h * 0.3), width: MX(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
     debug.readouts = []; debug.readoutKinds = ROK;
-    var cx0 = ix, gap2 = Math.max(u(16), (rw - blk.colW[0] - blk.colW[1]) / 2);
-    blk.strs.forEach(function (str2, i) {
-     var cwid = blk.colW[i], dwid2 = seg7W(blk.cw, str2) + blk.sfxW[i], lt = fitText(g, blk.labs[i], cx0, y + h * 0.9, WD, cwid + u(4), WL);
-     lt.setAttribute('x', R(cx0 + (cwid - width(lt)) / 2));
-     var dx2 = cx0 + (cwid - dwid2) / 2;
-     glowDigits(function (hg) { seg7(hg || g, dx2, y + h * 0.44, blk.cw, R(blk.cw * 2), str2, DIGIT, hg ? null : GHOSTD); });
-     if (ROS[i].sfx) glowDigits(function (hg) { text(hg || g, ROS[i].sfx, dx2 + dwid2 - blk.sfxW[i] + u(8), y + h * 0.44 + blk.cw * 2, blk.SX, { fill: DIGIT }); });
-     debug.readouts.push(str2);
-     cx0 += cwid + gap2;
-    });
+    drawPair(ix, blk, 'readouts');
    }
    if (!compact && !blk && M.ok) {
     var rdB = y + h * 0.9 - WD.size * 1.7, rdTop = rdB - WD.size * 2.7;
-    var under = Math.max(dy + dh, ib.b) + u(6) <= rdTop, rdW = (under ? rx - u(20) : ib.l - u(6)) - lx;
+    var under = MX(dy + dh, ib.b) + u(6) <= rdTop, rdW = (under ? rx - u(20) : ib.l - u(6)) - lx;
     [[ROS[0].txt, rdB - WD.size * 1.7], [ROS[1].txt, rdB]].forEach(function (rd) {
      var rt = fitText(g, rd[0], lx, rd[1], WD, rdW, { fill: GLOW, ls: R(WD.size * 0.15) });
      if (width(rt) > rdW + 1 || rd[1] - WD.size < lampBottom + u(4)) g.removeChild(rt);
@@ -1164,7 +1151,8 @@ var I18N = (function () {
    if (compact) {
     return;
    }
-   mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: Math.max(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
+   mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: MX(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
+   if (dry && PR && blk) { debug.readoutsRight = []; drawPair(rx, PR, 'readoutsRight'); debug.clock = null; return; }
    fitText(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? I18N.ours(wetKey(M.rain.now ? 'until' : 'from')) : I18N.ours('no_rain')), rx, y + h * 0.36, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
    var ch = R(h * 0.3);
    while (ch > 8 && seg7W(R(ch * 0.5), '88:88') > rw - u(8)) ch -= 2;
@@ -1178,7 +1166,7 @@ var I18N = (function () {
    vfdBox(g, x, y, w, h);
    debug.glassBox = [R(x), R(y), R(w), R(h)]; debug.origin = [R(rect.left * z), R(rect.top * z)];
    debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
-   var pad = Math.max(u(12), h * 0.07), ix = x + pad, iw = w - 2 * pad, iy = y + pad, ih = h - 2 * pad;
+   var pad = MX(u(12), h * 0.07), ix = x + pad, iw = w - 2 * pad, iy = y + pad, ih = h - 2 * pad;
    var LN = F(RD(ih * 0.085, 11), '700'), SM2 = F(RD(ih * 0.065, 9), '600');
    var isz = ih * 0.4;
    var rowH = ih * 0.47;
@@ -1200,12 +1188,12 @@ var I18N = (function () {
    seg7(g, ux + sw + R(dw * 0.12), dy, sw, R(dh * 0.42), M.unit, DIGIT, null);
    var sy = iy + rowH + ih * 0.13, lo = M.today.lo, hi = M.today.hi, now = M.now.temp;
    if (M.ok && lo !== null && hi !== null && hi > lo && now !== null) {
-    var sx0 = dx, sx1 = dx + dwid, lwS = Math.max(1, u(1.5));
+    var sx0 = dx, sx1 = dx + dwid, lwS = MX(1, u(1.5));
     mk('rect', { x: R(sx0), y: R(sy), width: R(sx1 - sx0), height: lwS, fill: GLOW }, g);
     [sx0, sx1].forEach(function (xx) { mk('rect', { x: R(xx), y: R(sy - u(4)), width: lwS, height: R(u(8)), fill: GLOW }, g); });
-    var f = Math.max(0, Math.min(1, (now - lo) / (hi - lo))), mx = sx0 + (sx1 - sx0) * f, ms = u(6);
+    var f = MX(0, MN(1, (now - lo) / (hi - lo))), mx = sx0 + (sx1 - sx0) * f, ms = u(6);
     mk('polygon', { points: [[mx, sy - u(1)], [mx - ms, sy - ms * 1.5], [mx + ms, sy - ms * 1.5]].map(function (q) { return q[0].toFixed(1) + ',' + q[1].toFixed(1); }).join(' '),
-     fill: DIGIT, 'shape-rendering': 'geometricPrecision' }, g);
+     fill: DIGIT, 'shape-rendering': GPX }, g);
     debug.slim = { f: f };
    }
    var wy = iy + ih * 0.76, ly = iy + ih - LN.size * 0.3;
@@ -1215,8 +1203,8 @@ var I18N = (function () {
    if (width(wq) > iw - width(cw) - u(10)) {
     g.removeChild(wq);
     fitText(g, condTxt, ix, wy, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
-    var room = Math.max(u(20), dx - ix - u(8));
-    cw.setAttribute('x', R(ix)); cw.setAttribute('y', R(Math.max(iy + isz, ib.b) + SM2.size * 1.1));
+    var room = MX(u(20), dx - ix - u(8));
+    cw.setAttribute('x', R(ix)); cw.setAttribute('y', R(MX(iy + isz, ib.b) + SM2.size * 1.1));
     if (width(cw) > room) cw.textContent = 'OPEN-METEO';
    }
    var line = M.ok ? I18N.hi + ' ' + SWModel.fmt(hi) + '  ' + I18N.lo + ' ' + SWModel.fmt(lo) + '  \u00b7  ' +
@@ -1228,34 +1216,34 @@ var I18N = (function () {
     g.removeChild(rt);
    });
   }
-
   faceplate(root, u(3), u(3), UW - u(6), UH - u(6));
   var MG = u(view === 4 ? 8 : (view === 1 ? (UW / z >= 1040 ? 8 : 11) : 14)), GP = u(view === 4 ? 8 : (view === 1 ? (UW / z >= 1040 ? 7 : 10) : 14));
   var X0 = MG, Y0 = MG, W0 = UW - 2 * MG, H0 = UH - 2 * MG;
   function smallFace(h, w) { return h / z < 160 || (h / z < 230 && !(w > h * 1.8)); }
   function dayRow(g0, x, y, w, h, d, on) {
    var g = mk('g', { 'data-sw-row': 1 }, g0);
-   var lw = Math.max(2, u(2));
+   var lw = MX(2, u(2));
    if (SHADE) rrect(g, x + u(3), y + u(3), w, h, u(6), SHADE);
    rrect(g, x + lw / 2, y + lw / 2, w - lw, h - lw, u(6), paper, ink, lw);
-   var cy = y + h / 2, pad = Math.max(u(8), h * 0.18), gap = Math.max(u(6), h * 0.12);
+   var cy = y + h / 2, pad = MX(u(8), h * 0.18), gap = MX(u(6), h * 0.12);
    var k = 1, L, T, t2, lr, isz, labW, hiW, loW, need;
    function measure(str, sp) { var tt = text(g, str, 0, 0, sp, { ls: R(sp.size * 0.12) }); var ww = width(tt); g.removeChild(tt); return ww; }
    for (var tries = 0; tries < 12; tries++) {
     L = F(RD(h * 0.32 * k, 9), '700'); T = F(RD(h * 0.4 * k, 10), '700'); t2 = F(RD(h * 0.3 * k, 9), '500');
-    lr = R(Math.max(u(2), h * 0.07 * k)); isz = Math.min(h * 0.78, h * 0.78 * k);
-    labW = Math.max(measure(I18N.today, L), measure(dayName(d), L));
+    lr = R(MX(u(2), h * 0.07 * k)); isz = MN(h * 0.78, h * 0.78 * k);
+    labW = measure(dayName(d), L);
     hiW = measure('-88' + deg, T); loW = measure('-88' + deg, t2);
     need = pad + 2 * lr + gap + labW + gap + isz + gap + hiW + gap + loW + pad;
     if (need <= w) break;
     k *= 0.9;
    }
    var cx0 = x + pad;
-   mk('circle', { cx: R(cx0 + lr), cy: R(cy), r: lr, fill: on ? (LAMP || ink) : paper, stroke: ink, 'stroke-width': Math.max(1, u(1.2)), 'shape-rendering': 'geometricPrecision' }, g);
+   mk('circle', { cx: R(cx0 + lr), cy: R(cy), r: lr, fill: on ? (LAMP || ink) : paper, stroke: ink, 'stroke-width': MX(1, u(1.2)), 'shape-rendering': GPX }, g);
    var labX = cx0 + 2 * lr + gap;
-      text(g, on ? I18N.today : dayName(d), labX, cy + L.size * 0.36, L, { ls: R(L.size * 0.12) });
+   var lt = text(g, dayName(d), labX, cy + L.size * 0.36, L, { ls: R(L.size * 0.12) });
+   if (on) mk('rect', { x: R(labX), y: R(cy + L.size * 0.62), width: R(width(lt)), height: MX(2, u(2)), fill: LAMP || ink }, g);
    var right = x + w - pad, loX = right, hiX = right - loW - gap;
-   var icX = Math.max(labX + labW + gap + isz / 2, (labX + labW + hiX - hiW) / 2);
+   var icX = MX(labX + labW + gap + isz / 2, (labX + labW + hiX - hiW) / 2);
    icon(g, d.icon, icX, cy, isz, null);
    text(g, tStr(d.hi), hiX, cy + T.size * 0.36, T, { anchor: 'end' });
    text(g, tStr(d.lo), loX, cy + T.size * 0.36, t2, { anchor: 'end' });
@@ -1263,14 +1251,14 @@ var I18N = (function () {
   function keysRow(x, y, w, h, nd) {
    debug.days = 0;
    if (!M.days.length) {
-    var lw = Math.max(2, u(2)), P = F(RD(Math.min(h, w * 0.2) * 0.16, 12), '700');
+    var lw = MX(2, u(2)), P = F(RD(MN(h, w * 0.2) * 0.16, 12), '700');
     rrect(root, x + lw / 2, y + lw / 2, w - lw - u(3), h - lw - u(3), u(6), paper, ink, lw);
     text(root, I18N.ours('next_days'), x + w / 2, y + h / 2 - P.size * 0.2, P, { anchor: 'middle', ls: R(P.size * 0.25) });
     text(root, I18N.ours(M.ok ? 'no_forecast' : 'no_signal'), x + w / 2, y + h / 2 + P.size * 1.3, F(P.size * 0.8, '600'), { anchor: 'middle', ls: R(P.size * 0.2) });
     return;
    }
    if (h > w * 0.6) {
-    var rg = u(10), n = Math.max(1, Math.min(M.days.length || 1, 7, Math.floor((h + rg) / (u(52) * TS + rg))));
+    var rg = u(10), n = MX(1, MN(M.days.length || 1, 7, FL((h + rg) / (u(52) * TS + rg))));
     var rh = (h - rg * (n - 1)) / n;
     if (rh > u(90) * TS) { rh = u(90) * TS; }
     debug.days = n; debug.rows = true;
@@ -1286,52 +1274,79 @@ var I18N = (function () {
    days.forEach(function (d) { if (d.lo !== null && (lo === null || d.lo < lo)) lo = d.lo; if (d.hi !== null && (hi === null || d.hi > hi)) hi = d.hi; });
    if (lo === null) { lo = 0; hi = 1; }
    if (hi - lo < 1) hi = lo + 1;
-   var hb = Math.min(h, cw * 1.6);
-   var L = F(RD(Math.min(hb * 0.11, cw * 0.16), 11), '700'), T = F(RD(Math.min(hb * 0.15, cw * 0.24), 13), '800'), t2 = F(RD(Math.min(hb * 0.12, cw * 0.2), 12), '700');
-   var isz = Math.min(L.size * 2.2, cw * 0.35), rowY = y + Math.max(L.size, isz * 0.62) + u(4);
+   var hb = MN(h, cw * 1.6);
+   var L = F(RD(MN(hb * 0.11, cw * 0.16), 11), '700'), T = F(RD(MN(hb * 0.15, cw * 0.24), 13), '800'), t2 = F(RD(MN(hb * 0.12, cw * 0.2), 12), '700');
+   var isz = MN(L.size * 2.2, cw * 0.35), rowY = y + MX(L.size, isz * 0.62) + u(4);
+   var BARV = 'A';
    function geo(Tc) {
-    var tp = PIXFONT ? rowY + isz * 0.7 + Tc.size * 1.15 : rowY + isz * 0.7 + Tc.size * 1.45, bt = y + h - t2.size * 1.35, sH = Math.max(u(2), Math.min(u(3.5), (bt - tp) / 22)), sG = Math.max(bits === 1 ? 2 : 1, R(sH * 0.6));
-    return { T: Tc, top: tp, bot: bt, segH: sH, segG: sG, n: Math.floor((bt - tp + sG) / (sH + sG)) };
+    var tp = rowY + isz * 0.7 + u(6), bt = BARV === 'B' ? y + h - t2.size * 1.35 : y + h - u(4), sH = MX(u(2), MN(u(3.5), (bt - tp) / 22)), sG = MX(bits === 1 ? 2 : 1, R(sH * 0.6));
+    return { T: Tc, top: tp, bot: bt, segH: sH, segG: sG, n: FL((bt - tp + sG) / (sH + sG)) };
    }
    var G = geo(T);
    if (PIXFONT) [21, 16, 12].some(function (c) { G = geo(F(c, '800')); return G.n >= 6; });
    T = G.T;
-   var pw = Math.max(u(14), Math.min(cw * 0.4, u(90))), top = G.top, bot = G.bot, segH = G.segH, segG = G.segG;   // owner: wider "volumes"
-   var NS = Math.max(PIXFONT ? 2 : 6, G.n);
+   var pw = MX(u(14), MN(cw * 0.4, u(90))), top = G.top, bot = G.bot, segH = G.segH, segG = G.segG;   // owner: wider "volumes"
+   var NS = MX(PIXFONT ? 2 : 6, G.n);
    var LIT = FULL ? AMBER : (ORANGE || (bits === 4 ? fillOf('gray-20', '#333') : (bits === 2 ? fillOf('gray-15', '#333') : ink)));
    var PEAK = FULL ? '#ff5a00' : (color && RED !== ink ? RED : ink);
    var OFF = FULL ? 'rgb(0,0,0,0.08)' : (bits === 4 ? fillOf('gray-60', '#bbb') : (bits === 2 ? fillOf('gray-60', '#bbb') : null));
    debug.strip = []; debug.segments = NS;
    days.forEach(function (d, i) {
     var cx = x + cw * (i + 0.5), on = i === 0;
-    var LB = on ? F(L.size * 0.85, '800') : L;
-    var lmax = cw * 0.5 - u(14), lt = fitText(root, on ? I18N.today : dayName(d), cx - u(10), rowY + LB.size * 0.36, LB, lmax, { anchor: 'end', ls: R(LB.size * 0.08) });
-   if (on && lt && width(lt) > lmax + 1) { root.removeChild(lt); lt = fitText(root, dayName(d), cx - u(10), rowY + LB.size * 0.36, LB, lmax, { anchor: 'end', ls: R(LB.size * 0.08) }); }
+    var LB = L;
+    var lmax = cw * 0.5 - u(14), lt = fitText(root, dayName(d), cx - u(10), rowY + LB.size * 0.36, LB, lmax, { anchor: 'end', ls: R(LB.size * 0.08) });
     icon(root, d.icon, cx + isz * 0.7, rowY, isz, null);
     if (lt) { lt.setAttribute('data-sw-day', R(x + cw * i) + ' ' + R(x + cw * (i + 1))); }
-    if (on && lt) mk('rect', { x: R(parseFloat(lt.getAttribute('x'))), y: R(rowY + LB.size * 0.62), width: R(width(lt)), height: Math.max(2, u(2.5)), fill: LAMP || ink }, root);
+    if (on && lt) mk('rect', { x: R(parseFloat(lt.getAttribute('x'))), y: R(rowY + LB.size * 0.62), width: R(width(lt)), height: MX(2, u(2.5)), fill: LAMP || ink }, root);
     if (d.hi === null || d.lo === null) return;
-     var k0 = Math.max(0, Math.min(NS - 1, Math.floor((d.lo - lo) / (hi - lo) * NS))), k1 = Math.max(k0, Math.min(NS - 1, Math.ceil((d.hi - lo) / (hi - lo) * NS) - 1));
+     var k0 = MX(0, MN(NS - 1, FL((d.lo - lo) / (hi - lo) * NS))), k1 = MX(k0, MN(NS - 1, Math.ceil((d.hi - lo) / (hi - lo) * NS) - 1));
     var yOf = function (k) { return bot - (k + 1) * segH - k * segG; };
+    var mW = function (str, sp) { var tt = text(root, str, 0, 0, sp); var ww = width(tt); root.removeChild(tt); return ww; };
+    var hiW = mW(tStr(d.hi), T), loW = mW(tStr(d.lo), t2), tg = u(6), bx = BARV === 'A' ? cx - (pw + tg + MX(hiW, loW)) / 2 : cx - pw / 2;
     for (var k = 0; k < NS; k++) {
      var litK = k >= k0 && k <= k1, fill = litK ? (k === k1 ? PEAK : LIT) : OFF;
-     if (fill) mk('rect', { x: R(cx - pw / 2), y: R(yOf(k)), width: R(pw), height: R(segH), fill: fill, 'data-sw-led': litK ? (k === k1 ? 'peak' : 'lit') : 'off' }, root);
-     else if (bits === 1 && !litK) mk('rect', { x: R(cx), y: R(yOf(k) + segH / 2), width: 1, height: 1, fill: ink, 'data-sw-led': 'off' }, root);
+     if (fill) mk('rect', { x: R(bx), y: R(yOf(k)), width: R(pw), height: R(segH), fill: fill, 'data-sw-led': litK ? (k === k1 ? 'peak' : 'lit') : 'off' }, root);
+     else if (bits === 1 && !litK) mk('rect', { x: R(bx + pw / 2), y: R(yOf(k) + segH / 2), width: 1, height: 1, fill: ink, 'data-sw-led': 'off' }, root);
     }
     var yHi = yOf(k1), yLo = yOf(k0) + segH;
-    text(root, tStr(d.hi), cx, yOf(NS - 1) - T.size * 0.35, T, { anchor: 'middle' });
-    text(root, tStr(d.lo), cx, bot + t2.size * 1.1, t2, { anchor: 'middle' });
+    if (BARV === 'A') {
+     var hy = MX(yHi + T.size * 0.72, top + T.size * 0.72), ly = MN(MX(yLo, hy + t2.size * 1.15), bot);
+     text(root, tStr(d.hi), bx + pw + tg, hy, T);
+     text(root, tStr(d.lo), bx + pw + tg, ly, t2);
+    } else {
+     var sl = mW(' / ', t2), x0 = cx - (hiW + sl + loW) / 2, by = bot + t2.size * 1.1;
+     text(root, tStr(d.hi), x0, by, T); text(root, ' / ' + tStr(d.lo), x0 + hiW, by, t2);
+    }
     debug.strip.push({ hi: d.hi, lo: d.lo, top: R(yHi), bottom: R(yLo) });
    });
   }
   function daysFit(w, minCss) {
-   var fit = Math.max(1, Math.floor(w / (u(minCss) * TS))), n = parseInt(SW_CFG.days, 10);
-   return Math.max(1, Math.min(M.days.length || 1, 7, fit, n > 0 ? n : 7));
+   var fit = MX(1, FL(w / (u(minCss) * TS))), n = parseInt(SW_CFG.days, 10);
+   return MX(1, MN(M.days.length || 1, 7, fit, n > 0 ? n : 7));
   }
   var HS = F(RD(H0 * 0.03, 12), '700');
+  function dialName(k) {
+   return k === 'temperature' ? I18N.temperature : k === 'rain' ? I18N.rainChance : k === 'wind' ? I18N.wind : k === 'humidity' ? I18N.ours('humidity')
+    : k === 'pressure' ? I18N.ours('pressure') : k === 'feels' ? I18N.ours('feels') : k.toUpperCase();
+  }
   function meterRow(x, y, w, h, captions, kinds) {
-   var n = kinds.length, mw = Math.floor((w - (n - 1) * GP) / n);
-   kinds.forEach(function (k, i) { dial(k, root, x + i * (mw + GP), y, i === n - 1 ? w - i * (mw + GP) : mw, h, smallFace(h, mw), i === 0 ? 'L' : (i === n - 1 ? 'R' : null), captions); });
+   var n = kinds.length, mw = FL((w - (n - 1) * GP) / n), capSp = null;
+   if (captions) {
+    var fh = h - u(14), fw = mw - u(14), BG = F(RD(MN(fh, fw) * 0.055, 10), '800'), size = MX(HS.size, BG.size * 1.1);
+    var bwd = (function () { var t0 = text(root, 'L', 0, 0, BG); var ww = width(t0); root.removeChild(t0); return ww + 2 * BG.size * 0.45; })();
+    var size0 = size, floor = MX(HS.size, size * 0.6);
+    [false, true].some(function (allowShort) {
+     for (size = size0; size >= floor * 0.99; size *= 0.9) {
+      capSp = F(size, '700');
+      if (kinds.every(function (k, i) {
+       var nm = dialName(k), room = fw * 0.6 - (i === 0 || i === n - 1 ? bwd + capSp.size * 0.5 : 0);
+       return [nm, allowShort ? SHORTER[nm] : null].filter(Boolean).some(function (wd) { var t0 = text(root, wd, 0, 0, capSp, { ls: R(capSp.size * 0.08) }); var ww = width(t0); root.removeChild(t0); return ww <= room; });
+      })) return true;
+     }
+     return false;
+    });
+   }
+   kinds.forEach(function (k, i) { dial(k, root, x + i * (mw + GP), y, i === n - 1 ? w - i * (mw + GP) : mw, h, smallFace(h, mw), i === 0 ? 'L' : (i === n - 1 ? 'R' : null), captions ? capSp : false); });
   }
   var threeD = view === 1 && DM && !(UW / UH < 1.15) && UW / z >= 1040;
   ROK = pickReadouts(view === 4 ? (H0 / z >= 260 ? [DQ] : []) : (threeD ? [DL, DM, DR] : [DL, DR])); ROS = ROK.map(readout);
@@ -1349,12 +1364,12 @@ var I18N = (function () {
    vfd(root, X0, Y0, W0, vh2, true);
    meterRow(X0, Y0 + vh2 + GP, W0, H0 - vh2 - GP, false, [DL, DR]);
   } else if (view === 2) {
-   var mw3 = R(Math.min(W0 * 0.33, H0 * 1.15)), gw = W0 - 2 * mw3 - 2 * GP;
+   var mw3 = R(MN(W0 * 0.33, H0 * 1.15)), gw = W0 - 2 * mw3 - 2 * GP;
    dial(DL, root, X0, Y0, mw3, H0, smallFace(H0, mw3), 'L');
    vfd(root, X0 + mw3 + GP, Y0, gw, H0, true);
    dial(DR, root, X0 + W0 - mw3, Y0, mw3, H0, smallFace(H0, mw3), 'R');
   } else if (view === 3 && H0 > W0 * 1.25) {
-   var vh5 = R(H0 * 0.22), mh5 = R(Math.min(H0 * 0.25, W0 * 0.62));
+   var vh5 = R(H0 * 0.22), mh5 = R(MN(H0 * 0.25, W0 * 0.62));
    vfd(root, X0, Y0, W0, vh5, true);
    dial(DL, root, X0, Y0 + vh5 + GP, W0, mh5, smallFace(mh5, W0), 'L');
    dial(DR, root, X0, Y0 + vh5 + mh5 + 2 * GP, W0, mh5, smallFace(mh5, W0), 'R');
@@ -1382,7 +1397,6 @@ var I18N = (function () {
   debug.unit = M.unit;
   stage.setAttribute('data-sw-debug', JSON.stringify(debug));
  }
-
  var WI_BASE = 'https://trmnl.com/images/plugins/weather/';
  var WI_MAP = { clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
   cloud: ['wi-cloudy', 'wi-cloudy', 'wi-cloudy'], fog: ['wi-day-fog', 'wi-night-fog', 'wi-fog'],
@@ -1394,6 +1408,7 @@ var I18N = (function () {
  function wiPrefetch(done) {
   var names = {};
   for (var k in WI_MAP) WI_MAP[k].forEach(function (n) { names[n] = 1; });
+  ['wi-umbrella', 'wi-snowflake-cold', 'wi-hail', 'wi-thunderstorm', 'wi-thermometer', 'wi-strong-wind', 'wi-day-sunny', 'wi-smog'].forEach(function (n) { names[n] = 1; });
   var list = Object.keys(names), left = list.length, finished = false;
   function one() { if (--left === 0 && !finished) { finished = true; done(); } }
   setTimeout(function () { if (!finished) { finished = true; done(); } }, 4000);
