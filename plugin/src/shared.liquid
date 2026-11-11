@@ -46,7 +46,7 @@ days: {{ cf.days_shown | default: 'auto' | json }},
 span: {{ cf.dial_span | default: '24h' | json }},
 dials: [{{ cf.left_dial | default: 'temperature' | json }}, {{ cf.middle_dial | default: 'none' | json }}, {{ cf.right_dial | default: 'rain' | json }}],
 glass: {{ cf.glass | default: 'dark' | json }},
-readouts: [{{ cf.readout_1 | default: 'humidity' | json }}, {{ cf.readout_2 | default: 'uv' | json }}, {{ cf.readout_3 | default: 'wind' | json }}, {{ cf.readout_4 | default: 'feels' | json }}],
+readouts: [{{ cf.readout_1 | default: 'humidity' | json }}, {{ cf.readout_2 | default: 'uv' | json }}, {{ cf.readout_3 | default: 'wind' | json }}, {{ cf.readout_4 | default: 'gust' | json }}, {{ cf.meter_5 | default: 'aqi' | json }}, {{ cf.meter_6 | default: 'pressure' | json }}],
 label: '',
 location: {{ cf.lat_lon | default: '' | json }},
 hideTitle: {% if sw_hide == 'true' or sw_hide == 'yes' %}true{% else %}false{% endif %},
@@ -233,24 +233,24 @@ var I18N_TRMNL = {% if sw_i18n and sw_i18n != '' %}{{ sw_i18n }}{% else %}{}{% e
 var OURS_KEYS = ['temp_s', 'rain', 'rain_from', 'rain_until', 'until', 'raining_now', 'no_rain', 'dry', 'next_h', 'dry_h',
 'frost', 'no_signal', 'no_forecast', 'next_days', 'over', 'under', 'now', 'rain_chance', 'wind', 'temperature', 'today', 'lh',
 'snow', 'hail', 'snow_from', 'snow_until', 'snowing_now', 'hail_from', 'hail_until', 'hailing_now', 'hum', 'uv', 'humidity',
-'gust', 'pressure', 'feels', 'compass', 'sunrise', 'sunset'];
+'gust', 'pressure', 'feels', 'compass', 'sunrise', 'sunset', 'm_hum', 'm_press', 'm_rain', 'm_gust'];
 var OURS = {
-en: 'TEMP|RAIN|RAIN FROM|RAIN UNTIL|UNTIL|RAINING NOW|NO RAIN|DRY|NEXT {n} H|DRY {n} H|FROST|NO SIGNAL|NO FORECAST|NEXT DAYS|OVER|UNDER|NOW|RAIN CHANCE|WIND|TEMPERATURE|TODAY|L/H|SNOW|HAIL|SNOW FROM|SNOW UNTIL|SNOWING NOW|HAIL FROM|HAIL UNTIL|HAIL NOW|HUM|UV|HUMIDITY|GUST|PRESSURE|FEELS LIKE|N,NE,E,SE,S,SW,W,NW|SUNRISE|SUNSET',
-de: 'TEMP|REGEN|REGEN AB|REGEN BIS|BIS|ES REGNET|KEIN REGEN|TROCKEN|NÄCHSTE {n} STD|TROCKEN {n} STD|FROST|KEIN SIGNAL|KEINE VORHERSAGE|NÄCHSTE TAGE|ÜBER|UNTER|JETZT|REGENRISIKO|WIND|TEMPERATUR|HEUTE|T/H|SCHNEE|HAGEL|SCHNEE AB|SCHNEE BIS|ES SCHNEIT|HAGEL AB|HAGEL BIS|ES HAGELT||||BÖE|LUFTDRUCK|GEFÜHLT|N,NO,O,SO,S,SW,W,NW|SONNENAUFGANG|SONNENUNTERGANG',
-fr: "TEMP|PLUIE|PLUIE DÈS|PLUIE JUSQU'À|JUSQU'À|IL PLEUT|PAS DE PLUIE|SEC|PROCHAINES {n} H|SEC {n} H|GEL|PAS DE SIGNAL|PAS DE PRÉVISION|PROCHAINS JOURS|AU-DESSUS|EN DESSOUS|MAINTENANT|RISQUE DE PLUIE|VENT|TEMPÉRATURE|AUJOURD'HUI|MIN/MAX|NEIGE|GRÊLE|NEIGE DÈS|NEIGE JUSQU'À|IL NEIGE|GRÊLE DÈS|GRÊLE JUSQU'À|IL GRÊLE||||RAFALE|PRESSION|RESSENTI|N,NE,E,SE,S,SO,O,NO|LEVER DU SOLEIL|COUCHER DU SOLEIL",
-es: 'TEMP|LLUVIA|LLUVIA DESDE|LLUVIA HASTA|HASTA|LLUEVE|SIN LLUVIA|SECO|PRÓXIMAS {n} H|SECO {n} H|HELADA|SIN SEÑAL|SIN PRONÓSTICO|PRÓXIMOS DÍAS|ENCIMA|DEBAJO|AHORA|RIESGO DE LLUVIA|VIENTO|TEMPERATURA|HOY|MÍN/MÁX|NIEVE|GRANIZO|NIEVE DESDE|NIEVE HASTA|NIEVA|GRANIZO DESDE|GRANIZO HASTA|GRANIZA||||RACHA|PRESIÓN|SENSACIÓN|N,NE,E,SE,S,SO,O,NO|AMANECER|ATARDECER',
-it: 'TEMP|PIOGGIA|PIOGGIA DALLE|PIOGGIA FINO|FINO ALLE|PIOVE|NIENTE PIOGGIA|ASCIUTTO|PROSSIME {n} ORE|ASCIUTTO {n} ORE|GELO|NESSUN SEGNALE|NESSUNA PREVISIONE|PROSSIMI GIORNI|SOPRA|SOTTO|ORA|RISCHIO PIOGGIA|VENTO|TEMPERATURA|OGGI|MIN/MAX|NEVE|GRANDINE|NEVE DALLE|NEVE FINO|NEVICA|GRANDINE DALLE|GRANDINE FINO|GRANDINA||||RAFFICA|PRESSIONE|PERCEPITA|N,NE,E,SE,S,SO,O,NO|ALBA|TRAMONTO',
-nl: 'TEMP|REGEN|REGEN VANAF|REGEN TOT|TOT|HET REGENT|GEEN REGEN|DROOG|KOMENDE {n} UUR|DROOG {n} UUR|VORST|GEEN SIGNAAL|GEEN VERWACHTING|KOMENDE DAGEN|BOVEN|ONDER|NU|REGENKANS|WIND|TEMPERATUUR|VANDAAG|MIN/MAX|SNEEUW|HAGEL|SNEEUW VANAF|SNEEUW TOT|HET SNEEUWT|HAGEL VANAF|HAGEL TOT|HET HAGELT|VOCHT|UV|VOCHTIGHEID|VLAAG|LUCHTDRUK|GEVOEL|N,NO,O,ZO,Z,ZW,W,NW|ZONSOPGANG|ZONSONDERGANG',
-pt: 'TEMP|CHUVA|CHUVA ÀS|CHUVA ATÉ|ATÉ|CHOVENDO|SEM CHUVA|SECO|PRÓXIMAS {n} H|SECO {n} H|GEADA|SEM SINAL|SEM PREVISÃO|PRÓXIMOS DIAS|ACIMA|ABAIXO|AGORA|CHANCE DE CHUVA|VENTO|TEMPERATURA|HOJE|MÍN/MÁX|NEVE|GRANIZO|NEVE ÀS|NEVE ATÉ|NEVANDO|GRANIZO ÀS|GRANIZO ATÉ|GRANIZANDO||||RAJADA|PRESSÃO|SENSAÇÃO|N,NE,L,SE,S,SO,O,NO|NASCER DO SOL|PÔR DO SOL',
+en: 'TEMP|RAIN|RAIN FROM|RAIN UNTIL|UNTIL|RAINING NOW|NO RAIN|DRY|NEXT {n} H|DRY {n} H|FROST|NO SIGNAL|NO FORECAST|NEXT DAYS|OVER|UNDER|NOW|RAIN CHANCE|WIND|TEMPERATURE|TODAY|L/H|SNOW|HAIL|SNOW FROM|SNOW UNTIL|SNOWING NOW|HAIL FROM|HAIL UNTIL|HAIL NOW|HUM|UV|HUMIDITY|GUST|PRESSURE|FEELS LIKE|N,NE,E,SE,S,SW,W,NW|SUNRISE|SUNSET|HUM|PRESS|RAIN|GUST',
+de: 'TEMP|REGEN|REGEN AB|REGEN BIS|BIS|ES REGNET|KEIN REGEN|TROCKEN|NÄCHSTE {n} STD|TROCKEN {n} STD|FROST|KEIN SIGNAL|KEINE VORHERSAGE|NÄCHSTE TAGE|ÜBER|UNTER|JETZT|REGENRISIKO|WIND|TEMPERATUR|HEUTE|T/H|SCHNEE|HAGEL|SCHNEE AB|SCHNEE BIS|ES SCHNEIT|HAGEL AB|HAGEL BIS|ES HAGELT||||BÖE|LUFTDRUCK|GEFÜHLT|N,NO,O,SO,S,SW,W,NW|SONNENAUFGANG|SONNENUNTERGANG|FEUCHT|DRUCK|MM|BÖE',
+fr: "TEMP|PLUIE|PLUIE DÈS|PLUIE JUSQU'À|JUSQU'À|IL PLEUT|PAS DE PLUIE|SEC|PROCHAINES {n} H|SEC {n} H|GEL|PAS DE SIGNAL|PAS DE PRÉVISION|PROCHAINS JOURS|AU-DESSUS|EN DESSOUS|MAINTENANT|RISQUE DE PLUIE|VENT|TEMPÉRATURE|AUJOURD'HUI|MIN/MAX|NEIGE|GRÊLE|NEIGE DÈS|NEIGE JUSQU'À|IL NEIGE|GRÊLE DÈS|GRÊLE JUSQU'À|IL GRÊLE||||RAFALE|PRESSION|RESSENTI|N,NE,E,SE,S,SO,O,NO|LEVER DU SOLEIL|COUCHER DU SOLEIL|HUMID|PRESS|PLUIE|RAFALE",
+es: 'TEMP|LLUVIA|LLUVIA DESDE|LLUVIA HASTA|HASTA|LLUEVE|SIN LLUVIA|SECO|PRÓXIMAS {n} H|SECO {n} H|HELADA|SIN SEÑAL|SIN PRONÓSTICO|PRÓXIMOS DÍAS|ENCIMA|DEBAJO|AHORA|RIESGO DE LLUVIA|VIENTO|TEMPERATURA|HOY|MÍN/MÁX|NIEVE|GRANIZO|NIEVE DESDE|NIEVE HASTA|NIEVA|GRANIZO DESDE|GRANIZO HASTA|GRANIZA||||RACHA|PRESIÓN|SENSACIÓN|N,NE,E,SE,S,SO,O,NO|AMANECER|ATARDECER|HUMED|PRES|LLUVIA|RACHA',
+it: 'TEMP|PIOGGIA|PIOGGIA DALLE|PIOGGIA FINO|FINO ALLE|PIOVE|NIENTE PIOGGIA|ASCIUTTO|PROSSIME {n} ORE|ASCIUTTO {n} ORE|GELO|NESSUN SEGNALE|NESSUNA PREVISIONE|PROSSIMI GIORNI|SOPRA|SOTTO|ORA|RISCHIO PIOGGIA|VENTO|TEMPERATURA|OGGI|MIN/MAX|NEVE|GRANDINE|NEVE DALLE|NEVE FINO|NEVICA|GRANDINE DALLE|GRANDINE FINO|GRANDINA||||RAFFICA|PRESSIONE|PERCEPITA|N,NE,E,SE,S,SO,O,NO|ALBA|TRAMONTO|UMID|PRESS|PIOGG|RAFF',
+nl: 'TEMP|REGEN|REGEN VANAF|REGEN TOT|TOT|HET REGENT|GEEN REGEN|DROOG|KOMENDE {n} UUR|DROOG {n} UUR|VORST|GEEN SIGNAAL|GEEN VERWACHTING|KOMENDE DAGEN|BOVEN|ONDER|NU|REGENKANS|WIND|TEMPERATUUR|VANDAAG|MIN/MAX|SNEEUW|HAGEL|SNEEUW VANAF|SNEEUW TOT|HET SNEEUWT|HAGEL VANAF|HAGEL TOT|HET HAGELT|VOCHT|UV|VOCHTIGHEID|VLAAG|LUCHTDRUK|GEVOEL|N,NO,O,ZO,Z,ZW,W,NW|ZONSOPGANG|ZONSONDERGANG|VOCHT|DRUK|MM|VLAAG',
+pt: 'TEMP|CHUVA|CHUVA ÀS|CHUVA ATÉ|ATÉ|CHOVENDO|SEM CHUVA|SECO|PRÓXIMAS {n} H|SECO {n} H|GEADA|SEM SINAL|SEM PREVISÃO|PRÓXIMOS DIAS|ACIMA|ABAIXO|AGORA|CHANCE DE CHUVA|VENTO|TEMPERATURA|HOJE|MÍN/MÁX|NEVE|GRANIZO|NEVE ÀS|NEVE ATÉ|NEVANDO|GRANIZO ÀS|GRANIZO ATÉ|GRANIZANDO||||RAJADA|PRESSÃO|SENSAÇÃO|N,NE,L,SE,S,SO,O,NO|NASCER DO SOL|PÔR DO SOL|UMID|PRESS|CHUVA|RAJADA',
 ja: '気温|雨|雨の開始|雨の終了|終了|降雨中|雨なし|雨なし|今後{n}時間|{n}時間 雨なし|霜|受信なし|予報なし|週間予報|超過|未満|現在|降水確率|風|気温|今日|最低/最高|雪|ひょう|雪の開始|雪の終了|降雪中|ひょうの開始|ひょうの終了|降ひょう中||||突風|気圧|体感||日の出|日の入',
 ko: '기온|비|비 시작|비 그침|종료|비 오는 중|비 없음|비 없음|향후 {n}시간|{n}시간 비 없음|서리|신호 없음|예보 없음|주간 예보|초과|미만|현재|강수 확률|바람|기온|오늘|최저/최고|눈|우박|눈 시작|눈 그침|눈 오는 중|우박 시작|우박 그침|우박 내리는 중||||돌풍|기압|체감||일출|일몰',
 'zh-CN': '气温|雨|开始下雨|雨停|至|正在下雨|无雨|无雨|未来{n}小时|{n}小时无雨|霜冻|无信号|无预报|未来几天|超出|低于|现在|降水概率|风|气温|今天|最低/最高|雪|冰雹|开始下雪|雪停|正在下雪|开始下冰雹|冰雹停|正在下冰雹||||阵风|气压|体感||日出|日落',
 'zh-HK': '氣溫|雨|開始下雨|雨停|至|正在下雨|無雨|無雨|未來{n}小時|{n}小時無雨|霜凍|無信號|無預報|未來數天|超出|低於|現在|降雨概率|風|氣溫|今天|最低/最高|雪|冰雹|開始下雪|雪停|正在下雪|開始下冰雹|冰雹停|正在下冰雹||||陣風|氣壓|體感||日出|日落',
-sv: 'TEMP|REGN|REGN FRÅN|REGN TILL|TILL|DET REGNAR|INGET REGN|TORRT|KOMMANDE {n} TIM|TORRT {n} TIM|FROST|INGEN SIGNAL|INGEN PROGNOS|KOMMANDE DAGAR|ÖVER|UNDER|NU|REGNRISK|VIND|TEMPERATUR|IDAG|MIN/MAX|SNÖ|HAGEL|SNÖ FRÅN|SNÖ TILL|DET SNÖAR|HAGEL FRÅN|HAGEL TILL|DET HAGLAR||||BY|LUFTTRYCK|KÄNNS SOM|N,NO,O,SO,S,SV,V,NV|SOLUPPGÅNG|SOLNEDGÅNG',
-da: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NÆSTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN PROGNOSE|NÆSTE DAGE|OVER|UNDER|NU|REGNRISIKO|VIND|TEMPERATUR|I DAG|MIN/MAX|SNE|HAGL|SNE FRA|SNE TIL|DET SNER|HAGL FRA|HAGL TIL|DET HAGLER||||VINDSTØD|LUFTTRYK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV|SOLOPGANG|SOLNEDGANG',
-no: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NESTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN VARSEL|NESTE DAGER|OVER|UNDER|NÅ|NEDBØRSSJANSE|VIND|TEMPERATUR|I DAG|MIN/MAKS|SNØ|HAGL|SNØ FRA|SNØ TIL|DET SNØR|HAGL FRA|HAGL TIL|DET HAGLER||||VINDKAST|LUFTTRYKK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV|SOLOPPGANG|SOLNEDGANG',
-pl: 'TEMP|DESZCZ|DESZCZ OD|DESZCZ DO|DO|PADA|BEZ DESZCZU|SUCHO|KOLEJNE {n} H|SUCHO {n} H|MRÓZ|BRAK SYGNAŁU|BRAK PROGNOZY|KOLEJNE DNI|POWYŻEJ|PONIŻEJ|TERAZ|SZANSA OPADÓW|WIATR|TEMPERATURA|DZIŚ|MIN/MAKS|ŚNIEG|GRAD|ŚNIEG OD|ŚNIEG DO|PADA ŚNIEG|GRAD OD|GRAD DO|PADA GRAD||||PORYW|CIŚNIENIE|ODCZUWALNA|N,NE,E,SE,S,SW,W,NW|WSCHÓD SŁOŃCA|ZACHÓD SŁOŃCA',
-cs: 'TEPL|DÉŠŤ|DÉŠŤ OD|DÉŠŤ DO|DO|PRŠÍ|BEZ DEŠTĚ|SUCHO|DALŠÍCH {n} H|SUCHO {n} H|MRÁZ|BEZ SIGNÁLU|BEZ PŘEDPOVĚDI|DALŠÍ DNY|NAD|POD|TEĎ|ŠANCE SRÁŽEK|VÍTR|TEPLOTA|DNES|MIN/MAX|SNÍH|KRUPOBITÍ|SNÍH OD|SNÍH DO|SNĚŽÍ|KRUPOBITÍ OD|KRUPOBITÍ DO|PADÁ KRUPOBITÍ||||NÁRAZ|TLAK|POCITOVÁ|S,SV,V,JV,J,JZ,Z,SZ|VÝCHOD SLUNCE|ZÁPAD SLUNCE'
+sv: 'TEMP|REGN|REGN FRÅN|REGN TILL|TILL|DET REGNAR|INGET REGN|TORRT|KOMMANDE {n} TIM|TORRT {n} TIM|FROST|INGEN SIGNAL|INGEN PROGNOS|KOMMANDE DAGAR|ÖVER|UNDER|NU|REGNRISK|VIND|TEMPERATUR|IDAG|MIN/MAX|SNÖ|HAGEL|SNÖ FRÅN|SNÖ TILL|DET SNÖAR|HAGEL FRÅN|HAGEL TILL|DET HAGLAR||||BY|LUFTTRYCK|KÄNNS SOM|N,NO,O,SO,S,SV,V,NV|SOLUPPGÅNG|SOLNEDGÅNG|FUKT|TRYCK|REGN|BY',
+da: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NÆSTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN PROGNOSE|NÆSTE DAGE|OVER|UNDER|NU|REGNRISIKO|VIND|TEMPERATUR|I DAG|MIN/MAX|SNE|HAGL|SNE FRA|SNE TIL|DET SNER|HAGL FRA|HAGL TIL|DET HAGLER||||VINDSTØD|LUFTTRYK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV|SOLOPGANG|SOLNEDGANG|FUGT|TRYK|REGN|STØD',
+no: 'TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NESTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN VARSEL|NESTE DAGER|OVER|UNDER|NÅ|NEDBØRSSJANSE|VIND|TEMPERATUR|I DAG|MIN/MAKS|SNØ|HAGL|SNØ FRA|SNØ TIL|DET SNØR|HAGL FRA|HAGL TIL|DET HAGLER||||VINDKAST|LUFTTRYKK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV|SOLOPPGANG|SOLNEDGANG|FUKT|TRYKK|REGN|KAST',
+pl: 'TEMP|DESZCZ|DESZCZ OD|DESZCZ DO|DO|PADA|BEZ DESZCZU|SUCHO|KOLEJNE {n} H|SUCHO {n} H|MRÓZ|BRAK SYGNAŁU|BRAK PROGNOZY|KOLEJNE DNI|POWYŻEJ|PONIŻEJ|TERAZ|SZANSA OPADÓW|WIATR|TEMPERATURA|DZIŚ|MIN/MAKS|ŚNIEG|GRAD|ŚNIEG OD|ŚNIEG DO|PADA ŚNIEG|GRAD OD|GRAD DO|PADA GRAD||||PORYW|CIŚNIENIE|ODCZUWALNA|N,NE,E,SE,S,SW,W,NW|WSCHÓD SŁOŃCA|ZACHÓD SŁOŃCA|WILG|CIŚN|DESZCZ|PORYW',
+cs: 'TEPL|DÉŠŤ|DÉŠŤ OD|DÉŠŤ DO|DO|PRŠÍ|BEZ DEŠTĚ|SUCHO|DALŠÍCH {n} H|SUCHO {n} H|MRÁZ|BEZ SIGNÁLU|BEZ PŘEDPOVĚDI|DALŠÍ DNY|NAD|POD|TEĎ|ŠANCE SRÁŽEK|VÍTR|TEPLOTA|DNES|MIN/MAX|SNÍH|KRUPOBITÍ|SNÍH OD|SNÍH DO|SNĚŽÍ|KRUPOBITÍ OD|KRUPOBITÍ DO|PADÁ KRUPOBITÍ||||NÁRAZ|TLAK|POCITOVÁ|S,SV,V,JV,J,JZ,Z,SZ|VÝCHOD SLUNCE|ZÁPAD SLUNCE|VLHK|TLAK|DÉŠŤ|NÁRAZ'
 };
 var OURS_COND = {"ja": "晴れ|晴れ時々曇り|曇り|雷|霧|着氷性の霧|弱い霧雨|霧雨|着氷性の霧雨|強い着氷性の霧雨|小雨|雨|大雨|弱い着氷性の雨|強い着氷性の雨|小雪|雪|大雪|凍雨|豪雨|雷雨|快晴|晴れ時々曇り", "it": "SOLEGGIATO|PARZIALMENTE NUVOLOSO|COPERTO|TUONI|NEBBIA|NEBBIA GELATA|PIOVIGGINE DEBOLE|PIOVIGGINE|PIOVIGGINE GELATA|GELICIDIO FORTE|PIOGGIA DEBOLE|PIOGGIA MODERATA|PIOGGIA FORTE|PIOGGIA GELATA DEBOLE|PIOGGIA GELATA FORTE|NEVE DEBOLE|NEVE MODERATA|NEVE FORTE|GRANULI DI GHIACCIO|PIOGGIA TORRENZIALE|TEMPORALE|SERENO|PARZIALMENTE NUVOLOSO", "no": "SOL|DELVIS SKYET|OVERSKYET|TORDEN|TÅKE|FRYSETÅKE|LETT YR|YR|UNDERKJØLT YR|KRAFTIG UNDERKJØLT YR|LETT REGN|MODERAT REGN|KRAFTIG REGN|LETT UNDERKJØLT REGN|KRAFTIG UNDERKJØLT REGN|LETT SNØ|MODERAT SNØ|KRAFTIG SNØ|ISKORN|STYRTREGN|TORDENBYGER|KLART|DELVIS SKYET", "sv": "SOLIGT|HALVKLART|MULET|ÅSKA|DIMMA|UNDERKYLD DIMMA|LÄTT DUGGREGN|DUGGREGN|UNDERKYLT DUGGREGN|KRAFTIGT UNDERKYLT DUGGREGN|LÄTT REGN|MÅTTLIGT REGN|KRAFTIGT REGN|LÄTT UNDERKYLT REGN|KRAFTIGT UNDERKYLT REGN|LÄTT SNÖ|MÅTTLIG SNÖ|KRAFTIG SNÖ|ISKORN|SKYFALL|ÅSKA OCH REGN|KLART|HALVKLART"};
 var WMO_TO_WAPI = { 0: 1000, 1: 1003, 2: 1003, 3: 1009, 45: 1135, 48: 1147, 51: 1150, 53: 1153, 55: 1153, 56: 1168, 57: 1171,
@@ -993,27 +993,25 @@ return tw2;
 function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
 function fv1(v) { return v === null ? '--' : (v < 10 ? (Math.round(v * 10) / 10).toFixed(1) : SWModel.fmt(v)); }
 function compass(d) { if (d === null) return ''; var pts = I18N.ours('compass').split(','); return pts.length === 8 ? pts[Math.round(d / 45) % 8] : ''; }
-var RO_ORDER = ['wind', 'gust', 'aqi', 'feels', 'humidity', 'uv', 'pressure', 'rain_mm', 'sun'];
+var RO_ORDER = ['humidity', 'uv', 'wind', 'gust', 'aqi', 'pressure', 'rain_mm'];
 function readout(k) {
-var n = M.now, t = M.today, c = compass(n.dir), wu = WUNIT.toLowerCase(), F_ = M.unit === 'F';
+var n = M.now, t = M.today, c = compass(n.dir), F_ = M.unit === 'F';
 var bar = (v, lo, hi) => v === null ? null : Mx(0, Mn(1, (v - lo) / (hi - lo)));
-if (k === 'wind') return { lab: I18N.wind, v: fv(n.wind), sfx: wu, sfxMax: wu, longest: '88', knob: n.dir, bar: bar(n.wind, 0, F_ ? 40 : 60), txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
-if (k === 'gust') return { lab: I18N.ours('gust'), v: fv(nz(t.gustMax)), sfx: wu, sfxMax: wu, longest: '888', knob: n.dir, bar: bar(nz(t.gustMax), 0, F_ ? 50 : 80), txt: I18N.ours('gust') + ' ' + fv(nz(t.gustMax)) };
-if (k === 'aqi') return { lab: 'AQI', v: fv(nz(n.aqi)), longest: '888', bar: bar(nz(n.aqi), 0, 100), txt: 'AQI ' + fv(nz(n.aqi)) };
-if (k === 'feels') return { lab: I18N.ours('feels'), v: fv(n.feels), sfx: deg + M.unit, sfxMax: deg + M.unit, longest: '-' + '8'.repeat(NDIG), bar: bar(n.feels, TSC.a, TSC.b), txt: I18N.ours('feels') + ' ' + fv(n.feels, deg) };
-if (k === 'uv') return { lab: I18N.ours('uv'), v: fv(n.uv), longest: '88', bar: bar(n.uv, 0, 11), txt: I18N.ours('uv') + ' ' + fv(n.uv) };
-if (k === 'pressure') return { lab: I18N.ours('pressure'), v: fv(n.press), sfx: 'hPa', sfxMax: 'hPa', longest: '8888', bar: bar(n.press, 970, 1050), txt: fv(n.press) + ' hPa' };
-if (k === 'rain_mm') return { lab: I18N.ours('rain'), v: fv1(nz(t.rainMm)), sfx: 'mm', sfxMax: 'mm', longest: '88.8', bar: bar(nz(t.rainMm), 0, 20), txt: I18N.ours('rain') + ' ' + fv1(nz(t.rainMm)) + ' mm' };
-if (k === 'sun') { var sl = I18N.ours(M.sun.up ? 'sunrise' : 'sunset'); return { lab: sl, v: M.sun.at || '--:--', longest: '88:88', noBar: true, txt: sl + ' ' + (M.sun.at || '--:--') }; }
-return { lab: I18N.ours('humidity'), v: fv(n.hum), sfx: '%', sfxMax: '%', longest: '888', bar: bar(n.hum, 0, 100), txt: I18N.ours('hum') + ' ' + fv(n.hum, '%') };
+if (k === 'wind') return { lab: I18N.wind, knob: n.dir, bar: bar(n.wind, 0, F_ ? 40 : 60), txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
+if (k === 'gust') return { lab: I18N.ours('m_gust'), knob: n.dir, bar: bar(nz(t.gustMax), 0, F_ ? 50 : 80), txt: I18N.ours('gust') + ' ' + fv(nz(t.gustMax)) };
+if (k === 'aqi') return { lab: 'AQI', bar: bar(nz(n.aqi), 0, 100), ticks: [0.6], txt: 'AQI ' + fv(nz(n.aqi)) };
+if (k === 'uv') return { lab: I18N.ours('uv'), bar: bar(n.uv, 0, 11), ticks: [3 / 11, 6 / 11], txt: I18N.ours('uv') + ' ' + fv(n.uv) };
+if (k === 'pressure') return { lab: I18N.ours('m_press'), bar: bar(n.press, 970, 1050), txt: fv(n.press) + ' hPa' };
+if (k === 'rain_mm') return { lab: I18N.ours('m_rain'), bar: bar(nz(t.rainMm), 0, 20), txt: I18N.ours('rain') + ' ' + fv1(nz(t.rainMm)) + ' mm' };
+return { lab: I18N.ours('m_hum'), bar: bar(n.hum, 0, 100), txt: I18N.ours('hum') + ' ' + fv(n.hum, '%') };
 }
 function pickReadouts(shown) {
-var want = SW_CFG.readouts.map((k, i) => RO_ORDER.indexOf(k) >= 0 ? k : ['humidity', 'uv', 'wind', 'feels'][i]), out = [];
+var want = SW_CFG.readouts.map((k, i) => RO_ORDER.indexOf(k) >= 0 ? k : ['humidity', 'uv', 'wind', 'gust', 'aqi', 'pressure'][i]), out = [];
 var fixed = want.filter((k, i) => shown.indexOf(k) < 0 && want.indexOf(k) === i);
 want.forEach((k, i) => {
 if (shown.indexOf(k) < 0 && want.indexOf(k) === i) { out.push(k); return; }
 var at = RO_ORDER.indexOf(k);
-for (var n = 1; n <= 9; n++) { var c = RO_ORDER[(at + n) % 9]; if (shown.indexOf(c) < 0 && fixed.indexOf(c) < 0 && out.indexOf(c) < 0) { out.push(c); return; } }
+for (var n = 1; n <= 7; n++) { var c = RO_ORDER[(at + n) % 7]; if (shown.indexOf(c) < 0 && fixed.indexOf(c) < 0 && out.indexOf(c) < 0) { out.push(c); return; } }
 out.push(k);
 });
 return out;
@@ -1074,25 +1072,18 @@ g.removeChild(wt);
 wt = fitText(g, condS, ix, y + h * 0.88, WD, iw, { fill: GLOW, ls: R(WD.size * 0.15) });
 crMoved.setAttribute('y', R(y + h * 0.88 - WD.size * 1.6));
 }
-var rx = ix + iw * 0.72, rw = iw * 0.28, WL = { ls: R(WD.size * 0.15), fill: GLOW };
-var blk = null, cells = null;
+var lw = iw * 0.4, rx = ix + iw * 0.78, rw = iw * 0.22, WL = { ls: R(WD.size * 0.15), fill: GLOW };
+var blk = null, cells = null, MH = false;
 function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.removeChild(tt); return ww; }
-if (!compact && M.ok && ROS.length >= 4) {
-var cellGap = u(12), cellW = (rw - cellGap) / 2, ug = u(6), colW = Mx(u(7), R(cellW * 0.1)), colG = u(8);
-var ROW = { dTop: Mx(y + h * 0.33, lampBottom + u(6)), dBot: y + h * 0.62, bTop: y + h * 0.68, bH: Mx(u(5), R(h * 0.07)), lab: y + h * 0.9 };
-var right = ROS.slice(2, 4), all = M.rain ? ROS.slice(0, 2) : ROS.slice(0, 4), cw = Mn(R((ROW.dBot - ROW.dTop) / 2), R(h * 0.13)), SX;
-for (var k = 0; k < 14; k++) {
-SX = F(cw * 1.05, '700');
-if (all.every((r) => seg7W(cw, r.longest) + (r.sfxMax ? mW(r.sfxMax, SX) + ug : 0) + (r.knob !== undefined ? cw * 1.56 + ug : 0) <= cellW - colW - colG)) break;
-cw = R(cw * 0.9);
-}
-var LKEYS = ['humidity', 'gust', 'feels', 'pressure', 'rain', 'sunrise', 'sunset', 'uv', 'rain_from', 'snow_from', 'hail_from', 'raining_now', 'until'], lmax = mW(I18N.wind, WD);
-LKEYS.forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), WD)); });
-all.forEach((r) => { lmax = Mx(lmax, mW(r.lab, WD)); });
-var WDl = lmax > cellW - colW - colG + u(4) ? F(WD.size * (cellW - colW - colG + u(4)) / lmax, WD.weight) : WD;
-cells = { cw: cw, SX: SX, WD: WDl, ROW: ROW, cellW: cellW, gap: cellGap, colW: colW, colG: colG, left: ROS.slice(0, 2), right: right };
-blk = { divX: ix + rw + u(14), cL: ix + rw + u(22), cR: rx - u(22) };
-if (cw < u(5) || blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
+if (!compact && M.ok && ROS.length >= 6) {
+var mg = u(6), nM = [6, 4, 3].filter((n) => (lw - (n - 1) * mg) / n >= u(38))[0] || 2, cellW = (lw - (nM - 1) * mg) / nM;
+var ROW = { top: Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * 0.9 };
+var lmax = 0; ['m_hum', 'uv', 'm_press', 'm_rain', 'm_gust'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), WD)); }); lmax = Mx(lmax, mW(I18N.wind, WD), mW('AQI', WD));
+var WDl = lmax > cellW + u(2) ? F(WD.size * (cellW + u(2)) / lmax, WD.weight) : WD;
+if (MH) { nM = 6; WDl = WD; }
+cells = { nM: nM, cellW: cellW, mg: mg, ROW: ROW, WD: WDl, colW: Mn(u(22), R(cellW * 0.3)), left: ROS.slice(0, nM), labW: lmax + u(4) };
+blk = { divX: ix + lw + u(14), cL: ix + lw + u(22), cR: rx - u(22) };
+if (blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
 }
 function knob(pg, kx, ky, kr, dir) {
 var kg = mk('g', { 'data-sw-knob': dir === null ? 'none' : R(dir) }, pg), lw0 = Mx(1, u(1.5));
@@ -1103,31 +1094,43 @@ mk('circle', { cx: R(kx), cy: R(ky), r: R(kr), fill: 'none', stroke: bits === 1 
 if (dir !== null) { var a2 = dir * Math.PI / 180, pw = Mx(2, u(3));
 glowDigits((hg) => { mk('line', { x1: (kx + kr * 0.3 * Math.sin(a2)).toFixed(1), y1: (ky - kr * 0.3 * Math.cos(a2)).toFixed(1), x2: (kx + kr * 0.88 * Math.sin(a2)).toFixed(1), y2: (ky - kr * 0.88 * Math.cos(a2)).toFixed(1), stroke: DIGIT, 'stroke-width': pw, 'stroke-linecap': 'round', 'shape-rendering': GPX }, hg || kg); }); }
 }
-function cell(x0, r, which) {
-var C = cells, cw2 = C.cw, uw = r.sfxMax ? mW(r.sfxMax, C.SX) + ug : 0, kr = r.knob !== undefined ? cw2 * 0.6 : 0, gw = seg7W(cw2, r.longest) + uw + (kr ? kr * 2.6 + ug : 0);
-var cg = mk('g', { 'data-sw-rcell': which + ':' + (debug[which] || []).length, 'data-sw-cw': cw2 }, g);
-var cx0 = x0 + C.colW + C.colG, cwid = C.cellW - C.colW - C.colG;
-var vr = cx0 + (cwid - gw) / 2 + seg7W(cw2, r.longest), dx2 = vr - seg7W(cw2, r.v);
-glowDigits((hg) => { seg7(hg || cg, dx2, C.ROW.dTop, cw2, cw2 * 2, r.v, DIGIT, hg ? null : GHOSTD); });
-if (r.sfx) glowDigits((hg) => { text(hg || cg, r.sfx, vr + ug, C.ROW.dTop + cw2 * 2, C.SX, { fill: DIGIT }).setAttribute('data-sw-runit', 1); });
-if (kr) knob(cg, vr + uw + ug + kr * 1.3, C.ROW.dTop + cw2, kr, r.knob);
-// the vertical LED column at the cell's left edge, filling from the bottom (owner): it also divides the cells
-var sg = Mx(2, u(3)), n2 = 10, sh2 = (C.ROW.lab - C.ROW.dTop - (n2 - 1) * sg) / n2, lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
-for (var i = 0; i < n2; i++) {
-var sy2 = C.ROW.lab - (i + 1) * sh2 - i * sg, on = i < lit;
-if (on) glowDigits((hg) => { mk('rect', { x: R(x0), y: R(sy2), width: R(C.colW), height: R(sh2), fill: DIGIT, 'data-sw-rseg': hg ? null : 'lit' }, hg || cg); });
-else if (bits === 1) mk('rect', { x: R(x0) + 0.5, y: R(sy2) + 0.5, width: R(C.colW) - 1, height: Mx(1, R(sh2) - 1), fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
-else if (DIMW) mk('rect', { x: R(x0), y: R(sy2), width: R(C.colW), height: R(sh2), fill: DIMW, 'data-sw-rseg': 'off' }, cg);
+function meterRowH(i, r, which) {
+var C = cells, rh = (C.ROW.lab - C.ROW.top + C.WD.size) / C.nM, cy = C.ROW.top - C.WD.size * 0.6 + (i + 0.5) * rh, x0 = ix + C.labW + u(6), kr = r.knob !== undefined ? Mn(rh * 0.42, u(13)) : 0;
+var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segW = (lw - C.labW - u(6) - (kr ? kr * 2.6 + u(4) : 0) - 9 * sg) / 10, segH = Mx(2, R(rh * 0.5)), lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * 10);
+text(cg, r.lab, ix, cy + C.WD.size * 0.36, C.WD, { fill: GLOW, ls: R(C.WD.size * 0.1) }).setAttribute('data-sw-cell', which);
+for (var k = 0; k < 10; k++) {
+var sx = x0 + k * (segW + sg), on = k < lit, sy = R(cy - segH / 2);
+if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIGIT, 'data-sw-rseg': hg ? null : 'lit' }, hg || cg); });
+else if (bits === 1) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
+else if (DIMW) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
 }
-var lt = text(cg, r.lab, cx0 + cwid / 2, C.ROW.lab, C.WD, { anchor: 'middle', fill: GLOW, ls: R(C.WD.size * 0.12) });
+(r.ticks || []).forEach((f) => { mk('rect', { x: R(x0 + f * (10 * segW + 9 * sg)), y: R(cy + segH / 2 + u(2)), width: Mx(1, u(1.5)), height: u(4), fill: GLOW, 'data-sw-rtick': 1 }, cg); });
+if (kr) knob(cg, x0 + 10 * segW + 9 * sg + u(4) + kr * 1.3, cy, kr, r.knob);
+(debug[which] = debug[which] || []).push(r.lab);
+}
+function meterCol(x0, r, which) {
+var C = cells, cxm = x0 + C.cellW / 2, kr = r.knob !== undefined ? Mn(C.colW * 0.75, u(13)) : 0;
+var cg = mk('g', { 'data-sw-rcell': which + ':' + (debug[which] || []).length }, g);
+var top = C.ROW.top + (kr ? kr * 2.6 + u(4) : 0), bot = C.ROW.lab - C.WD.size * 1.5, cx1 = R(cxm - C.colW / 2);
+if (kr) knob(cg, cxm, C.ROW.top + kr * 1.3, kr, r.knob);
+var sg = Mx(2, u(3)), n2 = 10, sh2 = (bot - top - (n2 - 1) * sg) / n2, lit = r.bar === null || r.bar === undefined ? 0 : Math.round(r.bar * n2);
+for (var i = 0; i < n2; i++) {
+var sy2 = bot - (i + 1) * sh2 - i * sg, on = i < lit;
+if (on) glowDigits((hg) => { mk('rect', { x: cx1, y: R(sy2), width: R(C.colW), height: R(sh2), fill: DIGIT, 'data-sw-rseg': hg ? null : 'lit' }, hg || cg); });
+else if (bits === 1) mk('rect', { x: cx1 + 0.5, y: R(sy2) + 0.5, width: R(C.colW) - 1, height: Mx(1, R(sh2) - 1), fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
+else if (DIMW) mk('rect', { x: cx1, y: R(sy2), width: R(C.colW), height: R(sh2), fill: DIMW, 'data-sw-rseg': 'off' }, cg);
+}
+(r.ticks || []).forEach((f) => { mk('rect', { x: cx1 + R(C.colW) + u(2), y: R(bot - f * (bot - top)), width: u(5), height: Mx(1, u(1.5)), fill: GLOW, 'data-sw-rtick': 1 }, cg); });
+var lt = text(cg, r.lab, cxm, C.ROW.lab, C.WD, { anchor: 'middle', fill: GLOW, ls: R(C.WD.size * 0.1) });
 lt.setAttribute('data-sw-cell', which);
-(debug[which] = debug[which] || []).push(r.v);
+(debug[which] = debug[which] || []).push(r.lab);
 }
 var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
 var dh = R(h * (compact ? 0.46 : (noRow ? 0.66 : 0.56)));
 function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.25); }
 var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
-var dyTop = compact ? y + h * 0.27 : Mx(y + h * (noRow ? 0.14 : 0.25), lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2);
+var feelsOn = !compact && blk && M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2;
+var dyTop = compact ? y + h * 0.27 : Mx(y + h * (noRow ? 0.14 : 0.25), lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2) - (feelsOn ? WD.size * 1.9 : 0);
 while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh > dyEnd))) dh -= 2;
 var dw = R(dh * 0.5), dy = dyTop;
 var str = tempDigits();
@@ -1160,10 +1163,15 @@ seg7(g, dx + dwid + R(dw * 0.25), dy, sw, R(dh * 0.45), 'o', DIGIT, null);
 seg7(g, dx + dwid + R(dw * 0.25) + sw + R(dw * 0.12), dy, sw, R(dh * 0.45), M.unit, DIGIT, null);
 if (blk) wt = fitText(g, condS, blk.cL + avail / 2, y + h * 0.9, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
 else if (!compact) wt = fitText(g, condS, lx, y + h * 0.9, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
+if (feelsOn) {
+var fl = I18N.ours('feels'), fs = fv(M.now.feels), fcw = R(WD.size * 0.5), fy2 = y + h * 0.9 - WD.size * 1.9, flw = mW(fl, WD), fdw = seg7W(fcw, fs), fx0 = blk.cL + avail / 2 - (flw + u(10) + fdw + u(4) + fcw * 0.6) / 2;
+text(g, fl, fx0, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.15) }).setAttribute('data-sw-feels', 1);
+glowDigits((hg) => { seg7(hg || g, fx0 + flw + u(10), fy2 - fcw * 2, fcw, fcw * 2, fs, DIGIT, null); seg7(hg || g, fx0 + flw + u(10) + fdw + u(4), fy2 - fcw * 2, R(fcw * 0.6), R(fcw * 0.9), 'o', DIGIT, null); });
+}
 if (blk) {
 mk('rect', { x: R(blk.divX), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
 debug.readouts = []; debug.readoutKinds = ROK;
-cells.left.forEach((r, i) => { cell(ix + i * (cells.cellW + cells.gap), r, 'readouts'); });
+cells.left.forEach((r, i) => { if (MH) meterRowH(i, r, 'readouts'); else meterCol(ix + i * (cells.cellW + cells.mg), r, 'readouts'); });
 }
 if (!compact && !blk && M.ok) {
 var rdB = y + h * 0.9 - WD.size * 1.7, rdTop = rdB - WD.size * 2.7;
@@ -1177,16 +1185,15 @@ if (compact) {
 return;
 }
 mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
-if (cells && !M.rain) { debug.readoutsRight = []; cells.right.forEach((r, i) => { cell(rx + i * (cells.cellW + cells.gap), r, 'readoutsRight'); }); return; }
 if (cells) {
-var RW = cells.ROW, hd = text(g, I18N.ours(wetKey(M.rain.now ? 'until' : 'from')), rx, RW.dTop + WD.size * 0.8, WD, { ls: R(WD.size * 0.15), fill: GLOW });
-if (width(hd) > rw - u(4)) { g.removeChild(hd); fitText(g, I18N.ours(wetKey(M.rain.now ? 'until' : 'from')), rx, RW.dTop + WD.size * 0.8, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW }); }
-var ch2 = R(Mn((RW.lab - WD.size * 1.4) - (RW.dTop + WD.size * 1.3), h * 0.34)), cw2 = R(ch2 * 0.5);
+var RW = cells.ROW, hdS = !M.rain ? I18N.ours('no_rain') : I18N.ours(wetKey(M.rain.now ? 'until' : 'from'));
+fitText(g, hdS, rx, RW.top + WD.size * 0.8, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
+var ch2 = R(Mn((RW.lab - WD.size * 1.4) - (RW.top + WD.size * 1.3), h * 0.34)), cw2 = R(ch2 * 0.5);
 while (ch2 > 8 && seg7W(R(ch2 * 0.5), '88:88') > rw - u(8)) { ch2 -= 2; cw2 = R(ch2 * 0.5); }
-var ct2 = M.rain.now ? rainTo : rainFrom, cy2 = R(((RW.dTop + WD.size * 1.3) + (RW.lab - WD.size * 1.4)) / 2 - ch2 / 2), cx2 = R(rx + (rw - seg7W(cw2, ct2)) / 2);
-glowDigits((hg) => { seg7(hg || g, cx2, cy2, cw2, ch2, ct2, DIGIT, hg ? null : GHOSTD); });
+var ct2 = M.rain ? (M.rain.now ? rainTo : rainFrom) : '--:--', cy2 = R(((RW.top + WD.size * 1.3) + (RW.lab - WD.size * 1.4)) / 2 - ch2 / 2), cx2 = R(rx + (rw - seg7W(cw2, ct2)) / 2);
+glowDigits((hg) => { seg7(hg || g, cx2, cy2, cw2, ch2, ct2, M.rain ? DIGIT : GLOW, hg ? null : GHOSTD); });
 debug.clock = { str: ct2, boxes: seg7.boxes };
-fitText(g, M.rain.now ? I18N.ours(wetKey('now')) : I18N.ours('until') + ' ' + rainTo, rx, RW.lab, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
+fitText(g, !M.rain ? I18N.ours('next_h', SPAN) : (M.rain.now ? I18N.ours(wetKey('now')) : I18N.ours('until') + ' ' + rainTo), rx, RW.lab, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
 return;
 }
 fitText(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? I18N.ours(wetKey(M.rain.now ? 'until' : 'from')) : I18N.ours('no_rain')), rx, y + h * 0.36, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
@@ -1332,8 +1339,8 @@ if (d.hi === null || d.lo === null) return;
 var k0 = Mx(0, Mn(n - 1, Fl((d.lo - a0) / step))), k1 = Mx(k0, Mn(n - 1, Math.ceil((d.hi - a0) / step) - 1));
 var hiW = mW(tStr(d.hi), T), loW = mW(tStr(d.lo), t2), bx = cx - (pw * 1.24 + tg + Mx(hiW, loW)) / 2;
 for (var k = 0; k < n; k++) {
-var litK = k >= k0 && k <= k1, peak = litK && k === k1, cap = litK && (k === k1 || k === k0), frost = a0 + (k + 1) * step <= frz;
-var fill = litK ? (peak ? PEAK : LIT) : OFF, led = peak ? 'peak' : (litK ? 'lit' : 'off'), ex = cap ? R(pw * 0.12) : 0;
+var litK = k >= k0 && k <= k1, peak = litK && k === k1, frost = a0 + (k + 1) * step <= frz, half = Mx(1, (k1 - k0) / 2);
+var fill = litK ? (peak ? PEAK : LIT) : OFF, led = peak ? 'peak' : (litK ? 'lit' : 'off'), ex = litK ? R(pw * 0.12 * Math.abs(k - (k0 + k1) / 2) / half) : 0;
 if (litK && frost && !peak) mk('rect', { x: R(bx - ex) + 0.5, y: R(yTop(k)) + 0.5, width: R(pw + 2 * ex) - 1, height: Mx(1, R(segH) - 1), fill: 'none', stroke: LIT, 'stroke-width': Mx(1, Mn(u(1.5), R(segH) / 3)), 'data-sw-led': 'lit' }, root);
 else if (fill) mk('rect', { x: R(bx - ex), y: R(yTop(k)), width: R(pw + 2 * ex), height: R(segH), fill: fill, 'data-sw-led': led }, root);
 else if (bits === 1) mk('rect', { x: R(bx + pw / 2), y: R(yTop(k) + segH / 2), width: 1, height: 1, fill: ink, 'data-sw-led': 'off' }, root);
@@ -1341,7 +1348,7 @@ else if (bits === 1) mk('rect', { x: R(bx + pw / 2), y: R(yTop(k) + segH / 2), w
 var yHi = yTop(k1), yLo = bot - k0 * pitch;
 var hy = Mx(yHi + T.size * 0.72, top + T.size * 0.72), ly = Mn(Mx(yLo, hy + t2.size * 1.15), bot);
 text(root, tStr(d.hi), bx + pw * 1.12 + tg, hy, T);
-if (yLo >= hy + t2.size * 1.05) text(root, tStr(d.lo), bx + pw * 1.12 + tg, ly, t2);
+text(root, tStr(d.lo), bx + pw * 1.12 + tg, ly, t2);
 debug.strip.push({ hi: d.hi, lo: d.lo, top: R(yHi), bottom: R(yLo) });
 });
 }
@@ -1452,7 +1459,7 @@ for (var i = 0; i < stages.length; i++) {
 var st = stages[i];
 if (st.getAttribute('data-sw-done')) continue;
 st.setAttribute('data-sw-done', '1');
-try { draw(st); } catch (e) { st.setAttribute('data-sw-error', String(e && e.stack || e)); throw e; }
+try { draw(st); } catch (e) { st.setAttribute('data-sw-error', String(e && e.message) + ' @ ' + String(e && e.stack || e)); throw e; }
 }
 }
 function whenReady() {
