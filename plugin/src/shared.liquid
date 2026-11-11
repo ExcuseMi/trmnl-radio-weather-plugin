@@ -612,11 +612,9 @@ var MK = F(RD(fh * (o.small ? 0.07 : 0.05), o.small ? 11 : 10), '700'), bm = R(f
 function wOf(str) { var t0 = text(g, str, 0, 0, MK), tw = width(t0); g.removeChild(t0); return tw; }
 var mkW = Mx(wOf(I18N.lo), wOf(I18N.hi), wOf(I18N.ours('now')));
 function kOf(an, tw) { return bm + fh * 0.05 + u(3) + tw / 2 * Math.abs(Math.sin(an)) + MK.size * 0.63 * Math.cos(an); }
-var nolab = vu || !!o.words;
+var nolab = vu;
 if (!nolab) for (var ai = 0; ai <= 8; ai++) rArc = Mn(rArc, (py - fy0 - fm - MK.size * 0.63) / Math.cos(AM * ai / 8) - kOf(AM * ai / 8, mkW));
 rArc = Mx(rArc, fh * 0.3);
-var WKh = o.words ? Mx(8, R(fh * 0.075)) : 0;
-if (o.words) rArc = Mn(rArc, py - fy0 - u(6) - bm - fh * 0.05 - WKh * 1.5);
 var AL = AM;
 while (AL > 0 && (rArc + kOf(AL, mkW)) * Math.sin(AL) + mkW / 2 > fw / 2 - fm) AL -= 0.01;
 function at(f, rad) { var an = -A + 2 * A * Mx(-0.03, Mn(1.03, f)); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
@@ -672,16 +670,16 @@ if (ks >= nl || sel.every((bx, i) => { return (i === 0 || i === sel.length - 1 |
 sel.every((q, j) => j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > q.b); })) { placed = sel; break; }
 }
 var scaleLabels = placed;
-if (o.words) {
-var WF = o.wordF, rw = rArc + bm + fh * 0.05 + WKh * 0.9, WK = WKh * 1.4, WW;
-for (var wi = 0; wi < 40; wi++) {
-WW = o.words.map((s) => wOf(s) * WK / MK.size);
-if (WW.every((q, i) => i === 0 || (q + WW[i - 1]) / 2 + u(4) <= rw * 2 * A * (WF[i] - WF[i - 1])) || WK < 6) break;
-WK *= 0.94;
+if (o.icons) {
+var zro = rArc - fh * 0.085, zri = zro - fh * 0.05, zg = 0.012, ZS = bits === 1 ? ink : fillOf('gray-35', '#666');
+function zpt(f, rad) { var q = at(f, rad); return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
+for (var zi2 = 0; zi2 < 4; zi2++) {
+var z0 = zi2 / 4 + zg, z1 = (zi2 + 1) / 4 - zg;
+mk('path', { d: 'M' + zpt(z0, zro) + ' A' + zro + ' ' + zro + ' 0 0 1 ' + zpt(z1, zro) + ' L' + zpt(z1, zri) + ' A' + zri + ' ' + zri + ' 0 0 0 ' + zpt(z0, zri) + ' Z',
+fill: zi2 % 2 ? 'none' : ZS, stroke: ink, 'stroke-width': Mx(1, R(lw * 0.5)), 'shape-rendering': GPX, 'data-sw-zone4': zi2 }, g);
 }
-var WS = F(WK, '700');
-o.words.forEach((s, i) => { var wp = at(WF[i], rw), wt = text(g, s, wp[0], wp[1] + WS.size * 0.36, WS, { anchor: 'middle' }); wt.setAttribute('data-sw-word', MN);
-wt.setAttribute('transform', 'rotate(' + R((-A + 2 * A * WF[i]) * 180 / Math.PI) + ' ' + R(wp[0]) + ' ' + R(wp[1]) + ')'); });
+var isz = zri * 0.26, irad = zri - isz * 1.4 * 0.9;
+o.icons.forEach((nm, i) => { var ip = at((2 * i + 1) / 8, irad); icon(g, nm, ip[0], ip[1], isz, null); });
 }
 mks.forEach((q) => {
 var m = q.m, r0 = rArc + bm + u(2), r1 = rArc + bm + fh * 0.05, t0 = at(m.f, r0), t1 = at(m.f - 0.012, r1), t2 = at(m.f + 0.012, r1);
@@ -798,13 +796,13 @@ function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
 var WUNIT = M.unit === 'F' ? 'MPH' : 'KM/H', WTHR = M.unit === 'F' ? 20 : 30;
 function baroMeter(g, x, y, w, h, small, badge, captioned) {
 var ticks = [], f = (v) => (v - 970) / 80;
-for (var v = 970; v <= 1050; v += 10) ticks.push({ f: f(v), major: (v - 970) % 40 === 0, label: v === 1010 && !small && (w - u(14)) / z >= 420 ? '1010' : undefined });
+for (var v = 970; v <= 1050; v += 10) ticks.push({ f: f(v), major: (v - 970) % 40 === 0, label: undefined });
 var ps = M.hours.slice(0, 24).map((q) => q.pr).filter((q) => q !== null), pn = M.now.press;
 if (pn !== null) ps.push(pn);
 var lo = ps.length ? Mn.apply(null, ps) : null, hi = ps.length ? Mx.apply(null, ps) : null;
 return meter(g, x, y, w, h, { chan: 'R', badge: badge, captioned: captioned, ticks: ticks, needle: pn === null ? null : f(pn), band: lo === null ? null : [f(lo), f(hi)], small: small,
 marks: lo === null ? [] : [{ f: f(lo), label: I18N.lo }, { f: f(hi), label: I18N.hi }],
-words: I18N.ours('bw').split(','), wordF: [f(980), f(995), f(1010), f(1030)], name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: 'hPa', });
+icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'], name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: 'hPa', });
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = SW_CFG.glass === 'light' && bits >= 2 && !darkMode;
@@ -992,7 +990,7 @@ if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
 flags = flags.filter((f) => f[1]);
 var noRow = false, lampBottom = sy + ST.size * 0.45;
 if (!compact) {
-var room = iw - u(20) - (() => { var tc = text(g, 'OPEN-METEO', 0, 0, ST, { ls: R(ST.size * 0.15) }); var tw = width(tc); g.removeChild(tc); return tw; })();
+var room = iw - u(20) - (() => { var tc = text(g, 'OPEN-METEO', 0, 0, ST, { ls: R(ST.size * 0.3) }); var tw = width(tc); g.removeChild(tc); return tw + ST.size * 1.6; })();
 var rowW = (fl, sp) => { return fl.reduce((a, f) => { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 ? 2.3 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
 debug.lampFit = { need: R(rowW(flags, ST)), room: R(room) };
 while (rowW(flags, ST) > room && flags.some((f) => !f[1])) {
@@ -1002,7 +1000,13 @@ while (rowW(flags, ST) > room && ST.size > u(8)) ST = F(ST.size * 0.9, ST.weight
 debug.lamps = flags.map((f) => (f[1] ? '+' : '-') + f[0]);
 flags.forEach((fl) => { sx += status(g, fl[0], sx, sy, ST, fl[1]) + ST.size * 1.4; });
 }
-if (!compact) text(g, 'OPEN-METEO', x + w - u(compact ? 16 : 30), sy, ST, { anchor: 'end', ls: R(ST.size * 0.15), fill: bits === 1 ? ink : (DIMW || GLOW) });
+if (!compact) {
+var plC = bits === 1 || LCD ? ink : (DIMW || GLOW), pp = ST.size * 0.6, plE = x + w - u(30) - pp;
+var plT = text(g, 'OPEN-METEO', plE, sy, ST, { anchor: 'end', ls: R(ST.size * 0.3), fill: plC }), plW = width(plT);
+plT.setAttribute('font-style', 'italic'); plT.setAttribute('font-weight', '800');
+var plH = ST.size * 1.55, plR = rrect(g, R(plE - plW - pp), R(sy - ST.size * 0.78 - (plH - ST.size) / 2 + ST.size * 0.1), R(plW + 2 * pp), R(plH), R(plH * 0.28), 'none', plC, Mx(1, R(u(1.2))));
+plR.setAttribute('data-sw-plate', 1);
+}
 var pillW = 0;
 if (compact) pillW = status(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry')), ix, sy, ST, !M.ok || !!M.rain);
 var WD = F(RD(hb * (compact ? 0.09 : 0.085), 11), '700');
