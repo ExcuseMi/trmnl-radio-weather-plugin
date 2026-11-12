@@ -136,6 +136,10 @@ if(pb)el.querySelectorAll('text').forEach(function(t){var b=t.getBoundingClientR
 return bad.join('; ');})()})
       puts "DAYS #{c['name']}: #{ds}" unless ds.empty?
       expect(ds).to eq('')
+      # Panels (owner 2026-11-12): a plain fill, no backlight lamps (radial grey circles) behind dials, console or days.
+      bl = s.evaluate(%q{document.querySelectorAll('[data-sw-backlight], [data-sw-part="face"] ellipse, [data-sw-part="face"] pattern').length})
+      puts "BACKLIGHT #{c['name']}: #{bl}" unless bl.zero?
+      expect(bl).to eq(0)
       # OG half_vertical (owner 2026-11-12): rain icon left of the calendar at its height, sun times shown, temperature
       # clearly bigger than the felt one, meter labels no bigger than day names, today an inverted lamp, solid dividers.
       if c['view'] == 'half_vertical' && c['device'] != 'v2'

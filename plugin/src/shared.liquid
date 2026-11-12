@@ -347,18 +347,11 @@ return svg(H * 0.4, H, '<circle cx="20" cy="12" r="9"/><rect x="9" y="25" width=
 // and icons (4-bit and up blur, 2-bit a crisp dilated halo, 1-bit nothing).
 // Face backlight: one soft radial lamp per centre in cx (a number or a list), rim grey to paper. Bands are drawn level by
 // level over all lamps so overlapping lamps leave no seams. 2-bit: native light grey rim and paper, no dither (owner 2026-11-12).
+// Panel fill (owner 2026-11-12): a plain light fill in light mode, 2-bit up; no backlight lamps. Dark and 1-bit: paper.
 function backlight(W, H, cx, cy, rad, ryk, rx) {
-var m = API.mode || {}, L = [].concat(cx), b2 = m.bits === 2, pa = API.paint ? API.paint(b2 ? 'gray-55' : 'gray-75') : null, pw = API.paint ? API.paint('white') : null;
+var m = API.mode || {}, pa = API.paint ? API.paint(m.bits === 2 ? 'gray-55' : 'gray-75') : null;
 if (m.dark || (m.bits || 4) < 2) return '';
-var c0 = (pw && pw.color) || '#fff', c1 = (pa && pa.color) || '#bbb', BY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], defs = '', out = rect(0, 0, W, H, rx || 0, ' fill="' + c1 + '" data-sw-backlight="1"');
-// dithered bands (the panel quantizes a gradient to one hard step): grey at the rim to paper at the centre
-(b2 ? [[1, 0.8]] : [[0.2, 1.0], [0.4, 0.88], [0.6, 0.77], [0.8, 0.67], [1, 0.58]]).forEach((st) => {
-var fill = c0;
-if (st[0] < 1) { var id = 'swbl' + (K++), px = ''; for (var c = 0; c < 16; c++) if (BY[c] < st[0] * 16) px += '<rect x="' + (c % 4) + '" y="' + Math.floor(c / 4) + '" width="1" height="1" fill="' + c0 + '"/>';
-defs += '<pattern id="' + id + '" patternUnits="userSpaceOnUse" width="4" height="4"><rect width="4" height="4" fill="' + c1 + '"/>' + px + '</pattern>'; fill = 'url(#' + id + ')'; }
-L.forEach((x) => { out += '<ellipse cx="' + n1(x) + '" cy="' + n1(cy) + '" rx="' + n1(rad * st[1]) + '" ry="' + n1(rad * st[1] * (ryk || 0.8)) + '" fill="' + fill + '"/>'; });
-});
-return '<defs>' + defs + '</defs>' + out;
+return rect(0, 0, W, H, rx || 0, ' fill="' + ((pa && pa.color) || '#bbb') + '" data-sw-fill="1"');
 }
 // Dark-mode glow (owner 2026-11-12, as live): lit things get a halo drawn UNDER them inside their own SVG, so it never
 // covers another part. sd = blur in user units (about 4 screen px). 4-bit: Gaussian halo at alpha 0.75; 2-bit: a crisp
