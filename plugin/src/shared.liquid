@@ -662,7 +662,7 @@ var tag = I18N.ours('indoor'), tgw = wOf(tag) * SC.size / MK.size * 0.8, tgh = S
 for (var k3 = 0; k3 <= 40; k3++) { var xx3 = cx + ux * tipR * k3 / 40, yy3 = py + uy * tipR * k3 / 40; if (xx3 > bx3.l && xx3 < bx3.r && yy3 > bx3.t && yy3 < bx3.b) hit3 = true; }
 if (scaleLabels.some((q) => bx3.r > q.l && bx3.l < q.r && bx3.b > q.t && bx3.t < q.b) || hit3 || qx - tgw / 2 < fx0 || qx + tgw / 2 > fx0 + fw) return false;
 tgPos = [qx, qy]; return true; }));
-if (tgPos) text(g, tag, tgPos[0], tgPos[1] + SC.size * 0.3, F(SC.size * 0.8, SC.weight, 1), { anchor: 'middle' }); }
+if (tgPos && !compact) text(g, tag, tgPos[0], tgPos[1] + SC.size * 0.3, F(SC.size * 0.8, SC.weight, 1), { anchor: 'middle' }); }
 if (!o.noNeedle) glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true, ng);
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
@@ -913,9 +913,10 @@ str.split('').forEach((ch) => { w += (ch === '.' ? R(t * 1.2) : ch === ':' ? R(t
 return w - gap;
 }
 var NDIG = M.unit === 'F' ? 3 : 2, CELLS = '-' + '8'.repeat(NDIG) + '.8';
-function tempDigits() {
-if (M.now.temp === null) return '_' + ' '.repeat(NDIG - 2) + '--.-';
-var v = Math.round(M.now.temp * 10) / 10, a = Mn(Math.pow(10, NDIG) - 0.1, Math.abs(v));
+function tempDigits(tv) {
+var tt = tv === undefined ? M.now.temp : tv;
+if (tt === null) return '_' + ' '.repeat(NDIG - 2) + '--.-';
+var v = Math.round(tt * 10) / 10, a = Mn(Math.pow(10, NDIG) - 0.1, Math.abs(v));
 var ip = String(Fl(a + 1e-9)), dec = String(Math.round((a - Fl(a + 1e-9)) * 10) % 10);
 var cells = ((v < 0 ? '-' : '') + ip).padStart(NDIG + 1, ' ');
 return (cells.charAt(0) === ' ' ? '_' : '') + cells.slice(cells.charAt(0) === ' ' ? 1 : 0) + '.' + dec;
@@ -1023,9 +1024,10 @@ else if (blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
 }
 var rainROW = cells ? cells.ROW : null;
 if (tallBox && cells) { var yc = y + h / 2, Rh = Mn(cells.ROW.lab - cells.ROW.top, WD.size * 9); rainROW = { top: yc - Rh / 2, lab: yc + Rh / 2 }; }
+function lumOf(c) { var m = /rgba?\((\d+)\D+(\d+)\D+(\d+)/.exec(String(c)); return m ? (0.299 * m[1] + 0.587 * m[2] + 0.114 * m[3]) / 255 : null; }
 function meterRowH(i, r, which) {
 var ZC = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-35'), fillOf('gray-35'), ink] : [fillOf('gray-35'), GLOW, GLOW])
-: LCD ? [fillOf('gray-50'), fillOf('gray-20'), ink] : [fillOf('gray-80'), GLOW, GLOW];
+: LCD ? [fillOf('gray-50'), fillOf('gray-20'), ink] : [fillOf('gray-15'), GLOW, GLOW];
 var C = cells, LF = C.LF, rh = C.ROW.rh || (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (C.ROW.off || 0) + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - u(4);
 var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segH = Mx(2, R(rh * 0.42)), nodata = r.bar === null || r.bar === undefined, lit = nodata ? 0 : Math.round(r.bar * 10);
 if (nodata) { text(cg, '--', x1, cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW }).setAttribute('data-sw-nodata', 1); x1 -= mW('--', LF) + u(6); }
@@ -1034,6 +1036,7 @@ text(cg, r.lab, x0 - u(8), cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW,
 for (var k = 0; k < 10; k++) {
 var sx = x0 + k * (segW + sg), on = k < lit, sy = R(cy - segH / 2);
 var zi = r.zones ? ((k + 0.5) / 10 >= r.zones[1] ? 2 : ((k + 0.5) / 10 >= r.zones[0] ? 1 : 0)) : 0, zc = ZC[zi];
+if (on && k === 0) { var lf = lumOf(zc), lgd = lumOf(GLASSD); if (lf !== null && lgd !== null && Math.abs(lf - lgd) < 0.4) (debug.lowContrast = debug.lowContrast || []).push({ row: i, zone: zi, fill: String(zc), ground: String(GLASSD) }); }
 if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc, 'data-sw-rseg': hg ? null : 'lit', 'data-sw-zone': hg ? null : zi }, hg || cg); }, false, cg);
 if (on && zi === 2 && bits === 4 && !LCD) glowDigits((hg) => { if (hg) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc }, hg); });
 else if (bits <= 2) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
@@ -1051,11 +1054,13 @@ return;
 var yb = y + h * 0.9;
 var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
 var dh = R(h * (compact ? 0.46 : (tallBox ? 0.5 : (noRow || part === 'main' ? 0.66 : 0.56))));
-function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.25); }
+var dual = !compact && blk && M.inn.temp !== null, inV = M.inn.temp === null ? null : (M.unit === 'F' ? M.inn.temp * 1.8 + 32 : M.inn.temp);
+function need(d) { var dw0 = R(d * 0.5); if (dual) return 2 * (seg7W(dw0, CELLS) + dw0 * 1.3) + d * 1.3 + dw0 * 0.9; return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.25); }
 var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
 var feelsOn = !compact && blk && M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2;
 var dyTop = compact ? y + h * 0.27 : (tallBox ? lampBottom + u(8) : Mx(y + h * (noRow || part === 'main' ? 0.14 : 0.25), lampBottom + u(4))), dyEnd = yb - WD.size - u(2) - (feelsOn ? WD.size * 1.2 : 0);
 while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh * (feelsOn ? 1.38 : 1) + (feelsOn ? u(6) : 0) > dyEnd))) dh -= 2;
+if (dual) dyTop += WD.size * 1.6;
 var dw = R(dh * 0.5), dy = dyTop;
 if (tallBox) { var kk2 = feelsOn ? 1.38 : 1, totH = dh * kk2 + (feelsOn ? u(6) + WD.size * 1.2 : 0) + WD.size * 1.6 + u(2); yb = y + h / 2 + totH / 2; dy = yb - (WD.size + u(2) + (feelsOn ? WD.size * 1.2 : 0)) - dh * kk2 - (feelsOn ? u(6) : 0) - WD.size * 0.6; }
 var str = tempDigits();
@@ -1064,7 +1069,8 @@ var dwid = seg7W(dw, str), iconW = compact ? 0 : dh * 1.25;
 var lx = (blk ? blk.cL : ix) + (avail - need(dh)) / 2;
 var ibox = compact ? { l: crMoved ? ix + pillW + u(16) : x + w - u(16) - hb * 0.24, t: y + innerD + u(6), r: x + w - u(16), b: y + h * 0.27 - u(crMoved ? 10 : 6) }
 : { l: (blk ? blk.cL : ix) + u(4), t: lampBottom + u(4), r: 0, b: yb - WD.size - u(5) };
-var hWant = compact ? hb * (crMoved ? 0.3 : 0.24) : dh * 1.15;
+var hWant = compact ? hb * (crMoved ? 0.3 : 0.24) : dh * (dual ? 0.8 : 1.15);
+var str2 = dual ? tempDigits(inV) : null, gapD = dw * 0.9, w2 = dual ? gapD + seg7W(dw, str2) + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) : 0;
 if (blk) {      // centre what is seen (icon to the unit's end), not the blank cells
 var tg = mk('g', {}, g);
 seg7(tg, 0, dy, dw, dh, str, DIGIT, null);
@@ -1072,7 +1078,7 @@ var fl = seg7.boxes.filter((b) => b.l !== null)[0];
 g.removeChild(tg);
 ibox.r = ibox.l + dh * 0.85 + Mx(0, avail - need(dh));
 var ib0 = iconFit(g, M.now.icon, M.now.day, ibox, hWant, dy + dh * 0.5, true);
-lx = blk.cL + avail / 2 - ((fl.l - dh * 0.4 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12))) / 2 - iconW;
+lx = blk.cL + avail / 2 - ((fl.l - dh * 0.4 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12)) + w2) / 2 - iconW;
 }
 var dx = lx + iconW;
 glowDigits((hg) => { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
@@ -1087,6 +1093,14 @@ var sw = R(dw * 0.45);
 if (R(dh * 0.45) < u(28)) glowDigits((hg) => { var ut = text(hg || g, deg + M.unit, dx + dwid + R(dw * 0.25), dy + dh * 0.42, F(R(dh * 0.4), '700'), { fill: DIGIT }); if (!hg) ut.setAttribute('data-sw-unit', 1); });
 else glowDigits((hg) => { seg7(hg || g, dx + dwid + R(dw * 0.25), dy, sw, R(dh * 0.45), 'o', DIGIT, null);
 seg7(hg || g, dx + dwid + R(dw * 0.25) + sw + R(dw * 0.12), dy, sw, R(dh * 0.45), M.unit, DIGIT, null); });
+if (dual) {
+var x2 = dx + dwid + R(dw * 0.25) + 2 * sw + R(dw * 0.12) + gapD, dwid2 = seg7W(dw, str2);
+glowDigits((hg) => { seg7(hg || g, x2, dy, dw, dh, str2, DIGIT, hg ? null : GHOSTD); });
+if (R(dh * 0.45) < u(28)) glowDigits((hg) => { text(hg || g, deg + M.unit, x2 + dwid2 + R(dw * 0.25), dy + dh * 0.42, F(R(dh * 0.4), '700'), { fill: DIGIT }); });
+else glowDigits((hg) => { seg7(hg || g, x2 + dwid2 + R(dw * 0.25), dy, sw, R(dh * 0.45), 'o', DIGIT, null); seg7(hg || g, x2 + dwid2 + R(dw * 0.25) + sw + R(dw * 0.12), dy, sw, R(dh * 0.45), M.unit, DIGIT, null); });
+text(g, I18N.ours('outdoor'), dx + dwid / 2, dy - WD.size * 0.5, WD, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.1) });
+text(g, I18N.ours('indoor'), x2 + dwid2 / 2, dy - WD.size * 0.5, WD, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.1) });
+}
 if (blk) wt = fitText(g, condS, blk.cL + avail / 2, yb, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
 else if (!compact) wt = fitText(g, condS, lx, yb, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
 if (feelsOn) {
@@ -1335,7 +1349,7 @@ cy += rainH + u(8);
 var LF2 = SF, labW = Mx.apply(null, ROS.map((r) => mw(r.lab, LF2))) + u(8), bx0 = x + pad + labW, bx1 = x + w - pad, nseg = 10, sg2 = Mx(1, u(2));
 if ((bx1 - bx0 - 9 * sg2) / 10 < u(6)) nseg = 5;
 var segW2 = (bx1 - bx0 - (nseg - 1) * sg2) / nseg;
-var ZC2 = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-35'), fillOf('gray-35'), ink] : [fillOf('gray-35'), GLOW, GLOW]) : LCD ? [fillOf('gray-50'), fillOf('gray-20'), ink] : [fillOf('gray-80'), GLOW, GLOW];
+var ZC2 = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-35'), fillOf('gray-35'), ink] : [fillOf('gray-35'), GLOW, GLOW]) : LCD ? [fillOf('gray-50'), fillOf('gray-20'), ink] : [fillOf('gray-15'), GLOW, GLOW];
 ROS.forEach((r, i) => { var ry = cy + i * lh + lh / 2, nodata = r.bar === null || r.bar === undefined, lit = nodata ? 0 : Math.round(r.bar * nseg);
 text(g, r.lab, x + pad + labW - u(6), ry + LF2.size * 0.36, LF2, { anchor: 'end', fill: GLOW });
 if (nodata) text(g, '--', bx1, ry + LF2.size * 0.36, LF2, { anchor: 'end', fill: GLOW });
