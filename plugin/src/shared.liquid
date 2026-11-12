@@ -32,7 +32,7 @@ var SW_I18N = {{ i18n | json }};
 var SW_DAYS = [{% for t in daily.time %}{{ t | l_date: '%a', sw_loc | json }}{% unless forloop.last %}, {% endunless %}{% endfor %}];
 var SW_CFG = {
 locale: {{ sw_loc | json }},
-unit: {{ cf.unit | default: 'celsius' | json }},
+unit: {{ unit | default: cf.unit | default: 'celsius' | json }},
 location: {{ cf.lat_lon | default: '' | json }},
 hideTitle: {% if sw_hide == 'true' or sw_hide == 'yes' %}true{% else %}false{% endif %},
 view: {{ view | default: 1 }}
@@ -662,9 +662,9 @@ var cRoom = Mx(u(30), Mn(freeW(ly1 - BIG.size * 0.8), clearHub));
 var nt = null;
 if (o.unitValue) {
 var vf = BIG, uf, tw2 = (s0, sp) => { var tq = text(g, s0, 0, 0, sp); var ww = width(tq); g.removeChild(tq); return ww; };
-for (var vi = 0; vi < 30; vi++) { uf = F(vf.size * 0.55, '700'); if (tw2(o.unitValue, vf) + tw2(o.unitName, uf) + vf.size * 0.3 <= cRoom || vf.size <= 8) break; vf = F(vf.size * 0.92, '700'); }
+for (var vi = 0; vi < 30; vi++) { uf = F(vf.size * 0.55, '700'); if (tw2(o.unitValue, vf) + tw2(o.unitName, uf) + vf.size * 0.5 <= cRoom || vf.size <= 8) break; vf = F(vf.size * 0.92, '700'); }
 nt = text(g, o.unitValue, fx + pad, ly1, vf, { ls: R(vf.size * 0.04) });
-text(g, o.unitName, fx + pad + width(nt) + vf.size * 0.3, ly1, uf, {});
+text(g, o.unitName, fx + pad + width(nt) + vf.size * 0.5, ly1, uf, {});
 } else if (cornerTxt) nt = fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) });
 debug.cornerPrint = debug.cornerPrint || [];
 if (nt) debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - Mx(u(5), fh * 0.035)), gap: R(2 * Mx(u(5), fh * 0.035)) });
@@ -938,7 +938,7 @@ return { lab: I18N.ours('m_hum'), bar: bar(n.hum, 0, 100), txt: I18N.ours('hum')
 
 var ROK = [], ROS = [], TSC = (() => { var v = [day24.lo, day24.hi, M.today.lo, M.today.hi].filter((q) => q !== null); return niceScale(v.length ? Mn.apply(null, v) : 0, v.length ? Mx.apply(null, v) : 10, false); })();
 function vfd(g, x, y, w, h, compact) {
-if (!compact && w / z < 700) {
+if (!compact && (w / z < 700 || h / w > 0.5)) {
 vfdBox(g, x, y, w, h);
 var h1 = R(h * 0.5);
 vfdPart(g, x, y, w, h1, false, 'meters');
