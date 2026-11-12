@@ -219,8 +219,14 @@ return (f?'fill '+f+' ':'')+bad.join('; ');})()})
         puts "CALMFIX #{c['name']}: #{cf}" unless cf.empty?
         expect(cf).to eq('')
       end
-      pad = s.evaluate(%q{(function(){var out=[];document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=p.getBoundingClientRect();if(!q.width||!q.height)return;var L=1e9,R=-1e9,T=1e9,B=-1e9;
-p.querySelectorAll('span,img,[data-sw-part]:not([data-sw-part="face"]) svg *').forEach(function(e){if(e.closest('[data-sw-part="face"]')||e.tagName==='g'||e.tagName==='defs'||e.closest('defs,mask,clipPath,filter'))return;var b=e.getBoundingClientRect();if(!b.width||!b.height||!e.textContent&&e.tagName==='SPAN')return;L=Math.min(L,b.left);R=Math.max(R,b.right);T=Math.min(T,b.top);B=Math.max(B,b.bottom);});
+      # Inner padding (owner, Calm): margins from each panel edge to the drawn ink (SVG shapes, glyph ink of the text, the
+      # weather icon's measured ink), per panel L,R,T,B.
+      pad = s.evaluate(%q{(function(){var out=[],cx=document.createElement('canvas').getContext('2d'),vis=function(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0&&getComputedStyle(e).visibility!=='hidden'};
+document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=p.getBoundingClientRect();if(!q.width||!q.height)return;var L=1e9,R=-1e9,T=1e9,B=-1e9,add=function(l,r,t,b){if(r-l<0.5&&b-t<0.5)return;L=Math.min(L,l);R=Math.max(R,r);T=Math.min(T,t);B=Math.max(B,b);};
+p.querySelectorAll('[data-sw-part]:not([data-sw-part="face"]) svg').forEach(function(sv){if(!vis(sv))return;sv.querySelectorAll('path,rect,circle,polygon,line,text,image,ellipse').forEach(function(e){if(e.closest('defs,mask,clipPath,filter,[data-sw-glow]'))return;var b=e.getBoundingClientRect();if(!b.width&&!b.height)return;add(b.left,b.right,b.top,b.bottom);});});
+p.querySelectorAll('img').forEach(function(im){if(!vis(im)||im.closest('[data-sw-part]'))return;var b=im.getBoundingClientRect(),ik=(im.getAttribute('data-sw-ink')||'0,1').split(',').map(Number);add(b.left,b.right,b.top+ik[0]*b.height,b.top+(ik[0]+ik[1])*b.height);});
+p.querySelectorAll('span').forEach(function(sp){if(!vis(sp)||sp.querySelector('span,img,svg'))return;var tx=sp.textContent.trim();if(!tx)return;var cs=getComputedStyle(sp),k=sp.getBoundingClientRect().width/(sp.offsetWidth||1);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var m=cx.measureText(tx),fa=m.fontBoundingBoxAscent,fd=m.fontBoundingBoxDescent;
+var rg=document.createRange();rg.selectNodeContents(sp);[].forEach.call(rg.getClientRects(),function(r){if(!r.width)return;var bl=r.top+(r.height-(fa+fd)*k)/2+fa*k;add(r.left,r.right,bl-m.actualBoundingBoxAscent*k,bl+Math.max(0,m.actualBoundingBoxDescent)*k);});});
 if(L<1e9)out.push([L-q.left,q.right-R,T-q.top,q.bottom-B].map(function(v){return v.toFixed(0)}).join(','));});return out.join(' ');})()})
       puts "PAD #{c['name']}: L,R,T,B #{pad}"
       # Small views (owner, Calm round 3): no days strip in a quadrant; Calm day rows at least the floor height (the Calm
