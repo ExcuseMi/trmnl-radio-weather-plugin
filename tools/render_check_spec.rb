@@ -251,6 +251,10 @@ return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.len
       fi = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="person"] svg').forEach(function(p){var b=p.getBoundingClientRect();if(!b.width)return;if(!p.querySelector('[data-sw-feelsicon]')){bad.push('not the outline icon');return;}
 var f=p.closest('[data-sw-part="person"]').parentElement.querySelector('[data-sw-part="feels"] svg');if(!f)return;var a=f.getBoundingClientRect();if(Math.abs(a.height-b.height)>2||Math.abs((a.top+a.bottom)/2-(b.top+b.bottom)/2)>2)bad.push('icon '+b.height.toFixed(1)+'@'+b.top.toFixed(0)+' digits '+a.height.toFixed(1)+'@'+a.top.toFixed(0));});return bad.join('; ');})()})
       puts "FEELSICON #{c['name']}: #{fi}" unless fi.empty?
+      # Coat cue (owner): an outline parka, stroke only, as the weather icons; never the old solid coat.
+      co = s.evaluate(%q{[].map.call(document.querySelectorAll('[data-sw-cue="coat"] svg'),function(v){return v.getBoundingClientRect().width>0?(v.querySelector('g[data-sw-coat][fill="none"]')?'ok':'solid'):''}).join('')})
+      puts "COAT #{c['name']}: #{co}" unless co.empty?
+      expect(co).not_to include('solid')
       expect(fi).to eq('')
       # Hours strip (owner): column count per view, an inverted stamp exactly on the current and the wet hours, the block
       # curve inside its column and its panel, columns ordered and equal, the temperature's blocks on one scale.
