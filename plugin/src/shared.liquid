@@ -651,12 +651,13 @@ var NEEDLE = bits === 4 ? fillOf('gray-15', '#222') : ink;
 if (bits === 4) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55', '#999'), 'shape-rendering': GPX }, ng);
 glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true, ng);
 if (o.tipIcon && !o.dim) glowIcon(g, (gg) => icon(gg, o.tipIcon, cx + ux * tipR, py + uy * tipR, fh * 0.1, null));
-if (o.centerIcon) { glowIcon(g, (gg) => icon(gg, o.centerIcon, cx, py - rArc * 0.5, rArc * 0.3, null)); var cty = py - rArc * 0.5 + rArc * 0.3 * 0.85;
+if (o.centerIcon) { var mY = py - rArc * 0.58, mS = rArc * 0.26; glowIcon(g, (gg) => icon(gg, o.centerIcon, cx, mY, mS, null)); var cty = py - rArc * 0.2;
+if (o.moonWord && !compact) text(g, o.moonWord, cx, mY + mS * 0.95, MK, { anchor: 'middle' });
 if (o.centerTime) { var cstr = compact ? o.centerTime : o.centerWord + ' ' + o.centerTime, ctw = wOf(cstr) * SC.size / MK.size, ctf = ctw > rArc * 1.1 ? F(SC.size * rArc * 1.1 / ctw, SC.weight) : SC, tw3 = wOf(cstr) * ctf.size / MK.size, ex = compact ? ctf.size * 0.8 : 0, x03 = cx - (tw3 + ex) / 2;
 rrect(g, R(x03 - u(3)), R(cty - ctf.size * 0.85 - u(2)), R(tw3 + ex + u(6)), R(ctf.size * 1.25 + u(3)), 0, FF);
 if (compact) mk('polygon', { points: [[x03 + ctf.size * 0.25, cty - ctf.size * 0.75], [x03, cty - ctf.size * 0.1], [x03 + ctf.size * 0.5, cty - ctf.size * 0.1]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: ink }, g);
 text(g, cstr.slice(compact ? cstr.length - o.centerTime.length : 0), x03 + ex, cty, ctf, { anchor: 'start' }); cty += ctf.size * 1.4; }
-if (o.moonWord) text(g, o.moonWord, cx, cty, MK, { anchor: 'middle' }); }
+}
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
 tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Mx(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
