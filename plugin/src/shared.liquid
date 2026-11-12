@@ -164,12 +164,12 @@
   <div class="relative z--2 flex flex--row w--full h--full gap--xsmall" data-sw-hours="{{ nh_md }},{{ nh_lg }}">
   {%- for q in ui.hours %}{% assign i = forloop.index0 %}
   {%- if i < nh_md or i < nh_lg %}
-   <div class="grow basis--0 flex flex--col flex--center-x h--full gap--xsmall{% if i >= nh_md %} hidden lg:flex{% elsif i >= nh_lg %} lg:hidden{% endif %}" data-sw-hcol="{{ i }}">
-    <div class="shrink-0 flex flex--center">{%- if q.now or q.wet %}<span class="label label--inverted label--large{% if q.now %} text--bold{% endif %}" data-sw-hstamp="{% if q.now %}now{% else %}wet{% endif %}">{{ q.hl }}</span>{% else %}<span class="label label--large" data-sw-hstamp="">{{ q.hl }}</span>{% endif %}</div>
-    <div class="shrink-0 w--full flex flex--center h--[{{ 8 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 6 | times: hl | round | at_most: 100 }}cqh]">{% if q.icon %}<img class="image image--adaptive h--full" src="{{ q.icon }}" alt="">{% endif %}</div>
-    <span class="title title--base{{ name_t }} text--bold shrink-0" data-sw-htemp>{{ q.t }}</span>
+   <div class="grow basis--0 h--full{% if i >= nh_md %} hidden lg:block{% elsif i >= nh_lg %} lg:hidden{% endif %}" data-sw-hcol="{{ i }}"><div class="flex flex--col flex--center-x h--full w--full gap--xsmall">{% comment %} the visibility on the outer box, the column layout on the inner one: lg:flex alone lost the flex rules (owner screenshot: rows pushed down) {% endcomment %}
+    <div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">{%- if q.now or q.wet %}<span class="label label--inverted label--large{% if q.now %} text--bold{% endif %}" data-sw-hstamp="{% if q.now %}now{% else %}wet{% endif %}">{{ q.hl }}</span>{% else %}<span class="label label--large" data-sw-hstamp="">{{ q.hl }}</span>{% endif %}</div>
+    <div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y h--[{{ 8 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 6 | times: hl | round | at_most: 100 }}cqh]">{% if q.icon %}<img class="image image--adaptive h--full" src="{{ q.icon }}" alt="">{% endif %}</div>
+    <div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y"><span class="title title--base{{ name_t }} text--bold" data-sw-htemp>{{ q.t }}</span></div>
     <div class="grow w--full" data-sw-part="hbar" data-sw-i="{{ i }}"></div>
-   </div>
+   </div></div>
   {%- endif %}
   {%- endfor %}
   </div>

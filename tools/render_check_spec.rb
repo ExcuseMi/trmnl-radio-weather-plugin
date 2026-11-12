@@ -257,14 +257,19 @@ var f=p.closest('[data-sw-part="person"]').parentElement.querySelector('[data-sw
       expect(co).not_to include('solid')
       expect(fi).to eq('')
       # Hours strip (owner): column count per view, an inverted stamp exactly on the current and the wet hours, the block
-      # curve inside its column and its panel, columns ordered and equal, the temperature's blocks on one scale.
+      # curve inside its column and its panel, stamp, temperature and icon ink centred on the column axis (2 px; every
+      # icon's ink is centred in its 30x30 box, 0.502 measured 2026-11-12, so the box centre is the ink centre), columns ordered and equal, the temperature's blocks on one scale.
       hs = s.evaluate(%q{(function(){var vis=function(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0};var bad=[],cols=[].filter.call(document.querySelectorAll('[data-sw-hcol]'),vis);
 cols.forEach(function(cl,k){var i=+cl.getAttribute('data-sw-hcol'),q=SW.hours[i],st=cl.querySelector('[data-sw-hstamp]'),inv=st.classList.contains('label--inverted');if(i!==k)bad.push('order '+k+'/'+i);
 if(inv!==(q.now||q.wet))bad.push('stamp '+i+' inverted='+inv+' wet='+q.wet);if(st.getAttribute('data-sw-hstamp')==='wet'&&!q.wet)bad.push('rain stamp on dry '+i);
 var cb=cl.getBoundingClientRect(),p=cl.closest('[data-sw-panel]').getBoundingClientRect();[].forEach.call(cl.querySelectorAll('[data-sw-cells] rect, img, span'),function(r){var b=r.getBoundingClientRect();if(b.left<cb.left-1||b.right>cb.right+1||b.top<cb.top-1||b.bottom>cb.bottom+1||b.top<p.top||b.bottom>p.bottom)bad.push('out '+i+' '+r.tagName);});
 var n=cl.querySelectorAll('[data-sw-cells] rect').length;if(q.tV!==null&&n<1)bad.push('no blocks '+i);if(Math.abs(cb.width-cols[0].getBoundingClientRect().width)>1)bad.push('width '+i);
-var sp=st.getBoundingClientRect();if(sp.width>cb.width+1)bad.push('stamp wider '+i);});
+var sp=st.getBoundingClientRect();if(sp.width>cb.width+1)bad.push('stamp wider '+i);
+var ic=[].filter.call(cl.querySelectorAll('img, [data-sw-part="icon"] svg'),vis)[0],k=(cl.offsetWidth&&cb.width/cl.offsetWidth)||1,mid=(cb.left+cb.right)/2;if(ic){var ib=ic.getBoundingClientRect(),ix=ib.left+ib.width*0.502;if(Math.abs(ix-mid)>2*k)bad.push('icon off '+i+' '+(ix-mid).toFixed(1));}
+[st,cl.querySelector('[data-sw-htemp]')].forEach(function(e){var b=e.getBoundingClientRect();if(Math.abs((b.left+b.right)/2-mid)>2*k)bad.push('off '+i+' '+e.tagName);});});
 var L=cols.map(function(cl){return +(cl.querySelector('[data-sw-cells]')||{getAttribute:function(){return 0}}).getAttribute('data-sw-cells')}),T=cols.map(function(cl){return SW.hours[+cl.getAttribute('data-sw-hcol')].tV});
+var tb=cols.map(function(cl){return cl.querySelector('[data-sw-htemp]').getBoundingClientRect().bottom}),ib=cols.map(function(cl){var e=[].filter.call(cl.querySelectorAll('img, [data-sw-part="icon"] svg'),vis)[0];return e?e.getBoundingClientRect().top:null}).filter(function(v){return v!==null});
+if(tb.length&&Math.max.apply(null,tb)-Math.min.apply(null,tb)>1)bad.push('temp baseline spread '+(Math.max.apply(null,tb)-Math.min.apply(null,tb)).toFixed(1));if(ib.length&&Math.max.apply(null,ib)-Math.min.apply(null,ib)>1)bad.push('icon row spread '+(Math.max.apply(null,ib)-Math.min.apply(null,ib)).toFixed(1));
 for(var a=0;a<cols.length;a++)for(var b=0;b<cols.length;b++)if(T[a]!==null&&T[b]!==null&&T[a]>T[b]+1.5&&L[a]<L[b])bad.push('scale '+a+'<'+b);
 return cols.length+'|'+bad.join('; ');})()})
       puts "HOURS #{c['name']}: cols|bad #{hs}" if c['hcols'] || hs != '0|'
