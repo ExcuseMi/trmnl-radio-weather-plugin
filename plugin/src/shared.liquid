@@ -281,7 +281,7 @@ body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.8, y = (H - bh) / 2, cells = '', sh = '';
 var gp = Math.max(2, cw * 0.16);   // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner 2026-11-12: never blocks merged into stripes)
-if (cw - gp < 3) { cells = rect(X(a) + 1, y, X(b) - X(a) - 2, bh); sh = rect(X(a) + 1 + SO, y + SO, X(b) - X(a) - 2, bh); }
+if (cw - gp < 6) { cells = rect(X(a) + 1, y, X(b) - X(a) - 2, bh); sh = rect(X(a) + 1 + SO, y + SO, X(b) - X(a) - 2, bh); }
 else for (var t = a; t < b; t++) { cells += rect(X(t) + gp / 2, y, cw - gp, bh); sh += rect(X(t) + gp / 2 + SO, y + SO, cw - gp, bh); }
 body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells>' + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells) + '</g>';
 }
