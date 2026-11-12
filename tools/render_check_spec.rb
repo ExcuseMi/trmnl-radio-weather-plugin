@@ -69,11 +69,11 @@ var d=Math.min(b.left-S.left,b.top-S.top,S.right-b.right,S.bottom-b.bottom);if(d
         puts "PATTERN #{c['name']}: #{pat}" unless pat.zero?
         expect(pat).to eq(0)
       end
-      # Weather icon (owner 2026-11-12, revised): drawn ink 1.8 to 2.2 x the cap height, one line or two (owner, later: a step smaller than 2.5x), ink centred on the label.
+      # Weather icon (owner 2026-11-12, revised): drawn ink 2.1 to 2.5 x the cap height (owner, step 12: about 2.3x), one line or two, ink centred on the label.
       ci = s.evaluate(%q{(function(){var bad=[],cx=document.createElement('canvas').getContext('2d');document.querySelectorAll('[data-sw-cond]').forEach(function(sp){var sb=sp.getBoundingClientRect();if(!sb.height)return;
 var ic=sp.parentElement.firstElementChild,ib=ic.getBoundingClientRect(),k=sb.width/(sp.offsetWidth||sb.width),cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var m=cx.measureText('H'),fa=m.fontBoundingBoxAscent*k,fd=m.fontBoundingBoxDescent*k,cap=m.actualBoundingBoxAscent*k;
 var rg=document.createRange();rg.selectNodeContents(sp);var lr=[].filter.call(rg.getClientRects(),function(q){return q.width>0}),bl=function(q){return q.top+(q.height-fa-fd)/2+fa},t0=bl(lr[0])-cap,t1=bl(lr[lr.length-1]),n=lr.filter(function(q,i){return i===0||Math.abs(q.top-lr[i-1].top)>2}).length;
-var ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),it=ib.top+ik[0]*ib.height,ih=ik[1]*ib.height,h=n>1?t1-t0+cap:cap,mid=n>1?(t0+t1)/2:t0+cap/2,q=ih/h;if(n>2)bad.push('label on '+n+' lines');if(n>1&&(q=ih/cap,0))0;if(n>1?(q<(ic.hasAttribute('data-sw-clamped')?1.6:1.8)||q>2.2):(q<(ic.hasAttribute('data-sw-clamped')?1.6:1.8)||q>2.2))bad.push('icon ink '+ih.toFixed(1)+' / cap '+(n>1?cap:h).toFixed(1)+' = '+q.toFixed(2)+' ('+n+' lines)');if(Math.abs(it+ih/2-mid)>1.5)bad.push('icon ink centre off '+(it+ih/2-mid).toFixed(1));});return bad.join('; ');})()})
+var ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),it=ib.top+ik[0]*ib.height,ih=ik[1]*ib.height,h=n>1?t1-t0+cap:cap,mid=n>1?(t0+t1)/2:t0+cap/2,q=ih/h;if(n>2)bad.push('label on '+n+' lines');if(n>1&&(q=ih/cap,0))0;if(n>1?(q<(ic.hasAttribute('data-sw-clamped')?1.6:2.1)||q>2.5):(q<(ic.hasAttribute('data-sw-clamped')?1.6:2.1)||q>2.5))bad.push('icon ink '+ih.toFixed(1)+' / cap '+(n>1?cap:h).toFixed(1)+' = '+q.toFixed(2)+' ('+n+' lines)');if(Math.abs(it+ih/2-mid)>1.5)bad.push('icon ink centre off '+(it+ih/2-mid).toFixed(1));});return bad.join('; ');})()})
       puts "CONDICON #{c['name']}: #{ci}" unless ci.empty?
       expect(ci).to eq('')
       # Days strip (owner 2026-11-12, later): the strip always starts with today, the one highlighted row.
@@ -262,6 +262,20 @@ if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);if(ws.length&&Math.max
       puts "CLOTH #{c['name']}: console,dayrows|bad #{co}"
       expect(co.split('|', 2)[1]).to eq('')
       expect(co.split(',')[1].to_i).to be_positive if (c['view'] || 'full') == 'full' && (c['fields'] || {})['bottom'] != 'hours'
+      # Dividers (owner 2026-11-12, step 12): no ink (shapes, icons, glyphs) within 0.75 of the row gap of a vertical
+      # divider in a panel; the clothing badge, meters and digits keep the normal gap.
+      dg = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e.getBoundingClientRect();return b.height>0?b:null};
+[].forEach.call(document.querySelectorAll('[data-sw-panel] [data-sw-rule], [data-sw-panel] [data-sw-div]'),function(rl){var R=vis(rl);if(!R||R.width>4||R.height<R.width)return;
+var pn=rl.closest('[data-sw-panel]'),k=R.height/(rl.offsetHeight||R.height),g=parseFloat(getComputedStyle(rl.parentElement).columnGap)||0;g=(g||16)*k*0.75;var x=(R.left+R.right)/2;
+var ink=[].slice.call(pn.querySelectorAll('svg path, svg rect, svg circle, svg ellipse, svg line, svg polyline, svg polygon, svg text, img'));
+[].forEach.call(pn.querySelectorAll('span'),function(sp){if(sp.children.length)return;var rg=document.createRange();rg.selectNodeContents(sp);[].forEach.call(rg.getClientRects(),function(q){if(q.width>0)ink.push({q:q,t:'text '+sp.textContent.trim().slice(0,8)})});});
+ink.forEach(function(e){if(e.closest&&e.closest('[data-sw-part="face"]'))return;var b=e.q||e.getBoundingClientRect();if(!b.width||!b.height)return;
+if(e.getAttribute&&e.tagName!=='IMG'){var cs=getComputedStyle(e);if((cs.fill==='none'||cs.fillOpacity==='0')&&cs.stroke==='none')return;if(cs.visibility==='hidden'||cs.opacity==='0')return;}
+if(b.bottom<=R.top||b.top>=R.bottom)return;var d=b.left>x?b.left-x:(b.right<x?x-b.right:-1);
+if(d<g){var p=e.t||((e.closest('[data-sw-part]')||{getAttribute:function(){return e.tagName}}).getAttribute('data-sw-part')+'/'+e.tagName);bad.push(p+' '+d.toFixed(1)+'<'+g.toFixed(1)+' @'+x.toFixed(0));}});});
+var u=[];bad.forEach(function(s){if(u.indexOf(s)<0)u.push(s)});return u.slice(0,8).join('; ');})()})
+      puts "DIVGAP #{c['name']}: #{dg}" unless dg.empty?
+      expect(dg).to eq('')
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"
