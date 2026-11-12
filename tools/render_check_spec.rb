@@ -57,6 +57,12 @@ sv.closest('.relative').querySelectorAll('[data-sw-cap]').forEach(function(c){va
 return bad.join('; ');})()})
       puts "RAINUNIT #{c['name']}: #{ru}" unless ru.empty?
       expect(ru).to eq('')
+      # Moon beside the sun rows (owner, step 12, X half vertical): as tall as the two rows (first sun icon top to last
+      # sun icon bottom, 0.8 to 1.15) and centred on them.
+      mo = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-unit="sun"]').forEach(function(u){var m=[].filter.call(u.querySelectorAll('[data-sw-part="moon"]'),function(e){return e.getBoundingClientRect().height>0})[0],ic=[].filter.call(u.querySelectorAll('img[data-sw-icon]'),function(e){return e.getBoundingClientRect().height>0});if(!m||ic.length<2||!u.getBoundingClientRect().height)return;
+var b=m.getBoundingClientRect(),t=ic[0].getBoundingClientRect().top,bo=ic[ic.length-1].getBoundingClientRect().bottom,r=b.height/(bo-t),dc=(b.top+b.bottom)/2-(t+bo)/2;if(r<0.8||r>1.15||Math.abs(dc)>3)bad.push('moon '+b.height.toFixed(0)+' rows '+(bo-t).toFixed(0)+' dc '+dc.toFixed(1))});return bad.join('; ')})()})
+      puts "MOON #{c['name']}: #{mo}" unless mo.empty?
+      expect(mo).to eq('') if c['view'] == 'half_vertical'
       # Bleed margin (owner 2026-11-12): every panel (borderless: its lit face) and the title bar keep the framework's
       # screen padding from the screen edge.
       edge = s.evaluate(%q{(function(){var sc=document.querySelector('.screen')||document.body,S=sc.getBoundingClientRect(),k=S.width/(sc.offsetWidth||S.width),bad=[],m=8*k;
