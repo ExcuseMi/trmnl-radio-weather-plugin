@@ -1,5 +1,5 @@
 ---
-strategy: polling
+strategy: static
 no_screen_padding: 'yes'
 dark_mode: 'no'
 static_data: ''

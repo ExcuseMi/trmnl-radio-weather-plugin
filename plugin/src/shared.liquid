@@ -679,11 +679,11 @@ return cx - x - gap;
 }
 // owner 2026-11-12: an RDS-style station-name strip: the text in 5x7 dots inside a thin window; false when it does not fit
 // the feels-like pictogram: a person beside a thermometer, q = one unit (owner 2026-11-12)
-// owner 2026-11-12: a standing person in front of the felt temperature; q = a tenth of its height
-function feelsIcon(g, ix0, iy0, q) { var fg9 = mk('g', { fill: GLOW, 'data-sw-feels': 1 }, g), rr = (a, b, c, d, r) => mk('rect', { x: R(ix0 + a * q * 1.3), y: R(iy0 + b * q), width: R((c - a) * q * 1.3), height: R((d - b) * q), rx: R(r * q) }, fg9);
+// owner 2026-11-12: person before the felt temperature; q = height / 10
+function feelsIcon(g, ix0, iy0, q) { var fg9 = mk('g', { fill: GLOW, 'data-sw-feels': 1 }, g), rr = (a, b, c, d, r) => mk('rect', { x: R(ix0 + a * q * 1.3), y: R(iy0 + b * q), width: Mx(1, R((c - a) * q * 1.3)), height: R((d - b) * q), rx: R(r * q) }, fg9);
 mk('circle', { cx: R(ix0 + 3.25 * q), cy: R(iy0 + 1.2 * q), r: R(1.25 * q) }, fg9);
-rr(1.2, 2.5, 3.8, 6.1, 0.7); rr(0.1, 2.7, 0.95, 5.7, 0.42); rr(4.05, 2.7, 4.9, 5.7, 0.42); rr(1.3, 5.6, 2.35, 10, 0.5); rr(2.65, 5.6, 3.7, 10, 0.5); }
-// owner 2026-11-12: a CD skip-next mark (two triangles and a bar) for a sun time that falls tomorrow
+rr(1.15, 2.5, 3.85, 6.1, 0.7); rr(0, 2.7, 1, 5.8, 0.45); rr(4, 2.7, 5, 5.8, 0.45); rr(1.3, 5.6, 2.4, 10, 0.5); rr(2.6, 5.6, 3.7, 10, 0.5); }
+// owner 2026-11-12: skip-next mark: this sun time is tomorrow
 function skipIcon(g, x, y, hh) { var sg = mk('g', { fill: GLOW, 'data-sw-suntom': 1 }, g), w3 = hh * 0.55;
 [0, w3].forEach((o) => mk('polygon', { points: pts([[x + o, y], [x + o + w3, y + hh / 2], [x + o, y + hh]]) }, sg)); mk('rect', { x: R(x + 2 * w3), y: R(y), width: Mx(1, R(hh * 0.16)), height: R(hh) }, sg); return sg; }
 function seg7W(dw, str) {
@@ -852,10 +852,12 @@ var dh = R(h * (compact ? 0.46 : (tallBox ? 0.5 : (noRow || part === 'main' ? 0.
 var dual = !compact && blk && M.inn.temp !== null, inV = M.inn.temp === null ? null : (M.unit === 'F' ? M.inn.temp * 1.8 + 32 : M.inn.temp);
 var CELLSX = EV ? CELLS.replace('.8', '') : CELLS, evLoStr = EV ? String(Math.round(EV.lo)) : null;
 function evLoW(d) { return EV && !compact ? R(d * 0.3) + seg7W(R(d * 0.3), evLoStr) + R(d * 0.3) : 0; }
-var GRP = blk && !compact && !dual && !EV && part !== 'meters', FV = (d) => R(d * 0.62), FS = String(Math.round(M.now.feels === null ? 0 : M.now.feels)), FW = GRP && feelsOn0() ? 1 : 0;   // owner 2026-11-12: temps together, icon + description together
+var GRP = blk && !compact && !dual && !EV && part !== 'meters', FV = (d) => R(d * 0.62), FS = String(Math.round(M.now.feels === null ? 0 : M.now.feels)), FW = GRP && feelsOn0() ? 1 : 0;   // owner 2026-11-12: temps together, icon + text together
 function feelsOn0() { return M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2; }
-function fwOf(d) { return FW ? FV(d) * 0.65 + u(14) + seg7W(R(FV(d) * 0.5), FS) + FV(d) * 0.45 + u(40) : 0; }
-function need(d) { var dw0 = R(d * 0.5); if (GRP) return d * 0.9 + u(8) + seg7W(dw0, CELLSX) + dw0 * 1.2 + fwOf(d); if (dual) return 2 * (seg7W(dw0, CELLSX) + dw0 * 1.3) + d * 1.3 + dw0 * 0.9 + evLoW(d); return seg7W(dw0, CELLSX) + dw0 * 1.2 + (compact ? 0 : d * 1.25) + evLoW(d); }
+function fwOf(d) { return FW ? FV(d) * 0.65 + u(14) + seg7W(R(FV(d) * 0.5), FS) + FV(d) * 0.45 + u(THM ? 40 : 20) : 0; }
+var THM = true;
+function need(d) { var dw0 = R(d * 0.5); if (GRP) return (THM ? d * 0.9 + u(8) : 0) + seg7W(dw0, CELLSX) + dw0 * 1.2 + fwOf(d); if (dual) return 2 * (seg7W(dw0, CELLSX) + dw0 * 1.3) + d * 1.3 + dw0 * 0.9 + evLoW(d); return seg7W(dw0, CELLSX) + dw0 * 1.2 + (compact ? 0 : d * 1.25) + evLoW(d); }
+THM = !GRP || need(WD.size * 3.4) <= avail;   // narrow: no thermometer, so the digits stay large
 var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
 var feelsOn = EV ? !compact && blk && dual && M.inn.hum !== null : !compact && blk && M.now.feels !== null && M.now.temp !== null && (Math.abs(M.now.feels - M.now.temp) >= 2 || dual);
 var dyTop = compact ? y + h * 0.27 : (tallBox ? lampBottom + u(8) : Mx(y + h * (noRow || part === 'main' ? 0.14 : 0.25), lampBottom + u(4))), dyEnd = GRP ? yb + WD.size * 0.3 - WD.size * 2.1 - u(20) : yb - WD.size - u(2) - (feelsOn ? WD.size * 1.2 : 0), fo = feelsOn && !GRP;
@@ -879,10 +881,10 @@ g.removeChild(tg);
 ibox.r = ibox.l + dh * 0.85 + Mx(0, avail - need(dh));
 var ib0 = iconFit(g, CI, CD, ibox, hWant, dy + dh * 0.5, true);
 lx = blk.cL + avail / 2 - ((fl.l - dh * 0.4 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12)) + w2) / 2 - iconW;
-if (GRP) lx = blk.cL + avail / 2 - (dh * 0.55 + dwid - fl.l + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + fwOf(dh)) / 2 - fl.l + dh * 0.9;
+if (GRP) { var tw0 = THM ? dh * 0.9 : 0; lx = blk.cL + avail / 2 - (tw0 + dwid - fl.l + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + fwOf(dh)) / 2 - fl.l + tw0; }
 }
 var CF = F(WD.size * 1.25, '700', 1), s9 = WD.size * 2.1, gV = u(10), yRB = dy + CF.size * 1.1, ySep = 0;
-if (GRP) { var tM = part ? dyTop : y + innerD + u(12), T9 = s9 + 2 * gV + dh * 1.34, top9 = Mx(tM, (tM + yb + WD.size * 0.3 - T9) / 2); yRB = top9 + s9 / 2 + CF.size * 0.35; ySep = top9 + s9 + gV; dy = ySep + gV + dh * 0.34; }   // owner 2026-11-12: icon + description above the temperature, fixed gaps
+if (GRP) { var tM = part ? dyTop : y + innerD + u(12), T9 = s9 + 2 * gV + dh * 1.34, top9 = Mx(tM, (tM + yb + WD.size * 0.3 - T9) / 2); yRB = top9 + s9 / 2 + CF.size * 0.35; ySep = top9 + s9 + gV; dy = ySep + gV + dh * 0.34; }   // owner 2026-11-12: icon + text above the temperature
 var dx = lx + iconW;
 glowDigits((hg) => { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
 debug.digits.boxes = seg7.boxes;
@@ -916,14 +918,14 @@ text(g, I18N.ours('indoor'), x2 + dwid2 / 2, dy - WD.size * 0.5, WD, { anchor: '
 }
 var presetDone = false, stripOK = false;
 if (GRP) { stripOK = true;
-ICON_INK = bits >= 2 && LCD ? fillOf('gray-30') : (bits >= 2 ? DIMW || GLOW : GLOW); glowIcon(g, (gg) => iconFit(gg, 'thermo', null, { l: dx + (firstLit ? firstLit.l - dx : 0) - dh * 0.9, r: dx + (firstLit ? firstLit.l - dx : 0) - u(20), t: dy - dh * 0.32, b: dy + dh * 1.12 }, dh * 1.5, dy + dh * 0.42)); ICON_INK = null;   // owner 2026-11-12: the thermometer in front of the temperature
+if (THM) { ICON_INK = bits >= 2 && LCD ? fillOf('gray-30') : (bits >= 2 ? DIMW || GLOW : GLOW); glowIcon(g, (gg) => iconFit(gg, 'thermo', null, { l: dx + (firstLit ? firstLit.l - dx : 0) - dh * 0.9, r: dx + (firstLit ? firstLit.l - dx : 0) - u(20), t: dy - dh * 0.2, b: dy + dh * 1.2 }, dh * 1.4, dy + dh / 2)); ICON_INK = null; }   // owner 2026-11-12: the thermometer in front of the temperature
 var SEPC = DIMW || ink; mk('rect', { x: R(blk.cL + avail * 0.12), y: R(ySep), width: R(avail * 0.76), height: 1, fill: SEPC, 'data-sw-sep': 1 }, g);   // owner 2026-11-12: separators
-if (FW) mk('rect', { x: R(dx + dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + u(20)), y: R(dy + dh * 0.1), width: Mx(1, u(1.5)), height: R(dh * 0.9), fill: SEPC, 'data-sw-sep': 2 }, g);
-if (FW) { presetDone = true; var fh9 = FV(dh), q = fh9 * 0.1, fx9 = dx + dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + u(40), fb9 = dy + dh;
+if (FW) mk('rect', { x: R(dx + dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + u(THM ? 20 : 10)), y: R(dy + dh * 0.1), width: Mx(1, u(1.5)), height: R(dh * 0.9), fill: SEPC, 'data-sw-sep': 2 }, g);
+if (FW) { presetDone = true; var fh9 = FV(dh), q = fh9 * 0.1, fx9 = dx + dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + u(THM ? 40 : 20), fb9 = dy + dh / 2 + FV(dh) / 2;
 feelsIcon(g, fx9, fb9 - fh9, q); glowDigits((hg) => { seg7(hg || g, fx9 + 6.5 * q + u(14), fb9 - fh9, R(fh9 * 0.5), fh9, FS, DIGIT, null); text(hg || g, deg, fx9 + 6.5 * q + u(14) + seg7W(R(fh9 * 0.5), FS) + R(fh9 * 0.08), fb9 - fh9 * 0.45, F(R(fh9 * 0.55), '700'), { fill: DIGIT }); }); }
-var av9 = Mn(avail, blk.cR - blk.cL) - u(16), gI = u(22), tw9 = Mn(mW(condS, CF), av9 - s9 - gI), x9 = blk.cL + Mn(avail, blk.cR - blk.cL) / 2 - (s9 + gI + tw9) / 2;
-ICON_INK = GLOW; ICON_NOW = true; glowIcon(g, (gg) => iconFit(gg, CI, CD, { l: x9, r: x9 + s9, t: yRB - CF.size * 0.35 - s9 / 2, b: yRB - CF.size * 0.35 + s9 / 2 }, s9, yRB - CF.size * 0.35)); ICON_INK = null; ICON_NOW = false;
-fitText(g, condS, x9 + s9 + gI, yRB, CF, av9 - s9 - gI, { fill: GLOW, ls: R(CF.size * 0.12) }).setAttribute('data-sw-cond', 0); }
+var iw9 = iconFit(g, CI, CD, { l: 0, r: 1e5, t: -1e5, b: 1e5 }, s9, 0, true).w, av9 = Mn(avail, blk.cR - blk.cL) - u(16), gI = u(22), tw9 = Mn(mW(condS, CF), av9 - s9 - gI), x9 = blk.cL + Mn(avail, blk.cR - blk.cL) / 2 - (iw9 + gI + tw9) / 2;
+ICON_INK = GLOW; ICON_NOW = true; glowIcon(g, (gg) => iconFit(gg, CI, CD, { l: x9, r: x9 + iw9, t: yRB - CF.size * 0.35 - s9 / 2, b: yRB - CF.size * 0.35 + s9 / 2 }, s9, yRB - CF.size * 0.35)); ICON_INK = null; ICON_NOW = false;
+fitText(g, condS, x9 + iw9 + gI, yRB, CF, av9 - iw9 - gI, { fill: GLOW, ls: R(CF.size * 0.12) }).setAttribute('data-sw-cond', 0); }
 var ybC = feelsOn && !presetDone && !(dual && EV) ? yb - WD.size * 1.6 : yb;   // owner 2026-11-12: the condition first, the feels-like under it
 if (stripOK) wt = null;
 else if (blk) wt = fitText(g, condS, blk.cL + avail / 2, ybC, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
@@ -971,7 +973,7 @@ debug.clock = { str: '', boxes: [] };
 return;
 }
 if (cells) {
-// owner 2026-11-12: the rain column is a rain icon over a calendar of hours that lights up from the start
+// owner 2026-11-12: rain icon over an hour calendar
 var RW = part || !cells ? rainROW : { top: y + innerD + u(14) + WD.size * 0.2, lab: rainROW.lab }, SL = F(Mx(8, WD.size * 0.75), '700', 1), chB = R(SL.size * 1.45), calH = M.rain ? 2 * chB + u(3) : 0, rK = M.rain ? (M.rain.type === 'snow' ? 'snow' : M.rain.type === 'hail' ? 'hail' : 'rain') : 'cloud';   // plain icon (no sun or moon): isDay null
 var amtP = M.rain ? [((v) => (M.unit === 'F' ? (v < 0.01 ? null : (v < 0.1 ? v.toFixed(2) : v.toFixed(1))) : (v < 0.05 ? null : (v < 1 ? v.toFixed(1) : String(Math.round(v))))))(M.rain.mm)] : [];   // owner 2026-11-12: no percentage, only the amount
 amtP[0] = amtP[0] === null || amtP[0] === undefined ? null : amtP[0] + (M.unit === 'F' ? ' IN' : ' MM');
@@ -980,11 +982,11 @@ if (!M.rain) fitText(g, I18N.ours('no_rain'), rx, RW.top + WD.size * 0.8, WD, rw
 else { var rf0 = iconFit(g, rK, null, { l: 0, r: 1e5, t: -1e5, b: 1e5 }, icH, 0, true), icx = rx + (rw - u(4)) / 2; ICON_INK = GLOW; glowIcon(g, (gg) => iconFit(gg, rK, null, { l: icx - rf0.w / 2, r: icx + rf0.w / 2, t: iTop, b: iTop + icH }, icH, iTop + icH / 2)); ICON_INK = null; }
 var dTop2 = iTop, ch2 = icH;
 debug.clock = { str: M.rain ? (M.rain.now ? rainTo : rainFrom) : '--:--' };
-// owner 2026-11-12: a CD music calendar: 12 hours, one number each, from two hours before the rain; lit where it rains (the start hour is the first lit number)
+// owner 2026-11-12: CD-style calendar, 12 h from 2 h before the rain, rain hours lit
 if (M.rain) { var h0 = Mx(0, Mn(M.rain.from - 2, M.hours.length - 12)), hs = M.hours.slice(h0, h0 + 12), cwB = (rw - u(4)) / 6, sy0 = dTop2 + ch2 + gp2;
 for (var k = 0; k < 12 && hs[k]; k++) { var mp = hs[k].p === null ? 0 : hs[k].p, hk = h0 + k, x8 = R(rx + (k % 6) * cwB), y8 = R(sy0 + Fl(k / 6) * (chB + u(3))), on8 = hk >= M.rain.from && hk <= M.rain.to;
 if (on8) mk('rect', { x: x8, y: y8, width: R(cwB - u(3)), height: chB, rx: R(chB * 0.2), fill: RAINDIG, 'data-sw-rainblk': 1 }, g);
-text(g, hs[k].hl || hs[k].h, x8 + R(cwB - u(3)) / 2, y8 + chB * 0.5 + SL.size * 0.36, SL, { anchor: 'middle', fill: on8 ? GLASSD : (mp >= 30 ? GLOW : DIMW || GLOW) }); } }
+text(g, hs[k].hl || hs[k].h, x8 + R(cwB - u(3)) / 2, y8 + chB * 0.5 + SL.size * 0.36, SL, { anchor: 'middle', fill: on8 ? GLASSD : GLOW }); } }
 if (amtS || !M.rain) fitText(g, amtS || I18N.ours('next_h', SPAN), rx, RW.lab, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW }); if (amtS) debug.rainAmt = amtS;
 return;
 }
