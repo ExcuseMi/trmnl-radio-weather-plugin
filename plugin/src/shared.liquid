@@ -545,10 +545,10 @@ zoneBands: [[0, 0.25, 'solid'], [0.25, 0.5, 'outline'], [0.5, 0.75, 'solid'], [0
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = bits >= 2 && !darkMode;
-var GLASSD = LCD ? paper : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25') : (bits === 2 ? (darkMode ? paper : fillOf('gray-15')) : paper);
+var GLASSD = LCD ? (bits === 2 ? fillOf('gray-60') : paper) : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25') : (bits === 2 ? (darkMode ? paper : fillOf('gray-15')) : paper);
 var GLOW = LCD || bits === 1 ? ink : (darkMode ? ink : paper);
 var GHOSTD = null;
-var DIMW = bits === 4 ? fillOf(LCD ? 'gray-75' : (darkMode ? 'gray-55' : 'gray-45')) : (bits === 2 ? fillOf('gray-60') : null);
+var DIMW = bits === 4 ? fillOf(LCD ? 'gray-75' : (darkMode ? 'gray-55' : 'gray-45')) : (bits === 2 ? fillOf(LCD ? 'gray-35' : 'gray-60') : null);
 var lightPanel = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !m || (+m[1] + +m[2] + +m[3]) > 384; })();
 var GREYGLOW = bits === 4 && !color && lightPanel, GLOWD = bits === 4 && !color && darkMode;
 var DIGIT = AMBER ? AMBER : GLOW;
