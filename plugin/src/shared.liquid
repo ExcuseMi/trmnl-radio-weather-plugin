@@ -720,7 +720,7 @@ return tw2 + 2 * bpad;
 }
 function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
 function compass(d) { if (d === null) return ''; var pts = I18N.ours('compass').split(','); return pts.length === 8 ? pts[Math.round(d / 45) % 8] : ''; }
-var RO_ORDER = ['humidity', 'uv', 'wind', 'aqi', 'baro', 'pollen', 'co2'];
+var RO_ORDER = ['wind', 'uv', 'aqi', 'pollen', 'humidity', 'baro', 'co2'];   // owner 2026-11-12: wind before humidity
 function readout(k) {
 var n = M.now, t = M.today, c = compass(n.dir), F_ = M.unit === 'F';
 var bar = (v, lo, hi) => v === null ? null : Mx(0, Mn(1, (v - lo) / (hi - lo)));
@@ -1146,7 +1146,7 @@ var ROWPRI = [];
 var EXTRA = [];
 function setRows(baroOK) {
 ROK = RO_ORDER.filter((k) => (k !== 'aqi' || M.now.aqi !== null) && (k !== 'uv' || (M.now.day !== false && M.today.uvMax !== null && M.today.uvMax >= 3)) && (k !== 'baro' || (baroOK && M.now.press !== null)) && (k !== 'pollen' || M.now.pollen !== null) && (k !== 'co2' || M.inn.co2 !== null) && (!OGD || !warnRow[k] || warnRow[k]())); ROS = ROK.map(readout);
-ROWPRI = (M.inn.co2 !== null && M.inn.co2 > 1400 ? ['aqi', 'co2', 'baro', 'uv', 'wind', 'humidity', 'pollen'] : ['aqi', 'baro', 'uv', 'wind', 'humidity', 'pollen', 'co2']).filter((k) => ROK.indexOf(k) >= 0);
+ROWPRI = (M.inn.co2 !== null && M.inn.co2 > 1400 ? ['wind', 'co2', 'uv', 'aqi', 'pollen', 'humidity', 'baro'] : ['wind', 'uv', 'aqi', 'pollen', 'humidity', 'baro', 'co2']).filter((k) => ROK.indexOf(k) >= 0);
 // owner 2026-11-12: rows left over when there is room: any meter that has data (UV still only by day)
 var hasData = { humidity: M.now.hum !== null, wind: M.now.wind !== null, aqi: M.now.aqi !== null, baro: M.now.press !== null, pollen: M.now.pollen !== null, co2: M.inn.co2 !== null, uv: M.now.day !== false && M.now.uv !== null };
 EXTRA = RO_ORDER.filter((k) => ROK.indexOf(k) < 0 && hasData[k]);
