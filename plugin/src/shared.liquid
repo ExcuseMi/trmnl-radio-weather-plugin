@@ -280,12 +280,16 @@ for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) body += rect(X(v) - 1, 0, 2,
 body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.8, y = (H - bh) / 2, cells = '', sh = '';
-var gp = Math.max(2, cw * 0.16);   // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner 2026-11-12: never blocks merged into stripes)
-if (cw - gp < 6) { cells = rect(X(a) + 1, y, X(b) - X(a) - 2, bh); sh = rect(X(a) + 1 + SO, y + SO, X(b) - X(a) - 2, bh); }
-else for (var t = a; t < b; t++) { cells += rect(X(t) + gp / 2, y, cw - gp, bh); sh += rect(X(t) + gp / 2 + SO, y + SO, cw - gp, bh); }
+var gp = Math.max(2, cw * 0.16), pc = [];   // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner 2026-11-12: never blocks merged into stripes)
+if (cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = a; t < b; t++) pc.push([X(t) + gp / 2, X(t + 1) - gp / 2]);
+var hasNow = sc.now !== null && sc.now !== undefined, xn = hasNow ? X(sc.now) : 0, c0 = xn - 1.5 - 2, c1 = xn + 1.5 + 2, mw = Math.max(3, (cw - gp) / 2);
+// Now line (owner 2026-11-12): a block edge never touches the line (the gap would vanish and blocks read as merged); a block
+// the line crosses well inside stays whole; one whose edge it meets is trimmed, and a piece under half a cell is dropped.
+if (hasNow) pc = pc.reduce((o, q) => { if (q[1] <= c0 || q[0] >= c1 || (q[0] < c0 && q[1] > c1)) o.push(q); else { if (c0 - q[0] >= mw) o.push([q[0], c0]); if (q[1] - c1 >= mw) o.push([c1, q[1]]); } return o; }, []);
+pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
 body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells>' + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells) + '</g>';
 }
-if (sc.now !== null && sc.now !== undefined) { var xn = X(sc.now), cg = Math.max(2, (X(1) - X(0)) * 0.16); if (d.loV !== null && d.hiV !== null) body += g('text--white', rect(xn - 1.5 - cg, 0, 3 + 2 * cg, H, 0, ' data-sw-chan')); var nl = rect(xn - 1.5, 0, 3, H + E, 0, ' data-sw-now'); body += hue('red') ? hg('red', nl) : nl; }   // a paper channel each side: cells never read as merged when the line sits in a gap (owner 2026-11-12)
+if (sc.now !== null && sc.now !== undefined) { var nl = rect(X(sc.now) - 1.5, 0, 3, H + E, 0, ' data-sw-now'); body += hue('red') ? hg('red', nl) : nl; }
 if (hi) body += '<g data-sw-hl="1"></g>';
 return svg(W, H, body);
 }
