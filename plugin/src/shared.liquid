@@ -550,7 +550,7 @@ arc(rArc, 0, 1, lw);
 faceEl.setAttribute('data-sw-pivot', [cx, py, rArc + (o.band ? R(fh * 0.045) + lw : lw / 2)].join(' '));
 if (o.band) {
 var bw = R(fh * 0.045);
-glowDigits((hg) => { arc(rArc + bw / 2 + lw, o.band[0], o.band[1], bw, o.bandCol || ink, hg); });
+glowDigits((hg) => { arc(rArc + bw / 2 + lw, o.band[0], o.band[1], bw, o.bandCol || ink, hg); }, true);
 }
 o.ticks.forEach((tk) => {
 var p0 = at(tk.f, rArc), p1 = at(tk.f, rArc - (tk.major ? fh * 0.07 : fh * 0.035));
@@ -625,7 +625,7 @@ return [[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[
 }
 var NEEDLE = bits === 4 ? fillOf('gray-15', '#222') : ink;
 if (bits === 4) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55', '#999'), 'shape-rendering': GPX }, ng);
-glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); });
+glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true);
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
 tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Mx(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
@@ -772,8 +772,18 @@ dd += (k ? ' L' : 'M') + Mx(x, Mn(x + w, ecx + w * 0.5 * st[3] * Math.cos(an))).
 mk('path', { d: dd + ' Z', fill: st[2] < 1 ? dith(st[0], st[1], st[2]) : st[0], 'data-sw-lamp': i }, lg);
 });
 }
-function glowDigits(draw) {
-if (LCD || (!FULL && !GREYGLOW && !GLOWD)) return draw(null);
+function glowDigits(draw, noLcd) {
+if (LCD) {
+if (noLcd) return draw(null);
+var sid = 'swshadow' + view + '-' + (glowN++), SH = fillOf('gray-65', '#999');
+var sf = mk('filter', { id: sid, x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
+mk('feGaussianBlur', { stdDeviation: Mx(1, u(1.5)) }, sf);
+var sg = mk('g', { filter: 'url(#' + sid + ')', transform: 'translate(' + u(3) + ' ' + u(3) + ')', opacity: 0.7, fill: SH, 'data-sw-halo': '1' }, root);
+draw(sg);
+[].forEach.call(sg.querySelectorAll('*'), (e) => { var f = e.getAttribute('fill'), s = e.getAttribute('stroke'); if (f && f !== 'none') e.setAttribute('fill', SH); if (s && s !== 'none') e.setAttribute('stroke', SH); });
+return draw(null);
+}
+if (!FULL && !GREYGLOW && !GLOWD) return draw(null);
 var id = 'swhalo' + view + '-' + (glowN++);
 var f = mk('filter', { id: id, x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
 mk('feGaussianBlur', { stdDeviation: Mx(2, u(4)) }, f);
@@ -1236,11 +1246,11 @@ var dsz = Mn.apply(null, days.map((d) => iconFit(g, d.icon, null, iBox(0), rh * 
 days.forEach((d, i) => {
 var cy = top + (i + 0.5) * rh;
 text(g, dayName(d), x + u(10), cy + D.L.size * 0.36, D.L, { fill: fg, ls: R(D.L.size * 0.08) });
-ICON_INK = fg; iconFit(g, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz); ICON_INK = null;
+ICON_INK = fg; glowIcon(g, (gg) => iconFit(gg, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz)); ICON_INK = null;
 mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: glass ? DIMW : fillOf('gray-60', '#bbb') }, g);
 if (d.hi === null || d.lo === null) return;
 var xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = Mx(3, u(5));
-mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': i }, g);
+glowDigits((hg) => { mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': hg ? null : i }, hg || g); });
 text(g, tStr(d.lo), xa - u(8), cy + D.t2.size * 0.36, D.t2, { anchor: 'end', fill: fg });
 text(g, tStr(d.hi), xb + u(8), cy + D.t2.size * 0.36, D.t2, { fill: fg });
 });
