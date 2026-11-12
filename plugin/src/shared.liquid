@@ -1227,10 +1227,13 @@ var xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = Mx(3, u(5));
 mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': i }, g);
 var knock = (str, xt, endA, fnt) => { var kw = D.mW(str, fnt); mk('rect', { x: R((endA ? xt - kw : xt) - u(3)), y: R(cy - fnt.size * 0.8 - u(1)), width: R(kw + 2 * u(3)), height: R(fnt.size * 1.2 + u(2)), fill: bg }, g); };
 var nwLo = D.mW(tStr(d.lo), D.t2), roomLo = xa - x0 - u(8), tLo = nwLo > roomLo ? F(Mx(8, D.t2.size * Mx(0.55, roomLo / nwLo)), D.t2.weight) : D.t2;
-knock(tStr(d.lo), xa - u(8), true, tLo);
-text(g, tStr(d.lo), xa - u(8), cy + tLo.size * 0.36, tLo, { anchor: 'end', fill: fg });
-knock(tStr(d.hi), xb + u(8), false, D.t2);
-text(g, tStr(d.hi), xb + u(8), cy + D.t2.size * 0.36, D.t2, { fill: fg });
+var pxv = M.now.temp !== null ? R(xOf(M.now.temp)) : null, xLo = xa - u(8), xHi = xb + u(8), nwHi = D.mW(tStr(d.hi), D.t2), nwLo2 = D.mW(tStr(d.lo), tLo);
+if (pxv !== null && pxv >= xLo - nwLo2 - u(3) && pxv <= xLo + u(3)) xLo = pxv - u(4);
+if (pxv !== null && pxv >= xHi - u(3) && pxv <= xHi + nwHi + u(3)) xHi = pxv + u(4);
+knock(tStr(d.lo), xLo, true, tLo);
+text(g, tStr(d.lo), xLo, cy + tLo.size * 0.36, tLo, { anchor: 'end', fill: fg });
+knock(tStr(d.hi), xHi, false, D.t2);
+text(g, tStr(d.hi), xHi, cy + D.t2.size * 0.36, D.t2, { fill: fg });
 });
 if (M.now.temp !== null) { var px2 = R(xOf(M.now.temp)), PC2 = RED !== ink ? RED : fg;
 mk('polygon', { points: [[px2, top + u(6)], [px2 - u(5), top - u(2)], [px2 + u(5), top - u(2)]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: PC2 }, g); }
