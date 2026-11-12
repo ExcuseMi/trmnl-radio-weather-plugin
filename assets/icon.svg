@@ -1,8 +1,8 @@
 <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M4 16A10 10 0 0 1 24 16" stroke="#f8654b" stroke-width="2.2" stroke-linecap="round"/>
-<path d="M14 6V8.5M6.9 8.9L8.6 10.6M21.1 8.9L19.4 10.6" stroke="#f8654b" stroke-width="1.6" stroke-linecap="round"/>
-<path d="M14 16L18.6 9.6" stroke="#f8654b" stroke-width="2" stroke-linecap="round"/>
-<circle cx="14" cy="16" r="1.8" fill="#f8654b"/>
-<rect x="3" y="21" width="4" height="4" rx="0.8" fill="#f8654b"/><rect x="8.5" y="21" width="4" height="4" rx="0.8" fill="#f8654b"/><rect x="14" y="21" width="4" height="4" rx="0.8" fill="#f8654b"/>
-<rect x="19.5" y="21.5" width="4" height="3" rx="0.8" stroke="#f8654b" stroke-width="1"/>
+<path d="M14 6V8.5M6.9 8.9L8.6 10.6M21.1 8.9L19.4 10.6" stroke="#fb9a85" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M14 16L18.6 9.6" stroke="#c9402a" stroke-width="2" stroke-linecap="round"/>
+<circle cx="14" cy="16" r="1.8" fill="#c9402a"/>
+<rect x="3" y="21" width="4" height="4" rx="0.8" fill="#fcc2b5"/><rect x="8.5" y="21" width="4" height="4" rx="0.8" fill="#fb9a85"/><rect x="14" y="21" width="4" height="4" rx="0.8" fill="#f8654b"/>
+<rect x="19.5" y="21.5" width="4" height="3" rx="0.8" stroke="#c9402a" stroke-width="1"/>
 </svg>
