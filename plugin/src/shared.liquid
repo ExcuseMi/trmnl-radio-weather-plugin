@@ -790,7 +790,7 @@ function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.re
 if (!compact && M.ok && ROS.length >= 2) {
 var ROW = { top: tallBox || noLampBox ? lampBottom + u(8) : Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * (tallBox ? 0.92 : 0.9) }, LF = F(RD(hb * 0.075, 10), '700'), lmax = 0;
 ['m_hum', 'uv'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF), mW('BARO', LF), mW(I18N.ours('pollen'), LF), mW('CO2', LF));
-cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), left: ROS };
+cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.02 + u(12), left: ROS };
 blk = { divX: ix + lw + u(14), cL: ix + lw + u(22), cR: rx - u(22) };
 if (cells) { var nFit = Mx(2, Fl((cells.ROW.lab - cells.ROW.top + LF.size) / (LF.size * 1.9))); if (nFit < cells.nM) { cells.left = pickRows(nFit); cells.nM = cells.left.length; }
 var rhA = (cells.ROW.lab - cells.ROW.top + LF.size) / cells.nM;
@@ -799,7 +799,7 @@ var avC = blk.cR - blk.cL, rwC = rw - u(4), S0 = M.sunT, txts = [I18N.ours('m_hu
 var fitsQ = (q) => { var sp = F(q, '700', 1), mx = (arr) => Mx.apply(null, arr.map((t) => mW(t, sp)));
 return mx(txts) * 1.15 + u(12) <= lw * 0.42 && mW(condS, sp) <= avC && mW(I18N.ours('feels') + ' -22' + deg, sp) * (M.inn.temp !== null ? 2.1 : 1) <= avC && mx(['rain_from', 'rain_until', 'snow_from', 'snow_until', 'hail_from', 'hail_until', 'raining_now', 'snowing_now', 'hailing_now'].map((k) => I18N.ours(k))) * 1.25 <= rwC && (!S0 || q * 5.2 + mx([S0.riseL, S0.setL]) <= rwC) && q * 1.7 * cells.nM <= cells.ROW.lab - cells.ROW.top + q; };
 var cq = Mx(WD.size, hb * 0.1); while (cq > 8 && !fitsQ(cq)) cq -= 0.5;
-WD = F(cq, '700'); LF = WD; cells.LF = LF; lmax = Mx.apply(null, txts.map((t) => mW(t, LF))); cells.labW = lmax * 1.15 + u(12);
+WD = F(cq, '700'); LF = WD; cells.LF = LF; lmax = Mx.apply(null, txts.map((t) => mW(t, LF))); cells.labW = lmax * 1.02 + u(12);
 var rhA = (cells.ROW.lab - cells.ROW.top + LF.size) / cells.nM;
 var rhB = Mn(rhA, LF.size * 2.2); cells.ROW.rh = rhB; cells.ROW.off = (rhA - rhB) * cells.nM / 2; }
 if (part === 'meters') { lw = iw; blk = null; }
@@ -1004,13 +1004,11 @@ if (lo === null) { lo = 0; hi = 10; }
 var st = F_ ? 10 : 5, a0 = Fl(lo / st) * st - (lo - Fl(lo / st) * st < 1 ? st : 0), b0 = Math.ceil(hi / st) * st + (Math.ceil(hi / st) * st - hi < 1 ? st : 0);
 var glass = bits >= 2, bg = glass ? GLASSD : paper, fg = glass ? GLOW : ink, g = mk('g', { 'data-sw-dial': 1 }, root);
 var fb = frame(g, x, y, w - u(3), h - u(3), bg, glass && !LCD); x = fb.fx + u(4); y = fb.fy; w = fb.fw - u(8); h = fb.fh;
-var dnW = days.reduce((m2, d) => Mx(m2, D.mW(dayName(d), D.L)), 0), nwC = D.mW('-88°', D.t2), cLo = x + u(16) + dnW + D.L.size * 3 + nwC, cHi = cLo + u(12) + nwC, labW = cHi - x + u(16), x0 = x + labW, x1 = x + w - u(10) - D.mW('-88°', F(Mx(9, D.t2.size * 0.85), '700')) / 2, xOf = (v) => x0 + (v - a0) / (b0 - a0) * (x1 - x0);
+var dnW = days.reduce((m2, d) => Mx(m2, D.mW(dayName(d), D.L)), 0), nwC = D.mW('-88°', D.t2), cLo = x + u(16) + dnW + D.L.size * 3 + nwC, cHi = cLo + u(12) + nwC, labW = cHi - x + u(16) + D.mW('-88°', F(Mx(9, D.t2.size * 0.85), '700')) / 2, x0 = x + labW, x1 = x + w - u(10) - D.mW('-88°', F(Mx(9, D.t2.size * 0.85), '700')) / 2, xOf = (v) => x0 + (v - a0) / (b0 - a0) * (x1 - x0);
 var SC2 = F(Mx(9, D.t2.size * 0.85), '700'), top = y + u(14) + SC2.size, rows = days.length, rh = (y + h - u(8) - top) / rows;
 var AXC = !glass || LCD ? (bits === 1 ? ink : fillOf('gray-20')) : fg, wLab = D.mW('-88\u00b0', SC2), kSc = 1, bw = Mx(2, u(2)), GRID = glass && !LCD ? DIMW : fillOf('gray-60');
 while (kSc < 6 && xOf(a0 + kSc * st) - xOf(a0) < wLab * 1.5) kSc++;
-if (0) mk('rect', { x: R(xOf(a0)), y: R(top - bw), width: R(xOf(b0) - xOf(a0)), height: bw, fill: AXC, 'data-sw-scale': 1 }, g);
-if (0) for (var mv = a0; mv <= b0 + 1e-9; mv += st / 5) mk('rect', { x: R(xOf(mv)), y: R(top - u(4)), width: 1, height: u(4), fill: AXC }, g);
-if (0) for (var v = a0, vi = 0; v <= b0 + 1e-9; v += st, vi++) { mk('rect', { x: R(xOf(v) - bw / 2), y: R(top - u(9)), width: bw, height: u(9), fill: AXC }, g); if (vi % kSc) continue; mk('rect', { x: R(xOf(v)), y: R(top + u(2)), width: 1, height: R(y + h - u(6) - top), fill: GRID, 'data-sw-grid': 1 }, g); var nT = text(g, SWModel.fmt(v), 0, 0, SC2), nW = width(nT); g.removeChild(nT); text(g, SWModel.fmt(v) + deg, xOf(v) - nW / 2, top - u(12), SC2, { fill: AXC }); }
+for (var v = a0, vi = 0; v <= b0 + 1e-9; v += st, vi++) { mk('rect', { x: R(xOf(v)), y: R(top - u(2)), width: 1, height: R(y + h - u(4) - top), fill: GRID, 'data-sw-grid': 1 }, g); if (vi % kSc) continue; var nT = text(g, SWModel.fmt(v), 0, 0, SC2), nW = width(nT); g.removeChild(nT); text(g, SWModel.fmt(v) + deg, xOf(v) - nW / 2, top - u(12), SC2, { fill: AXC }); }
 var colW = (k) => days.reduce((m3, d) => d[k] === null ? m3 : Mx(m3, D.mW(tStr(d[k]), D.t2)), 0);
 [[cLo, 0, colW('lo')], [cHi, 1, colW('hi')]].forEach((c) => { var ts = SC2.size * 0.7, tx = c[0] - (c[2] || nwC) / 2, ty = top - u(12) - SC2.size * 0.3; mk('polygon', { points: (c[1] ? [[tx, ty - ts * 0.75], [tx - ts / 2, ty + ts * 0.25], [tx + ts / 2, ty + ts * 0.25]] : [[tx, ty + ts * 0.25], [tx - ts / 2, ty - ts * 0.75], [tx + ts / 2, ty - ts * 0.75]]).map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: c[1] ? AXC : 'none', stroke: AXC, 'stroke-width': Mx(1, u(1.5)), 'stroke-linejoin': 'round', 'data-sw-lohi': c[1] ? 'hi' : 'lo' }, g); });
 var iBox = (cy0) => ({ l: x + u(10) + dnW + D.L.size * 0.7, r: x + u(10) + dnW + D.L.size * 2.6, t: cy0 - rh * 0.4, b: cy0 + rh * 0.4 });
