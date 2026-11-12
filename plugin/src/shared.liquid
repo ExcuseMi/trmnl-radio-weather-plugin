@@ -75,7 +75,7 @@
 {%- endcapture %}
 {%- capture c_right %}
   <div class="flex flex--col flex--center gap--xsmall lg:gap--small {{ rc_w }}">
-   {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center lg:portrait:w--full gap--xsmall lg:gap--small">{% endif %}
+   {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center lg:portrait:w--full gap--medium lg:gap--large">{% endif %}
    {%- if ui.rain %}
    <div class="flex {{ ru_cls }} flex--center gap--xsmall lg:gap--small shrink-0" data-sw-unit="rain">
     <img class="image image--adaptive {{ ri_md }}{% unless stk %} h--[{{ 9 | times: hm | round }}cqh] lg:portrait:h--[4cqh]{% endunless %}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
