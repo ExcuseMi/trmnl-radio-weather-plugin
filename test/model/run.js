@@ -233,5 +233,16 @@ test('dials: needle drawn last, low mark hollow, high mark solid, baro zone icon
   eq((b.match(/<image /g) || []).length, 4, 'four zone icons');
   ok(D.dial({ now: null, lo: null, hi: null, a: 0, b: 15, step: 5 }, 900, 380, false).indexOf('<polygon') < 0, 'no data: no needle, no marks');
 });
+test('right column: dotted rule between rain and sun/moon, only when rain shows (owner 2026-11-12)', () => {
+  const i = sh.indexOf('data-sw-sep="rain-sun"'), open = sh.lastIndexOf('{%- if ui.rain %}', i), close = sh.indexOf('{%- endif %}', open);
+  ok(i > 0 && open > 0 && i < close, 'separator inside the rain block');
+  ok(sh.indexOf('ui.rain.icon', open) < i && sh.indexOf('ui.sun.rise', i) > i, 'after the calendar, before the sun times');
+});
+test('days strip: 5-degree lines faint, blocks at least half the row, now line dark', () => {
+  const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40);
+  ok(/^<svg[^>]*>(<defs>.*<\/defs>)?<g class="text--gray-7\d"/.test(s), 'grid lines light grey');
+  const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-40')[1])[1];
+  ok(h >= 20, 'block height ' + h + ' of 40');
+});
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

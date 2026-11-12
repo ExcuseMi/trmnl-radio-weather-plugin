@@ -46,8 +46,7 @@
    </div>
    <div class="w--[30cqw] h--[1cqh]" data-sw-part="rule"></div>
    <div class="flex flex--row flex--center-y gap--medium h--[13cqh]">
-    <div class="h--full" data-sw-part="temp"></div>
-    <span class="value value--small flex--top">{{ ui.unit }}</span>
+    <div class="flex flex--row flex--top gap--xsmall h--full"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
     {%- if ui.feels %}
     <div class="border--v-60 h--[9cqh]"></div>
     <div class="h--[8cqh]" data-sw-part="person"></div>
@@ -58,15 +57,16 @@
   <div class="border--v-60"></div>
   <div class="flex flex--col flex--center gap--small w--[23cqw]">
    {%- if ui.rain %}
-   <img class="image image--adaptive h--[7cqh]" src="{{ ui.rain.icon }}" alt="">
-   <div class="w--full h--[9cqh]" data-sw-part="rain"></div>
+   <img class="image image--adaptive h--[6cqh] shrink-0" src="{{ ui.rain.icon }}" alt="">
+   <div class="w--full h--[8cqh] shrink-0" data-sw-part="rain"></div>
+   <div class="w--full h--[1cqh] shrink-0" data-sw-part="rule" data-sw-sep="rain-sun"></div>
    {%- endif %}
-   <div class="flex flex--row flex--center-y gap--medium">
-    <div class="flex flex--col gap--small">
+   <div class="flex flex--row flex--center-y gap--medium shrink-0">
+    <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
      <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[5cqh]" src="{{ ui.sun.riseIcon }}" alt=""><span class="title title--base text--bold">{{ ui.sun.rise }}</span></div>
      <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[5cqh]" src="{{ ui.sun.setIcon }}" alt=""><span class="title title--base text--bold">{{ ui.sun.set }}</span></div>
     </div>
-    <img class="image image--adaptive h--[{% if ui.rain %}8{% else %}12{% endif %}cqh]" src="{{ ui.sun.moon }}" alt="">
+    <img class="image image--adaptive h--[{% if ui.rain %}7{% else %}12{% endif %}cqh]" src="{{ ui.sun.moon }}" alt="">
    </div>
   </div>
  </div>{{ p_close }}</div>
@@ -170,9 +170,9 @@ function day(d, sc, W, H) {
 var X = (t) => (t - sc.a) / (sc.b - sc.a) * (W - 2) + 1, body = '';
 var E = API.ext || 0;   // the row pitch beyond this box: rules and the now line run on through the gap
 for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) body += rect(X(v) - 1, -E, 2, H + 2 * E);
-body = g('text--gray-20', body);
+body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
-var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.5, y = (H - bh) / 2, cells = '', sh = '';
+var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.8, y = (H - bh) / 2, cells = '', sh = '';
 for (var t = a; t < b; t++) { cells += rect(X(t) + cw * 0.08, y, cw * 0.84, bh); sh += rect(X(t) + cw * 0.08 + SO, y + SO, cw * 0.84, bh); }
 body += g(SHADOW + ' text--gray-65', sh) + g(d.today ? 'text--gray-15' : 'text--gray-40', cells);
 }
