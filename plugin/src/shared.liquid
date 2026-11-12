@@ -236,7 +236,7 @@ return (t) => pl + (t - sc.a) / (sc.b - sc.a) * (W - pl - pr);
 }
 // Days strip row: rules every major step, the low to high blocks (one per degree, shadowed), the now line. Rules and the
 // now line run on down through the gap to the next row (API.extD), so they are continuous from the header down.
-function day(d, sc, W, H) {
+function day(d, sc, W, H, hi) {   // hi: the highlighted row (today, or tomorrow when the strip starts tomorrow)
 var X = xmap(sc, W), body = '';
 var E = API.extD || 0;
 for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) body += rect(X(v) - 1, 0, 2, H + E, 0, ' data-sw-tick="' + tick(v) + '"');
@@ -244,9 +244,10 @@ body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.8, y = (H - bh) / 2, cells = '', sh = '';
 for (var t = a; t < b; t++) { cells += rect(X(t) + cw * 0.08, y, cw * 0.84, bh); sh += rect(X(t) + cw * 0.08 + SO, y + SO, cw * 0.84, bh); }
-body += g(SHADOW + ' text--gray-65', sh) + g(d.today ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells);
+body += g(SHADOW + ' text--gray-65', sh) + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells);
 }
 if (sc.now !== null && sc.now !== undefined) body += rect(X(sc.now) - 1.5, 0, 3, H + E, 0, ' data-sw-now');
+if (hi) body += '<g data-sw-hl="1"></g>';
 return svg(W, H, body);
 }
 // Days strip header: degree labels (dark grey) and the now pointer; its line starts here unless it would cross a label.
@@ -391,7 +392,7 @@ switch (kind) {
 case 'temp': return digits(SW.temp, H);
 case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
 case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10);
-case 'day': return day(SW.days[i], SW.scale, W, H);
+case 'day': return day(SW.days[i], SW.scale, W, H, API.hl === undefined ? !!(SW.days[i] || {}).today : API.hl === i);
 case 'scale': return scale(SW.scale, W, H);
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
 case 'tri': return tri(i === 0, W, H);
@@ -466,6 +467,7 @@ return API;
         var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;   // rain: 3 rows only at the meter label size or larger (owner 2026-11-12)
         var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;   // rows the md / lg box was sized for
         var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
+        var d0 = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; })[0]; SWDraw.hl = d0 ? +(d0.getAttribute('data-sw-i') || 0) : -1;   // one highlighted row: the first shown (today, else tomorrow) (owner 2026-11-12)
         SWDraw.scaleH = rows.length && rows[0].getAttribute('data-sw-part') === 'scale' ? Math.round(rows[0].getBoundingClientRect().height) : null;
         SWDraw.extD = k >= 0 && k + 1 < rows.length ? Math.max(0, rows[k + 1].getBoundingClientRect().top - r.bottom + 1) : 0;   // scale and day rows: rules and the now line run on to the next row
         el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.round(r.width), Math.round(r.height));

@@ -82,6 +82,10 @@ var rg=document.createRange();rg.selectNodeContents(sp);var lr=[].filter.call(rg
 var h=n>1?t1-t0:cap,mid=n>1?(t0+t1)/2:t0+cap/2;if(Math.abs(ib.height-h)>2)bad.push('icon h '+ib.height.toFixed(1)+' want '+h.toFixed(1)+' ('+n+' lines)');if(Math.abs(ib.top+ib.height/2-mid)>1.5)bad.push('icon centre off '+(ib.top+ib.height/2-mid).toFixed(1));});return bad.join('; ');})()})
       puts "CONDICON #{c['name']}: #{ci}" unless ci.empty?
       expect(ci).to eq('')
+      # Days strip (owner 2026-11-12): exactly one highlighted row, the first one shown (today, or tomorrow when today is not shown).
+      hl = s.evaluate(%q{(function(){var r=[].filter.call(document.querySelectorAll('[data-sw-part="day"]'),function(e){return e.getBoundingClientRect().width>0});if(!r.length)return '';var h=r.map(function(e,i){return e.querySelector('[data-sw-hl]')?i:-1}).filter(function(i){return i>=0});return h.length===1&&h[0]===0?'':'highlighted rows '+JSON.stringify(h);})()})
+      puts "HL #{c['name']}: #{hl}" unless hl.empty?
+      expect(hl).to eq('')
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"
