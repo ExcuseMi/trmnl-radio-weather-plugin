@@ -33,7 +33,7 @@
  <div class="hidden lg:block h--[30cqh]"><div class="flex flex--row flex--stretch-y gap--base h--full">
   {%- for k in (1..2) %}
   {%- if k == 2 %}<div class="py--4 shrink-0 4bit:hidden dark:4bit:block" data-sw-between><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner 2026-11-12: hairlines in the gaps between blocks {% endcomment %}
-  {{ p_open }}<div class="relative h--full w--full">
+  {{ p_open_g }}<div class="relative h--full w--full">
    <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
    <span class="absolute top--3 {% if k == 1 %}left--3{% else %}right--3{% endif %} label label--inverted text--bold">{% if k == 1 %}L{% else %}R{% endif %}</span>
    <div class="absolute bottom--3 left--4 flex flex--row flex--bottom gap--small" data-sw-cap>
@@ -390,7 +390,7 @@ function at(f, rad) { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(a
 function arc(rad, f0, f1) { var p0 = at(f0, rad), p1 = at(f1, rad); return 'M' + n1(p0[0]) + ' ' + n1(p0[1]) + ' A' + n1(rad) + ' ' + n1(rad) + ' 0 0 1 ' + n1(p1[0]) + ' ' + n1(p1[1]); }
 var id = 'swink' + (K++), body = '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>';
 var path = (d, sw, extra) => '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"' + (extra || '') + '/>';
-body += backlight(W, H, cx, py - r * 0.5, Math.max(W, H) * 0.62, 0.8, Math.min(24, Math.min(W, H) * 0.08));
+// the panel face draws the fill (owner 2026-11-12: every visible panel edge on the one gap)
 if (baro) {
 var zro = r - H * 0.085, zri = zro - H * 0.05, zg = 0.012, isz = r * 0.34;
 [[0, 0.25, 1], [0.25, 0.5, 0], [0.5, 0.75, 1], [0.75, 1, 0]].forEach((z) => {

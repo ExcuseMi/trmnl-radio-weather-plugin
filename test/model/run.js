@@ -248,8 +248,8 @@ test('panel face (owner 2026-11-12): a plain fill on 4-bit light, no backlight l
 });
 test('dial light: backlight in light mode (2-bit up), glow in dark (blur 4-bit, halo 2-bit, none 1-bit)', () => {
   const t = (m) => { D.mode = m; const s = D.dial({ now: 5, lo: 1, hi: 9, a: 0, b: 15, step: 5 }, 900, 380, false); D.mode = null; return s; };
-  ok(!/data-sw-backlight/.test(t({ dark: false, bits: 4 })) && /data-sw-fill/.test(t({ dark: false, bits: 4 })), 'light 4-bit: a plain fill, no backlight lamps (owner 2026-11-12)');
-  ok(/<rect [^>]*rx="24"[^>]*data-sw-fill/.test(t({ dark: false, bits: 4 })), 'dial fill rounded as the panels (owner 2026-11-12)'); ok(!/data-sw-backlight/.test(t({ dark: false, bits: 1 })), 'no backlight on 1-bit');
+  ok(!/data-sw-backlight/.test(t({ dark: false, bits: 4 })), 'light 4-bit: no backlight lamps (owner 2026-11-12)');
+  ok(!/data-sw-fill/.test(t({ dark: false, bits: 4 })), 'the dial draws no fill of its own: the panel face does, edge to edge (owner 2026-11-12)'); ok(!/data-sw-backlight/.test(t({ dark: false, bits: 1 })), 'no backlight on 1-bit');
   ok(/data-sw-glow="4"[\s\S]*feGaussianBlur|feGaussianBlur[\s\S]*data-sw-glow="4"/.test(t({ dark: true, bits: 4 })), 'dark 4-bit blur glow');
   ok(/feMorphology/.test(t({ dark: true, bits: 2 })) && !/feGaussianBlur/.test(t({ dark: true, bits: 2 })), 'dark 2-bit halo, no blur');
   ok(!/data-sw-glow|data-sw-backlight/.test(t({ dark: true, bits: 1 })), '1-bit dark: nothing');
