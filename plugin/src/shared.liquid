@@ -603,9 +603,9 @@ sel.every((q, j) => j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > 
 }
 var scaleLabels = placed;
 if (o.cornerIcon) { var cs = Mn(fh, fw) * 0.12, ccx = fx0 + bm + cs, ccy = fy0 + bm + cs; glowIcon(g, (gg) => icon(gg, o.cornerIcon, ccx, ccy, cs, null)); if (o.moonWord) text(g, o.moonWord, ccx, ccy + cs * 1.5, MK, { anchor: 'middle' }); }
+(o.endLabels || []).forEach((e, ei) => { var ew = wOf(e.t) * SC.size / MK.size, pq = compact ? [cx + (ei ? 1 : -1) * (ew / 2 + u(8)), py - rArc * 0.3] : at(e.f, rArc - fh * 0.07 - SC.size * 2.3 - ew * 0.15); text(g, e.t, pq[0], pq[1] + SC.size * 0.36, SC, { anchor: 'middle' }); });
 if (o.zoneBands) {
 var zro = rArc - fh * 0.085, zri = zro - fh * 0.05, zg = 0.012, ZS = bits === 1 ? ink : fillOf('gray-35', '#666');
-(o.endLabels || []).forEach((e) => { var ew = wOf(e.t) * SC.size / MK.size, pq = compact ? at(e.f, rArc) : at(e.f, zri - ew / 2 - u(8)); if (compact) { pq[0] += (e.f ? -1 : 1) * (ew / 2 + u(8)); pq[1] += SC.size * 1.1; } text(g, e.t, pq[0], pq[1] + SC.size * 0.36, SC, { anchor: 'middle' }); });
 function zpt(f, rad) { var q = at(f, rad); return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
 o.zoneBands.forEach((zb, zi2) => {
 var z0 = zb[0] + zg, z1 = zb[1] - zg;
@@ -650,13 +650,6 @@ var NEEDLE = bits === 4 ? fillOf('gray-15', '#222') : ink;
 if (bits === 4 && !o.noNeedle) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55', '#999'), 'shape-rendering': GPX }, ng);
 if (!o.noNeedle) glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true, ng);
 if (o.tipIcon && !o.dim) glowIcon(g, (gg) => icon(gg, o.tipIcon, cx + ux * tipR, py + uy * tipR, fh * 0.1, null));
-if (o.centerIcon) { var mY = py - rArc * 0.58, mS = rArc * 0.26; glowIcon(g, (gg) => icon(gg, o.centerIcon, cx, mY, mS, null)); var cty = py - rArc * 0.2;
-if (o.moonWord && !compact) text(g, o.moonWord, cx, mY + mS * 0.95, MK, { anchor: 'middle' });
-if (o.centerTime) { var cstr = compact ? o.centerTime : o.centerWord + ' ' + o.centerTime, ctw = wOf(cstr) * SC.size / MK.size, ctf = ctw > rArc * 1.1 ? F(SC.size * rArc * 1.1 / ctw, SC.weight) : SC, tw3 = wOf(cstr) * ctf.size / MK.size, ex = compact ? ctf.size * 0.8 : 0, x03 = cx - (tw3 + ex) / 2;
-rrect(g, R(x03 - u(3)), R(cty - ctf.size * 0.85 - u(2)), R(tw3 + ex + u(6)), R(ctf.size * 1.25 + u(3)), 0, FF);
-if (compact) mk('polygon', { points: [[x03 + ctf.size * 0.25, cty - ctf.size * 0.75], [x03, cty - ctf.size * 0.1], [x03 + ctf.size * 0.5, cty - ctf.size * 0.1]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: ink }, g);
-text(g, cstr.slice(compact ? cstr.length - o.centerTime.length : 0), x03 + ex, cty, ctf, { anchor: 'start' }); cty += ctf.size * 1.4; }
-}
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
 tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Mx(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
@@ -730,18 +723,11 @@ if ((b0 - a0) / st <= 5) return { a: a0, b: b0 + (even && ((b0 - a0) / st) % 2 ?
 return { a: Fl(lo / 50) * 50, b: Math.ceil(hi / 50) * 50, major: 50, minor: 10 };
 }
 function sunMeter(g, x, y, w, h, small, badge, captioned) {
-var S = M.sunT, ticks = [], night = !S || !S.day, len = S ? S.set - S.rise : 1;
-if (S) {
-if (!night) {
-var whole = w / z < 400;
-for (var tm = Math.ceil(S.rise / 30) * 30; tm < S.set; tm += 30) if (!whole || tm % 60 === 0) ticks.push({ f: (tm - S.rise) / len, major: tm % 60 === 0 });
-ticks.push({ f: 0, major: true });
-ticks.push({ f: 1, major: true });
-}
-}
-var g0 = Mn(120 / len, 0.33), dl = S ? Fl(len / 60) + ':' + ('0' + (len % 60)).slice(-2) + ' ' + I18N.ours('dl_u') : '--';
-return meter(g, x, y, w, h, { chan: 'S', badge: badge, captioned: captioned, ticks: ticks, needle: S && !night ? (S.now - S.rise) / len : null, noNeedle: night, small: small, band: null, marks: [],
-zoneBands: S && !night ? [[0, g0, 'solid'], [g0, 1 - g0, 'outline'], [1 - g0, 1, 'solid']] : null, endLabels: S && !night ? [{ f: 0, t: S.riseL }, { f: 1, t: S.setL }] : [], centerTime: S && night ? (S.now < S.rise ? S.riseL : S.rise1L) : null, centerWord: I18N.ours('sunrise'), moonWord: MOON_W, dim: night, cornerIcon: !night && S ? 'moon' : null, tipIcon: S && !night ? 'wi-day-sunny' : null, centerIcon: S && night ? 'moon' : null,
+var S = M.sunT, ticks = [], whole = w / z < 400, len = S ? S.set - S.rise : 0;
+for (var hr = 0; hr <= 24; hr++) if (!whole || hr % 3 === 0) ticks.push({ f: hr / 24, major: hr % 6 === 0, label: hr % 6 === 0 && hr > 0 && hr < 24 && (!whole || hr === 12) ? String(hr) : undefined });
+var dl = S ? Fl(len / 60) + ':' + ('0' + (len % 60)).slice(-2) + ' ' + I18N.ours('dl_u') : '--';
+return meter(g, x, y, w, h, { chan: 'S', badge: badge, captioned: captioned, ticks: ticks, needle: S ? S.now / 1440 : null, small: small, band: S ? [S.rise / 1440, S.set / 1440] : null, marks: [],
+endLabels: S ? [{ f: S.rise / 1440, t: S.riseL }, { f: S.set / 1440, t: S.setL }] : [], moonWord: MOON_W, cornerIcon: 'moon', tipIcon: S ? (S.day ? 'wi-day-sunny' : 'moon') : null,
 name: I18N.ours('daylight'), shortName: I18N.ours('daylight'), unitName: dl });
 }
 function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
