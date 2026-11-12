@@ -252,5 +252,13 @@ test('dial light: backlight in light mode (2-bit up), glow in dark (blur 4-bit, 
   ok(!/data-sw-glow|data-sw-backlight/.test(t({ dark: true, bits: 1 })), '1-bit dark: nothing');
   ok(/<circle[^>]*\/><\/g><\/svg>$/.test(t({ dark: true, bits: 4 })), 'needle hub still last');
 });
+test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 segments, 5 days', () => {
+  ok(/<div class="hidden lg:block h--\[30cqh\]"><div class="grid grid--cols-2/.test(sh), 'dials only on lg');
+  ok(/lg:hidden" data-sw-part="meter" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="meter" data-sw-n="10"/.test(sh), 'meter copies per size');
+  ok(/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'fifth day only on lg');
+  const cells = (n) => (D.meter(0, 200, 30, n).match(/<rect/g) || []).length;
+  eq([cells(5), cells(10)], [5, 10]);
+  D.mode = { bits: 2 }; ok(/text--gray-45/.test(D.meter(0, 200, 30, 5)), '2-bit: unlit cells dark enough to show'); D.mode = null;
+});
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
