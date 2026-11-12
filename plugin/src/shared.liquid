@@ -212,6 +212,30 @@ return svg(H * 0.4, H, '<circle cx="20" cy="12" r="9"/><rect x="9" y="25" width=
 }
 // Receiver dial: arc, ticks, range band with low (hollow) and high (solid) marks, scale labels; barometer zone bands
 // with their icons; the needle and hub last, on top of everything.
+// Dial light: light mode, 2-bit and up, a radial backlight behind the face; dark mode a soft glow on ring, needle
+// and icons (4-bit and up blur, 2-bit a crisp dilated halo, 1-bit nothing).
+function backlight(W, H, cx, cy, rad) {
+var m = API.mode || {}, pa = API.paint ? API.paint('gray-75') : null, pw = API.paint ? API.paint('white') : null;
+if (m.dark || (m.bits || 4) < 2) return '';
+var c0 = (pw && pw.color) || '#fff', c1 = (pa && pa.color) || '#bbb', BY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], defs = '', out = rect(0, 0, W, H, 0, ' fill="' + c1 + '" data-sw-backlight="1"');
+// dithered bands (the panel quantizes a gradient to one hard step): grey at the rim to paper at the centre
+[[0.2, 1.0], [0.4, 0.88], [0.6, 0.77], [0.8, 0.67], [1, 0.58]].forEach((st) => {
+var fill = c0;
+if (st[0] < 1) { var id = 'swbl' + (K++), px = ''; for (var c = 0; c < 16; c++) if (BY[c] < st[0] * 16) px += '<rect x="' + (c % 4) + '" y="' + Math.floor(c / 4) + '" width="1" height="1" fill="' + c0 + '"/>';
+defs += '<pattern id="' + id + '" patternUnits="userSpaceOnUse" width="4" height="4"><rect width="4" height="4" fill="' + c1 + '"/>' + px + '</pattern>'; fill = 'url(#' + id + ')'; }
+out += '<ellipse cx="' + n1(cx) + '" cy="' + n1(cy) + '" rx="' + n1(rad * st[1]) + '" ry="' + n1(rad * st[1] * 0.8) + '" fill="' + fill + '"/>';
+});
+return '<defs>' + defs + '</defs>' + out;
+}
+function glow(s, H) {
+var m = API.mode || {};
+if (!m.dark || (m.bits || 4) < 2) return s;
+var id = 'swgl' + (K++), f = m.bits === 2
+? '<feMorphology in="SourceAlpha" operator="dilate" radius="' + n1(Math.max(1, H * 0.006)) + '"/><feFlood flood-color="' + ((API.paint && (API.paint('gray-45') || {}).color) || '#777') + '"/><feComposite in2="SourceAlpha" operator="in"/>'
+: '<feGaussianBlur stdDeviation="' + n1(Math.max(2, H * 0.012)) + '"/><feComponentTransfer><feFuncA type="linear" slope="0.75"/></feComponentTransfer>';
+f = m.bits === 2 ? f.replace('<feComposite in2="SourceAlpha" operator="in"/>', '<feComposite operator="in" in2="d"/>').replace('operator="dilate"', 'operator="dilate" result="d"') : f;
+return '<defs><filter id="' + id + '" x="-20%" y="-20%" width="140%" height="140%">' + f + '</filter></defs><g filter="url(#' + id + ')" data-sw-glow="' + m.bits + '">' + s + '</g>' + s;
+}
 function dial(D, W, H, baro) {
 var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, py = H * 0.88, bw = H * 0.045, mh = H * 0.05;
 var r = Math.min(W * 0.42 / Math.sin(A), py - H * 0.015 - mh - bw - lw);
@@ -220,15 +244,16 @@ function at(f, rad) { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(a
 function arc(rad, f0, f1) { var p0 = at(f0, rad), p1 = at(f1, rad); return 'M' + n1(p0[0]) + ' ' + n1(p0[1]) + ' A' + n1(rad) + ' ' + n1(rad) + ' 0 0 1 ' + n1(p1[0]) + ' ' + n1(p1[1]); }
 var id = 'swink' + (K++), body = '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>';
 var path = (d, sw, extra) => '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"' + (extra || '') + '/>';
+body += backlight(W, H, cx, py - r * 0.5, Math.max(W, H) * 0.62);
 if (baro) {
 var zro = r - H * 0.085, zri = zro - H * 0.05, zg = 0.012, isz = r * 0.34;
 [[0, 0.25, 1], [0.25, 0.5, 0], [0.5, 0.75, 1], [0.75, 1, 0]].forEach((z) => {
 var a0 = at(z[0] + zg, zri), a1 = at(z[1] - zg, zri), d = arc(zro, z[0] + zg, z[1] - zg) + ' L' + n1(a1[0]) + ' ' + n1(a1[1]) + ' A' + n1(zri) + ' ' + n1(zri) + ' 0 0 0 ' + n1(a0[0]) + ' ' + n1(a0[1]) + ' Z';
 body += (z[2] ? g('text--gray-45', '<path d="' + d + '"/>') : '') + path(d, Math.max(1, lw * 0.5));
 });
-(D.icons || []).forEach((u, i) => { var q = at((2 * i + 1) / 8, zri - isz * 0.62); body += '<image href="' + u + '" x="' + n1(q[0] - isz / 2) + '" y="' + n1(q[1] - isz / 2) + '" width="' + n1(isz) + '" height="' + n1(isz) + '" filter="url(#' + id + ')"/>'; });
+(D.icons || []).forEach((u, i) => { var q = at((2 * i + 1) / 8, zri - isz * 0.62); body += glow('<image href="' + u + '" x="' + n1(q[0] - isz / 2) + '" y="' + n1(q[1] - isz / 2) + '" width="' + n1(isz) + '" height="' + n1(isz) + '" filter="url(#' + id + ')"/>', H); });
 }
-body += path(arc(r, 0, 1), lw);
+body += glow(path(arc(r, 0, 1), lw), H);
 var step = baro ? 5 : 1, major = baro ? 20 : D.step, labs = '';
 for (var v = D.a; v <= D.b + 1e-9; v += step) {
 var mj = Math.abs((v - D.a) / major - Math.round((v - D.a) / major)) < 1e-6, p0 = at(F(v), r), p1 = at(F(v), r - (mj ? H * 0.07 : H * 0.035));
@@ -251,7 +276,7 @@ var np = (ox, oy) => { var b = [cx + ox, py + oy], t = [b[0] + ux * tipR, b[1] +
 return [[t[0] + nx * wt / 2, t[1] + ny * wt / 2], [b[0] + nx * wb / 2, b[1] + ny * wb / 2], [k[0] + nx * wb * 1.6, k[1] + ny * wb * 1.6], [k[0] - nx * wb * 1.6, k[1] - ny * wb * 1.6], [b[0] - nx * wb / 2, b[1] - ny * wb / 2], [t[0] - nx * wt / 2, t[1] - ny * wt / 2]]; };
 var hr = Math.max(6, H * 0.035);
 body += g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
-body += poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '"/>' + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>');
+body += glow(poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '"/>', H) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>');
 }
 return svg(W, H, body);
 }
@@ -285,6 +310,8 @@ return API;
     document.querySelectorAll('[data-sw-part]').forEach(function (el) {
       TRMNLPaint.watch(el, function () {
         SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: el }); };
+        var sc = (el.closest('.screen') || document.querySelector('.screen') || document.body).classList;
+        SWDraw.mode = { dark: sc.contains('screen--dark-mode'), bits: sc.contains('screen--1bit') ? 1 : (sc.contains('screen--2bit') ? 2 : 4) };
         SWDraw.font = (TRMNLPaint.type('title', { el: el }) || {}).fontFamily || null;
         var r = el.getBoundingClientRect();
         var rows = document.querySelectorAll('[data-sw-part="day"]'), pitch = rows.length > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : r.height;

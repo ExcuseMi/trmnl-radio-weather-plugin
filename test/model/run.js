@@ -244,5 +244,13 @@ test('days strip: 5-degree lines faint, blocks at least half the row, now line d
   const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-40')[1])[1];
   ok(h >= 20, 'block height ' + h + ' of 40');
 });
+test('dial light: backlight in light mode (2-bit up), glow in dark (blur 4-bit, halo 2-bit, none 1-bit)', () => {
+  const t = (m) => { D.mode = m; const s = D.dial({ now: 5, lo: 1, hi: 9, a: 0, b: 15, step: 5 }, 900, 380, false); D.mode = null; return s; };
+  ok(/data-sw-backlight/.test(t({ dark: false, bits: 4 })), 'light 4-bit backlight'); ok(!/data-sw-backlight/.test(t({ dark: false, bits: 1 })), 'no backlight on 1-bit');
+  ok(/data-sw-glow="4"[\s\S]*feGaussianBlur|feGaussianBlur[\s\S]*data-sw-glow="4"/.test(t({ dark: true, bits: 4 })), 'dark 4-bit blur glow');
+  ok(/feMorphology/.test(t({ dark: true, bits: 2 })) && !/feGaussianBlur/.test(t({ dark: true, bits: 2 })), 'dark 2-bit halo, no blur');
+  ok(!/data-sw-glow|data-sw-backlight/.test(t({ dark: true, bits: 1 })), '1-bit dark: nothing');
+  ok(/<circle[^>]*\/><\/g><\/svg>$/.test(t({ dark: true, bits: 4 })), 'needle hub still last');
+});
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
