@@ -1002,12 +1002,12 @@ var st = F_ ? 10 : 5, a0 = Fl(lo / st) * st - (lo - Fl(lo / st) * st < 1 ? st : 
 var glass = bits >= 2, bg = glass ? GLASSD : paper, fg = glass ? GLOW : ink, g = mk('g', { 'data-sw-dial': 1 }, root);
 var fb = frame(g, x, y, w - u(3), h - u(3), bg, glass && !LCD); x = fb.fx + u(4); y = fb.fy; w = fb.fw - u(8); h = fb.fh;
 var dnW = days.reduce((m2, d) => Mx(m2, D.mW(dayName(d), D.L)), 0), labW = dnW + D.L.size * 3 + u(16), x0 = x + labW, x1 = x + w - u(14) - D.mW('-88°', D.t2), xOf = (v) => x0 + (v - a0) / (b0 - a0) * (x1 - x0);
-var SC2 = F(Mx(9, D.t2.size * 0.85), '600'), top = y + u(8) + SC2.size, rows = days.length, rh = (y + h - u(8) - top) / rows;
-var wLab = D.mW('-88\u00b0', SC2), kSc = 1;
+var SC2 = F(Mx(9, D.t2.size * 0.85), '700'), top = y + u(14) + SC2.size, rows = days.length, rh = (y + h - u(8) - top) / rows;
+var wLab = D.mW('-88\u00b0', SC2), kSc = 1, bw = Mx(2, u(2)), GRID = glass && !LCD ? DIMW : fillOf('gray-60');
 while (kSc < 6 && xOf(a0 + kSc * st) - xOf(a0) < wLab * 1.5) kSc++;
-mk('rect', { x: R(x0), y: R(top), width: R(x1 - x0), height: 1, fill: fg, 'data-sw-scale': 1 }, g);
-for (var mv = a0; mv <= b0 + 1e-9; mv += st / 5) mk('rect', { x: R(xOf(mv)), y: R(top - u(2)), width: 1, height: u(2), fill: fg }, g);
-for (var v = a0, vi = 0; v <= b0 + 1e-9; v += st, vi++) { mk('rect', { x: R(xOf(v)), y: R(top - u(5)), width: Mx(1, u(1.5)), height: u(5), fill: fg }, g); if (vi % kSc) continue; var nT = text(g, SWModel.fmt(v), 0, 0, SC2), nW = width(nT); g.removeChild(nT); text(g, SWModel.fmt(v) + deg, xOf(v) - nW / 2, top - u(6), SC2, { fill: fg }); }
+mk('rect', { x: R(xOf(a0)), y: R(top - bw), width: R(xOf(b0) - xOf(a0)), height: bw, fill: fg, 'data-sw-scale': 1 }, g);
+for (var mv = a0; mv <= b0 + 1e-9; mv += st / 5) mk('rect', { x: R(xOf(mv)), y: R(top - u(4)), width: 1, height: u(4), fill: fg }, g);
+for (var v = a0, vi = 0; v <= b0 + 1e-9; v += st, vi++) { mk('rect', { x: R(xOf(v) - bw / 2), y: R(top - u(9)), width: bw, height: u(9), fill: fg }, g); if (vi % kSc) continue; mk('rect', { x: R(xOf(v)), y: R(top + u(2)), width: 1, height: R(y + h - u(6) - top), fill: GRID, 'data-sw-grid': 1 }, g); var nT = text(g, SWModel.fmt(v), 0, 0, SC2), nW = width(nT); g.removeChild(nT); text(g, SWModel.fmt(v) + deg, xOf(v) - nW / 2, top - u(12), SC2, { fill: fg }); }
 var iBox = (cy0) => ({ l: x + u(10) + dnW + D.L.size * 0.7, r: x + u(10) + dnW + D.L.size * 2.6, t: cy0 - rh * 0.4, b: cy0 + rh * 0.4 });
 var dsz = Mn.apply(null, days.map((d) => iconFit(g, d.icon, null, iBox(0), rh * 0.8, 0, true).sz).concat([1e5]));
 days.forEach((d, i) => {
@@ -1018,7 +1018,7 @@ ICON_INK = fg; iconFit(g, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz); ICO
 if (glass && !LCD) mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: DIMW }, g);
 if (d.hi === null || d.lo === null) return;
 var PILL = !glass || LCD, xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = PILL ? Mx(6, R(rh * 0.5)) : Mx(3, u(5));
-mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, rx: PILL ? R(th / 2) : 0, fill: PILL ? (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-40')) : fg, 'data-sw-band': i }, g);
+mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, rx: PILL ? R(th / 2) : 0, fill: PILL ? (d === M.days[0] ? (bits === 1 ? dith(paper, ink, 0.8) : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))) : fg, 'data-sw-band': i }, g);
 var knock = (str, xt, endA, fnt) => { var kw = D.mW(str, fnt); mk('rect', { x: R((endA ? xt - kw : xt) - u(3)), y: R(Mx(top + 1, cy - fnt.size * 0.8 - u(1))), width: R(kw + 2 * u(3)), height: R(fnt.size * 1.2 + u(2) - Mx(0, top + 1 - (cy - fnt.size * 0.8 - u(1)))), fill: bg }, g); };
 var nwLo = D.mW(tStr(d.lo), D.t2), roomLo = xa - x0 - u(8), tLo = nwLo > roomLo ? F(Mx(8, D.t2.size * Mx(0.55, roomLo / nwLo)), D.t2.weight, 1) : D.t2;
 var pxv = M.now.temp !== null ? R(xOf(M.now.temp)) : null, xLo = xa - u(8), xHi = xb + u(8), nwHi = D.mW(tStr(d.hi), D.t2), nwLo2 = D.mW(tStr(d.lo), tLo);
