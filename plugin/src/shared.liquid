@@ -440,7 +440,7 @@ var deg = '°';
 var TS = Mx(1, (spec('label', 16).size / z) / 16);
 debug.palette = { color: color, red: RED !== ink, yel: !!YEL, blue: !!BLUE };
 function RD(px, minCss) { return Mx(px, u(minCss)) * TS; }
-var FAM = LG.family, FB = UW / z <= 900 ? 1.18 : 1;
+var FAM = LG.family, FB = UW / z <= 900 ? 1.18 : 1, EI = FB > 1 ? 2 : u(4);
 function F(px, w) {
 var q = { family: FAM, size: Mx(8 * FB, R(px * FB)), weight: w || '700' };
 return PIXFONT ? pixel(q, q.weight) : q;
@@ -492,7 +492,7 @@ var clipK = 0, meterK = 0;
 function meter(g, x, y, w, h, o) {
 var lw = Mx(2, u(2.5)), MN = meterK++;
 rrect(g, x, y, w, h, u(8), ink);
-var fx = x + u(4), fy = y + u(4), fw = w - u(8), fh = h - u(8);
+var fx = x + EI, fy = y + EI, fw = w - 2 * EI, fh = h - 2 * EI;
 var FF = faceFill(fx, fy, fw, fh);
 var faceEl = rrect(g, fx, fy, fw, fh, u(4), FF);
 faceEl.setAttribute('data-sw-face', MN); faceEl.setAttribute('data-sw-inset', u(4));
@@ -811,6 +811,7 @@ debug.orange = { digits: String(ORANGE), face: String(FACE_OR) };
 debug.glass = String(GLASSD); debug.lcd = LCD; debug.paper = String(paper); debug.glow = String(GLOW);
 var bevelN = 0;
 function insetBevel(g, x, y, w, h, r, onGlass) {
+if (FB > 1) { if (bits >= 2) rrect(g, x + 0.5, y + 0.5, w - 1, h - 1, Mx(0, r - 1), 'none', fillOf('gray-60', '#aaa'), 1); return; }
 if (bits === 1) { rrect(g, x + 1.5, y + 1.5, w - 3, h - 3, Mx(0, r - 1), 'none', ink, 1); return; }
 var id = 'swbevel' + view + '-' + (bevelN++);
 var cp = mk('clipPath', { id: id }, defs);
@@ -836,7 +837,7 @@ return d;
 }
 function frame(g, x, y, w, h, fill, onGlass) {
 rrect(g, x, y, w, h, u(8), ink);
-var b = { fx: x + u(4), fy: y + u(4), fw: w - u(8), fh: h - u(8) };
+var b = { fx: x + EI, fy: y + EI, fw: w - 2 * EI, fh: h - 2 * EI };
 rrect(g, b.fx, b.fy, b.fw, b.fh, u(4), fill);
 insetBevel(g, b.fx, b.fy, b.fw, b.fh, u(4), onGlass);
 return b;
