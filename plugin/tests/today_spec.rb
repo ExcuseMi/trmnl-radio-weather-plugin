@@ -71,6 +71,15 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       expect(d['readoutKinds']).to eq(%w[humidity wind aqi])   # night: no UV row
     end
 
+    it 'drops the POLLEN row when the pollen data is null, and shows it with a value' do
+      # red: pollenLevel returning 0 for no data kept an empty POLLEN row
+      aq = fx('aq')
+      aq['current'].merge!('grass_pollen' => nil, 'birch_pollen' => nil, 'alder_pollen' => nil)
+      expect(dbg(shot(device: 'v2', answer: sunny, aq: { json: aq }))['readoutKinds']).not_to include('pollen')
+      aq['current']['birch_pollen'] = 80.0
+      expect(dbg(shot(device: 'v2', answer: sunny, aq: { json: aq }))['readoutKinds']).to include('pollen')
+    end
+
     it 'shows POLLEN with pollen data and CO2 with a sensor reading, in that order' do
       # red: removing 'co2' from RO_ORDER lost the row
       aq = fx('aq')
@@ -136,6 +145,53 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       JS
       expect(pairs).not_to be_empty
       expect(pairs.reject { |a, b| b && a == b }).to eq(pairs)
+    end
+  end
+
+  describe 'channel badges' do
+    # replaces the deleted 'channel badges' describe of the old design: the dials keep their L and R badges
+    %w[v2 og_png].each do |device|
+      it "marks the barometer L at the left and the temperature dial R at the right (#{device})" do
+        # red: placing both badges at the left made R sit left of the middle
+        s = shot(device:)
+        xs = s.evaluate("(function(){ var o = {}, pv = [].slice.call(document.querySelectorAll('.sw-stage [data-sw-pivot]')).map(function(e){ return +e.getAttribute('data-sw-pivot').split(' ')[0]; }); var st = document.querySelector('.sw-stage').getBoundingClientRect(); var k = st.width / +document.querySelector('.sw-stage svg').getAttribute('viewBox').split(' ')[2]; o.p = pv; o.k = k; [].slice.call(document.querySelectorAll('.sw-stage svg text')).forEach(function(t){ if (t.textContent === 'L' || t.textContent === 'R') o[t.textContent] = (t.getBoundingClientRect().left - st.left) / k; }); return o; })()")
+        expect(xs['p'].size).to eq(2)
+        expect(xs['L']).to be < xs['p'][0]    # L sits left of the barometer pivot
+        expect(xs['R']).to be > xs['p'][1]    # R sits right of the temperature pivot
+      end
+    end
+  end
+
+  describe 'meter labels' do
+    it 'sizes the meter labels from the row pitch, so they are not tiny on the OG half_horizontal' do
+      # owner 2026-11-12. red: removing the nSz growth left the labels at about 11 px
+      aq = fx('aq')
+      aq['current']['grass_pollen'] = 30.0   # four rows: humidity, wind, AQI, pollen
+      s = shot(device: 'og_png', view: 'half_horizontal', aq: { json: aq })
+      r = s.evaluate("(function(){ var k = document.querySelector('.sw-stage').getBoundingClientRect().width / +document.querySelector('.sw-stage svg').getAttribute('viewBox').split(' ')[2]; var t = [].slice.call(document.querySelectorAll('.sw-stage text[data-sw-cell]')); var ys = t.map(function(e){return parseFloat(e.getAttribute('y'))}).sort(function(a,b){return a-b}); return { size: parseFloat(t[0].getAttribute('font-size')), pitch: ys[1] - ys[0], k: k, n: t.length }; })()")
+      expect(r['size'] / r['pitch']).to be >= 0.45
+    end
+  end
+
+  describe 'lamp thresholds' do
+    def lamps(answer: nil, aq: nil) = dbg(shot(device: 'og_png', answer:, aq: aq && { json: aq }))['lamps']
+
+    it 'lights SMOG above an air-quality index of 60, not at 60' do
+      # red: changing the limit to 40 lit SMOG at 60
+      aq = fx('aq')
+      aq['current']['european_aqi'] = 60
+      expect(lamps(aq:)).not_to include('+SMOG')
+      aq['current']['european_aqi'] = 61
+      expect(lamps(aq:)).to include('+SMOG')
+    end
+
+    it 'lights UV from a UV index of 8, not below' do
+      # red: changing the limit to 3 lit UV at 7.9
+      a = fx('mixed')
+      a['current']['uv_index'] = 7.9
+      expect(lamps(answer: a)).not_to include('+UV')
+      a['current']['uv_index'] = 8.0
+      expect(lamps(answer: a)).to include('+UV')
     end
   end
 
@@ -206,8 +262,21 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       s = shot(device: 'v2')
       first = texts(s).find { |x| %w[MA DI WO DO VR ZA ZO].include?(x) }
       expect(first).to eq('MA')   # the fixture's today is a Sunday (ZO)
-      last = s.evaluate("(function(){ var g = document.querySelector('.sw-stage [data-sw-dial] ~ [data-sw-dial], .sw-stage g[data-sw-dial]'); var c = [].slice.call(g.children).filter(function(e){return e.tagName !== 'text'}); return c[c.length-1].tagName; })()")
-      expect(last).to eq('polygon')
+      # the pointer: exactly one in the strip, and no ground-coloured knockout drawn after it may cross its line
+      covered = s.evaluate(<<~JS)
+        (function(){
+          var g = document.querySelector('.sw-stage g[data-sw-dial] rect[data-sw-pointer]').parentNode, kids = [].slice.call(g.children);
+          var ptr = g.querySelector('rect[data-sw-pointer]'), pi = kids.indexOf(ptr), px = +ptr.getAttribute('x'), pw = +ptr.getAttribute('width');
+          var bad = kids.slice(pi + 1).filter(function(e){ return e.tagName === 'rect' && !e.getAttribute('stroke') && !e.hasAttribute('data-sw-pointer') &&
+            +e.getAttribute('x') < px + pw && +e.getAttribute('x') + +e.getAttribute('width') > px && +e.getAttribute('height') > 4 &&
+            +e.getAttribute('y') < +ptr.getAttribute('y') + +ptr.getAttribute('height') && +e.getAttribute('y') + +e.getAttribute('height') > +ptr.getAttribute('y'); });
+          var last = kids.filter(function(e){return e.tagName !== 'text'}).pop();
+          return { n: g.querySelectorAll('rect[data-sw-pointer]').length, bad: bad.length, last: last.tagName };
+        })()
+      JS
+      expect(covered['n']).to eq(1)
+      expect(covered['bad']).to eq(0)
+      expect(covered['last']).to eq('polygon')
     end
   end
 
