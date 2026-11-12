@@ -252,11 +252,11 @@ return cols.length+'|'+bad.join('; ');})()})
       puts "HOURS #{c['name']}: cols|bad #{hs}" if c['hcols'] || hs != '0|'
       expect(hs).to eq("#{c['hcols'] || 0}|")
       # Clothing badge (owner): the drawn icons are the model's list (top and up to two extras) in order; one fixed box
-      # width in the console and every day row (1 px); the extras sit right of the top icon, never over its box.
+      # width on every day row (1 px; the console has its own, larger box); the extras sit right of the top icon, never over its box.
       co = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},bad=[],ws=[];
 function chk(e,want,tag){var gs=[].slice.call(e.querySelectorAll('g[data-sw-cloth]')),got=gs.map(function(g){return g.getAttribute('fill')==='none'?g.getAttribute('data-sw-cloth'):'solid'}).join('+');if(got!==want.slice(0,3).join('+'))bad.push(tag+' '+got+'/'+want.join('+'));
 ws.push(e.getBoundingClientRect().width);var t=gs[0]&&gs[0].getAttribute('data-sw-box').split(',').map(Number);gs.slice(1).forEach(function(g){var x=+g.getAttribute('data-sw-box').split(',')[0];if(x<t[0]+t[2]*0.97)bad.push(tag+' extra over top');});}
-var cn=0;[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){cn++;chk(e,SW.cue||[],'console');});
+var cn=0;[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){cn++;chk(e,SW.cue||[],'console');});ws=[];   // the console badge has its own box (owner); the day rows share one width
 var rows=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis),n=0;rows.forEach(function(r){var ds=[].filter.call(r.querySelectorAll('[data-sw-part="dcue"]'),vis);if(!ds.length)return;n++;if(ds.length>1)bad.push('badges '+ds.length);var i=+ds[0].getAttribute('data-sw-i');chk(ds[0],SW.days[i].cue||[],'day '+i);});
 if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);if(ws.length&&Math.max.apply(null,ws)-Math.min.apply(null,ws)>1)bad.push('widths '+ws.map(Math.round).join(','));return cn+','+n+'|'+bad.join('; ');})()})
       puts "CLOTH #{c['name']}: console,dayrows|bad #{co}"
