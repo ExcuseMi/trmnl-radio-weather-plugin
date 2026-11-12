@@ -353,7 +353,7 @@ async function run(input) {
   var raw = { current: w.current || null, hourly: w.hourly || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
-  return { model: SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), sun: sunO, moon: moonIcon(weather && weather.current && weather.current.time), pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: w.current && /T(\d{2}):(\d{2})/.test(w.current.time) ? clk(RegExp.$1, RegExp.$2) : null };
+  return { model: SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), sun: sunO, moon: moonIcon(weather && weather.current && weather.current.time), pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
 if (typeof module !== 'undefined') module.exports = { run: run, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon };
