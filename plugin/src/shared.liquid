@@ -1134,7 +1134,7 @@ debug.col = { boxH: R(boxH), days: R(daysH), need: R(need) };
 }
 var warnRow = { humidity: () => M.now.hum !== null && (M.now.hum < 30 || M.now.hum > 70), pollen: () => M.now.pollen !== null && M.now.pollen >= 0.3, co2: () => M.inn.co2 !== null && M.inn.co2 >= 1000 };
 // owner 2026-11-12: the UV row only in daylight and when today's highest UV is 3 or more (the UV lamp at 8 is unchanged)
-ROK = RO_ORDER.filter((k) => (k !== 'aqi' || !M.ev || M.now.aqi !== null) && (k !== 'uv' || (M.now.day !== false && M.today.uvMax !== null && M.today.uvMax >= 3)) && (k !== 'baro' || (OGD && M.now.press !== null)) && (k !== 'pollen' || M.now.pollen !== null) && (k !== 'co2' || M.inn.co2 !== null) && (!OGD || !warnRow[k] || warnRow[k]())); ROS = ROK.map(readout);
+ROK = RO_ORDER.filter((k) => (k !== 'aqi' || M.now.aqi !== null) && (k !== 'uv' || (M.now.day !== false && M.today.uvMax !== null && M.today.uvMax >= 3)) && (k !== 'baro' || (OGD && M.now.press !== null)) && (k !== 'pollen' || M.now.pollen !== null) && (k !== 'co2' || M.inn.co2 !== null) && (!OGD || !warnRow[k] || warnRow[k]())); ROS = ROK.map(readout);
 var ROWPRI = (M.inn.co2 !== null && M.inn.co2 > 1400 ? ['aqi', 'co2', 'baro', 'uv', 'wind', 'humidity', 'pollen'] : ['aqi', 'baro', 'uv', 'wind', 'humidity', 'pollen', 'co2']).filter((k) => ROK.indexOf(k) >= 0);
 function pickRows(n) { var keep = ROWPRI.slice(0, Mx(0, n)); return ROS.filter((r, i) => keep.indexOf(ROK[i]) >= 0); }
 debug.readoutKinds = ROK;
