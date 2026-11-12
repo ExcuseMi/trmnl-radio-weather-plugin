@@ -174,5 +174,13 @@ test('indoor sensor: latest reading, dropped when older than 3 hours', () => {
   eq([old.inn.temp, old.inn.hum], [null, null]);
 });
 
+test('sun: the next sunrise and sunset, tomorrow flagged (owner 2026-11-12)', () => {
+  const at = (hm) => { const d = JSON.parse(JSON.stringify(fx('mixed'))); d.current.time = '2026-11-08T' + hm; return T.sunTimes(d); };
+  const m = at('06:00'), a = at('15:00'), e = at('17:00');
+  eq([m.riseL, m.riseTom, m.setL, m.setTom], ['07:21', false, '16:35', false], 'before sunrise: both today');
+  eq([a.riseL, a.riseTom, a.setL, a.setTom], ['07:22', true, '16:35', false], 'afternoon: sunrise is tomorrow');
+  eq([e.riseL, e.riseTom, e.setL, e.setTom], ['07:22', true, '16:34', true], 'after sunset: both tomorrow');
+});
+
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

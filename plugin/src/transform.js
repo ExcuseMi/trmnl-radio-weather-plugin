@@ -123,7 +123,9 @@ function sunTimes(w) {
   var hm = function (iso) { var m = /T(\d{2}:\d{2})/.exec(String(iso || '')); return m ? m[1] : null; };
   var sr = w.daily.sunrise || [], ss = w.daily.sunset || [], r = mins(sr[0]), s = mins(ss[0]), n = mins(w.current.time);
   if (r === null || s === null || n === null || s <= r) return null;
-  return { rise: r, set: s, now: n, day: n >= r && n <= s, riseL: hm(sr[0]), setL: hm(ss[0]), rise1L: hm(sr[1]) || hm(sr[0]), set1L: hm(ss[1]) || hm(ss[0]) };
+  // owner 2026-11-12: show the NEXT sunrise and sunset; one that falls tomorrow says so (riseTom / setTom)
+  var rT = n > r && !!hm(sr[1]), sT = n > s && !!hm(ss[1]);
+  return { rise: r, set: s, now: n, day: n >= r && n <= s, riseL: hm(sr[rT ? 1 : 0]), setL: hm(ss[sT ? 1 : 0]), riseTom: rT, setTom: sT, rise1L: hm(sr[1]) || hm(sr[0]), set1L: hm(ss[1]) || hm(ss[0]) };
 }
 
 function field(input, key, fallback) {
@@ -285,7 +287,7 @@ if (tm1.hi !== null) {
 model.ev = { hi: tm1.hi, lo: tm1.lo, code: tcode, icon: kind(tcode) };
 model.hours = tomH; model.rain = rainWindow(tomH, 50); if (model.rain) model.rain.now = false;
 model.today = { lo: tm1.lo, hi: tm1.hi, uvMax: num(list(d, 'uv_index_max')[1]), gustMax: num(list(d, 'wind_gusts_10m_max')[1]), rainMm: num(list(d, 'precipitation_sum')[1]) };
-if (raw.sun) model.sunT = Object.assign({}, raw.sun, { riseL: raw.sun.rise1L, setL: raw.sun.set1L });
+if (raw.sun) model.sunT = Object.assign({}, raw.sun, { riseL: raw.sun.rise1L, setL: raw.sun.set1L, riseTom: true, setTom: true });
 }
 }
 }
