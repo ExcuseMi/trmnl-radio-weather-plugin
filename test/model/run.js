@@ -342,6 +342,10 @@ test('day names without full ICU (item 22): own weekday table, not Intl', () => 
     eq(T.dayNames(['2026-11-13'], 'en-GB'), ['FRI'], 'en');
   } finally { Intl.DateTimeFormat = real; }
 });
+test('wind gust cell (owner 2026-11-12): the cell where the gust peaks, none when missing or inside the lit cells', () => {
+  eq([D.gustCell(0.19, 0.47, 10), D.gustCell(0.19, null, 10), D.gustCell(0.19, 0.2, 10), D.gustCell(0.19, 0.47, 5), D.gustCell(0, 0.05, 10)], [4, -1, -1, 1, 0]);
+  ok(/data-sw-gust/.test(D.meter(0.19, 300, 30, 10, null, 0.47)) && !/data-sw-gust/.test(D.meter(0.19, 300, 30, 10, null, null)), 'one outlined gust cell, none without a gust');
+});
 test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter, gibbous and full, light and dark, lit side right while waxing', () => {
   const H = 100, r = H * 0.44, disk = Math.PI * r * r;
   [0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9].forEach((p) => {

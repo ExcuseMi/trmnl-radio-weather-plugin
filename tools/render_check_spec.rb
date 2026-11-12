@@ -159,6 +159,10 @@ var mn=Math.min.apply(null,g),mx=Math.max.apply(null,g);return mx-mn>2?'gaps '+m
       bb = s.evaluate(%q{(function(){var v=function(q){return [].some.call(document.querySelectorAll(q),function(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0})};return v('[data-sw-part="baro"]')&&v('[data-sw-part="meter"][data-sw-key="baro"]')?'dial and meter':'';})()})
       puts "BARO #{c['name']}: #{bb}" unless bb.empty?
       expect(bb).to eq('')
+      # Wind gust (owner 2026-11-12): the fixture's gust (28 km/h over 11 sustained) outlines exactly one WIND cell.
+      gu = s.evaluate(%q{[].filter.call(document.querySelectorAll('[data-sw-part="meter"][data-sw-key="wind"]'),function(e){return e.getBoundingClientRect().width>0}).map(function(e){return e.querySelectorAll('[data-sw-gust]').length}).join(',')})
+      puts "GUST #{c['name']}: #{gu}" unless gu.empty? || gu.split(',').all? { |v| v == '1' }
+      expect(gu.split(',').all? { |v| v == '1' }).to be(true) if (c['fixture'] || 'mixed') == 'mixed' && !c.key?('current')
       # No warning lamps in any view (owner 2026-11-12); the rain unit's icon carries rain, snow or hail.
       lp = s.evaluate("document.querySelectorAll('[data-sw-lamp]').length")
       puts "LAMP #{c['name']}: #{lp}" unless lp.zero?
