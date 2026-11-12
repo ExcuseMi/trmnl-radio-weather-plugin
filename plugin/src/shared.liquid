@@ -19,8 +19,8 @@
 {%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
 {%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 4 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden' %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% assign name_w = 'w--[12cqw] lg:w--[8cqw]' %}{% assign icon_w = 'w--[7cqw]' %}{% assign num_w = 'w--[9cqw]' %}{% assign rw_m = 6 %}{% assign hh_m = 6 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[60cqh] lg:h--[54cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[44cqh]' %}
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 1.7 %}{% assign n_md = 1 %}{% assign n_lg = 3 %}{% assign con_h = 'h--full' %}{% endif %}
-{%- if ui.calm %}{% assign calm_btw = ' 2bit:hidden dark:2bit:block' %}{% endif %}{% comment %} Calm: 2-bit panels are filled too, no dividers between them {% endcomment %}
-{%- if ui.calm and view == 1 %}{% assign rw_m = 7 %}{% assign rh_l = 5 %}{% endif %}{% comment %} Calm (owner): airier day rows {% endcomment %}
+{%- if ui.calm %}{% assign calm_btw = ' 1bit:hidden 2bit:hidden dark:2bit:block' %}{% endif %}{% comment %} Calm: 2-bit panels are filled too, no dividers between them {% endcomment %}
+{%- if ui.calm and view == 1 %}{% assign rw_m = 9 %}{% assign rh_l = 6 %}{% assign nd_md = 3 %}{% assign nd_lg = 4 %}{% endif %}{% comment %} Calm (owner): airier day rows {% endcomment %}
 {%- if mr_m == nil %}{% assign mr_m = 9 %}{% assign mb_m = 7 %}{% endif %}
 {%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
 {%- comment -%} Right column: rain unit and sun unit side by side on lg; stacked views keep the icon above the grid and the moon beside the sun times. {%- endcomment -%}
@@ -184,7 +184,7 @@
 {%- unless sw_hide == 'true' or sw_hide == 'yes' or view != 1 %}
 <div class="title_bar">
  <img class="image image--adaptive" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
- <span class="title{% if ui.calm %} title--small{% endif %}"{% if ui.calm %} data-sw-calm{% endif %}>{{ trmnl.plugin_settings.instance_name | default: 'Radio Weather' }}</span>
+ <span class="{% if ui.calm %}description{% else %}title{% endif %}"{% if ui.calm %} data-sw-calm{% endif %}>{{ trmnl.plugin_settings.instance_name | default: 'Radio Weather' }}</span>
  {%- if clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}
 </div>
 {%- endunless %}
@@ -380,7 +380,7 @@ return svg(H * 0.4, H, '<circle cx="20" cy="12" r="9"/><rect x="9" y="25" width=
 // Panel fill (owner 2026-11-12): a plain light fill in light mode, 2-bit up; no backlight lamps. Dark and 1-bit: paper.
 function backlight(W, H, cx, cy, rad, ryk, rx) {
 var m = API.mode || {}, pa = API.paint ? API.paint(m.bits === 2 ? 'gray-55' : 'gray-75') : null;
-if (m.dark || (m.bits || 4) < (API.calm ? 2 : 3)) return '';   // Calm (owner): soft light-grey panels, 2-bit too   // 2-bit: paper, as the console face
+if (m.dark || (m.bits || 4) < 3) return '';   // Calm (owner): light grey on 4-bit only; 1-bit and 2-bit panels stay paper   // 2-bit: paper, as the console face
 return rect(0, 0, W, H, rx || 0, ' fill="' + ((pa && pa.color) || '#bbb') + '"' + (API.calm && m.bits !== 2 ? ' fill-opacity="0.5"' : '') + ' data-sw-fill="1"');   // Calm 4-bit: half the panel grey (gray-75 is the lightest token)
 }
 // Dark-mode glow (owner 2026-11-12, as live): lit things get a halo drawn UNDER them inside their own SVG, so it never
@@ -404,9 +404,9 @@ return svg(W, H, '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"
 function dial(D, W, H, baro) {
 var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, py = H * (W < H * 1.8 ? 0.72 : 0.88),   // narrow box: hub up, clear of the corner captions (owner 2026-11-12)
  bw = H * 0.045, mh = H * 0.05;
-var cm = API.calm && !baro, mfs = H * 0.075;   // Calm (owner): bigger low/high marks with their numbers
+var cm = API.calm && !baro, mfs = H * 0.075, mg = Math.max(2.5, H * 0.008);   // Calm (owner): bigger low/high marks with their numbers
 if (cm) mh *= 1.6;
-var r = Math.min(W * 0.42 / Math.sin(A), py - H * 0.015 - mh - bw - lw - (cm ? mfs * 1.1 : 0));
+var r = Math.min(W * 0.42 / Math.sin(A), py - H * 0.015 - mh - bw - lw - (cm ? mfs * 1.6 + mg : 0));
 var F = (v) => (v - D.a) / (D.b - D.a), cl = (f) => Math.max(-0.03, Math.min(1.03, f));
 function at(f, rad) { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
 function arc(rad, f0, f1) { var p0 = at(f0, rad), p1 = at(f1, rad); return 'M' + n1(p0[0]) + ' ' + n1(p0[1]) + ' A' + n1(rad) + ' ' + n1(rad) + ' 0 0 1 ' + n1(p1[0]) + ' ' + n1(p1[1]); }
@@ -435,8 +435,9 @@ body += path(arc(r + lw / 2 + bw / 2, F(lo), F(hi)), bw);
 var r0 = r + lw + bw + 2, r1 = r0 + mh;
 [[lo, true], [hi, false]].forEach((m) => {
 var f = F(m[0]), q = cm ? 0.022 : 0.014, t = [at(f, r0), at(f - q, r1), at(f + q, r1)];
-if (cm) { var lp = at(f, r1 + mfs * 0.6); body += text(lp[0], lp[1], String(Math.round(m[0]) === 0 ? 0 : Math.round(m[0])) + '°', mfs, 'middle', ' dominant-baseline="central" data-sw-mark="' + (m[1] ? 'lo' : 'hi') + '"'); }
-body += poly(t, m[1] ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.5, lw * 0.5)) + '" stroke-linejoin="round"' : '');
+if (cm) { var an = -A + 2 * A * cl(f), lt = String(Math.round(m[0]) === 0 ? 0 : Math.round(m[0])) + '°', ext = Math.abs(Math.sin(an)) * mfs * 0.62 * lt.length / 2 + Math.abs(Math.cos(an)) * mfs * 0.4 + r1 * q * 2 * A, lp = at(f, r1 + mg + ext);   // just outside the mark, mg clear of it (owner)
+body += text(lp[0], lp[1], lt, mfs, 'middle', ' dominant-baseline="central" data-sw-mark="' + (m[1] ? 'lo' : 'hi') + '"'); }
+body += poly(t, (cm ? ' data-sw-markt="' + (m[1] ? 'lo' : 'hi') + '"' : '') + (m[1] ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.5, lw * 0.5)) + '" stroke-linejoin="round"' : ''));
 });
 }
 if (D.now !== null && D.now !== undefined) {
@@ -477,7 +478,9 @@ case 'baro': return dial(SW.baro, W, H, true);
 case 'tdial': return dial(SW.tdial, W, H, false);
 case 'icon': return icon(API.src, W, H);
 case 'face': { var n = Math.max(1, Math.round(W / H)), w = W / n, two = API.mode && API.mode.bits === 2;
-if (two && !API.calm) return '';   // 2-bit: one native band only leaves grey corner pieces on a borderless panel (owner 2026-11-12); the face stays paper   // 2-bit: one band only, so one wide lamp: grey just in the corners
+if (API.calm && API.mode && !API.mode.dark && API.mode.bits <= 2) { var ow = API.mode.bits === 2 ? 2 : 1;   // Calm (owner): paper panels with a thin outline
+return svg(W, H, g(API.mode.bits === 2 ? 'text--gray-55' : '', rect(ow / 2, ow / 2, W - ow, H - ow, Math.min(24, Math.min(W, H) * 0.08), ' fill="none" stroke="currentColor" stroke-width="' + ow + '" data-sw-outline'))); }
+if (two) return '';   // 2-bit: one native band only leaves grey corner pieces on a borderless panel (owner 2026-11-12); the face stays paper   // 2-bit: one band only, so one wide lamp: grey just in the corners
 var rx = Math.min(24, Math.min(W, H) * 0.08), cp = 'swfc' + (K++);   // the face is the panel: rounded corners, lamps clipped to them
 return svg(W, H, '<defs><clipPath id="' + cp + '">' + rect(0, 0, W, H, rx) + '</clipPath></defs><g clip-path="url(#' + cp + ')">' + (two ? backlight(W, H, W / 2, H / 2, W * 0.6 / 0.8, H * 0.78 / (W * 0.6), rx) : backlight(W, H, Array.from({ length: n }, (_, j) => w * (j + 0.5)), H / 2, Math.max(w, H) * 0.62, 0.8, rx)) + '</g>').replace('overflow="visible"', 'overflow="hidden"'); }   // panel lamps, one per square-ish section
 }

@@ -203,6 +203,16 @@ var dial=n('[data-sw-part="baro"]');return [SW.calm?1:0,dial,n('[data-sw-part="b
         expect(q[2]).to eq(q[1] * 2)
         expect([q[3], q[4], q[8]]).to eq([0, 0, 0])
       end
+      # Calm (owner): 1-bit and 2-bit panels stay paper (no grey fill); the dial's low/high numbers clear their triangles by 2 px.
+      if (c['fields'] || {})['style'] == 'calm'
+        cf = s.evaluate(%q{(function(){var sc=(document.querySelector('.screen')||document.body).classList,lo=sc.contains('screen--1bit')||sc.contains('screen--2bit');
+var f=lo?[].filter.call(document.querySelectorAll('[data-sw-fill]'),function(e){return e.getBoundingClientRect().width>0}).length:0,bad=[];
+document.querySelectorAll('text[data-sw-mark]').forEach(function(t){var k=t.getAttribute('data-sw-mark'),m=t.ownerSVGElement.querySelector('[data-sw-markt="'+k+'"]');if(!m)return bad.push('no mark '+k);var a=t.getBoundingClientRect(),b=m.getBoundingClientRect();
+var gx=Math.max(b.left-a.right,a.left-b.right),gy=Math.max(b.top-a.bottom,a.top-b.bottom),gp=Math.max(gx,gy);if(gp<2)bad.push(k+' gap '+gp.toFixed(1));});
+return (f?'fill '+f+' ':'')+bad.join('; ');})()})
+        puts "CALMFIX #{c['name']}: #{cf}" unless cf.empty?
+        expect(cf).to eq('')
+      end
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"
