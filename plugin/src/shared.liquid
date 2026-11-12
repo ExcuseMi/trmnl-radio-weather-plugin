@@ -14,9 +14,10 @@
 {%- elsif view >= 1 and view <= 4 -%}
 {%- comment -%} One console and one days strip for every view; per view: what shows, stacked or side by side, and a size factor for the cqh/cqw values (1 = the full view the values were tuned for). {%- endcomment -%}
 {%- assign stk = false %}{% assign hm = 1 %}{% assign hl = 1 %}{% assign wm = 1 %}{% assign wl = 1 %}{% assign n_md = 9 %}{% assign n_lg = 9 %}{% assign nd_md = 4 %}{% assign nd_lg = 5 %}{% assign hide_today_lg = false %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1' %}{% assign pad_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1' %}{% assign name_t = '' %}{% assign icon_x = '' %}{% assign rgw_l = 18 %}
-{%- if view == 1 %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign hide_today_lg = true %}{% assign num_cls = ' lg:portrait:hidden' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign last_p = ' lg:portrait:hidden' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh]' %}
+{%- assign name_w = 'w--[6cqw] lg:w--[5cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw]' %}{% assign num_w = 'w--[6cqw] lg:w--[5cqw]' %}
+{%- if view == 1 %}{% assign name_w = 'w--[6cqw] lg:w--[5cqw] lg:portrait:w--[14cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign hide_today_lg = true %}{% assign num_cls = ' lg:portrait:hidden' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign last_p = ' lg:portrait:hidden' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh]' %}
 {%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
-{%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 5 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden' %}{% assign rw_m = 5 %}{% assign hh_m = 6 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[62cqh] lg:h--[54cqh]' %}{% assign days_h = 'h--[36cqh] lg:h--[44cqh]' %}
+{%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 5 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden' %}{% assign name_w = 'w--[12cqw] lg:w--[8cqw]' %}{% assign icon_w = 'w--[7cqw]' %}{% assign num_w = 'w--[9cqw]' %}{% assign rw_m = 5 %}{% assign hh_m = 5 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[62cqh] lg:h--[54cqh]' %}{% assign days_h = 'h--[36cqh] lg:h--[44cqh]' %}
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 1.7 %}{% assign n_md = 1 %}{% assign n_lg = 3 %}{% assign con_h = 'h--full' %}{% endif %}
 {%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
 {%- comment -%} Right column: rain unit and sun unit side by side on lg; stacked views keep the icon above the grid and the moon beside the sun times. {%- endcomment -%}
@@ -146,11 +147,11 @@
 {%- if days_h %}
  <div class="w--full px--4 4bit:hidden dark:4bit:block" data-sw-between><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: no divider between filled panels (light 4-bit); the gap is enough {% endcomment %}
  <div class="{{ days_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4">
-  <div class="grid grid--cols-12 {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
-   <div class="{{ pad_cls }}"></div>
-   <div class="col--span-1 flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
-   <div class="col--span-1 flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
-   <div class="{{ bar_cls }} h--full" data-sw-part="scale"></div>
+  <div class="flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
+   <div class="shrink-0 {{ name_w }}"></div><div class="shrink-0 {{ icon_w }}"></div>
+   <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
+   <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
+   <div class="grow basis--0 h--full" data-sw-part="scale"></div>
   </div>
   {%- assign t0 = ui.days.first.today %}{% assign nd_last = nd_lg | minus: 1 %}
   {%- for d in ui.days %}
@@ -160,12 +161,13 @@
   {%- if j >= 0 and j < nd_lg %}{% assign on_lg = true %}{% endif %}
   {%- if on_md or on_lg %}
   <div class="w--full{% if on_md and on_lg %}{% elsif on_md %} lg:hidden{% else %} hidden lg:block{% endif %}{% if j == nd_last %}{{ last_p }}{% endif %}" data-sw-row="day">
-  <div class="grid grid--cols-12 {{ dgap | default: 'gap--small' }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
-   <div class="{{ name_cls }} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%- if d.today %}<span class="label label--inverted label--large text--bold lg:hidden" data-sw-today>{{ d.name }}</span><span class="hidden lg:inline title title--base{{ name_t }} text--bold">{{ d.name }}</span>{% else %}<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}</span>{% endif %}</div></div>
-   <div class="{{ icon_cls }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
-   <div class="col--span-1 flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.lo }}</span></div>
-   <div class="col--span-1 flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.hi }}</span></div>
-   <div class="{{ bar_cls }} h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>
+  <div class="w--full h--[1px] shrink-0 border--h-60" data-sw-hair="row"></div>{% comment %} owner 2026-11-12: a faint hairline over every day row (the first one is the line under the header); no edge line left of the graph {% endcomment %}
+  <div class="flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
+   <div class="shrink-0 {{ name_w }} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%- if d.today %}<span class="label label--inverted label--large text--bold lg:hidden" data-sw-today>{{ d.name }}</span><span class="hidden lg:inline title title--base{{ name_t }} text--bold">{{ d.name }}</span>{% else %}<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}</span>{% endif %}</div></div>
+   <div class="shrink-0 {{ icon_w }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
+   <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.lo }}</span></div>
+   <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.hi }}</span></div>
+   <div class="grow basis--0 h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>
   </div></div>
   {%- endif %}
   {%- endfor %}

@@ -102,8 +102,8 @@ return n+(bad.length?' '+bad.slice(0,4).join('; '):'');})()})
       puts "HUE #{c['name']}: #{hu}"
       expect(hu).to match(/\A\d+\z/)
       expect(hu.to_i.positive?).to eq(colour)
-      # Days strip (owner 2026-11-12, later): no hairlines between the day rows and no edge line left of the graph.
-      hr = s.evaluate(%q{(function(){var n=document.querySelectorAll('[data-sw-hair="row"],[data-sw-hair="v"]').length;return n?(n+' days-strip hairlines'):'';})()})
+      # Days strip (owner 2026-11-12, item 17): a visible hairline over every shown day row; no edge line left of the graph.
+      hr = s.evaluate(%q{(function(){var bad=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(r){if(!r.getBoundingClientRect().height)return;var h=r.querySelector('[data-sw-hair="row"]'),hb=h&&h.getBoundingClientRect();var ink=function(st){return st&&(st.backgroundImage!=='none'||!/rgba\(0, 0, 0, 0\)|transparent/.test(st.backgroundColor)||st.borderTopStyle!=='none'||st.borderBottomStyle!=='none'||st.boxShadow!=='none')};if(!h||!hb.width||hb.height<0.9||!(ink(getComputedStyle(h))||ink(getComputedStyle(h,'::before'))||ink(getComputedStyle(h,'::after'))))bad.push('row line '+(hb?hb.width.toFixed(0)+'x'+hb.height.toFixed(1):'none'));});var v=document.querySelectorAll('[data-sw-hair="v"]').length;if(v)bad.push(v+' edge lines');return bad.join('; ');})()})
       puts "HAIR #{c['name']}: #{hr}" unless hr.empty?
       expect(hr).to eq('')
       # Pollen (owner 2026-11-12): a pollen meter row is shown only when it lights at least one cell.
