@@ -228,6 +228,14 @@ test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none 
   D.mode = { dark: true, bits: 4 }; ok(!/text--gray-40/.test(D.meter(0.5, 200, 30, 10)), 'dark: lit meter cells in full ink, as live'); D.mode = null;
   ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 4, 'weather, rain and sun icons marked to glow');
 });
+test('moon glow outside the disk in dark mode, none in light or 1-bit (owner 2026-11-12)', () => {
+  const at = (m) => { D.mode = m; const v = D.moon(0.3, 100); D.mode = null; return v; };
+  const d = at({ dark: true, bits: 4 });
+  ok(/<mask [^>]*>.*<circle cx="50" cy="50" r="4[4-9][\d.]*" fill="#000"\/><\/mask>/.test(d), 'mask cuts out the disk');
+  ok(/<g mask="url\(#swmk\d+\)" data-sw-moonhalo><defs>.*<g filter="url\(#swgl\d+\)" data-sw-glow="4"><circle[^>]*\/><\/g><\/g>/.test(d), 'the halo is the whole disk, under the mask');
+  ok(!/data-sw-glow[^>]*><path/.test(d), 'no halo on the lit part itself');
+  [{ dark: false, bits: 4 }, { dark: true, bits: 1 }].forEach((m) => ok(!/swmk|swgl/.test(at(m)), 'no halo ' + JSON.stringify(m)));
+});
 test('days strip in narrow views: X half vertical 7 days without numbers, OG half vertical 5, portrait larger names and icons (owner 2026-11-12)', () => {
   const v3 = /elsif view == 3 %}([^\n]*)/.exec(sh)[1], v1 = /if view == 1 %}([^\n]*)/.exec(sh)[1];
   ok(/nd_md = 5 %}/.test(v3) && /nd_lg = 7 %}/.test(v3), 'half vertical: 5 days on md, 7 on lg');
@@ -249,17 +257,19 @@ test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 s
 test('rain unit: icon left of the grid on every size (owner 2026-11-12, later decision)', () => {
   const u = sh.indexOf('data-sw-unit="rain"'), end = sh.indexOf('data-sw-part="rain"', u);
   ok(u > 0 && /\{\{ ru_cls \}\}/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign ru_cls = 'flex--row lg:portrait:flex--col'/.test(sh), 'row on md and lg');
-  ok(/<img class="image image--adaptive \{\{ ib_cls \}\}" src="\{\{ ui.rain.icon \}\}"/.test(sh.slice(u, end)) && /h--\[\{\{ cal_m \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\][^"]*" data-sw-part="rain"/.test(sh) && /capture ib_cls %\}w--\[\{\{ cal_m \}\}cqh\] h--\[\{\{ cal_m \}\}cqh\] lg:w--\[\{\{ cal_l \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\]/.test(sh), 'icon as tall as the grid on md and lg');
+  ok(/{% if stk %}[^\n]*{% assign ru_cls = 'flex--col lg:flex--row' %}/.test(sh), 'narrow stacked md column: icon above the calendar (owner 2026-11-12)');
+  ok(/<img class="image image--adaptive \{\{ ib_cls \}\}" src="\{\{ ui.rain.icon \}\}"/.test(sh.slice(u, end)) && /h--\[\{\{ cal_m \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\][^"]*" data-sw-part="rain"/.test(sh) && /capture ib_cls %\}w--\[\{\{ ib_m \}\}cqh\] h--\[\{\{ ib_m \}\}cqh\] lg:w--\[\{\{ cal_l \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\]/.test(sh), 'icon as tall as the grid on md and lg');
+  ok(/assign ib_m = cal_m %}{% if stk %}{% assign ib_m = rc_m/.test(sh), 'stacked md: icon above, about one calendar row tall');
   ok(/<div class="\{\{ ib_cls \}\}" data-sw-part="moon">/.test(sh), 'moon box the same as the rain icon box');
-  const T3 = (h) => D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, h, 2).match(/<text/g).length;
-  eq([T3(200), T3(500)], [6, 9], 'short rain: 2 x 3; a narrow tall box: 3 x 3');
-  eq(D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, 200, 3).match(/<text/g).length, 9, 'long rain: 3 x 3');
+  const T3 = (h) => D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, h).match(/<text/g).length;
+  eq([T3(150), T3(500)], [6, 9], 'short rain: 2 x 3; a narrow tall box: 3 x 3');
+  eq(T3(300), 9, 'a box sized for 3 rows (long rain): 3 x 3');
   const c = Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: i >= 2 && i <= 6 }));
   eq([T.rainRows(c), T.rainRows(c.map((q, i) => ({ h: q.h, wet: i >= 2 && i <= 5 })))], [3, 2], 'rows: 3 when the rain runs past the sixth hour');
 });
 test('sun/moon unit: moon left of the sun rows on every size, grey ink (owner 2026-11-12, later decision)', () => {
   const u = sh.indexOf('data-sw-unit="sun"'), rows = sh.indexOf('ui.sun.rise', u);
-  ok(u > 0 && /\{\{ su_cls \}\} flex--center/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign su_cls = 'flex--row lg:portrait:flex--col'/.test(sh), 'row on md and lg, centred');
+  ok(u > 0 && /\{\{ su_cls \}\} \{% if ui.rain %\}flex--left[^%]*\{% else %\}flex--center/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign su_cls = 'flex--row lg:portrait:flex--col'/.test(sh), 'row on md and lg; centred when dry, on the rain icon\'s left edge when it rains');
   const m = sh.indexOf('data-sw-part="moon"', u); ok(m > u && m < rows, 'moon before the sun rows');
   ok(!/<img[^>]*ui.sun.moon/.test(sh), 'no moon icon image');
   eq(D.moon(null, 60), '');
