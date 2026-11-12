@@ -183,11 +183,11 @@ test('sun: the next sunrise and sunset, tomorrow flagged (owner 2026-11-12)', ()
 });
 
 // v2 X full view: the parts the layout places (buildView in transform.js)
-test('the X view: meters in owner order, rain calendar on a wet day, six days from today, today flagged', () => {
+test('the X view: meters in owner order, rain calendar on a wet day, seven days from today (X half vertical shows 7), today flagged', () => {
   const raw = fx('mixed'), M = SWModel.build(raw, {}), v = T.buildView(M, T.buildI18n('nl'), raw.daily, 'wi-moon-full');
   eq(v.meters.map((m) => m.key), ['wind', 'humidity', 'baro']);
   ok(v.rain && !v.dry && v.rain.hours.length === 12, 'rain calendar on a wet day');
-  eq(v.days.map((d) => d.name), ['ZO', 'MA', 'DI', 'WO', 'DO', 'VR'], 'six days from today'); eq(v.days.map((d) => d.today), [true, false, false, false, false, false]);
+  eq(v.days.map((d) => d.name), ['ZO', 'MA', 'DI', 'WO', 'DO', 'VR', 'ZA'], 'seven days from today'); eq(v.days.map((d) => d.today), [true, false, false, false, false, false, false]);
   ok(!JSON.stringify(v).includes('<svg'), 'the transform builds no SVG (owner 2026-11-12)');
 });
 test('the X view: a dry day shows sun times and the moon, no calendar', () => {
@@ -262,6 +262,14 @@ test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none 
   D.mode = { dark: true, bits: 4 }; const r = D.rain([{ h: '14', wet: true }], 120, 40); D.mode = null;
   ok(r.indexOf('data-sw-glow') < r.lastIndexOf('<rect'), 'halo under the lit cell, not over it');
   ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 5, 'weather, rain (two sizes) and sun icons marked to glow');
+});
+test('days strip in narrow views: X half vertical 7 days without numbers, OG half vertical 5, portrait larger names and icons (owner 2026-11-12)', () => {
+  const v3 = /elsif view == 3 %}([^\n]*)/.exec(sh)[1], v1 = /if view == 1 %}([^\n]*)/.exec(sh)[1];
+  ok(/nd_md = 5 %}/.test(v3) && /nd_lg = 7 %}/.test(v3), 'half vertical: 5 days on md, 7 on lg');
+  ok(/num_cls = ' hidden' %}/.test(v3), 'half vertical: low/high numbers dropped on both sizes');
+  ok(/bar_cls = 'col--span-9 lg:col--span-8' %}/.test(v3) && /pad_cls = 'col--span-3 lg:col--span-4' %}/.test(v3), 'bars keep at least half the strip, header pad matches name + icon');
+  ok(/name_t = ' lg:portrait:title--xlarge' %}/.test(v1) && /icon_x = ' lg:portrait:h--\[7cqh\]' %}/.test(v1), 'portrait: names and icons at the live size');
+  ok(/<span class="title title--base{{ name_t }} text--bold">{{ d.name }}/.test(sh) && /{{ icon_x }}" src="{{ d.icon }}"/.test(sh), 'row markup uses the per-view sizes');
 });
 test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 segments, 5 days', () => {
   ok(/<div class="hidden lg:block h--\[30cqh\]"><div class="grid grid--cols-2/.test(sh), 'dials only on lg');

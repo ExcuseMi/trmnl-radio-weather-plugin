@@ -371,7 +371,7 @@ var tv = n.temp, tStr = tv === null ? '--.-' : (Math.round(tv * 10) / 10).toFixe
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
 var feelsOn = n.feels !== null && tv !== null && Math.abs(n.feels - tv) >= 2;
 var R = M.rain, wetIn12 = !!R && R.from < 12;
-var d0 = M.ev ? 2 : 0, days = (M.days || []).slice(d0, d0 + 6), dates = ((daily || {}).time || []).slice(d0, d0 + 6), names = dayNames(dates, i18n.loc);   // from today (evening: the day after tomorrow); views with the temperature dial hide today (owner 2026-11-12)
+var d0 = M.ev ? 2 : 0, days = (M.days || []).slice(d0, d0 + 7), dates = ((daily || {}).time || []).slice(d0, d0 + 7), names = dayNames(dates, i18n.loc);   // from today (evening: the day after tomorrow); views with the temperature dial hide today (owner 2026-11-12)
 var vals = []; days.forEach((d) => { if (d.lo !== null) vals.push(d.lo); if (d.hi !== null) vals.push(d.hi); }); if (tv !== null) vals.push(tv);
 var st = F_ ? 10 : 5, sc = { a: Math.floor(Math.min.apply(null, vals.length ? vals : [0]) / st) * st, b: Math.ceil(Math.max.apply(null, vals.length ? vals : [10]) / st) * st, major: st, now: tv, deg: deg };
 if (sc.b - sc.a < 2 * st) sc.b = sc.a + 2 * st;
