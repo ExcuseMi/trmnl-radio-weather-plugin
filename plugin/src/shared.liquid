@@ -602,8 +602,6 @@ if (ks >= nl || sel.every((bx, i) => { return (i === 0 || i === sel.length - 1 |
 sel.every((q, j) => j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > q.b); })) { placed = sel; break; }
 }
 var scaleLabels = placed;
-if (o.cornerIcon) { var cs = Mn(fh, fw) * 0.12, ccx = fx0 + bm + cs, ccy = fy0 + bm + cs; glowIcon(g, (gg) => icon(gg, o.cornerIcon, ccx, ccy, cs, null)); if (o.moonWord) text(g, o.moonWord, ccx, ccy + cs * 1.5, MK, { anchor: 'middle' }); }
-(o.endLabels || []).forEach((e, ei) => { var ew = wOf(e.t) * SC.size / MK.size, pq = compact ? [cx + (ei ? 1 : -1) * (ew / 2 + u(8)), py - rArc * 0.3] : at(e.f, rArc - fh * 0.07 - SC.size * 2.3 - ew * 0.15); text(g, e.t, pq[0], pq[1] + SC.size * 0.36, SC, { anchor: 'middle' }); });
 if (o.zoneBands) {
 var zro = rArc - fh * 0.085, zri = zro - fh * 0.05, zg = 0.012, ZS = bits === 1 ? ink : fillOf('gray-35', '#666');
 function zpt(f, rad) { var q = at(f, rad); return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
@@ -649,7 +647,6 @@ return [[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[
 var NEEDLE = bits === 4 ? fillOf('gray-15', '#222') : ink;
 if (bits === 4 && !o.noNeedle) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55', '#999'), 'shape-rendering': GPX }, ng);
 if (!o.noNeedle) glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true, ng);
-if (o.tipIcon && !o.dim) glowIcon(g, (gg) => icon(gg, o.tipIcon, cx + ux * tipR, py + uy * tipR, fh * 0.1, null));
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
 tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Mx(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
@@ -722,13 +719,22 @@ if ((b0 - a0) / st <= 5) return { a: a0, b: b0 + (even && ((b0 - a0) / st) % 2 ?
 }
 return { a: Fl(lo / 50) * 50, b: Math.ceil(hi / 50) * 50, major: 50, minor: 10 };
 }
-function sunMeter(g, x, y, w, h, small, badge, captioned) {
-var S = M.sunT, ticks = [], whole = w / z < 400, len = S ? S.set - S.rise : 0;
-for (var hr = 0; hr <= 24; hr++) if (!whole || hr % 3 === 0) ticks.push({ f: hr / 24, major: hr % 6 === 0, label: hr % 6 === 0 && hr > 0 && hr < 24 && (!whole || hr === 12) ? String(hr) : undefined });
-var dl = S ? Fl(len / 60) + ':' + ('0' + (len % 60)).slice(-2) + ' ' + I18N.ours('dl_u') : '--';
-return meter(g, x, y, w, h, { chan: 'S', badge: badge, captioned: captioned, ticks: ticks, needle: S ? S.now / 1440 : null, small: small, band: S ? [S.rise / 1440, S.set / 1440] : null, marks: [],
-endLabels: S ? [{ f: S.rise / 1440, t: S.riseL }, { f: S.set / 1440, t: S.setL }] : [], moonWord: MOON_W, cornerIcon: 'moon', tipIcon: S ? (S.day ? 'wi-day-sunny' : 'moon') : null,
-name: I18N.ours('daylight'), shortName: I18N.ours('daylight'), unitName: dl });
+function tempMeter(g, x, y, w, h, small, badge, captioned) {
+var tl = M.today.lo, th = M.today.hi, nv = M.now.temp;
+var vals = [day24.lo, day24.hi, tl, th].filter((v) => v !== null);
+var lo = vals.length ? Math.min.apply(null, vals) : 0, hi = vals.length ? Math.max.apply(null, vals) : 10;
+var sc = niceScale(lo, hi, small || (w - u(14)) / z < 420), a = sc.a, b = sc.b;
+debug.scale = { a: a, b: b, major: sc.major, lo: lo, hi: hi };
+var f = (v) => (v - a) / (b - a);
+var ticks = [];
+for (var v = a; v <= b + 1e-9; v += sc.minor) {
+var vv = Math.round(v * 10) / 10, major = Math.abs(vv / sc.major - Math.round(vv / sc.major)) < 1e-6;
+ticks.push({ f: f(vv), major: major, label: major ? String(vv) : undefined, skip: major && Math.round((vv - a) / sc.major) % 2 === 1 && vv !== b });
+}
+return meter(g, x, y, w, h, { chan: 'T', badge: badge, captioned: captioned, ticks: ticks, needle: nv === null ? null : f(nv), small: small,
+band: tl !== null && th !== null ? [f(tl), f(th)] : null,
+marks: [tl !== null ? { f: f(tl), label: I18N.lo, lo: true } : null, th !== null ? { f: f(th), label: I18N.hi } : null].filter(Boolean),
+name: I18N.temperature, shortName: I18N.ours('temp_s'), unitName: deg + M.unit, });
 }
 function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
 var WUNIT = M.unit === 'F' ? 'MPH' : 'KM/H', WTHR = M.unit === 'F' ? 20 : 30;
@@ -742,7 +748,6 @@ return meter(g, x, y, w, h, { chan: 'R', badge: badge, captioned: captioned, tic
 marks: lo === null ? [] : [{ f: f(lo), label: I18N.lo, lo: true }, { f: f(hi), label: I18N.hi }],
 zoneBands: [[0, 0.25, 'solid'], [0.25, 0.5, 'outline'], [0.5, 0.75, 'solid'], [0.75, 1, 'outline']], icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'], name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: 'hPa', });
 }
-var MOON_W = ({ 0: 'moon_new', 7: 'moon_fq', 14: 'moon_full', 21: 'moon_lq' })[MOON_I] ? I18N.ours(({ 0: 'moon_new', 7: 'moon_fq', 14: 'moon_full', 21: 'moon_lq' })[MOON_I]) : null;
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = bits >= 2 && !darkMode;
 var GLASSD = LCD ? paper : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25', '#333') : (bits === 2 ? (darkMode ? paper : fillOf('gray-15', '#333')) : paper);
@@ -1077,12 +1082,15 @@ return;
 mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
 if (M.ok && !M.rain) {
 var dTop = cells ? cells.ROW.top : y + h * 0.3, dBot = cells ? cells.ROW.lab : y + h * 0.9, dM = (dTop + dBot) / 2, DB = F(WD.size * 1.45, '800');
-var dLines = (s, sp, y0) => { var ww = mW(s, sp), cap = rw - u(8), ls0 = R(sp.size * 0.12); if (ww <= cap || s.indexOf(' ') < 0) { fitText(g, s, rx + rw / 2, y0, sp, rw - u(4), { anchor: 'middle', ls: ls0, fill: GLOW }); return 1; }
-var wds = s.split(' '), best = 1, bd = 1e9; for (var wi2 = 1; wi2 < wds.length; wi2++) { var dd = Math.abs(mW(wds.slice(0, wi2).join(' '), sp) - mW(wds.slice(wi2).join(' '), sp)); if (dd < bd) { bd = dd; best = wi2; } }
-fitText(g, wds.slice(0, best).join(' '), rx + rw / 2, y0 - sp.size * 0.6, sp, rw - u(4), { anchor: 'middle', ls: ls0, fill: GLOW });
-fitText(g, wds.slice(best).join(' '), rx + rw / 2, y0 + sp.size * 0.9, sp, rw - u(4), { anchor: 'middle', ls: ls0, fill: GLOW }); return 2; };
-fitText(g, I18N.ours('no_rain'), rx + rw / 2, dM - WD.size * 0.6, DB, rw - u(4), { anchor: 'middle', ls: R(DB.size * 0.08), fill: GLOW });
-dLines(I18N.ours('next_h', SPAN), WD, dM + WD.size * 1.6);
+var DB2 = F(WD.size * 1.15, '800'), dcx = rx + rw / 2, sz2 = WD.size, S2 = M.sunT;
+fitText(g, I18N.ours('no_rain'), dcx, dM - WD.size * 0.5, DB2, rw - u(4), { anchor: 'middle', ls: R(DB2.size * 0.08), fill: GLOW });
+if (S2) {
+var items = [['sunrise', S2.riseL], ['sunset', S2.setL], ['moon', null]], iw2 = 0, wdt = 0;
+function rowW2(s) { return items.reduce((a2, it) => a2 + s * 1.1 + (it[1] ? mW(it[1], F(s, '700')) + s * 0.5 : 0), 0) + s * 0.6; }
+for (var si = 0; si < 30 && rowW2(sz2) > rw - u(4) && sz2 > 8; si++) sz2 *= 0.93;
+var rf = F(sz2, '700'), xx0 = dcx - rowW2(sz2) / 2 + sz2 * 0.3, yy0 = dM + WD.size * 1.6;
+items.forEach((it) => { glowIcon(g, (gg) => icon(gg, it[0], xx0 + sz2 * 0.55, yy0 - sz2 * 0.3, sz2 * 0.8, null)); xx0 += sz2 * 1.1; if (it[1]) { text(g, it[1], xx0, yy0, rf, { fill: GLOW }); xx0 += mW(it[1], rf) + sz2 * 0.5; } });
+}
 debug.clock = { str: '', boxes: [] };
 return;
 }
@@ -1198,7 +1206,7 @@ text(root, I18N.ours('next_days'), x + w / 2, y + h / 2 - P.size * 0.2, P, { anc
 text(root, I18N.ours(M.ok ? 'no_forecast' : 'no_signal'), x + w / 2, y + h / 2 + P.size * 1.3, F(P.size * 0.8, '600'), { anchor: 'middle', ls: R(P.size * 0.2) });
 return;
 }
-if (h > w * 0.6) nd = Mx(2, Mn(M.days.length || 1, 7, Fl((h - u(44)) / u(52))));
+if (h > w * 0.6) nd = Mx(2, Mn(M.days.length - 1 || 1, 7, Fl((h - u(44)) / u(52))));
 debug.days = nd; debug.rows = false;
 daysDial(x, y, w, h, nd);
 }
@@ -1209,7 +1217,7 @@ mW: (str, sp) => { var tt = text(root, str, 0, 0, sp); var ww = width(tt); root.
 }
 // A: preset keys, one per day; today pressed in
 function daysDial(x, y, w, h, nd) {
-var days = M.days.slice(0, nd), D = dayFonts(w, h, nd), F_ = M.unit === 'F', lo = null, hi = null;
+var days = M.days.slice(1, nd + 1), D = dayFonts(w, h, nd), F_ = M.unit === 'F', lo = null, hi = null;
 days.forEach((d) => { if (d.lo !== null && (lo === null || d.lo < lo)) lo = d.lo; if (d.hi !== null && (hi === null || d.hi > hi)) hi = d.hi; });
 if (M.now.temp !== null) { lo = lo === null ? M.now.temp : Mn(lo, M.now.temp); hi = hi === null ? M.now.temp : Mx(hi, M.now.temp); }
 if (lo === null) { lo = 0; hi = 10; }
@@ -1229,7 +1237,6 @@ mk('rect', { x: px - Mx(1, u(1)) / 2, y: R(top), width: Mx(1, u(1)), height: R(y
 days.forEach((d, i) => {
 var cy = top + (i + 0.5) * rh;
 text(g, dayName(d), x + u(10), cy + D.L.size * 0.36, D.L, { fill: fg, ls: R(D.L.size * 0.08) });
-if (i === 0) mk('rect', { x: x + u(10), y: R(cy + D.L.size * 0.62), width: R(D.mW(dayName(d), D.L)), height: Mx(1, u(1.5)), fill: fg }, g);
 ICON_INK = fg; iconFit(g, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz); ICON_INK = null;
 mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: glass ? DIMW : fillOf('gray-60', '#bbb') }, g);
 if (d.hi === null || d.lo === null) return;
@@ -1295,9 +1302,9 @@ var fit = Mx(1, Fl(w / (u(minCss) * TS))), n = 0;
 return Mx(1, Mn(M.days.length || 1, 7, fit, n > 0 ? n : (autoCap || 7)));
 }
 var HS = F(RD(H0 * 0.03, 12), '700');
-function dialName(k) { return k === 'sun' ? I18N.ours('daylight') : I18N.ours('baro'); }
+function dialName(k) { return k === 'temp' ? I18N.temperature : I18N.ours('baro'); }
 function meterRow(x, y, w, h, captions) {
-var kinds = ['baro', 'sun'], n = 2, mw = Fl((w - GP) / 2), capSp = null;
+var kinds = ['baro', 'temp'], n = 2, mw = Fl((w - GP) / 2), capSp = null;
 if (captions) {
 var fh = h - u(14), fw = mw - u(14), BG = F(RD(Mn(fh, fw) * 0.055, 10), '800'), size = Mx(HS.size, BG.size * 1.1);
 var bwd = (() => { var t0 = text(root, 'L', 0, 0, BG); var ww = width(t0); root.removeChild(t0); return ww + 2 * BG.size * 0.45; })();
@@ -1314,7 +1321,7 @@ return false;
 });
 }
 baroMeter(root, x, y, mw, h, smallFace(h, mw), 'L', captions ? capSp : false);
-sunMeter(root, x + mw + GP, y, w - mw - GP, h, smallFace(h, mw), 'R', captions ? capSp : false);
+tempMeter(root, x + mw + GP, y, w - mw - GP, h, smallFace(h, mw), 'R', captions ? capSp : false);
 }
 ROK = RO_ORDER.filter((k) => k !== 'pollen' || M.now.pollen !== null); ROS = ROK.map(readout);
 debug.readoutKinds = ROK;
@@ -1352,7 +1359,7 @@ stage.setAttribute('data-sw-debug', JSON.stringify(debug));
 var WI_BASE = 'https://trmnl.com/images/plugins/weather/';
 var MOON_I = (() => { var m = /(\d{4})-(\d{2})-(\d{2})/.exec(String((SW_RAW.current || {}).time || '')); if (!m) return null; var jd = Date.UTC(+m[1], +m[2] - 1, +m[3], 12) / 86400000 + 2440587.5, P = 29.530588853; return Math.round(((((jd - 2451550.1) % P) + P) % P) / P * 28) % 28; })();
 var MOON_N = MOON_I === null ? 'wi-night-clear' : 'wi-moon-alt-' + (MOON_I === 0 ? 'new' : MOON_I < 7 ? 'waxing-crescent-' + MOON_I : MOON_I === 7 ? 'first-quarter' : MOON_I < 14 ? 'waxing-gibbous-' + (MOON_I - 7) : MOON_I === 14 ? 'full' : MOON_I < 21 ? 'waning-gibbous-' + (MOON_I - 14) : MOON_I === 21 ? 'third-quarter' : 'waning-crescent-' + (MOON_I - 21));
-var WI_MAP = { moon: [MOON_N, MOON_N, MOON_N], clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
+var WI_MAP = { moon: [MOON_N, MOON_N, MOON_N], sunrise: ['wi-sunrise', 'wi-sunrise', 'wi-sunrise'], sunset: ['wi-sunset', 'wi-sunset', 'wi-sunset'], clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
 cloud: ['wi-cloudy', 'wi-cloudy', 'wi-cloudy'], fog: ['wi-day-fog', 'wi-night-fog', 'wi-fog'],
 drizzle: ['wi-day-sprinkle', 'wi-night-alt-sprinkle', 'wi-sprinkle'], rain: ['wi-day-rain', 'wi-night-alt-rain', 'wi-rain'],
 heavy: ['wi-rain', 'wi-rain', 'wi-rain'], sleet: ['wi-day-sleet', 'wi-night-alt-sleet', 'wi-sleet'],
