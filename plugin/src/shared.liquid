@@ -326,7 +326,7 @@ if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.62, y = (H - bh) / 2, cells = '', sh = '';
 var ptH = lfs(sc) * 0.3 * 1.4;   // Calm today's pointer: the size of the header triangle
 if (hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); }   // blocks start under it, never cover it
-var gp = Math.max(2, cw * 0.16), pc = [];   // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner 2026-11-12: never blocks merged into stripes)
+var gp = Math.max(2.5, cw * 0.16), pc = [];   // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner 2026-11-12: never blocks merged into stripes)
 if (cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = a; t < b; t++) pc.push([X(t) + gp / 2, X(t + 1) - gp / 2]);
 pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
 body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells>' + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells) + '</g>';
@@ -500,8 +500,9 @@ function tri(down, W, H) {
 var s = Math.min(W, H), x0 = (W - s) / 2, y0 = (H - s) / 2, p = down ? [[x0 + s * 0.1, y0 + s * 0.12], [x0 + s * 0.9, y0 + s * 0.12], [x0 + s / 2, y0 + s * 0.9]] : [[x0 + s * 0.1, y0 + s * 0.9], [x0 + s * 0.9, y0 + s * 0.9], [x0 + s / 2, y0 + s * 0.12]];
 return svg(W, H, poly(p, down ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(2, s * 0.1)) + '" stroke-linejoin="round"' : ''));
 }
+function axisFor(SW) { return (API.nRows && SW.scales && SW.scales[API.nRows]) || SW.scale; }   // the axis of the rows this view shows
 function part(SW, kind, i, W, H) {
-var scN = Object.assign({}, SW.scale, { now: null });   // Calm (owner): no now line
+var scN = Object.assign({}, axisFor(SW), { now: null });   // Calm (owner): no now line
 switch (kind) {
 case 'cue': return cue(SW.cue, W, H);
 case 'dcue': return cue((SW.days[i] || {}).cue, W, H);
@@ -509,7 +510,7 @@ case 'temp': return digits(SW.temp, H);
 case 'itemp': return SW.inn ? digits(SW.inn.temp, H) : '';
 case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
 case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10, SW.meters[i] && SW.meters[i].zones, SW.meters[i] && SW.meters[i].gust);
-case 'day': return day(SW.days[i], SW.scale, W, H, !!(SW.days[i] || {}).today);   // today always highlighted (owner 2026-11-12)
+case 'day': return day(SW.days[i], axisFor(SW), W, H, !!(SW.days[i] || {}).today);   // today always highlighted (owner 2026-11-12)
 case 'scale': return scale(scN, W, H);
 case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now);
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
@@ -596,6 +597,7 @@ return API;
         var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;   // rain: 3 rows only at the meter label size or larger (owner 2026-11-12)
         var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;   // rows the md / lg box was sized for
         var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
+        SWDraw.nRows = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; }).length;
         SWDraw.scaleH = rows.length && rows[0].getAttribute('data-sw-part') === 'scale' ? Math.round(rows[0].getBoundingClientRect().height) : null;
         var hb = [].map.call(document.querySelectorAll('[data-sw-part="hbar"]'), function (q) { return q.getBoundingClientRect().height; }).filter(function (h) { return h > 0; }); SWDraw.hbarH = hb.length ? Math.floor(Math.min.apply(null, hb)) : null;   // hours strip: one block height for every column
         SWDraw.extD = k >= 0 && k + 1 < rows.length ? Math.max(0, rows[k + 1].getBoundingClientRect().top - r.bottom + 1) : 0;   // scale and day rows: rules and the now line run on to the next row

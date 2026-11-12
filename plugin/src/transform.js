@@ -430,9 +430,13 @@ var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) ===
 var feelsOn = n.feels !== null && tv !== null && Math.abs(n.feels - tv) >= 2;
 var R = M.rain, wetIn12 = !!R && R.from < 12;
 var d0 = 0, days = (M.days || []).slice(d0, d0 + 7), dates = ((daily || {}).time || []).slice(d0, d0 + 7), names = dayNames(dates, i18n.loc);   // from today at any hour; views with the temperature dial hide today (owner 2026-11-12)
-var vals = []; days.forEach((d) => { if (d.lo !== null) vals.push(d.lo); if (d.hi !== null) vals.push(d.hi); }); if (tv !== null) vals.push(tv);
-var st = F_ ? 10 : 5, sc = { a: Math.floor(Math.min.apply(null, vals.length ? vals : [0]) / st) * st, b: Math.ceil(Math.max.apply(null, vals.length ? vals : [10]) / st) * st, major: st, now: tv, deg: deg };
-if (sc.b - sc.a < 2 * st) sc.b = sc.a + 2 * st;
+// Days axis (owner bug 2026-11-12): from the values as shown (rounded, -0 as 0) of the first n days and the current
+// temperature; one scale per row count a view can show (scales[n]), so a hidden day never widens the axis.
+var rnd = (v) => { var r = Math.round(v); return r === 0 ? 0 : r; }, st = F_ ? 10 : 5;
+var axis = (n) => { var vals = []; days.slice(0, n).forEach((d) => { if (d.lo !== null) vals.push(rnd(d.lo)); if (d.hi !== null) vals.push(rnd(d.hi)); }); if (tv !== null) vals.push(tv);
+var a = { a: Math.floor(Math.min.apply(null, vals.length ? vals : [0]) / st) * st, b: Math.ceil(Math.max.apply(null, vals.length ? vals : [10]) / st) * st, major: st, now: tv, deg: deg };
+if (a.b - a.a < 2 * st) a.b = a.a + 2 * st; return a; };
+var sc = axis(7), scales = [null, 1, 2, 3, 4, 5, 6, 7].map((n) => n && axis(n));
 var pr = n.press;   // no warning lamps (owner 2026-11-12): the rain unit's icon shows rain, snow or hail
 var inT = M.inn.temp === null ? null : (F_ ? M.inn.temp * 1.8 + 32 : M.inn.temp);   // sensors report Celsius
 var tl = t.lo, th = t.hi, tvals = [tl, th, tv, inT].filter((v) => v !== null), tst = F_ ? 10 : 5;
@@ -450,7 +454,7 @@ inn: inT === null ? null : { temp: (Math.round(inT * 10) / 10).toFixed(1), out: 
 rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)) } : null,
 sun: sun, dry: wetIn12 ? null : sun,
 days: days.map((d, i) => ({ cue: cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3), name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
-scale: sc,
+scale: sc, scales: scales,
 baro: { now: pr, lo: ps.length ? Math.min.apply(null, ps) : null, hi: ps.length ? Math.max.apply(null, ps) : null, a: 970, b: 1050,
 value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro, trend: trend ? O['p_' + trend] : null,
 icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'].map((k) => WI_BASE + k + '.svg') },
