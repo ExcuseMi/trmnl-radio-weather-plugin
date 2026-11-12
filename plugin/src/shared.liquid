@@ -652,7 +652,10 @@ if (bits === 4) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gra
 glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true, ng);
 if (o.tipIcon && !o.dim) glowIcon(g, (gg) => icon(gg, o.tipIcon, cx + ux * tipR, py + uy * tipR, fh * 0.1, null));
 if (o.centerIcon) { glowIcon(g, (gg) => icon(gg, o.centerIcon, cx, py - rArc * 0.5, rArc * 0.3, null)); var cty = py - rArc * 0.5 + rArc * 0.3 * 0.85;
-if (o.centerText) { var ctw = wOf(o.centerText) * SC.size / MK.size, ctf = ctw > rArc * 1.1 ? F(SC.size * rArc * 1.1 / ctw, SC.weight) : SC; text(g, o.centerText, cx, cty, ctf, { anchor: 'middle' }); cty += ctf.size * 1.4; }
+if (o.centerTime) { var cstr = compact ? o.centerTime : o.centerWord + ' ' + o.centerTime, ctw = wOf(cstr) * SC.size / MK.size, ctf = ctw > rArc * 1.1 ? F(SC.size * rArc * 1.1 / ctw, SC.weight) : SC, tw3 = wOf(cstr) * ctf.size / MK.size, ex = compact ? ctf.size * 0.8 : 0, x03 = cx - (tw3 + ex) / 2;
+rrect(g, R(x03 - u(3)), R(cty - ctf.size * 0.85 - u(2)), R(tw3 + ex + u(6)), R(ctf.size * 1.25 + u(3)), 0, FF);
+if (compact) mk('polygon', { points: [[x03 + ctf.size * 0.25, cty - ctf.size * 0.75], [x03, cty - ctf.size * 0.1], [x03 + ctf.size * 0.5, cty - ctf.size * 0.1]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: ink }, g);
+text(g, cstr.slice(compact ? cstr.length - o.centerTime.length : 0), x03 + ex, cty, ctf, { anchor: 'start' }); cty += ctf.size * 1.4; }
 if (o.moonWord) text(g, o.moonWord, cx, cty, MK, { anchor: 'middle' }); }
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
@@ -735,7 +738,7 @@ ticks.push({ f: 1, major: true });
 }
 var g0 = Mn(120 / len, 0.33), dl = S ? Fl(len / 60) + ':' + ('0' + (len % 60)).slice(-2) + ' ' + I18N.ours('dl_u') : '--';
 return meter(g, x, y, w, h, { chan: 'S', badge: badge, captioned: captioned, ticks: ticks, needle: S && !night ? (S.now - S.rise) / len : (S ? 0 : null), small: small, band: null, marks: [],
-zoneBands: S ? [[0, g0, 'solid'], [g0, 1 - g0, 'outline'], [1 - g0, 1, 'solid']] : null, endLabels: S && !night ? [{ f: 0, t: S.riseL }, { f: 1, t: S.setL }] : [], centerText: S && night ? I18N.ours('sunrise') + ' ' + (S.now < S.rise ? S.riseL : S.rise1L) : null, moonWord: MOON_W, dim: night, cornerIcon: !night && S ? 'moon' : null, tipIcon: S && !night ? 'wi-day-sunny' : null, centerIcon: S && night ? 'moon' : null,
+zoneBands: S ? [[0, g0, 'solid'], [g0, 1 - g0, 'outline'], [1 - g0, 1, 'solid']] : null, endLabels: S && !night ? [{ f: 0, t: S.riseL }, { f: 1, t: S.setL }] : [], centerTime: S && night ? (S.now < S.rise ? S.riseL : S.rise1L) : null, centerWord: I18N.ours('sunrise'), moonWord: MOON_W, dim: night, cornerIcon: !night && S ? 'moon' : null, tipIcon: S && !night ? 'wi-day-sunny' : null, centerIcon: S && night ? 'moon' : null,
 name: I18N.ours('daylight'), shortName: I18N.ours('daylight'), unitName: dl });
 }
 function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
