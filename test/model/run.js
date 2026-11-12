@@ -261,6 +261,7 @@ test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none 
   [{ dark: false, bits: 4 }, { dark: false, bits: 2 }, { dark: true, bits: 1 }, { dark: false, bits: 1 }].forEach((m) => parts(m).forEach(([k, s]) => ok(!/data-sw-glow|swgl/.test(s), k + ': no glow ' + JSON.stringify(m))));
   D.mode = { dark: true, bits: 4 }; const r = D.rain([{ h: '14', wet: true }], 120, 40); D.mode = null;
   ok(r.indexOf('data-sw-glow') < r.lastIndexOf('<rect'), 'halo under the lit cell, not over it');
+  D.mode = { dark: true, bits: 4 }; ok(!/text--gray-40/.test(D.meter(0.5, 200, 30, 10)), 'dark: lit meter cells in full ink, as live'); D.mode = null;
   ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 5, 'weather, rain (two sizes) and sun icons marked to glow');
 });
 test('days strip in narrow views: X half vertical 7 days without numbers, OG half vertical 5, portrait larger names and icons (owner 2026-11-12)', () => {
