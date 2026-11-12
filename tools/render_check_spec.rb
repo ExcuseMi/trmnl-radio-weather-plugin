@@ -273,17 +273,17 @@ for(var a=0;a<cols.length;a++)for(var b=0;b<cols.length;b++)if(T[a]!==null&&T[b]
 return cols.length+'|'+bad.join('; ');})()})
       puts "HOURS #{c['name']}: cols|bad #{hs}" if c['hcols'] || hs != '0|'
       expect(hs).to eq("#{c['hcols'] || 0}|")
-      # Clothing cues (owner): the drawn icons are the model's list in order, after the view's cap (console 3, half
-      # vertical 2, quadrant 1; day rows 2), stroke-only outline icons.
-      co = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},key=function(e){var g=e.querySelector('g[data-sw-cloth]');return g?(g.getAttribute('fill')==='none'?g.getAttribute('data-sw-cloth'):'solid'):'none'},bad=[];
-var cs=[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).map(key),w=(SW.cue||[]).slice(0,cs.length);if(cs.join('+')!==w.join('+'))bad.push('console '+cs.join('+')+'/'+(SW.cue||[]).join('+'));
-var rows=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis),n=0;rows.forEach(function(r){var ds=[].filter.call(r.querySelectorAll('[data-sw-part="dcue"]'),vis);if(!ds.length)return;n++;var i=+ds[0].getAttribute('data-sw-i'),got=ds.map(key).join('+'),want=(SW.days[i].cue||[]).slice(0,2).join('+');if(got!==want)bad.push('day '+i+' '+got+'/'+want);});
-if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);return cs.length+','+n+'|'+bad.join('; ');})()})
+      # Clothing badge (owner): the drawn icons are the model's list (top and up to two extras) in order; one fixed box
+      # width in the console and every day row (1 px); the extras sit right of the top icon, never over its box.
+      co = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},bad=[],ws=[];
+function chk(e,want,tag){var gs=[].slice.call(e.querySelectorAll('g[data-sw-cloth]')),got=gs.map(function(g){return g.getAttribute('fill')==='none'?g.getAttribute('data-sw-cloth'):'solid'}).join('+');if(got!==want.slice(0,3).join('+'))bad.push(tag+' '+got+'/'+want.join('+'));
+ws.push(e.getBoundingClientRect().width);var t=gs[0]&&gs[0].getAttribute('data-sw-box').split(',').map(Number);gs.slice(1).forEach(function(g){var x=+g.getAttribute('data-sw-box').split(',')[0];if(x<t[0]+t[2]*0.97)bad.push(tag+' extra over top');});}
+var cn=0;[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){cn++;chk(e,SW.cue||[],'console');});
+var rows=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis),n=0;rows.forEach(function(r){var ds=[].filter.call(r.querySelectorAll('[data-sw-part="dcue"]'),vis);if(!ds.length)return;n++;if(ds.length>1)bad.push('badges '+ds.length);var i=+ds[0].getAttribute('data-sw-i');chk(ds[0],SW.days[i].cue||[],'day '+i);});
+if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);if(ws.length&&Math.max.apply(null,ws)-Math.min.apply(null,ws)>1)bad.push('widths '+ws.map(Math.round).join(','));return cn+','+n+'|'+bad.join('; ');})()})
       puts "CLOTH #{c['name']}: console,dayrows|bad #{co}"
       expect(co.split('|', 2)[1]).to eq('')
       calm = (c['fields'] || {})['style'] != 'receiver'
-      cap = { 'full' => 3, 'half_horizontal' => 3, 'half_vertical' => 2, 'quadrant' => 1 }[c['view'] || 'full']
-      expect(co.to_i).to eq([s.evaluate('(SW.cue||[]).length'), cap].min) if calm && !(c['device'] == 'v2' && c['view'] == 'half_vertical')
       expect(co.split(',')[1].to_i).to be_positive if calm && (c['view'] || 'full') == 'full' && (c['fields'] || {})['bottom'] != 'hours'
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')

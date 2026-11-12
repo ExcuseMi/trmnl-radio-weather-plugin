@@ -428,8 +428,8 @@ test('per-day clothing cue: daytime hours 07:00 to 19:00 from the hourly data, d
   eq([c.lo, c.hi, c.rain, T.cueFor(c, false)], [1, 9, true, ['raincoat']], 'no felt fields: air temperature; rain and gusts from the daily values');
   const f = fx('mixed'), M = SWModel.build(f, {}), i = T.buildI18n('nl');
   const v = T.buildView(M, i, f.daily, null, 0.3, { calm: true, hourly: f.hourly }), r = T.buildView(M, i, f.daily, null, 0.3, { hourly: f.hourly });
-  ok(v.days.every((q) => Array.isArray(q.cue) && q.cue.length >= 1 && q.cue.length <= 2), 'calm: one or two cues on every day (top and the first extra)');
-  eq(v.days.map((q) => q.cue), v.days.map((q, k) => T.cueFor(T.dayCueInput(f.hourly, f.daily, k), false).slice(0, 2)), 'days: the list capped at 2');
+  ok(v.days.every((q) => Array.isArray(q.cue) && q.cue.length >= 1 && q.cue.length <= 3), 'calm: top and up to two extras on every day');
+  eq(v.days.map((q) => q.cue), v.days.map((q, k) => T.cueFor(T.dayCueInput(f.hourly, f.daily, k), false).slice(0, 3)), 'days: the list capped at 3');
   ok(r.days.every((q) => q.cue === null), 'receiver: no day cues');
 });
 console.log(passed + ' passed, ' + failed + ' failed');

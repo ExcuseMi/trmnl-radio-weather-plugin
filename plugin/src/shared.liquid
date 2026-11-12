@@ -83,8 +83,8 @@
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y' %}{% assign tg_h = 'h--full' %}{% assign dv_x = '' %}{% assign pf_m = 10 %}{% assign fe_m = 9 %}
    {%- if calm_q and ui.inn == nil %}{% assign th_m = 21 %}{% assign pf_m = 11 %}{% assign fe_m = 10 %}{% endif %}
    {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line, the felt temperature under it {% endcomment %}{% assign th_m = 26 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full' %}{% assign dv_x = ' hidden lg:block' %}{% assign pf_m = 7 %}{% assign fe_m = 7 %}{% endif %}
-   {%- assign cue_n = 3 %}{% if view == 3 %}{% assign cue_n = 2 %}{% elsif view == 4 %}{% assign cue_n = 1 %}{% endif %}{% comment %} Calm (owner): top layer and extras, as many as the view has room for {% endcomment %}
-   {%- capture cue_html %}    {%- if ui.cue and ui.cue.size > 0 %}<div class="flex flex--row flex--center-y gap--xsmall{% if view == 3 %} lg:hidden{% endif %}" data-sw-cues>{% for k in ui.cue limit: cue_n %}<div class="h--[{{ pf_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]" data-sw-part="cue" data-sw-i="{{ forloop.index0 }}" data-sw-cue="{{ k }}"></div>{% endfor %}</div>{% endif %}
+   {%- assign bw_m = 9 | times: wm | round %}{% assign bw_l = 6 | times: wl | round %}{% capture badge_w %}w--[{{ bw_m }}cqw] lg:w--[{{ bw_l }}cqw]{% if view == 1 %} lg:portrait:w--[12cqw]{% endif %}{% endcapture %}{% comment %} Calm (owner): the clothing badge has one fixed width in the console and every day row {% endcomment %}
+   {%- capture cue_html %}    {%- if ui.cue and ui.cue.size > 0 %}<div class="shrink-0 {{ badge_w }} h--[{{ pf_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]{% if view == 3 %} lg:hidden{% endif %}" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}
 {%- endcapture %}
    <div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
     {%- if ui.inn %}{% comment %} Indoor sensor (as live): BUITEN and BINNEN twin readouts, the felt temperature under the outdoor one, the indoor humidity under the indoor one. {% endcomment %}
@@ -177,11 +177,11 @@
   </div>
 {%- else %}
   <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
-   {%- assign dcue_on = false %}{% if ui.calm and view != 2 and view != 4 %}{% assign dcue_on = true %}{% endif %}{% assign dcue_w = 'w--[12cqw] lg:w--[10cqw] lg:portrait:w--[20cqw]' %}{% if view == 3 %}{% assign dcue_w = 'hidden lg:block lg:w--[14cqw]' %}{% endif %}{% comment %} Calm (owner): a clothing cue per day, its own column after the icon {% endcomment %}
-   <div class="shrink-0 {{ name_w }}"></div><div class="shrink-0 {{ icon_w }}"></div>{% if dcue_on %}<div class="shrink-0 {{ dcue_w }}"></div>{% endif %}
+   {%- assign dcue_on = false %}{% if ui.calm and view != 2 and view != 4 %}{% assign dcue_on = true %}{% endif %}{% capture dcue_w %}{{ badge_w }}{% if view == 3 %} hidden lg:block{% endif %}{% endcapture %}{% comment %} Calm (owner): a clothing cue per day, its own column after the icon {% endcomment %}
+   <div class="shrink-0 {{ name_w }}"></div><div class="shrink-0 {{ icon_w }}"></div>
    <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
    <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
-   <div class="grow basis--0 h--full" data-sw-part="scale"></div>
+   <div class="grow basis--0 h--full" data-sw-part="scale"></div>{% if dcue_on %}<div class="shrink-0 {{ dcue_w }}"></div>{% endif %}
   </div>
   {%- assign t0 = ui.days.first.today %}{% assign nd_last = nd_lg | minus: 1 %}
   {%- for d in ui.days %}
@@ -194,10 +194,10 @@
   {%- unless ui.calm %}<div class="w--full h--[1px] shrink-0 border--h-60" data-sw-hair="row"></div>{% endunless %}{% comment %} owner 2026-11-12: a faint hairline over every day row (the first one is the line under the header); no edge line left of the graph {% endcomment %}
   <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
    <div class="shrink-0 {{ name_w }} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%- if d.today %}<span class="label label--inverted label--large lg:portrait:label--xxlarge text--bold" data-sw-today>{{ d.name }}</span>{% comment %} owner 2026-11-12: today an inverted label in every view {% endcomment %}{% else %}<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}</span>{% endif %}</div></div>
-   <div class="shrink-0 {{ icon_w }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>{% if dcue_on %}<div class="shrink-0 {{ dcue_w }}"><div class="flex flex--row flex--center-y gap--xsmall h--full">{% for k in d.cue %}<div class="h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" data-sw-part="dcue" data-sw-i="{{ i }}" data-sw-j="{{ forloop.index0 }}" data-sw-cue="{{ k }}"></div>{% endfor %}</div></div>{% endif %}
+   <div class="shrink-0 {{ icon_w }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
    <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.lo }}</span></div>
    <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.hi }}</span></div>
-   <div class="grow basis--0 h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>
+   <div class="grow basis--0 h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>{% if dcue_on %}<div class="shrink-0 {{ dcue_w }} flex flex--row flex--center-y"><div class="w--full h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" data-sw-part="dcue" data-sw-i="{{ forloop.index0 }}" data-sw-cue="{{ d.cue | join: '+' }}"></div></div>{% endif %}
   </div></div>
   {%- endif %}
   {%- endfor %}
@@ -412,10 +412,17 @@ sunglasses: "<path d='M3 11.5h22'/><path d='M4 11.5l.8 4.5a3 3 0 0 0 3 2.5h1.4a3
 jacket: "<path d='M10.5 4.5L5.5 7 4 22h3l1.5-10V24h11V12L21 22h3L22.5 7l-5-2.5'/><path d='M10.5 4.5L14 9l3.5-4.5'/><path d='M14 9v15'/>",
 sweater: "<path d='M10 5L5.5 7 4 22h3l1.5-10V24h11V12L21 22h3L22.5 7 18 5'/><path d='M10 5c.8 1.8 2.2 2.6 4 2.6S17.2 6.8 18 5'/><path d='M11.2 5.6c.8 1 1.7 1.5 2.8 1.5s2-.5 2.8-1.5' stroke-width='1.2'/><path d='M8.5 21.5h11M11 12l2 2 2-2 2 2M11 16l2 2 2-2 2 2' stroke-width='1.3'/>",
 tshirt: "<path d='M10 5L4 8.5l2.5 4.5L9 11.5V24h10V11.5l2.5 1.5L24 8.5 18 5'/><path d='M10 5c.8 1.8 2.2 2.6 4 2.6S17.2 6.8 18 5'/>" };
-function cue(k, H) {
-if (!k || !CLOTH[k]) return '';
-var sw = Math.max(1.8, 1.5 * 28 / Math.max(1, H));
-return svg(H, H, '<g fill="none" stroke="currentColor" stroke-width="' + n1(sw * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-cloth="' + k + '">' + CLOTH[k] + '</g>', '0 0 28 28');
+function cue1(k, x, y, sz) {
+var sw = Math.max(1.8, 1.5 * 28 / Math.max(1, sz));
+return '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(sz) + '" height="' + n1(sz) + '" viewBox="0 0 28 28" overflow="visible"><g fill="none" stroke="currentColor" stroke-width="' + n1(sw * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-cloth="' + k + '" data-sw-box="' + [x, y, sz].map(n1).join(',') + '">' + CLOTH[k] + '</g></svg>';
+}
+// Clothing badge (owner): fixed box; the top layer at full size on the left, up to two extras at 55 % stacked on the
+// right (first top-right, second bottom-right), clear of the top icon. The box width is set by the page, the same everywhere.
+function cue(ks, W, H) {
+ks = (ks || []).filter((k) => CLOTH[k]); if (!ks.length) return svg(W, H, '');
+var s = Math.min(H, W / 1.6), e = s * 0.55, y0 = (H - s) / 2, body = cue1(ks[0], 0, y0, s);
+ks.slice(1, 3).forEach((k, j) => { body += cue1(k, s * 1.6 - e, j ? y0 + s - e : y0, e); });
+return svg(W, H, body);
 }
 // Receiver dial: arc, ticks, range band with low (hollow) and high (solid) marks, scale labels; barometer zone bands
 // with their icons; the needle and hub last, on top of everything.
@@ -512,8 +519,8 @@ function part(SW, kind, i, W, H) {
 API.calm = !!SW.calm;
 var scN = SW.calm ? Object.assign({}, SW.scale, { now: null }) : SW.scale;   // Calm (owner): no now line
 switch (kind) {
-case 'cue': return cue((SW.cue || [])[i], H);
-case 'dcue': return cue(((SW.days[i] || {}).cue || [])[API.j || 0], H);
+case 'cue': return cue(SW.cue, W, H);
+case 'dcue': return cue((SW.days[i] || {}).cue, W, H);
 case 'temp': return digits(SW.temp, H);
 case 'itemp': return SW.inn ? digits(SW.inn.temp, H) : '';
 case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
