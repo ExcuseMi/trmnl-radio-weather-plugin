@@ -913,8 +913,8 @@ if (dx + fw5 > x2) SW2 = F(SW2.size * Mx(0.4, 0.88 * (x2 - dx - WD.size * 1.2) /
 if (!EV) text(g, fl + ' ' + fs + deg, dx, fy2, SW2, { fill: GLOW, ls: R(WD.size * 0.08) }).setAttribute('data-sw-feels', 1);
 if (M.inn.hum !== null) text(g, I18N.ours('hum') + ' ' + Math.round(M.inn.hum) + ' %', x2, fy2, SW2, { fill: GLOW, ls: R(WD.size * 0.08) });
 } else {
-var fsz = WD.size * 1.5, flw = fsz * 0.55, fg = u(8), fdw = mW(fs + deg, WD) * 1.1, fx0 = blk.cL + avail / 2 - (flw + fg + fdw) / 2;   // owner 2026-11-12: a thermometer icon for the feels-like
-var fic = glowIcon(g, (gg) => icon(gg, 'feels', fx0 + flw / 2, fy2 - WD.size * 0.36, fsz, null)); if (fic) fic.setAttribute('data-sw-feels', 1);
+var flw = mW(fl, WD) * 1.15, fg = u(14), fdw = mW(fs + deg, WD) * 1.1, fx0 = blk.cL + avail / 2 - (flw + fg + fdw) / 2;   // owner 2026-11-12: the word, a thermometer icon was not clear
+text(g, fl, fx0, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.15) }).setAttribute('data-sw-feels', 1);
 text(g, fs + deg, fx0 + flw + fg, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.1) }).setAttribute('data-sw-feels-value', 1);
 }
 }
@@ -1203,7 +1203,7 @@ stage.setAttribute('data-sw-debug', JSON.stringify(debug));
 }
 var WI_BASE = 'https://trmnl.com/images/plugins/weather/';
 var MOON_N = SW_MOON || 'wi-night-clear';
-var WI_MAP = { moon: [MOON_N, MOON_N, MOON_N], feels: ['wi-thermometer', 'wi-thermometer', 'wi-thermometer'], sunrise: ['wi-sunrise', 'wi-sunrise', 'wi-sunrise'], sunset: ['wi-sunset', 'wi-sunset', 'wi-sunset'], clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
+var WI_MAP = { moon: [MOON_N, MOON_N, MOON_N], sunrise: ['wi-sunrise', 'wi-sunrise', 'wi-sunrise'], sunset: ['wi-sunset', 'wi-sunset', 'wi-sunset'], clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
 cloud: ['wi-cloudy', 'wi-cloudy', 'wi-cloudy'], fog: ['wi-day-fog', 'wi-night-fog', 'wi-fog'],
 drizzle: ['wi-day-sprinkle', 'wi-night-alt-sprinkle', 'wi-sprinkle'], rain: ['wi-day-rain', 'wi-night-alt-rain', 'wi-rain'],
 heavy: ['wi-rain', 'wi-rain', 'wi-rain'], sleet: ['wi-day-sleet', 'wi-night-alt-sleet', 'wi-sleet'],
