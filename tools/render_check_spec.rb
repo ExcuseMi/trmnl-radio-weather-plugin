@@ -69,11 +69,11 @@ var d=Math.min(b.left-S.left,b.top-S.top,S.right-b.right,S.bottom-b.bottom);if(d
         puts "PATTERN #{c['name']}: #{pat}" unless pat.zero?
         expect(pat).to eq(0)
       end
-      # Weather icon (owner 2026-11-12, revised): drawn ink 1.8 to 2.2 x the cap height (two lines: 0.9 to 1.1 x the block), ink centred on the label.
+      # Weather icon (owner 2026-11-12, revised): drawn ink 1.8 to 2.2 x the cap height, one line or two (owner, later: a step smaller than 2.5x), ink centred on the label.
       ci = s.evaluate(%q{(function(){var bad=[],cx=document.createElement('canvas').getContext('2d');document.querySelectorAll('[data-sw-cond]').forEach(function(sp){var sb=sp.getBoundingClientRect();if(!sb.height)return;
 var ic=sp.parentElement.firstElementChild,ib=ic.getBoundingClientRect(),k=sb.width/(sp.offsetWidth||sb.width),cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var m=cx.measureText('H'),fa=m.fontBoundingBoxAscent*k,fd=m.fontBoundingBoxDescent*k,cap=m.actualBoundingBoxAscent*k;
 var rg=document.createRange();rg.selectNodeContents(sp);var lr=[].filter.call(rg.getClientRects(),function(q){return q.width>0}),bl=function(q){return q.top+(q.height-fa-fd)/2+fa},t0=bl(lr[0])-cap,t1=bl(lr[lr.length-1]),n=lr.filter(function(q,i){return i===0||Math.abs(q.top-lr[i-1].top)>2}).length;
-var ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),it=ib.top+ik[0]*ib.height,ih=ik[1]*ib.height,h=n>1?t1-t0+cap:cap,mid=n>1?(t0+t1)/2:t0+cap/2,q=ih/h;if(n>2)bad.push('label on '+n+' lines');if(n>1?(q<(ic.hasAttribute('data-sw-clamped')?0.9:1.05)||q>1.25):(q<(ic.hasAttribute('data-sw-clamped')?1.8:2.25)||q>2.75))bad.push('icon ink '+ih.toFixed(1)+' / '+(n>1?'block ':'cap ')+h.toFixed(1)+' = '+q.toFixed(2)+' ('+n+' lines)');if(Math.abs(it+ih/2-mid)>1.5)bad.push('icon ink centre off '+(it+ih/2-mid).toFixed(1));});return bad.join('; ');})()})
+var ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),it=ib.top+ik[0]*ib.height,ih=ik[1]*ib.height,h=n>1?t1-t0+cap:cap,mid=n>1?(t0+t1)/2:t0+cap/2,q=ih/h;if(n>2)bad.push('label on '+n+' lines');if(n>1&&(q=ih/cap,0))0;if(n>1?(q<(ic.hasAttribute('data-sw-clamped')?1.6:1.8)||q>2.2):(q<(ic.hasAttribute('data-sw-clamped')?1.6:1.8)||q>2.2))bad.push('icon ink '+ih.toFixed(1)+' / cap '+(n>1?cap:h).toFixed(1)+' = '+q.toFixed(2)+' ('+n+' lines)');if(Math.abs(it+ih/2-mid)>1.5)bad.push('icon ink centre off '+(it+ih/2-mid).toFixed(1));});return bad.join('; ');})()})
       puts "CONDICON #{c['name']}: #{ci}" unless ci.empty?
       expect(ci).to eq('')
       # Days strip (owner 2026-11-12, later): the strip always starts with today, the one highlighted row.

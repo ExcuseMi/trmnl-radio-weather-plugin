@@ -554,8 +554,8 @@ return API;
       lr.forEach(function (q) { if (!tops.some(function (t) { return Math.abs(t - q.top) < 2; })) tops.push(q.top); });
       var m = cx.measureText('H'), cap = m.actualBoundingBoxAscent, fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent, lh = parseFloat(cs.lineHeight) || (fa + fd);
       var first = lr[0] || sb, base = first.top / k + (first.height / k - (fa + fd)) / 2 + fa;
-      if (tops.length <= 1) { h = 2.5 * cap; mid = base - cap / 2; }   // owner 2026-11-12: about 2.5x cap height on one line, the two-line block plus a bit
-      else { var last = lr[lr.length - 1], lb = last.top / k + (last.height / k - (fa + fd)) / 2 + fa; h = (lb - (base - cap) + cap) * 1.15; mid = (lb + base - cap) / 2; }
+      if (tops.length <= 1) { h = 2 * cap; mid = base - cap / 2; }   // owner (later): about 2x the cap height, one line or two
+      else { var last = lr[lr.length - 1], lb = last.top / k + (last.height / k - (fa + fd)) / 2 + fa; h = 2 * cap; mid = (lb + base - cap) / 2; }   // two lines (owner, later): a step smaller, about 2x the cap height, centred on the block
       var pn = sp.closest('[data-sw-panel]'); if (pn) { var pr = pn.getBoundingClientRect(), pp = getComputedStyle(pn), lim = 2 * Math.min(mid - pr.top / k - parseFloat(pp.paddingTop), pr.bottom / k - parseFloat(pp.paddingBottom) - mid) - 2; if (lim > 0 && h > lim) { h = lim; ic.setAttribute('data-sw-clamped', '1'); } }   // never past the panel (a tall sensor row leaves less room)
       var ik = (ic.querySelector('[data-sw-ink]') || ic).getAttribute('data-sw-ink') || '0,1', iy = +ik.split(',')[0], ih = +ik.split(',')[1] || 1, ink = h;
       h = ink / ih; mid += (0.5 - iy - ih / 2) * h;   // the box so its ink is the target height, moved so the ink centre sits on mid
