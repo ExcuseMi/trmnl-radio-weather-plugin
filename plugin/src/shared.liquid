@@ -654,9 +654,15 @@ return [[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[
 }
 var NEEDLE = bits === 4 ? fillOf('gray-15') : ink;
 if (bits === 4 && !o.noNeedle) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55'), 'shape-rendering': GPX }, ng);
-if (o.twin !== null && o.twin !== undefined) { var ta = -A + 2 * A * Mx(-0.03, Mn(1.03, o.twin)), tux = Math.sin(ta), tuy = -Math.cos(ta), tnx = -tuy, tny = tux, tr = rArc * 0.92;
-mk('polygon', { points: [[cx + tux * tr, py + tuy * tr], [cx + tnx * u(2), py + tny * u(2)], [cx - tnx * u(2), py - tny * u(2)]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: 'none', stroke: NEEDLE, 'stroke-width': Mx(1, u(1.2)), 'stroke-dasharray': u(3) + ' ' + u(2), 'data-sw-twin': 1 }, ng);
-text(g, 'IN', cx + tux * (tr + u(6)), py + tuy * (tr + u(6)) + SC.size * 0.3, SC, { anchor: 'middle' }); }
+if (o.twin !== null && o.twin !== undefined) { var ta = -A + 2 * A * Mx(-0.03, Mn(1.03, o.twin)), tux = Math.sin(ta), tuy = -Math.cos(ta), tnx = -tuy, tny = tux, tr = rArc * 0.92, tcr = Mx(3, u(3.5));
+mk('line', { x1: cx, y1: py, x2: cx + tux * (tr - tcr), y2: py + tuy * (tr - tcr), stroke: NEEDLE, 'stroke-width': Mx(1.5, u(1.5)), 'data-sw-twin': 1 }, ng);
+mk('circle', { cx: cx + tux * tr, cy: py + tuy * tr, r: tcr, fill: 'none', stroke: NEEDLE, 'stroke-width': Mx(1.5, u(1.5)) }, ng);
+var tag = I18N.ours('indoor'), tgw = wOf(tag) * SC.size / MK.size * 0.8, tgh = SC.size * 0.9, tgPos = null;
+[0.5, 0.42, 0.58, 0.34].some((fr) => [1, -1].some((sd) => { var qx = cx + tux * tr * fr + tnx * sd * (tgw / 2 + u(6)), qy = py + tuy * tr * fr + tny * sd * (tgw / 2 + u(6)), bx3 = { l: qx - tgw / 2 - u(3), r: qx + tgw / 2 + u(3), t: qy - tgh / 2 - u(2), b: qy + tgh / 2 + u(2) }, hit3 = false;
+for (var k3 = 0; k3 <= 40; k3++) { var xx3 = cx + ux * tipR * k3 / 40, yy3 = py + uy * tipR * k3 / 40; if (xx3 > bx3.l && xx3 < bx3.r && yy3 > bx3.t && yy3 < bx3.b) hit3 = true; }
+if (scaleLabels.some((q) => bx3.r > q.l && bx3.l < q.r && bx3.b > q.t && bx3.t < q.b) || hit3 || qx - tgw / 2 < fx0 || qx + tgw / 2 > fx0 + fw) return false;
+tgPos = [qx, qy]; return true; }));
+if (tgPos) text(g, tag, tgPos[0], tgPos[1] + SC.size * 0.3, F(SC.size * 0.8, SC.weight, 1), { anchor: 'middle' }); }
 if (!o.noNeedle) glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true, ng);
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
