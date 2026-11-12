@@ -183,11 +183,11 @@ test('sun: the next sunrise and sunset, tomorrow flagged (owner 2026-11-12)', ()
 });
 
 // v2 X full view: the parts the layout places (buildView in transform.js)
-test('the X view: meters in owner order, rain calendar on a wet day, five days from tomorrow', () => {
+test('the X view: meters in owner order, rain calendar on a wet day, six days from today, today flagged', () => {
   const raw = fx('mixed'), M = SWModel.build(raw, {}), v = T.buildView(M, T.buildI18n('nl'), raw.daily, 'wi-moon-full');
   eq(v.meters.map((m) => m.key), ['wind', 'humidity', 'baro']);
   ok(v.rain && !v.dry && v.rain.hours.length === 12, 'rain calendar on a wet day');
-  eq(v.days.map((d) => d.name), ['MA', 'DI', 'WO', 'DO', 'VR'], 'days start tomorrow');
+  eq(v.days.map((d) => d.name), ['ZO', 'MA', 'DI', 'WO', 'DO', 'VR'], 'six days from today'); eq(v.days.map((d) => d.today), [true, false, false, false, false, false]);
   ok(!JSON.stringify(v).includes('<svg'), 'the transform builds no SVG (owner 2026-11-12)');
 });
 test('the X view: a dry day shows sun times and the moon, no calendar', () => {
@@ -255,7 +255,9 @@ test('dial light: backlight in light mode (2-bit up), glow in dark (blur 4-bit, 
 test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 segments, 5 days', () => {
   ok(/<div class="hidden lg:block h--\[30cqh\]"><div class="grid grid--cols-2/.test(sh), 'dials only on lg');
   ok(/lg:hidden" data-sw-part="meter" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="meter" data-sw-n="10"/.test(sh), 'meter copies per size');
-  ok(/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'fifth day only on lg');
+  ok(/data-sw-row="day"/.test(sh) && !/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'every day row in the same full-width wrapper (no half-width fifth row)');
+  ok(/{%- if d.today %}<div class="[^"]*lg:hidden" data-sw-today>/.test(sh), 'OG: today underlined');
+  D.mode = { bits: 1 }; ok(/<\/g><g><rect/.test(D.meter(0, 200, 30, 5)), '1-bit: unlit cells drawn in full colour'); D.mode = null;
   const cells = (n) => (D.meter(0, 200, 30, n).match(/<rect/g) || []).length;
   eq([cells(5), cells(10)], [5, 10]);
   D.mode = { bits: 2 }; ok(/text--gray-45/.test(D.meter(0, 200, 30, 5)), '2-bit: unlit cells dark enough to show'); D.mode = null;

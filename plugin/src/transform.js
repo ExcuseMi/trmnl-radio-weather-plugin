@@ -362,7 +362,7 @@ var tv = n.temp, tStr = tv === null ? '--.-' : (Math.round(tv * 10) / 10).toFixe
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
 var feelsOn = n.feels !== null && tv !== null && Math.abs(n.feels - tv) >= 2;
 var R = M.rain, wetIn12 = !!R && R.from < 12;
-var days = (M.days || []).slice(1, 6), dates = ((daily || {}).time || []).slice(1, 6), names = dayNames(dates, i18n.loc);
+var d0 = M.ev ? 2 : 0, days = (M.days || []).slice(d0, d0 + 6), dates = ((daily || {}).time || []).slice(d0, d0 + 6), names = dayNames(dates, i18n.loc);   // from today (evening: the day after tomorrow); views with the temperature dial hide today (owner 2026-11-12)
 var vals = []; days.forEach((d) => { if (d.lo !== null) vals.push(d.lo); if (d.hi !== null) vals.push(d.hi); }); if (tv !== null) vals.push(tv);
 var st = F_ ? 10 : 5, sc = { a: Math.floor(Math.min.apply(null, vals.length ? vals : [0]) / st) * st, b: Math.ceil(Math.max.apply(null, vals.length ? vals : [10]) / st) * st, major: st, now: tv, deg: deg };
 if (sc.b - sc.a < 2 * st) sc.b = sc.a + 2 * st;
@@ -381,7 +381,7 @@ cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.ic
 temp: tStr, unit: deg + M.unit, feels: feelsOn ? fmt(n.feels) : null,
 rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R) } : null,
 sun: sun, dry: wetIn12 ? null : sun,
-days: days.map((d, i) => ({ name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: false })),
+days: days.map((d, i) => ({ name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
 scale: sc,
 baro: { now: pr, lo: ps.length ? Math.min.apply(null, ps) : null, hi: ps.length ? Math.max.apply(null, ps) : null, a: 970, b: 1050,
 value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro,

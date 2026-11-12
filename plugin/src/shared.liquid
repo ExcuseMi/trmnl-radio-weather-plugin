@@ -32,8 +32,8 @@
    <div class="flex flex--col flex--between grow w--full">
    {%- for m in ui.meters %}
     <div class="flex flex--row flex--center-y gap--small h--[9cqh] lg:h--[5cqh]">
-     <div class="w--[12cqw] lg:w--[11cqw] text--right"><span class="title title--small text--bold">{{ m.label }}</span></div>
-     <div class="w--[19cqw] h--[7cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ forloop.index0 }}"></div>
+     <div class="w--[13cqw] lg:w--[11cqw] text--right"><span class="title title--base lg:title--small text--bold">{{ m.label }}</span></div>
+     <div class="w--[18cqw] h--[7cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ forloop.index0 }}"></div>
      <div class="hidden lg:block w--[22cqw] h--[4cqh]" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ forloop.index0 }}"></div>
     </div>
    {%- endfor %}
@@ -46,22 +46,22 @@
     <span class="title title--base text--bold" data-clamp="2">{{ ui.cond }}</span>
    </div>
    <div class="w--[30cqw] h--[1cqh]" data-sw-part="rule"></div>
-   <div class="flex flex--row flex--center-y gap--small lg:gap--medium h--[19cqh] lg:h--[13cqh]">
+   <div class="flex flex--row flex--center-y gap--small lg:gap--medium h--[15cqh] lg:h--[13cqh]">
     <div class="flex flex--row flex--top gap--xsmall h--full"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
     {%- if ui.feels %}
-    <div class="border--v-60 h--[14cqh] lg:h--[9cqh]"></div>
-    <div class="h--[12cqh] lg:h--[8cqh]" data-sw-part="person"></div>
-    <div class="h--[11cqh] lg:h--[7cqh]" data-sw-part="feels"></div>
+    <div class="border--v-60 h--[12cqh] lg:h--[9cqh]"></div>
+    <div class="h--[10cqh] lg:h--[8cqh]" data-sw-part="person"></div>
+    <div class="h--[9cqh] lg:h--[7cqh]" data-sw-part="feels"></div>
     {%- endif %}
    </div>
   </div>
   <div class="border--v-60"></div>
-  <div class="flex flex--col flex--center gap--small w--[23cqw]">
+  <div class="flex flex--col flex--center gap--small w--[23cqw] lg:w--[25cqw]">
    {%- if ui.rain %}
    <div class="flex flex--col lg:flex--row flex--center gap--xsmall lg:gap--small w--full shrink-0" data-sw-unit="rain">
     <img class="image image--adaptive w--[7cqw] lg:hidden" src="{{ ui.rain.icon }}" alt="">
     <img class="image image--adaptive hidden lg:block h--[8cqh] shrink-0" src="{{ ui.rain.icon }}" alt="">
-    <div class="w--full lg:w--[17cqw] h--[12cqh] lg:h--[8cqh] shrink-0" data-sw-part="rain"></div>
+    <div class="w--full lg:w--[19cqw] h--[12cqh] lg:h--[8cqh] shrink-0" data-sw-part="rain"></div>
    </div>
    <div class="w--full h--[1cqh] shrink-0" data-sw-part="rule" data-sw-sep="rain-sun"></div>
    {%- endif %}
@@ -81,15 +81,21 @@
    <div class="col--span-1 flex flex--center h--full"><div class="h--[4cqh] lg:h--[3cqh] w--[2cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
    <div class="col--span-8 h--full" data-sw-part="scale"></div>
   </div>
+  {%- assign t0 = ui.days.first.today %}
   {%- for d in ui.days %}
-  {%- if forloop.index > 4 %}<div class="hidden lg:block">{% endif %}
+  {%- assign i = forloop.index0 %}{% assign on_md = false %}{% assign on_lg = false %}
+  {%- if i < 4 %}{% assign on_md = true %}{% endif %}
+  {%- if t0 %}{% if i >= 1 and i <= 5 %}{% assign on_lg = true %}{% endif %}{% elsif i <= 4 %}{% assign on_lg = true %}{% endif %}
+  {%- if on_md or on_lg %}
+  <div class="w--full{% if on_md and on_lg %}{% elsif on_md %} lg:hidden{% else %} hidden lg:block{% endif %}" data-sw-row="day">
   <div class="grid grid--cols-12 gap--small h--[6cqh] lg:h--[4cqh]">
-   <div class="col--span-1 flex flex--center-y"><span class="title title--base text--bold">{{ d.name }}</span></div>
+   <div class="col--span-1 flex flex--center-y"><div class="flex flex--col gap--xsmall"><span class="title title--base text--bold">{{ d.name }}</span>{%- if d.today %}<div class="w--full border--h-black lg:hidden" data-sw-today></div>{% endif %}</div></div>
    <div class="col--span-1 flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[6cqh] lg:h--[5cqh]" src="{{ d.icon }}" alt="">{% endif %}</div>
    <div class="col--span-1 flex flex--center"><span class="title title--base text--bold">{{ d.lo }}</span></div>
    <div class="col--span-1 flex flex--center"><span class="title title--base text--bold">{{ d.hi }}</span></div>
    <div class="col--span-8 h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>
-  </div>{% if forloop.index > 4 %}</div>{% endif %}
+  </div></div>
+  {%- endif %}
   {%- endfor %}
  </div>{{ p_close }}</div>
 </div>
@@ -168,7 +174,7 @@ for (var i = 0; i < n; i++) {
 var x = i * cw + gp / 2, w = cw - gp;
 if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
 }
-return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g((API.mode && API.mode.bits <= 2) ? 'text--gray-45' : 'text--gray-65', off) + g('text--gray-40', on));
+return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')), off) + g('text--gray-40', on));
 }
 // Days strip row: rules every major step (dark grey), the low to high blocks (one per degree, shadowed), the now line.
 function day(d, sc, W, H) {
@@ -321,7 +327,7 @@ return API;
         var r = el.getBoundingClientRect();
         if (!r.width && !r.height) return;   // the other size's copy (lg:hidden / hidden lg:block)
         SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null;
-        var rows = document.querySelectorAll('[data-sw-part="day"]'), pitch = rows.length > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : r.height;
+        var rows = [].filter.call(document.querySelectorAll('[data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), pitch = rows.length > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : r.height;
         SWDraw.ext = Math.max(0, (pitch - r.height) / 2 + 1);   // day rows: rules and the now line run on through the gap to the next row
         el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.round(r.width), Math.round(r.height));
       });
