@@ -58,8 +58,11 @@
   <div class="border--v-60"></div>
   <div class="flex flex--col flex--center gap--small w--[23cqw]">
    {%- if ui.rain %}
-   <img class="image image--adaptive h--[8cqh] lg:h--[6cqh] shrink-0" src="{{ ui.rain.icon }}" alt="">
-   <div class="w--full h--[12cqh] lg:h--[8cqh] shrink-0" data-sw-part="rain"></div>
+   <div class="flex flex--col lg:flex--row flex--center gap--xsmall lg:gap--small w--full shrink-0" data-sw-unit="rain">
+    <img class="image image--adaptive w--[7cqw] lg:hidden" src="{{ ui.rain.icon }}" alt="">
+    <img class="image image--adaptive hidden lg:block h--[8cqh] shrink-0" src="{{ ui.rain.icon }}" alt="">
+    <div class="w--full lg:w--[17cqw] h--[12cqh] lg:h--[8cqh] shrink-0" data-sw-part="rain"></div>
+   </div>
    <div class="w--full h--[1cqh] shrink-0" data-sw-part="rule" data-sw-sep="rain-sun"></div>
    {%- endif %}
    <div class="flex flex--row flex--center-y gap--medium shrink-0">

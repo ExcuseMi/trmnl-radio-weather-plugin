@@ -260,5 +260,11 @@ test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 s
   eq([cells(5), cells(10)], [5, 10]);
   D.mode = { bits: 2 }; ok(/text--gray-45/.test(D.meter(0, 200, 30, 5)), '2-bit: unlit cells dark enough to show'); D.mode = null;
 });
+test('rain unit: icon left of the grid at its height on lg, above it on md; separator under the unit', () => {
+  const u = sh.indexOf('data-sw-unit="rain"'), end = sh.indexOf('data-sw-part="rain"', u);
+  ok(u > 0 && /flex--col lg:flex--row/.test(sh.slice(sh.lastIndexOf('<div', u), u)), 'column on md, row on lg');
+  ok(/hidden lg:block h--\[8cqh\][^>]*ui.rain.icon/.test(sh.slice(u, end)) && /lg:h--\[8cqh\][^"]*" data-sw-part="rain"/.test(sh), 'lg icon as tall as the grid');
+  ok(sh.indexOf('data-sw-sep="rain-sun"') > end, 'separator after the unit');
+});
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
