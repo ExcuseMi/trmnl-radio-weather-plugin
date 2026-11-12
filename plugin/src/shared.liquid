@@ -455,7 +455,6 @@ var day24 = (() => { var lo = null, hi = null; M.hours.slice(0, 24).forEach((h) 
 if (h.t === null) return; if (lo === null || h.t < lo) lo = h.t; if (hi === null || h.t > hi) hi = h.t; }); return { lo: lo, hi: hi }; })();
 var portrait = UW / UH < 1.15;
 var station = (SW_CFG.label || '').toUpperCase();
-var CREDIT = (SW_CFG.hideTitle || view !== 1 ? (M.now.sync ? M.now.sync + '  \u00b7  ' : '') : '') + 'OPEN-METEO';
 var ICON_INK = null, ICON_NOW = false, drawnIcon = icon, iconsUsed = { wi: 0, drawn: 0 };
 function wiName(kind, isDay) { return /^wi-/.test(kind) ? kind : (WI_MAP[kind] || [])[isDay === null ? 2 : (isDay === false ? 1 : 0)]; }
 icon = (g, kind, cx, cy, sz, isDay) => {
@@ -625,7 +624,7 @@ return [[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[
 }
 var NEEDLE = bits === 4 ? fillOf('gray-15', '#222') : ink;
 if (bits === 4) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55', '#999'), 'shape-rendering': GPX }, ng);
-glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true);
+glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true, ng);
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
 tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Mx(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
@@ -772,8 +771,16 @@ dd += (k ? ' L' : 'M') + Mx(x, Mn(x + w, ecx + w * 0.5 * st[3] * Math.cos(an))).
 mk('path', { d: dd + ' Z', fill: st[2] < 1 ? dith(st[0], st[1], st[2]) : st[0], 'data-sw-lamp': i }, lg);
 });
 }
-function glowDigits(draw, noLcd) {
+function glowDigits(draw, noLcd, par) {
 if (LCD) return draw(null);
+if (bits === 2 && darkMode && !color) {
+var RG = DIMW, rw2 = 2 * Mx(1, u(2)), rgg = mk('g', { fill: RG, stroke: RG, 'stroke-width': rw2, 'stroke-linejoin': 'round', 'data-sw-halo': '1' }, par || root);
+draw(rgg);
+[].forEach.call(rgg.querySelectorAll('*'), (e) => { var f = e.getAttribute('fill'), s = e.getAttribute('stroke'), sw0 = parseFloat(e.getAttribute('stroke-width')) || 0;
+if (f && f !== 'none') e.setAttribute('fill', RG);
+if (s && s !== 'none') { e.setAttribute('stroke', RG); e.setAttribute('stroke-width', sw0 + rw2); } else if (f && f !== 'none') { e.setAttribute('stroke', RG); e.setAttribute('stroke-width', rw2); } });
+return draw(null);
+}
 if (!FULL && !GREYGLOW && !GLOWD) return draw(null);
 var id = 'swhalo' + view + '-' + (glowN++);
 var f = mk('filter', { id: id, x: '-20%', y: '-20%', width: '140%', height: '140%' }, defs);
@@ -943,22 +950,6 @@ var pillW = 0;
 if (compact) pillW = status(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry')), ix, sy, ST, !M.ok || !!M.rain);
 var WD = F(RD(hb * (compact ? 0.09 : 0.085), 11), '700');
 var crW = 0, crMoved = null;
-if (compact) {
-var CR = F(RD(hb * 0.06, 9), '600'), crRight = x + w - u(16) - hb * 0.24 - u(8), crRoom = crRight - (ix + pillW + u(12));
-var crCol = bits === 1 ? ink : (DIMW || GLOW);
-var SHORTCR = (M.now.sync ? M.now.sync + '  \u00b7  ' : '') + 'OPEN-METEO';
-var ct0 = null;
-[CREDIT, SHORTCR].some((c) => {
-if (ct0) g.removeChild(ct0);
-ct0 = text(g, c, crRight, sy, CR, { anchor: 'end', ls: R(CR.size * 0.1), fill: crCol });
-return width(ct0) <= crRoom;
-});
-if (width(ct0) > crRoom) {
-g.removeChild(ct0);
-ct0 = text(g, SHORTCR, x + w - u(16), y + h * 0.88, CR, { anchor: 'end', ls: R(CR.size * 0.1), fill: crCol });
-crW = width(ct0) + u(12); crMoved = ct0;
-}
-}
 var condS = M.ok ? (I18N.cond(M.now.code, M.now.day) || M.now.word || '') : String(M.reason || 'NO DATA').toUpperCase(), wt = null;
 if (compact) wt = fitText(g, condS, ix, y + h * 0.88, WD, iw - crW, { fill: GLOW, ls: R(WD.size * 0.15) });
 if (crMoved && width(wt) > iw - crW + 1) {
@@ -989,7 +980,7 @@ text(cg, r.lab, x0 - u(8), cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW,
 for (var k = 0; k < 10; k++) {
 var sx = x0 + k * (segW + sg), on = k < lit, sy = R(cy - segH / 2);
 var zi = r.zones ? ((k + 0.5) / 10 >= r.zones[1] ? 2 : ((k + 0.5) / 10 >= r.zones[0] ? 1 : 0)) : 0, zc = ZC[zi];
-if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc, 'data-sw-rseg': hg ? null : 'lit', 'data-sw-zone': hg ? null : zi }, hg || cg); });
+if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc, 'data-sw-rseg': hg ? null : 'lit', 'data-sw-zone': hg ? null : zi }, hg || cg); }, false, cg);
 if (on && zi === 2 && bits === 4 && !LCD) glowDigits((hg) => { if (hg) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc }, hg); });
 else if (bits <= 2) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
 else if (DIMW && !on) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
@@ -1083,7 +1074,7 @@ var amtP = M.rain ? [((v) => (M.unit === 'F' ? (v < 0.01 ? null : (v < 0.1 ? v.t
 amtP[0] = amtP[0] === null || amtP[0] === undefined ? null : amtP[0] + (M.unit === 'F' ? ' IN' : ' MM');
 var amtS = amtP.filter(Boolean).join(' \u00b7 ') || null,
 botL = RW.lab - WD.size * (amtS ? 2.9 : 1.4);
-var ch2 = R(Mn(botL - (RW.top + WD.size * 1.3), h * 0.34)), cw2 = R(ch2 * 0.5);
+var ch2 = R(Mn(botL - (RW.top + WD.size * 1.3), h * 0.34, dh * 0.7)), cw2 = R(ch2 * 0.5);
 while (ch2 > 8 && seg7W(R(ch2 * 0.5), '88:88') > rw - u(8)) { ch2 -= 2; cw2 = R(ch2 * 0.5); }
 var ct2 = M.rain ? (M.rain.now ? rainTo : rainFrom) : '--:--', cy2 = R(((RW.top + WD.size * 1.3) + botL) / 2 - ch2 / 2), cx2 = R(rx + (rw - seg7W(cw2, ct2)) / 2);
 glowDigits((hg) => { seg7(hg || g, cx2, cy2, cw2, ch2, ct2, M.rain ? RAINDIG : GLOW, hg ? null : GHOSTD); });
@@ -1093,7 +1084,7 @@ fitText(g, !M.rain ? I18N.ours('next_h', SPAN) : (M.rain.now ? I18N.ours(wetKey(
 return;
 }
 fitText(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? I18N.ours(wetKey(M.rain.now ? 'until' : 'from')) : I18N.ours('no_rain')), rx, y + h * 0.36, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
-var ch = R(h * 0.3);
+var ch = R(Mn(h * 0.3, dh * 0.7));
 while (ch > 8 && seg7W(R(ch * 0.5), '88:88') > rw - u(8)) ch -= 2;
 var cw = R(ch * 0.5);
 var ct = M.rain ? (M.rain.now ? rainTo : rainFrom) : '--:--';
@@ -1136,16 +1127,8 @@ fill: DIGIT, 'shape-rendering': GPX }, g);
 debug.slim = { f: f };
 }
 var wy = iy + ih * 0.76, ly = iy + ih - LN.size * 0.3;
-var cw = text(g, CREDIT, ix + iw, wy, SM2, { anchor: 'end', ls: R(SM2.size * 0.1), fill: bits === 1 ? ink : (DIMW || GLOW) });
 var condTxt = M.ok ? (I18N.cond(M.now.code, M.now.day) || M.now.word || '') : I18N.ours('no_signal');
-var wq = fitText(g, condTxt, ix, wy, LN, iw - width(cw) - u(10), { fill: GLOW, ls: R(LN.size * 0.1) });
-if (width(wq) > iw - width(cw) - u(10)) {
-g.removeChild(wq);
 fitText(g, condTxt, ix, wy, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
-var room = Mx(u(20), dx - ix - u(8));
-cw.setAttribute('x', R(ix)); cw.setAttribute('y', R(Mx(iy + isz, ib.b) + SM2.size * 1.1));
-if (width(cw) > room) cw.textContent = 'OPEN-METEO';
-}
 var line = M.ok ? SWModel.fmt(hi) + deg + ' / ' + SWModel.fmt(lo) + deg + '  \u00b7  ' +
 (M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry_h', SPAN)) : String(M.reason || '').toUpperCase();
 var lt = fitText(g, line, ix, ly, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
