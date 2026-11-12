@@ -52,6 +52,23 @@ sv.closest('.relative').querySelectorAll('[data-sw-cap]').forEach(function(c){va
 return bad.join('; ');})()})
       puts "RAINUNIT #{c['name']}: #{ru}" unless ru.empty?
       expect(ru).to eq('')
+      # Bleed margin (owner 2026-11-12): every panel (and its shadow/frame) and the title bar keep the framework's
+      # screen padding from the screen edge.
+      edge = s.evaluate(%q{(function(){var sc=document.querySelector('.screen')||document.body,S=sc.getBoundingClientRect(),k=S.width/(sc.offsetWidth||S.width),bad=[],m=8*k;
+document.querySelectorAll('.rounded--large, .title_bar').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;
+var d=Math.min(b.left-S.left,b.top-S.top,S.right-b.right,S.bottom-b.bottom);if(d<m)bad.push((e.className.baseVal||e.className||e.tagName).toString().slice(0,30)+' '+d.toFixed(1));});return bad.join('; ');})()})
+      puts "EDGE #{c['name']}: #{edge}" unless edge.empty?
+      expect(edge).to eq('')
+      # Days strip (owner 2026-11-12): every grid line through the centre of its label's digits (one x mapping for the
+      # header and the rows); the now line continuous from the header down through all rows.
+      ds = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e.getBoundingClientRect();return b.width>0||b.height>0};
+var sc=[].filter.call(document.querySelectorAll('[data-sw-part="scale"]'),vis)[0],d0=[].filter.call(document.querySelectorAll('[data-sw-part="day"]'),vis)[0];if(!sc||!d0)return '';
+sc.querySelectorAll('text[data-sw-tick]').forEach(function(t){var b=t.getBoundingClientRect(),r=d0.querySelector('rect[data-sw-tick="'+t.getAttribute('data-sw-tick')+'"]');if(!r){bad.push('no line '+t.textContent);return;}var q=r.getBoundingClientRect(),dx=(b.left+b.right)/2-(q.left+q.right)/2;if(Math.abs(dx)>1)bad.push('label '+t.textContent+' off '+dx.toFixed(1));});
+var n=[].map.call(document.querySelectorAll('[data-sw-now]'),function(e){return e.getBoundingClientRect()}).filter(function(b){return b.height>0}).sort(function(a,b){return a.top-b.top});
+for(var i=1;i<n.length;i++){if(n[i].top>n[i-1].bottom+0.5)bad.push('now gap '+(n[i].top-n[i-1].bottom).toFixed(1));if(Math.abs(n[i].left-n[0].left)>0.6)bad.push('now x');}
+return bad.join('; ');})()})
+      puts "DAYS #{c['name']}: #{ds}" unless ds.empty?
+      expect(ds).to eq('')
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"

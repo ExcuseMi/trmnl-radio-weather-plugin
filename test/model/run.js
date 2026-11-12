@@ -271,7 +271,9 @@ test('rain unit: icon left of the grid on every size (owner 2026-11-12, later de
   const T3 = (h) => D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, h).match(/<text/g).length;
   eq([T3(150), T3(500)], [6, 9], 'short rain: 2 x 3; a narrow tall box: 3 x 3');
   eq(T3(300), 9, 'a box sized for 3 rows: 3 x 3');
-  eq(D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, 130, 3).match(/<text/g).length, 9, 'long rain: 3 x 3 in a box that holds it');
+  const R3 = (w, h, lp) => { D.lp = lp || 0; const n = D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), w, h, 3).match(/<text/g).length; D.lp = 0; return n; };
+  eq(R3(300, 160), 9, 'long rain: 3 x 3 in a box that holds it');
+  eq([R3(300, 120), R3(300, 160, 50)], [6, 6], 'long rain: 2 x 3 when 3 rows only fit too flat or below the label size (owner 2026-11-12)');
   ok(/data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"/.test(sh) && /{% if stk or view == 2 %}{% assign rr_m = 2 %}/.test(sh), 'stacked and half-horizontal md boxes sized for 2 rows (OG has no room for 3 at label size)');
   const c = Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: i >= 2 && i <= 6 }));
   eq([T.rainRows(c), T.rainRows(c.map((q, i) => ({ h: q.h, wet: i >= 2 && i <= 5 })))], [3, 2], 'rows: 3 when the rain runs past the sixth hour');

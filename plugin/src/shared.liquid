@@ -2,7 +2,7 @@
 {%- assign cf = trmnl.plugin_settings.custom_fields_values -%}
 {%- capture sw_icon -%}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="2" y="13" width="4" height="9" fill="#000"/><rect x="2" y="9" width="4" height="2" fill="#000"/><rect x="8" y="6" width="4" height="16" fill="#000"/><rect x="8" y="2" width="4" height="2" fill="#000"/><rect x="14" y="10" width="4" height="12" fill="#000"/><rect x="14" y="6" width="4" height="2" fill="#000"/><rect x="20" y="16" width="2" height="6" fill="#000"/></svg>{%- endcapture -%}
 {%- comment -%} Receiver panel: shadow (light, 2-bit and up), heavy dark frame, thin inner line. {%- endcomment -%}
-{%- capture p_open -%}<div class="relative h--full w--full"><div class="absolute top--1.5 left--1.5 w--full h--full rounded--large bg--gray-55 dark:hidden 1bit:hidden"></div><div class="relative z--1 h--full w--full rounded--large bg--black p--1 lg:p--2"><div class="h--full w--full rounded bg--white p--1">{%- endcapture -%}
+{%- capture p_open -%}<div class="relative h--full w--full pr--1.5 pb--1.5"><div class="absolute top--1.5 left--1.5 right--0 bottom--0 rounded--large bg--gray-55 dark:hidden 1bit:hidden"></div><div class="relative z--1 h--full w--full rounded--large bg--black p--1 lg:p--2"><div class="h--full w--full rounded bg--white p--1">{%- endcapture -%}
 {%- capture p_close -%}</div></div></div>{%- endcapture -%}
 {%- if ui == nil or ui.ok != true -%}
 <div class="layout layout--col layout--center" data-sw-error="{{ model.reason | default: 'NO SIGNAL' | escape }}">
@@ -12,14 +12,15 @@
 {%- elsif view >= 1 and view <= 4 -%}
 {%- comment -%} One console and one days strip for every view; per view: what shows, stacked or side by side, and a size factor for the cqh/cqw values (1 = the full view the values were tuned for). {%- endcomment -%}
 {%- assign stk = false %}{% assign hm = 1 %}{% assign hl = 1 %}{% assign wm = 1 %}{% assign wl = 1 %}{% assign n_md = 9 %}{% assign n_lg = 9 %}{% assign nd_md = 4 %}{% assign nd_lg = 5 %}{% assign hide_today_lg = false %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1' %}{% assign pad_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1' %}{% assign name_t = '' %}{% assign icon_x = '' %}{% assign rgw_l = 18 %}
-{%- if view == 1 %}{% assign hide_today_lg = true %}{% assign num_cls = ' lg:portrait:hidden' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign last_p = ' lg:portrait:hidden' %}{% assign con_h = 'h--[55cqh] lg:h--[33cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[31cqh]' %}
+{%- if view == 1 %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign hide_today_lg = true %}{% assign num_cls = ' lg:portrait:hidden' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign last_p = ' lg:portrait:hidden' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh]' %}
 {%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
 {%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign nd_md = 5 %}{% assign nd_lg = 7 %}{% assign num_cls = ' hidden' %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-9 lg:col--span-8' %}{% assign con_h = 'h--[52cqh] lg:h--[54cqh]' %}{% assign days_h = 'h--[46cqh] lg:h--[44cqh]' %}
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 1.7 %}{% assign n_md = 1 %}{% assign n_lg = 3 %}{% assign con_h = 'h--full' %}{% endif %}
 {%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
 {%- comment -%} Right column: rain unit and sun unit side by side on lg; stacked views keep the icon above the grid and the moon beside the sun times. {%- endcomment -%}
 {%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3 = 26 | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign ri_lg = 'hidden lg:block lg:portrait:hidden' %}{% assign su_cls = 'flex--row lg:portrait:flex--col' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6b = 20 %}{% if stk %}{% assign q6b = 15 %}{% assign ru_cls = 'flex--col lg:flex--row' %}{% endif %}{% assign q6 = q6b | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
-{%- if stk %}{% assign ri_md = 'w--[8cqw] lg:hidden' %}{% assign rgw_l = 15 %}{% assign rg_p = '' %}{% assign su_cls = 'flex--row' %}{% assign rc_w = 'w--[40cqw] lg:w--[38cqw] shrink-0' %}{% assign rule_w = 'w--full' %}{% assign tf = 0.7 %}{% assign mh_l = 0.45 %}{% if ui.rain %}{% assign su_cls = 'hidden lg:flex flex--row' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}{% endif %}
+{%- if stk %}{% assign ri_md = 'w--[8cqw] lg:hidden' %}{% assign rgw_l = 15 %}{% assign rg_p = '' %}{% assign su_cls = 'flex--row' %}{% assign rc_w = 'w--[40cqw] lg:w--[37cqw] shrink-0' %}{% assign rule_w = 'w--full' %}{% assign tf = 0.7 %}{% assign mh_l = 0.4 %}{% if ui.rain %}{% assign su_cls = 'hidden lg:flex flex--row' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}{% endif %}
+{%- if hh_m == nil %}{% assign hh_m = 6 %}{% endif %}{% if rw_m == nil %}{% assign rw_m = 6 %}{% endif %}
 {%- if rh_l == nil %}{% assign rh_l = 4 | times: hl | round | at_most: 100 %}{% endif %}
 {%- if tf == nil %}{% assign tf = 1 %}{% endif %}
 {%- if stk %}{% assign ms = ui.meters | sort: 'rank' %}{% else %}{% assign ms = ui.meters %}{% endif %}
@@ -76,8 +77,8 @@
 {%- capture c_right %}
   {%- comment -%} Rain unit (owner 2026-11-12): calendar rows of one size per view (rc_m/rc_l cqh), 2 or 3 rows; rain icon and moon as tall as the calendar, the same size, on one left edge; a gap of one calendar row before the sun unit. Portrait: icon above. {%- endcomment -%}
   {%- assign rr = 2 %}{% if ui.rain.rows == 3 %}{% assign rr = 3 %}{% endif %}{% assign rr_m = rr %}{% if stk or view == 2 %}{% assign rr_m = 2 %}{% endif %}
-  {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.8 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}
-  {%- assign ib_m = cal_m %}{% if stk %}{% assign ib_m = rc_m | times: 0.8 | round %}{% endif %}
+  {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.75 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}
+  {%- assign ib_m = cal_m %}{% if stk %}{% assign ib_m = rc_m | times: 0.7 | round %}{% endif %}
   {%- capture ib_cls %}aspect--1/1 h--[{{ ib_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[3cqh] shrink-0{% endcapture %}
   <div class="flex flex--col flex--center gap--xsmall lg:gap--small {{ rc_w }}">
    {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small">
@@ -119,7 +120,7 @@
  </div>{{ p_close }}</div>
 {%- if days_h %}
  <div class="{{ days_h }}">{{ p_open }}<div class="flex flex--col flex--center h--full p--2 lg:p--4 rounded--small outline">
-  <div class="grid grid--cols-12 gap--small h--[{{ 6 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
+  <div class="grid grid--cols-12 gap--small h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
    <div class="{{ pad_cls }}"></div>
    <div class="col--span-1 flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
    <div class="col--span-1 flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
@@ -133,9 +134,9 @@
   {%- if j >= 0 and j < nd_lg %}{% assign on_lg = true %}{% endif %}
   {%- if on_md or on_lg %}
   <div class="w--full{% if on_md and on_lg %}{% elsif on_md %} lg:hidden{% else %} hidden lg:block{% endif %}{% if j == nd_last %}{{ last_p }}{% endif %}" data-sw-row="day">
-  <div class="grid grid--cols-12 gap--small h--[{{ 6 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
+  <div class="grid grid--cols-12 gap--small h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
    <div class="{{ name_cls }} flex flex--center-y"><div class="flex flex--col gap--xsmall"><span class="title title--base{{ name_t }} text--bold">{{ d.name }}</span>{%- if d.today %}<div class="w--full border--h-black lg:hidden" data-sw-today></div>{% endif %}</div></div>
-   <div class="{{ icon_cls }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ 6 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
+   <div class="{{ icon_cls }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
    <div class="col--span-1 flex flex--center{{ num_cls }}"><span class="title title--base text--bold">{{ d.lo }}</span></div>
    <div class="col--span-1 flex flex--center{{ num_cls }}"><span class="title title--base text--bold">{{ d.hi }}</span></div>
    <div class="{{ bar_cls }} h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>
@@ -215,34 +216,43 @@ if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } e
 }
 return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && API.mode.dark ? '' : 'text--gray-40', glow(on, GPX)));   // dark: lit cells in full ink, as live
 }
-// Days strip row: rules every major step (dark grey), the low to high blocks (one per degree, shadowed), the now line.
+// Days strip x mapping, one for the header and every row (owner 2026-11-12): each grid line runs through the centre of
+// its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.
+function tick(v) { return String(v === 0 ? 0 : v); }
+function lfs(sc) { return (API.scaleH || 20) * 0.7; }
+function xmap(sc, W) {
+var fs = lfs(sc), cw = fs * 0.62, pl = cw * tick(sc.a).length / 2 + 2, pr = cw * tick(sc.b).length / 2 + cw * 0.7 + 2;
+return (t) => pl + (t - sc.a) / (sc.b - sc.a) * (W - pl - pr);
+}
+// Days strip row: rules every major step, the low to high blocks (one per degree, shadowed), the now line. Rules and the
+// now line run on down through the gap to the next row (API.extD), so they are continuous from the header down.
 function day(d, sc, W, H) {
-var X = (t) => (t - sc.a) / (sc.b - sc.a) * (W - 2) + 1, body = '';
-var E = API.ext || 0;   // the row pitch beyond this box: rules and the now line run on through the gap
-for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) body += rect(X(v) - 1, -E, 2, H + 2 * E);
+var X = xmap(sc, W), body = '';
+var E = API.extD || 0;
+for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) body += rect(X(v) - 1, 0, 2, H + E, 0, ' data-sw-tick="' + tick(v) + '"');
 body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.8, y = (H - bh) / 2, cells = '', sh = '';
 for (var t = a; t < b; t++) { cells += rect(X(t) + cw * 0.08, y, cw * 0.84, bh); sh += rect(X(t) + cw * 0.08 + SO, y + SO, cw * 0.84, bh); }
 body += g(SHADOW + ' text--gray-65', sh) + g(d.today ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells);
 }
-if (sc.now !== null && sc.now !== undefined) body += rect(X(sc.now) - 1.5, -E, 3, H + 2 * E);
+if (sc.now !== null && sc.now !== undefined) body += rect(X(sc.now) - 1.5, 0, 3, H + E, 0, ' data-sw-now');
 return svg(W, H, body);
 }
 // Days strip header: degree labels (dark grey) and the now pointer; its line starts here unless it would cross a label.
 function scale(sc, W, H) {
-var X = (t) => (t - sc.a) / (sc.b - sc.a) * (W - 2) + 1, fs = H * 0.7, body = '', ty = H * 0.62, cross = false, xn = sc.now === null || sc.now === undefined ? null : X(sc.now);
+var X = xmap(sc, W), fs = lfs(sc), body = '', rules = '', ty = H * 0.62, lb = ty + fs * 0.55, E = API.extD || 0, cross = false, xn = sc.now === null || sc.now === undefined ? null : X(sc.now);
 for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) {
-var p = X(v), s = (v === 0 ? 0 : v) + sc.deg, tw = fs * 0.62 * s.length, anc = p < tw / 2 ? 'start' : (p > W - tw / 2 ? 'end' : 'middle');
-var l = anc === 'start' ? p : (anc === 'end' ? p - tw : p - tw / 2);
-if (xn !== null && xn > l - 8 && xn < l + tw + 8) cross = true;
-body += text(p, ty, s, fs, anc, ' dominant-baseline="middle"');
+var p = X(v), s = tick(v), tw = fs * 0.62 * s.length, l = p - tw / 2;
+if (xn !== null && xn > l - 8 && xn < l + tw + fs * 0.4 + 8) cross = true;
+body += text(p, ty, s, fs, 'middle', ' dominant-baseline="middle" data-sw-tick="' + s + '"') + text(p + tw / 2, ty, sc.deg, fs, 'start', ' dominant-baseline="middle"');
+if (H + E > lb + 2) rules += rect(p - 1, lb + 2, 2, H + E - lb - 2);
 }
-body = g('text--gray-20', body);
+body = g('text--gray-70', rules) + g('text--gray-20', body);
 if (xn !== null) {
 var tr = fs * 0.3;
 body += poly([[xn - tr, 0], [xn + tr, 0], [xn, tr * 1.4]]);
-if (!cross) body += rect(xn - 1.5, tr, 3, H - tr + (API.ext || 0)); else body += rect(xn - 1.5, ty + fs * 0.55, 3, H - ty - fs * 0.55 + (API.ext || 0));
+if (!cross) body += rect(xn - 1.5, tr, 3, H - tr + E, 0, ' data-sw-now'); else body += rect(xn - 1.5, lb, 3, H - lb + E, 0, ' data-sw-now');
 }
 return svg(W, H, body);
 }
@@ -250,7 +260,7 @@ return svg(W, H, body);
 // Rain calendar: 3 columns, 2 rows (6 hours) or 3 rows (9 hours), 3 when the page sized the box for 3 rows
 // (rain runs on: rain.rows; data-sw-rows per size), else whichever gives squarer cells (a narrow box fits 3 rows better) (owner 2026-11-12); rain hours lit (inverted), the others in full text colour.
 function rain(hours, W, H, rows) {
-var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = rows === 3 || fit(3) < fit(2) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.65), body = '';
+var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = (rows === 3 || fit(3) < fit(2)) && (W / C) / (H / 3) <= 2 && Math.min(H / 3 * 0.9, W / C * 0.7) >= (API.lp || 0) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.7), body = '';
 hours.slice(0, C * R).forEach((q, i) => {
 var x = (i % C) * cw, y = Math.floor(i / C) * rh;
 if (q.wet) body += glow(rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22), GPX);
@@ -416,10 +426,13 @@ return API;
         var r = el.getBoundingClientRect();
         if (!r.width && !r.height) return;   // the other size's copy (lg:hidden / hidden lg:block)
         SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null;
+        var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;   // rain: 3 rows only at the meter label size or larger (owner 2026-11-12)
         var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;   // rows the md / lg box was sized for
-        var rows = [].filter.call(document.querySelectorAll('[data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), pitch = rows.length > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : r.height;
-        SWDraw.ext = Math.max(0, (pitch - r.height) / 2 + 1);   // day rows: rules and the now line run on through the gap to the next row
+        var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
+        SWDraw.scaleH = rows.length && rows[0].getAttribute('data-sw-part') === 'scale' ? Math.round(rows[0].getBoundingClientRect().height) : null;
+        SWDraw.extD = k >= 0 && k + 1 < rows.length ? Math.max(0, rows[k + 1].getBoundingClientRect().top - r.bottom + 1) : 0;   // scale and day rows: rules and the now line run on to the next row
         el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.round(r.width), Math.round(r.height));
+        el.querySelectorAll('text[data-sw-tick]').forEach(function (t) { var d = t.nextElementSibling; if (d) d.setAttribute('x', (+t.getAttribute('x') + t.getComputedTextLength() / 2 + 1).toFixed(1)); });   // the degree sign right after the drawn digits
         swAlign();   // every repaint (the Framework may rebuild or refit the page after the first one) realigns the divider
       });
     });
