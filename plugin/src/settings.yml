@@ -55,14 +55,6 @@ custom_fields:
   - 24 hours (17:00): '24'
   - 12 hours (5:00 PM): '12'
   default: '24'
-- keyname: style
-  field_type: select
-  name: Style
-  description: Receiver is the hi-fi front; Calm is a quieter living-room look.
-  options:
-  - Receiver: receiver
-  - Calm: calm
-  default: calm
 - keyname: bottom
   field_type: select
   name: Bottom strip
@@ -73,4 +65,4 @@ custom_fields:
   default: days
 name: Radio Weather
 description: Weather as a vintage radio receiver
-refresh_interval: 60
+refresh_interval: 5

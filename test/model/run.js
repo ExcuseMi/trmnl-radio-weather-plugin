@@ -129,8 +129,7 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   eq([T.timeIs12(null, '12'), T.timeIs12(null, 12), T.timeIs12(null, '24'), T.timeIs12(null, T.field({}, 'time_format', '24'))], [true, true, false, false], 'missing field: 24 h');
   eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
-  ok(/- keyname: time_format\n  field_type: select\n[\s\S]*- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n- keyname: style\n/.test(y), 'time_format, 24 by default, followed only by the later style field');
-  ok(/- keyname: style\n  field_type: select\n[\s\S]*- Receiver: receiver\n  - Calm: calm\n  default: calm\n- keyname: bottom\n/.test(y), 'style, Calm by default (owner 2026-11-12), followed by bottom');
+  ok(/- keyname: time_format\n  field_type: select\n[\s\S]*- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n- keyname: bottom\n/.test(y), 'time_format, 24 by default, followed only by the later bottom field (style removed: Calm is the only style)');
   ok(/- keyname: bottom\n  field_type: select\n[\s\S]*- Days: days\n  - Hours: hours\n  default: days\n(name:|$)/.test(y), 'bottom is the last custom field, Days by default (owner)');
 });
 
@@ -357,7 +356,7 @@ test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter,
       const d = /<path d="([^"]+)" data-sw-moon="lit"/.exec(s)[1], a = pathArea(d);
       ok(Math.abs(a.area / disk - want) <= 0.1, 'p ' + p + (dark ? ' dark' : ' light') + ': lit ' + (a.area / disk).toFixed(3) + ' want ' + want.toFixed(3));
       if (want < 0.99) ok(p < 0.5 ? a.mx > H / 2 : a.mx < H / 2, 'p ' + p + ': lit on the ' + (p < 0.5 ? 'right' : 'left'));
-      ok(dark ? /<circle[^>]*fill="none"/.test(s) && !/text--gray-45"><circle/.test(s) : /text--gray-45"><circle[^>]*fill="none"/.test(s), dark ? 'dark: limb outline glows in full ink (owner 2026-11-12)' : 'light: grey limb outline');
+      ok(/<circle[^>]*fill="none"/.test(s) && !/text--gray-45"><circle[^>]*fill="none"/.test(s), 'limb outline in full ink, light and dark (Calm, owner)');
       ok(dark ? !/text--gray-45"><path/.test(s) : /text--gray-45"><path/.test(s), dark ? 'dark: lit part in full (light) ink' : 'light: lit part in grey ink');
     });
   });
@@ -366,7 +365,7 @@ test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter,
     if (ic === 'wi-moon-alt-full') ok(Math.abs(p - 0.5) < 0.03, t + ' full at ' + p); if (ic === 'wi-moon-alt-new') ok(p < 0.03 || p > 0.97, t + ' new at ' + p); }
   eq(T.moonPhase(null), null);
 });
-test('calm style: barometer trend over 3 h with +/-1 hPa thresholds; cue umbrella beats coat, coat under 3 C / 37 F', () => {
+test('barometer trend over 3 h with +/-1 hPa thresholds; clothing cues for every rule and limit', () => {
   eq([T.pressTrend(1011, 1010), T.pressTrend(1010.9, 1010), T.pressTrend(1009, 1010), T.pressTrend(1009.1, 1010), T.pressTrend(1010, null), T.pressTrend(null, 1010)], ['rising', 'steady', 'falling', 'steady', null, null]);
   const C = (o, F) => T.cueFor(Object.assign({ rain: false, wind: null, gust: null, lo: null, hi: null, uv: null, day: true }, o), F).join('+');
   eq([C({ rain: true, lo: 15 }), C({ rain: true, lo: 15, wind: 80, gust: 120 }), C({ rain: true, lo: 1 })], ['sweater+umbrella', 'sweater+umbrella', 'parka+umbrella'], 'rain: always the umbrella extra, the top by felt temperature; no raincoat (owner)');
@@ -380,9 +379,9 @@ test('calm style: barometer trend over 3 h with +/-1 hPa thresholds; cue umbrell
   eq([i.ours.p_steady, i.ours.p_rising, i.ours.p_falling], ['STABIEL', 'STIJGEND', 'DALEND']);
   eq(T.buildI18n('ja').ours.p_rising, 'RISING', 'missing language falls back to English');
   const f = fx('mixed');
-  const M = SWModel.build(f, {}), calm = T.buildView(M, i, f.daily, null, 0.3, { calm: true, pressAgo: 1015 }), rec = T.buildView(M, i, f.daily, null, 0.3);
-  eq([calm.calm, calm.cue, calm.baro.trend], [true, ['parka', 'umbrella'], 'DALEND'], 'mixed has rain in the window, 1013.2 now against 1015');
-  eq([rec.calm, rec.cue, rec.baro.trend], [false, null, null], 'receiver: no cue, no trend');
+  const M = SWModel.build(f, {}), calm = T.buildView(M, i, f.daily, null, 0.3, { pressAgo: 1015 }), none = T.buildView(M, i, f.daily, null, 0.3);
+  eq([calm.cue, calm.baro.trend], [['parka', 'umbrella'], 'DALEND'], 'mixed has rain in the window, 1013.2 now against 1015');
+  eq(none.baro.trend, null, 'no pressure 3 h ago: no trend');
 });
 test('past_hours=3: the past hours are cut so every hourly list starts at the current hour; the pressure 3 h ago is kept', () => {
   const f = fx('mixed'), p = JSON.parse(JSON.stringify(f)), H = p.hourly;
@@ -426,10 +425,9 @@ test('per-day clothing cue: daytime hours 07:00 to 19:00 from the hourly data, d
   const c = T.dayCueInput(null, { time: ['2026-11-08'], temperature_2m_min: [1], temperature_2m_max: [9], precipitation_probability_max: [60] }, 0);
   eq([c.lo, c.hi, c.rain, T.cueFor(c, false)], [1, 9, true, ['parka', 'umbrella']], 'no felt fields: air temperature; rain from the daily value');
   const f = fx('mixed'), M = SWModel.build(f, {}), i = T.buildI18n('nl');
-  const v = T.buildView(M, i, f.daily, null, 0.3, { calm: true, hourly: f.hourly }), r = T.buildView(M, i, f.daily, null, 0.3, { hourly: f.hourly });
-  ok(v.days.every((q) => Array.isArray(q.cue) && q.cue.length >= 1 && q.cue.length <= 3), 'calm: top and up to two extras on every day');
+  const v = T.buildView(M, i, f.daily, null, 0.3, { hourly: f.hourly });
+  ok(v.days.every((q) => Array.isArray(q.cue) && q.cue.length >= 1 && q.cue.length <= 3), 'top and up to two extras on every day');
   eq(v.days.map((q) => q.cue), v.days.map((q, k) => T.cueFor(T.dayCueInput(f.hourly, f.daily, k), false).slice(0, 3)), 'days: the list capped at 3');
-  ok(r.days.every((q) => q.cue === null), 'receiver: no day cues');
 });
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

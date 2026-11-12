@@ -412,7 +412,6 @@ if (b - a < 4) b = a + 4;
 return { hours: hs.map((q, i) => ({ hl: q.hl, icon: wiUrl(q.icon, q.day), t: fmt(q.t) + deg, tV: q.t, wet: !!SWModel.hourWet(q, 50), now: i === 0 })), scale: { a: a, b: b } };
 }
 function buildView(M, i18n, daily, moon, phase, opt) {
-var calm = !!(opt && opt.calm);
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 var RO = { wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
@@ -441,16 +440,16 @@ var tsc = tvals.length ? { a: Math.floor(Math.min.apply(null, tvals) / tst) * ts
 if (tsc && tsc.b - tsc.a < 3 * tst) tsc.b = tsc.a + 3 * tst;
 var ps = (M.hours || []).slice(0, 24).map((q) => q.pr).filter((q) => q !== null && q !== undefined); if (pr !== null) ps.push(pr);
 var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg', phase: phase == null ? null : phase };
-var trend = calm ? pressTrend(n.press, opt.pressAgo) : null;
+var trend = pressTrend(n.press, opt && opt.pressAgo);
 var hrs = opt && opt.hours ? hourStrip(M.hours || [], fmt, deg) : null;   // owner: bottom strip Hours instead of the days
 var out = {
-ok: M.ok, meters: meters, calm: calm, cue: calm ? cueFor({ rain: wetIn12, lo: n.feels === null ? tv : n.feels, hi: n.feels === null ? tv : n.feels, uv: t.uvMax, day: n.day !== false }, F_) : null,
+ok: M.ok, meters: meters, cue: cueFor({ rain: wetIn12, lo: n.feels === null ? tv : n.feels, hi: n.feels === null ? tv : n.feels, uv: t.uvMax, day: n.day !== false }, F_),
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
 temp: tStr, unit: deg + M.unit, feels: feelsOn && inT === null ? fmt(n.feels) : null,
 inn: inT === null ? null : { temp: (Math.round(inT * 10) / 10).toFixed(1), out: O.outdoor, in: O.indoor, felt: n.feels === null ? '' : O.feels + ' ' + fmt(n.feels) + deg, hum: M.inn.hum === null ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
 rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)) } : null,
 sun: sun, dry: wetIn12 ? null : sun,
-days: days.map((d, i) => ({ cue: calm ? cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3) : null, name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
+days: days.map((d, i) => ({ cue: cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3), name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
 scale: sc,
 baro: { now: pr, lo: ps.length ? Math.min.apply(null, ps) : null, hi: ps.length ? Math.max.apply(null, ps) : null, a: 970, b: 1050,
 value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro, trend: trend ? O['p_' + trend] : null,
@@ -488,7 +487,7 @@ async function run(input) {
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
   var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
-  return { ui: buildView(model, i18n, w.daily, moon, phase, { calm: String(field(input, 'style', 'calm')) === 'calm', pressAgo: past.ago, hourly: w.hourly, hours: String(field(input, 'bottom', 'days')) === 'hours' }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
+  return { ui: buildView(model, i18n, w.daily, moon, phase, { pressAgo: past.ago, hourly: w.hourly, hours: String(field(input, 'bottom', 'days')) === 'hours' }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
 if (typeof module !== 'undefined') module.exports = { run: run, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
