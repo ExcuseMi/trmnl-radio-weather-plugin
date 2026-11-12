@@ -48,15 +48,21 @@
    <div class="flex flex--row flex--left gap--small h--[{{ 6 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh] w--full">
     {%- for f in ui.flags %}<span class="label label--inverted label--large text--bold" data-sw-lamp>{{ f }}</span>{% endfor -%}
    </div>
-   <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between grow{% endif %} w--full">
-   {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
-    <div class="w--full{% if forloop.index > n_md %} hidden lg:block{% endif %}">
-    <div class="flex flex--row flex--center-y gap--small h--[{{ 9 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]">
-     <div class="w--[{{ 13 | times: wm | round | at_most: 100 }}cqw] lg:w--[{{ 11 | times: wl | round | at_most: 100 }}cqw] text--right"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
-     <div class="{% if stk %}grow{% else %}w--[{{ 18 | times: wm | round | at_most: 100 }}cqw]{% endif %} h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
-     <div class="hidden lg:block {% if stk %}grow{% else %}w--[{{ 22 | times: wl | round | at_most: 100 }}cqw]{% endif %} h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
-    </div></div>
-   {%- endfor %}
+   {%- comment %} owner 2026-11-12: the meters take the full width; the label column is only as wide as its longest label {% endcomment %}
+   <div class="flex flex--row {% if stk %}{% else %}grow{% endif %} gap--small w--full">
+    <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %} shrink-0">
+    {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
+     <div class="{% if forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--right flex--center-y w--full h--[{{ 9 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
+    {%- endfor %}
+    </div>
+    <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %} grow">
+    {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
+     <div class="{% if forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y w--full h--[{{ 9 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]">
+      <div class="w--full h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
+      <div class="hidden lg:block w--full h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
+     </div>
+    {%- endfor %}
+    </div>
    </div>
   </div>
 {%- endcapture %}
