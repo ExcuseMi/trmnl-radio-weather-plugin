@@ -67,8 +67,20 @@
     <span class="title title--base text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
-   <div class="flex flex--row flex--center-y gap--small lg:gap--medium h--[{{ 15 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 13 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
+   {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}
+   <div class="flex flex--row flex--center-y gap--small lg:gap--medium h--[{{ th_m | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
+    {%- if ui.inn %}{% comment %} Indoor sensor (as live): BUITEN and BINNEN twin readouts, the felt temperature under the outdoor one, the indoor humidity under the indoor one. {% endcomment %}
+    {%- for tw in (1..2) %}
+    {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
+    <div class="flex flex--col flex--center gap--xsmall h--full" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
+     <span class="label label--small text--bold">{% if tw == 1 %}{{ ui.inn.out }}{% else %}{{ ui.inn.in }}{% endif %}</span>
+     <div class="flex flex--row flex--top gap--xsmall h--[58%]"><div class="h--full" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>
+     <span class="label label--small">{% if tw == 1 %}{{ ui.inn.felt }}{% else %}{{ ui.inn.hum }}{% endif %}</span>
+    </div>
+    {%- endfor %}
+    {%- else %}
     <div class="flex flex--row flex--top gap--xsmall h--full"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
+    {%- endif %}
     {%- if ui.feels %}
     <div data-sw-div class="border--v-60 h--[{{ 12 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[6cqh]"></div>
     <div class="h--[{{ 10 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]" data-sw-part="person"></div>
@@ -396,9 +408,13 @@ if (D.now !== null && D.now !== undefined) {
 var ang = -A + 2 * A * cl(F(D.now)), ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux, tipR = r + H * 0.025, tailR = H * 0.1, wb = Math.max(4, H * 0.012), wt = 1.5;
 var np = (ox, oy) => { var b = [cx + ox, py + oy], t = [b[0] + ux * tipR, b[1] + uy * tipR], k = [b[0] - ux * tailR, b[1] - uy * tailR];
 return [[t[0] + nx * wt / 2, t[1] + ny * wt / 2], [b[0] + nx * wb / 2, b[1] + ny * wb / 2], [k[0] + nx * wb * 1.6, k[1] + ny * wb * 1.6], [k[0] - nx * wb * 1.6, k[1] - ny * wb * 1.6], [b[0] - nx * wb / 2, b[1] - ny * wb / 2], [t[0] - nx * wt / 2, t[1] - ny * wt / 2]]; };
-var hr = Math.max(6, H * 0.035);
+var hr = Math.max(6, H * 0.035), tw = '';
+if (D.twin !== null && D.twin !== undefined) {   // indoor twin needle (as live): a thin line with a ring at its tip, under the main needle
+var ta = -A + 2 * A * cl(F(D.twin)), tux = Math.sin(ta), tuy = -Math.cos(ta), tr = r * 0.92, tcr = Math.max(3, H * 0.012), tsw = n1(Math.max(1.5, H * 0.005));
+tw = '<g data-sw-twin="1" fill="none" stroke="currentColor" stroke-width="' + tsw + '"><line x1="' + n1(cx) + '" y1="' + n1(py) + '" x2="' + n1(cx + tux * (tr - tcr)) + '" y2="' + n1(py + tuy * (tr - tcr)) + '"/><circle cx="' + n1(cx + tux * tr) + '" cy="' + n1(py + tuy * tr) + '" r="' + n1(tcr) + '"/></g>';
+}
 body += g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
-body += glow(poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '" data-sw-hub="' + n1(Math.max(hr, tailR + wb * 1.6)) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>');
+body += glow(tw + poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '" data-sw-hub="' + n1(Math.max(hr, tailR + wb * 1.6)) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>');
 }
 return svg(W, H, body);
 }
@@ -409,6 +425,7 @@ return svg(W, H, poly(p, down ? ' fill="none" stroke="currentColor" stroke-width
 function part(SW, kind, i, W, H) {
 switch (kind) {
 case 'temp': return digits(SW.temp, H);
+case 'itemp': return SW.inn ? digits(SW.inn.temp, H) : '';
 case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
 case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10, SW.meters[i] && SW.meters[i].zones);
 case 'day': return day(SW.days[i], SW.scale, W, H, API.hl === undefined ? !!(SW.days[i] || {}).today : API.hl === i);

@@ -110,6 +110,20 @@ return n+(bad.length?' '+bad.slice(0,4).join('; '):'');})()})
       po = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="meter"][data-sw-key="pollen"]').forEach(function(m){if(!m.getBoundingClientRect().width)return;var l=m.querySelector('[data-sw-lit]');if(!l||!(+l.getAttribute('data-sw-lit')>0))bad.push('pollen 0 cells');});return bad.join('; ');})()})
       puts "POLLEN #{c['name']}: #{po}" unless po.empty?
       expect(po).to eq('')
+      # Indoor sensor (as live): with a reading, BUITEN and BINNEN twin readouts side by side (digits drawn, no overlap,
+      # a line under each), and the temperature dial (when shown) carries the twin needle; without one, none of it.
+      sn = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},bad=[];
+var tw=[].filter.call(document.querySelectorAll('[data-sw-twin="out"],[data-sw-twin="in"]'),vis),nd=[].filter.call(document.querySelectorAll('svg [data-sw-twin="1"] line'),function(l){return vis(l.ownerSVGElement)&&!l.closest('[data-sw-glow]')});
+if(tw.length){if(tw.length!==2)bad.push('twins '+tw.length);else{var a=tw[0].getBoundingClientRect(),b=tw[1].getBoundingClientRect();if(a.right>b.left+1)bad.push('twins overlap');
+tw.forEach(function(t){var d=t.querySelector('[data-sw-part] svg'),sp=t.querySelectorAll(':scope > span');if(!d||!vis(d)||!d.querySelector('path,rect,polygon'))bad.push(t.getAttribute('data-sw-twin')+' no digits');if(sp.length<2||!sp[0].textContent.trim()||!sp[1].textContent.trim())bad.push(t.getAttribute('data-sw-twin')+' label/line missing');});}}
+var td=[].filter.call(document.querySelectorAll('[data-sw-part="tdial"]'),vis).length;
+return tw.length+','+nd.length+','+td+(bad.length?' '+bad.join('; '):'');})()})
+      puts "SENSOR #{c['name']}: #{sn}"
+      want = c['vars'] && c['vars']['sensor_readings'] ? 2 : 0
+      expect(sn.split(' ')[0].split(',')[0].to_i).to eq(want)
+      expect(sn).not_to include(' ')
+      dials = sn.split(',')[2].to_i
+      expect(sn.split(',')[1].to_i).to eq(want.positive? ? dials : 0)
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"
