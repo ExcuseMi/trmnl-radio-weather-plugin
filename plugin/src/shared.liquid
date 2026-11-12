@@ -66,7 +66,6 @@
    <div class="flex flex--row flex--center-y gap--small lg:gap--medium h--[{{ 15 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 13 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
     <div class="flex flex--row flex--top gap--xsmall h--full"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
     {%- if ui.feels %}
-    <div data-sw-div class="border--v-60 h--[{{ 12 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[6cqh]"></div>
     <div class="h--[{{ 10 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]" data-sw-part="person"></div>
     <div class="h--[{{ 9 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 7 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="feels"></div>
     {%- endif %}
@@ -85,7 +84,7 @@
    {%- endif %}
    {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% endif %}
    <div class="flex {{ su_cls }} flex--center gap--xsmall lg:gap--medium shrink-0" data-sw-unit="sun">
-    <div class="h--[{% if ui.rain %}{{ 5 | times: hm | round | at_most: 100 }}{% else %}{{ 11 | times: hm | round | at_most: 100 }}{% endif %}cqh] lg:hidden" data-sw-part="moon"></div>
+    <div class="mt--2 h--[{% if ui.rain %}{{ 4 | times: hm | round | at_most: 100 }}{% else %}{{ 11 | times: hm | round | at_most: 100 }}{% endif %}cqh] lg:hidden" data-sw-part="moon"></div>
     <div class="hidden lg:block h--[{% if ui.rain %}{{ 11 | times: mh_l | round | at_most: 100 }}{% else %}{{ 13 | times: mh_l | round | at_most: 100 }}{% endif %}cqh] lg:portrait:h--[4cqh]" data-sw-part="moon"></div>
     <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
      <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.riseIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.rise }}</span></div>
@@ -204,7 +203,7 @@ n = n || 10;
 var lit = frac === null || frac === undefined ? 0 : Math.round(Math.max(0, Math.min(1, frac)) * n), cw = (W - SO) / n, gp = cw * 0.12, ch = H - SO, on = '', sh = '', off = '';
 for (var i = 0; i < n; i++) {
 var x = i * cw + gp / 2, w = cw - gp;
-var DK = API.mode && API.mode.dark && API.mode.bits >= 2;   // owner: in dark mode the empty cells are dark grey blocks, as live
+var DK = API.mode && API.mode.dark && API.mode.bits >= 2;   // owner 2026-11-12: dark empty cells as dark grey blocks
 if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += DK ? rect(x, 0, w, ch, 2) : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
 }
 return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && API.mode.dark ? '' : 'text--gray-40', glow(on, GPX)));   // dark: lit cells in full ink, as live
@@ -374,25 +373,6 @@ return API;
 // ==== DRAW_END ====
 (function () {
   function whenReady(cb) { var tries = 0; (function attempt() { if (window.TRMNLPaint) return cb(); if (++tries > 200) return; setTimeout(attempt, 50); })(); }
-  // Temperature row divider (owner 2026-11-12): midway between the drawn right edge of the unit and the drawn left edge of
-  // the person, as tall as the drawn digits and centred on them. Measured on the ink, so it needs the page.
-  function ink(svgEl) { var r = svgEl.getBoundingClientRect(), vb = svgEl.viewBox.baseVal, b = svgEl.getBBox(), kx = r.width / (vb.width || r.width), ky = r.height / (vb.height || r.height);
-    return { l: r.left + (b.x - vb.x) * kx, r: r.left + (b.x - vb.x + b.width) * kx, t: r.top + (b.y - vb.y) * ky, h: b.height * ky }; }
-  function swAlign() {
-    var cx = document.createElement('canvas').getContext('2d');
-    document.querySelectorAll('[data-sw-div]').forEach(function (dv) {
-      var row = dv.parentElement, u = row.querySelector('[data-sw-unit=""]'), t = row.querySelector('[data-sw-part="temp"] svg'), p = row.querySelector('[data-sw-part="person"] svg');
-      dv.style.transform = ''; dv.style.removeProperty('height');
-      if (!u || !t || !p || !dv.getBoundingClientRect().height) return;
-      var cs = getComputedStyle(u); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-      // The preview may scale the page: screen boxes are scaled, the canvas text width and the translate are CSS px.
-      var ub = u.getBoundingClientRect(), sc = (u.offsetWidth && ub.width / u.offsetWidth) || 1;
-      var ur = ub.left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight * sc, pi = ink(p), ti = ink(t);
-      dv.style.setProperty('height', Math.round(ti.h / sc) + 'px', 'important'); dv.style.setProperty('flex-shrink', '0');
-      var r = dv.getBoundingClientRect();
-      dv.style.transform = 'translate(' + (((ur + pi.l) / 2 - (r.left + r.right) / 2) / sc).toFixed(1) + 'px,' + ((ti.t - r.top) / sc).toFixed(1) + 'px)';
-    });
-  }
   whenReady(function () {
     document.querySelectorAll('[data-sw-part]').forEach(function (el) {
       TRMNLPaint.watch(el, function () {
@@ -406,7 +386,6 @@ return API;
         var rows = [].filter.call(document.querySelectorAll('[data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), pitch = rows.length > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : r.height;
         SWDraw.ext = Math.max(0, (pitch - r.height) / 2 + 1);   // day rows: rules and the now line run on through the gap to the next row
         el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.round(r.width), Math.round(r.height));
-        swAlign();   // every repaint (the Framework may rebuild or refit the page after the first one) realigns the divider
       });
     });
     // Dark mode, 2-bit and up: the lit icons glow (owner 2026-11-12). An <img> cannot carry an SVG halo, so each marked
@@ -419,10 +398,6 @@ return API;
         var sv = w.firstChild; sv.setAttribute('class', 'block'); sv.setAttribute('width', Math.round(r.width / k)); sv.setAttribute('height', Math.round(r.height / k)); im.replaceWith(w); }
       if (im.complete) swap(); else im.addEventListener('load', swap);
     });
-    swAlign();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(swAlign);   // the unit's ink width needs the real font
-    if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-part="person"], [data-sw-part="feels"], [data-sw-div]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
-    [200, 800, 2000].forEach(function (ms) { setTimeout(swAlign, ms); });   // the Framework refits text after first paint
     document.body.setAttribute('data-sw-drawn', '1');
   });
 })();
