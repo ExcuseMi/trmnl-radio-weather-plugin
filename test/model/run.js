@@ -318,7 +318,7 @@ test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter,
       const d = /<path d="([^"]+)" data-sw-moon="lit"/.exec(s)[1], a = pathArea(d);
       ok(Math.abs(a.area / disk - want) <= 0.1, 'p ' + p + (dark ? ' dark' : ' light') + ': lit ' + (a.area / disk).toFixed(3) + ' want ' + want.toFixed(3));
       if (want < 0.99) ok(p < 0.5 ? a.mx > H / 2 : a.mx < H / 2, 'p ' + p + ': lit on the ' + (p < 0.5 ? 'right' : 'left'));
-      ok(/text--gray-45"><circle[^>]*fill="none"/.test(s), 'grey limb outline');
+      ok(dark ? /<circle[^>]*fill="none"/.test(s) && !/text--gray-45"><circle/.test(s) : /text--gray-45"><circle[^>]*fill="none"/.test(s), dark ? 'dark: limb outline glows in full ink (owner 2026-11-12)' : 'light: grey limb outline');
       ok(dark ? !/text--gray-45"><path/.test(s) : /text--gray-45"><path/.test(s), dark ? 'dark: lit part in full (light) ink' : 'light: lit part in grey ink');
     });
   });

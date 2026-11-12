@@ -62,7 +62,7 @@
     {%- if ui.icon %}<img class="image image--adaptive h--full" src="{{ ui.icon }}" alt="" data-sw-icon>{% endif %}
     <span class="title title--base text--bold" data-clamp="2">{{ ui.cond }}</span>
    </div>
-   <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]" data-sw-part="rule"></div>
+   <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
    <div class="flex flex--row flex--center-y gap--small lg:gap--medium h--[{{ 15 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 13 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
     <div class="flex flex--row flex--top gap--xsmall h--full"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
     {%- if ui.feels %}
@@ -75,22 +75,24 @@
 {%- endcapture %}
 {%- capture c_right %}
   <div class="flex flex--col flex--center gap--xsmall lg:gap--small {{ rc_w }}">
+   {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center lg:portrait:w--full gap--xsmall lg:gap--small">{% endif %}
    {%- if ui.rain %}
-   <div class="flex {{ ru_cls }} flex--center gap--xsmall lg:gap--small w--full shrink-0" data-sw-unit="rain">
-    <img class="image image--adaptive {{ ri_md }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
+   <div class="flex {{ ru_cls }} flex--center gap--xsmall lg:gap--small shrink-0" data-sw-unit="rain">
+    <img class="image image--adaptive {{ ri_md }}{% unless stk %} h--[{{ 9 | times: hm | round }}cqh] lg:portrait:h--[4cqh]{% endunless %}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
     <img class="image image--adaptive {{ ri_lg }} h--[{{ 8 | times: hl | round | at_most: 100 }}cqh] shrink-0" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
     <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | round | at_most: 100 }}cqw]{{ rg_p }} lg:portrait:h--[6cqh] h--[{{ 12 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | round | at_most: 100 }}cqh] shrink-0" data-sw-part="rain"></div>
    </div>
    {%- endif %}
    {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% endif %}
    <div class="flex {{ su_cls }} flex--center gap--xsmall lg:gap--medium shrink-0" data-sw-unit="sun">
-    <div class="w--[{% if ui.rain %}{{ 9 | times: hm | round }}{% else %}{{ 11 | times: hm | round }}{% endif %}cqh] h--[{% if ui.rain %}{{ 9 | times: hm | round | at_most: 100 }}{% else %}{{ 11 | times: hm | round | at_most: 100 }}{% endif %}cqh] lg:hidden" data-sw-part="moon"></div>
-    <div class="hidden lg:block h--[{% if ui.rain %}{{ 11 | times: mh_l | round | at_most: 100 }}{% else %}{{ 13 | times: mh_l | round | at_most: 100 }}{% endif %}cqh] lg:portrait:h--[4cqh]" data-sw-part="moon"></div>
+    <div class="{% if ui.rain %}w--[{{ 9 | times: hm | round }}cqh] h--[{{ 9 | times: hm | round }}cqh]{% else %}w--[{{ 11 | times: hm | round }}cqh] h--[{{ 11 | times: hm | round | at_most: 100 }}cqh]{% endif %} lg:hidden" data-sw-part="moon"></div>
+    <div class="hidden lg:block {% if ui.rain %}w--[{{ 8 | times: hl | round | at_most: 100 }}cqh] h--[{{ 8 | times: hl | round | at_most: 100 }}cqh]{% else %}h--[{{ 13 | times: mh_l | round | at_most: 100 }}cqh]{% endif %} lg:portrait:h--[4cqh]" data-sw-part="moon"></div>
     <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
      <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.riseIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.rise }}</span></div>
      <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.setIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.set }}</span></div>
     </div>
    </div>
+   {%- if ui.rain %}</div>{% endif %}
   </div>
 {%- endcapture %}
  <div class="{{ con_h }}">{{ p_open }}<div class="flex {% if stk %}flex--col flex--center gap--small{% else %}flex--row flex--stretch-y gap--medium lg:gap--large{% endif %} p--2 lg:p--4 h--full rounded--small outline">
@@ -241,8 +243,8 @@ return svg(W, H, body);
 }
 // 12-hour rain calendar: two rows of six, rain hours lit (inverted), the others in full text colour.
 function rain(hours, W, H) {
-var C = 4, cw = W / C, rh = H / 2, fs = Math.min(rh * 0.62, cw * 0.48), body = '';   // owner 2026-11-12: fewer columns, 8 hours
-hours.slice(0, 8).forEach((q, i) => {
+var C = 3, cw = W / C, rh = H / 2, fs = Math.min(rh * 0.62, cw * 0.48), body = '';   // owner 2026-11-12: 3 columns, 6 hours
+hours.slice(0, 6).forEach((q, i) => {
 var x = (i % C) * cw, y = Math.floor(i / C) * rh;
 if (q.wet) body += glow(rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22), GPX);
 var tx = text(x + cw / 2, y + rh / 2, q.h, fs, 'middle', ' dominant-baseline="central"'); body += q.wet ? g('text--white', tx) : tx;
@@ -261,7 +263,7 @@ function moon(p, H) {
 if (p == null || isNaN(p)) return '';
 var r = H * 0.44, cx = H / 2, f = (1 - Math.cos(2 * Math.PI * p)) / 2, lit = '';
 if (f > 0.01) lit = '<path d="' + moonLit(p, cx, cx, r) + '" data-sw-moon="lit"/>';
-var limb = g('text--gray-45', '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.5, H * 0.03)) + '"/>');
+var limb = (API.mode && API.mode.dark ? (x) => glow(x, GPX) : (x) => g('text--gray-45', x))('<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.5, H * 0.03)) + '"/>');
 return svg(H, H, (API.mode && API.mode.dark ? glow(lit, GPX) : g('text--gray-45', lit)) + limb);
 }
 function person(W, H) {
