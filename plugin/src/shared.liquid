@@ -74,7 +74,7 @@
     {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
     <div class="flex flex--col flex--center gap--xsmall h--full" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
      <span class="label label--small text--bold">{% if tw == 1 %}{{ ui.inn.out }}{% else %}{{ ui.inn.in }}{% endif %}</span>
-     <div class="flex flex--row flex--top gap--xsmall h--[58%]"><div class="h--full" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>
+     <div class="flex flex--row flex--top gap--xsmall h--[{{ 12 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 10 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]"><div class="h--full" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>
      <span class="label label--small">{% if tw == 1 %}{{ ui.inn.felt }}{% else %}{{ ui.inn.hum }}{% endif %}</span>
     </div>
     {%- endfor %}
