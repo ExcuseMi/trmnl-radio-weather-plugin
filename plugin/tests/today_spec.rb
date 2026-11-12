@@ -93,12 +93,12 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       aq = fx('aq')
       aq['current']['grass_pollen'] = 30.0   # level 0.4: warning
       calm = dbg(shot(device: 'og_png', aq: { json: aq }))
-      expect(calm['readoutKinds']).to eq(%w[humidity wind aqi pollen]) # (night, no UV) fixture humidity and pollen are in a warning zone
+      expect(calm['readoutKinds']).to eq(%w[humidity wind aqi baro pollen]) # (night, no UV; BARO always on the OG) fixture humidity and pollen are in a warning zone
       a = sunny(6.0)
       a['current']['relative_humidity_2m'] = 50
       aq['current']['grass_pollen'] = 1.0
       quiet = shot(device: 'og_png', answer: a, aq: { json: aq }, vars: sensors('carbon_dioxide' => [{ '2026-11-08 05:00:00 UTC' => 700 }]))
-      expect(dbg(quiet)['readoutKinds']).to eq(%w[uv wind aqi])
+      expect(dbg(quiet)['readoutKinds']).to eq(%w[uv wind aqi baro])
       segs = quiet.evaluate("new Set([].slice.call(document.querySelectorAll('.sw-stage [data-sw-rcell=\"readouts:0\"] [data-sw-rseg]')).map(function(e){return Math.floor(+e.getAttribute('x'))})).size")
       expect(segs).to eq(5)
       loud = shot(device: 'og_png', answer: a, aq: { json: aq }, vars: sensors('carbon_dioxide' => [{ '2026-11-08 05:00:00 UTC' => 1500 }]))
@@ -183,9 +183,11 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       end
     end
 
-    it 'shows the range of today as high and low next to GEVOEL when it fits' do
-      # red: RNG left empty
-      expect(texts(shot(device: 'og_png', view: 'full')).join(' ')).to match(%r{\d+°/-?\d+°})
+    it 'does not repeat the range of today under BUITEN, it is in the days strip' do
+      # owner 2026-11-12 (today is the first day of the strip without a temperature dial). red: putting the range back
+      s = shot(device: 'og_png', view: 'full')
+      expect(texts(s).join(' ')).not_to match(%r{\d+°/-?\d+°})
+      expect(texts(s)).to include('ZO')
     end
 
     it 'keeps the dials on the X' do
@@ -225,12 +227,12 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       expect(dbg(shot(answer: a))['rain']).to start_with('RAIN')
     end
 
-    it 'shows GEEN REGEN with sunrise, sunset and the moon on a dry day, nothing else in the block' do
-      # red: dropping the sunT block removed the times
+    it 'shows only the sun times and the moon on a dry day: no GEEN REGEN label' do
+      # owner 2026-11-12. red: dropping the sunT block removed the times; putting the label back failed the include
       s = shot(answer: dry_hours(fx('mixed')))
       t = texts(s)
-      expect(t).to include('GEEN REGEN', '07:21', '16:35')
-      expect(t).not_to include('--:--')
+      expect(t).to include('07:21', '16:35')
+      expect(t).not_to include('GEEN REGEN', '--:--')
     end
   end
 
@@ -297,6 +299,41 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       expect(covered['n']).to eq(1)
       expect(covered['bad']).to eq(0)
       expect(covered['last']).to eq('polygon')
+    end
+  end
+
+  describe 'days strip start' do
+    def evening(a = fx('mixed'))
+      a['current']['time'] = '2026-11-08T19:00'
+      a
+    end
+
+    def first_day(s) = texts(s).find { |x| %w[MA DI WO DO VR ZA ZO].include?(x) }
+
+    it 'starts with tomorrow when the temperature dial is drawn, with today (underlined) when it is not' do
+      # owner 2026-11-12. red: TD forced true made the OG start with tomorrow; forced false made the X start with today
+      x = shot(device: 'v2')
+      expect(first_day(x)).to eq('MA')
+      expect(count(x, '[data-sw-today]')).to eq(0)
+      og = shot(device: 'og_png')
+      expect(first_day(og)).to eq('ZO')
+      expect(count(og, '[data-sw-today]')).to eq(1)
+      col = shot(device: 'og_png', view: 'half_vertical', orientation: :portrait)
+      expect(first_day(col)).to eq('ZO')   # the single column has no temperature dial
+      expect(first_day(shot(device: 'v2', view: 'half_vertical', orientation: :portrait))).to eq('MA')   # the X half_vertical keeps both dials
+    end
+
+    it 'in the evening starts with the day after tomorrow with the dial, and with today without it' do
+      # evening mode shows MORGEN in the console; no day shows twice where the dial is drawn
+      expect(first_day(shot(device: 'v2', answer: evening))).to eq('DI')
+      expect(first_day(shot(device: 'og_png', answer: evening))).to eq('ZO')
+    end
+
+    it 'never shows a day twice' do
+      [shot(device: 'v2'), shot(device: 'og_png'), shot(device: 'v2', answer: evening)].each do |s|
+        days = texts(s).select { |x| %w[MA DI WO DO VR ZA ZO].include?(x) }
+        expect(days.uniq).to eq(days)
+      end
     end
   end
 
