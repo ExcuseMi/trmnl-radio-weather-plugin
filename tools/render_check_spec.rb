@@ -82,8 +82,8 @@ var rg=document.createRange();rg.selectNodeContents(sp);var lr=[].filter.call(rg
 var ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),it=ib.top+ik[0]*ib.height,ih=ik[1]*ib.height,h=n>1?t1-t0+cap:cap,mid=n>1?(t0+t1)/2:t0+cap/2,q=ih/h;if(n>2)bad.push('label on '+n+' lines');if(n>1?(q<(ic.hasAttribute('data-sw-clamped')?0.9:1.05)||q>1.25):(q<(ic.hasAttribute('data-sw-clamped')?1.8:2.25)||q>2.75))bad.push('icon ink '+ih.toFixed(1)+' / '+(n>1?'block ':'cap ')+h.toFixed(1)+' = '+q.toFixed(2)+' ('+n+' lines)');if(Math.abs(it+ih/2-mid)>1.5)bad.push('icon ink centre off '+(it+ih/2-mid).toFixed(1));});return bad.join('; ');})()})
       puts "CONDICON #{c['name']}: #{ci}" unless ci.empty?
       expect(ci).to eq('')
-      # Days strip (owner 2026-11-12): exactly one highlighted row, the first one shown (today, or tomorrow when today is not shown).
-      hl = s.evaluate(%q{(function(){var r=[].filter.call(document.querySelectorAll('[data-sw-part="day"]'),function(e){return e.getBoundingClientRect().width>0});if(!r.length)return '';var h=r.map(function(e,i){return e.querySelector('[data-sw-hl]')?i:-1}).filter(function(i){return i>=0});return h.length===1&&h[0]===0?'':'highlighted rows '+JSON.stringify(h);})()})
+      # Days strip (owner 2026-11-12, later): the strip always starts with today, the one highlighted row.
+      hl = s.evaluate(%q{(function(){var r=[].filter.call(document.querySelectorAll('[data-sw-part="day"]'),function(e){return e.getBoundingClientRect().width>0});if(!r.length)return '';var h=r.map(function(e,i){return e.querySelector('[data-sw-hl]')?i:-1}).filter(function(i){return i>=0});var t0=SW.days[+r[0].getAttribute('data-sw-i')];if(!t0||!t0.today)return 'first row not today: '+(t0&&t0.name);return h.length===1&&h[0]===0?'':'highlighted rows '+JSON.stringify(h);})()})
       puts "HL #{c['name']}: #{hl}" unless hl.empty?
       expect(hl).to eq('')
       # Days strip axis labels (owner 2026-11-12): at least the meter label size.
