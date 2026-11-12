@@ -217,7 +217,7 @@ body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.8, y = (H - bh) / 2, cells = '', sh = '';
 for (var t = a; t < b; t++) { cells += rect(X(t) + cw * 0.08, y, cw * 0.84, bh); sh += rect(X(t) + cw * 0.08 + SO, y + SO, cw * 0.84, bh); }
-body += g(SHADOW + ' text--gray-65', sh) + g(d.today ? 'text--gray-15' : 'text--gray-40', cells);
+body += g(SHADOW + ' text--gray-65', sh) + g(d.today ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells);
 }
 if (sc.now !== null && sc.now !== undefined) body += rect(X(sc.now) - 1.5, -E, 3, H + 2 * E);
 return svg(W, H, body);
