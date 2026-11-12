@@ -72,7 +72,7 @@
   </div>
 {%- endcapture %}
 {%- capture c_temp %}
-  <div class="flex flex--col flex--center gap--medium grow">
+  <div class="flex flex--col flex--center gap--medium grow w--min-0">{% comment %} owner step 12: the column keeps its share; big readouts shrink to it (swFit) instead of pushing past the divider {% endcomment %}
    <div class="flex flex--row flex--center-y {% if view == 3 %}gap--small lg:gap--medium{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]">
     {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
     <span class="title {% if view == 3 %}title--small lg:title--base{% elsif view == 4 %}title--small{% else %}title--base lg:title--large{% endif %} text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
@@ -127,13 +127,14 @@
    {%- endif %}
    {%- if calm_q and ui.rain %}{% assign su_cls = 'hidden' %}{% assign sep_cls = ' hidden' %}{% endif %}
    {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% if stk %}{% assign si_m = 5 %}{% endif %}{% endif %}
+   {% assign si_k = 1 %}{% if view == 3 and ui.sun.rise contains ' ' %}{% assign si_k = 0.8 %}{% endif %}{% comment %} X half vertical, 12 h: smaller sun icons so the time and AM/PM fit the column {% endcomment %}
    <div class="flex {{ su_cls }} {% if ui.rain %}flex--left flex--center-y w--full gap--xsmall lg:gap--small{% else %}flex--center gap--xsmall lg:gap--medium{% endif %} shrink-0" data-sw-unit="sun">
     {%- if ui.rain %}<div class="{{ ib_cls }}" data-sw-part="moon"></div>
     {%- else %}{% assign mo_m = si_m | times: 2 | plus: 1 | times: hm | round | at_most: 100 %}<div class="w--[{{ mo_m }}cqh] h--[{{ mo_m }}cqh] lg:hidden" data-sw-part="moon"></div>
     {% if stk %}{% assign mo_l = si_l | times: 0.65 | times: hl | round | at_most: 100 %}{% else %}{% assign mo_l = 13 | times: mh_l | round | at_most: 100 %}{% endif %}<div class="hidden lg:block h--[{{ mo_l }}cqh] lg:portrait:h--[4cqh]" data-sw-part="moon"></div>{% comment %} stacked: as big as the sun icons ink (owner 2026-11-12 asked for the two rows; that does not fit the column width) {% endcomment %}{% endif %}
     <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
-     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.riseIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.rise }}</span></div>
-     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.setIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.set }}</span></div>
+     <div class="flex flex--row flex--center-y {% if view == 3 and ui.sun.rise contains ' ' %}gap--xsmall{% else %}gap--small{% endif %}"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | times: si_k | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.riseIcon }}" alt="" data-sw-icon>{% assign st = ui.sun.rise | split: ' ' %}<span class="flex flex--row flex--bottom {% if view == 3 %}gap--none{% else %}gap--xsmall{% endif %} shrink-0" data-sw-suntime><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %}{% if st[1] and view == 3 %} lg:title--small{% endif %} text--bold">{{ st[0] }}</span>{% if st[1] %}<span class="label label--small text--bold">{% if view == 3 %}&nbsp;{% endif %}{{ st[1] }}</span>{% comment %} 12 h (owner step 12): AM/PM smaller, on the time's line {% endcomment %}{% endif %}</span></div>
+     <div class="flex flex--row flex--center-y {% if view == 3 and ui.sun.rise contains ' ' %}gap--xsmall{% else %}gap--small{% endif %}"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | times: si_k | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.setIcon }}" alt="" data-sw-icon>{% assign st = ui.sun.set | split: ' ' %}<span class="flex flex--row flex--bottom {% if view == 3 %}gap--none{% else %}gap--xsmall{% endif %} shrink-0" data-sw-suntime><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %}{% if st[1] and view == 3 %} lg:title--small{% endif %} text--bold">{{ st[0] }}</span>{% if st[1] %}<span class="label label--small text--bold">{% if view == 3 %}&nbsp;{% endif %}{{ st[1] }}</span>{% comment %} 12 h (owner step 12): AM/PM smaller, on the time's line {% endcomment %}{% endif %}</span></div>
     </div>
    </div>
    {%- if ui.rain %}</div>{% endif %}
@@ -567,9 +568,32 @@ return API;
       ic.setAttribute('data-sw-condicon', tops.length + ',' + h.toFixed(1) + ',' + mid.toFixed(1));
     });
   }
+  // Big readouts (owner 2026-11-12, step 12): the temperature row keeps its width; when the digits, unit, felt reading
+  // and badge are wider, the temperature and felt digits shrink together (the labels and unit keep their size).
+  var swRepaint = null;
+  function swFit() {
+    document.querySelectorAll('[data-sw-part="temp"]').forEach(function (t) {
+      var g = t.parentElement, row = g.parentElement; if (row.hasAttribute('data-sw-twin')) return;
+      var rb = row.getBoundingClientRect(); if (!rb.width) return;
+      var k = (row.offsetWidth && rb.width / row.offsetWidth) || 1, w = function (e) { return e ? e.getBoundingClientRect().width / k : 0; };
+      var kids = [].filter.call(row.children, function (c) { return c.getBoundingClientRect().width > 0; }), rs = getComputedStyle(row), gap = parseFloat(rs.columnGap) || 0;
+      var need = kids.reduce(function (a, c) { return a + w(c); }, 0) + gap * (kids.length - 1), avail = Math.min(row.clientWidth - parseFloat(rs.paddingLeft) - parseFloat(rs.paddingRight), row.parentElement.clientWidth);   // OG half vertical's row is as wide as its content: its column is the limit
+      var fe = row.querySelector('[data-sw-part="feels"]'), h = function (e) { return e.getBoundingClientRect().height / k; };
+      if (!g.hasAttribute('data-sw-h0')) { if (need <= avail + 0.5) return; g.setAttribute('data-sw-h0', h(g)); if (fe) fe.setAttribute('data-sw-h0', h(fe)); }   // natural sizes, before the first shrink
+      var hs = function (e) { var v = e && e.querySelector('svg'); return v ? h(v) : 0; }, gr = +g.getAttribute('data-sw-h0') / (hs(t) || 1), fr = fe ? +fe.getAttribute('data-sw-h0') / (hs(fe) || 1) : 1;   // natural / drawn now (the svg, which may still be the last size): every pass sizes from the natural readout, never from its own last shrink
+      var tw = w(t.querySelector('svg')) * gr, fw = w(fe && fe.querySelector('svg')) * fr, lw = w(row.querySelector('[data-sw-feltlabel]'));
+      need += tw - w(t.querySelector('svg')) + (fe ? Math.max(fw, lw) - Math.max(w(fe.querySelector('svg')), lw) : 0);
+      if (fw <= lw) fw = 0;
+      if (!(tw + fw)) return;
+      var f = Math.min(1, Math.max(0.4, (tw + fw - (need - avail) - 1) / (tw + fw)));
+      function set(e, v, p) { if (Math.abs(h(e) - v) > 0.3) { e.style.setProperty('height', v.toFixed(1) + 'px', 'important'); if (swRepaint) swRepaint(p); } }   // the paint watcher does not see a height-only change: draw again here
+      set(g, +g.getAttribute('data-sw-h0') * f, t); if (fe && fw) set(fe, +fe.getAttribute('data-sw-h0') * f, fe);
+      row.setAttribute('data-sw-fit', f.toFixed(3));
+    });
+  }
   function swAlign() {
     var cx = document.createElement('canvas').getContext('2d');
-    swCond(cx);
+    swCond(cx); swFit();
     document.querySelectorAll('[data-sw-div]').forEach(function (dv) {
       var row = dv.parentElement, u = row.querySelector('[data-sw-unit=""]'), t = row.querySelector('[data-sw-part="temp"] svg'), p = row.querySelector('[data-sw-felt]');
       dv.style.transform = ''; dv.style.removeProperty('height');
@@ -579,13 +603,17 @@ return API;
       var ub = u.getBoundingClientRect(), sc = (u.offsetWidth && ub.width / u.offsetWidth) || 1;
       var ur = ub.left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight * sc, pi = { l: p.getBoundingClientRect().left }, ti = ink(t);
       dv.style.setProperty('height', Math.round(ti.h / sc) + 'px', 'important'); dv.style.setProperty('flex-shrink', '0');
-      var r = dv.getBoundingClientRect();
+      var r = dv.getBoundingClientRect(); sc = (dv.offsetHeight && r.height / dv.offsetHeight) || sc;   // the divider's own scale: the unit's rounded offsetWidth is off by up to 1 % (104.6 F: 1.8 px short)
+      dv.style.setProperty('height', (ti.h / sc).toFixed(2) + 'px', 'important'); r = dv.getBoundingClientRect();
       dv.style.transform = 'translate(' + (((ur + pi.l) / 2 - (r.left + r.right) / 2) / sc).toFixed(1) + 'px,' + ((ti.t - r.top) / sc).toFixed(1) + 'px)';
     });
   }
   whenReady(function () {
+    swRepaint = swPaint;
     document.querySelectorAll('[data-sw-part]').forEach(function (el) {
-      TRMNLPaint.watch(el, function () {
+      TRMNLPaint.watch(el, function () { swPaint(el); });
+    });
+    function swPaint(el) {
         SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: el }); };
         var sc = (el.closest('.screen') || document.querySelector('.screen') || document.body).classList;
         var cl = /(^| )screen--color-/.test(sc.value);   // colour panels other than full colour print 1-bit inks plus their hues, as live
@@ -605,8 +633,7 @@ return API;
         if (el.getAttribute('data-sw-part') === 'cue') { var cs0 = el.firstElementChild; if (cs0) { cs0.setAttribute('width', '100%'); cs0.setAttribute('height', '100%'); cs0.setAttribute('preserveAspectRatio', 'xMinYMid meet'); } }   // the console badge follows its box: it gives way when the row is short of room and never pushes past a divider
         el.querySelectorAll('text[data-sw-tick]').forEach(function (t) { var d = t.nextElementSibling; if (d) d.setAttribute('x', (+t.getAttribute('x') + t.getComputedTextLength() / 2 + 1).toFixed(1)); });   // the degree sign right after the drawn digits
         swAlign();   // every repaint (the Framework may rebuild or refit the page after the first one) realigns the divider
-      });
-    });
+    }
     // Dark mode, 2-bit and up: the lit icons glow (owner 2026-11-12). An <img> cannot carry an SVG halo, so each marked
     // icon becomes the same-sized SVG from SWDraw.icon once laid out; light mode and 1-bit keep the plain image.
     var scr = (document.querySelector('.screen') || document.body).classList;

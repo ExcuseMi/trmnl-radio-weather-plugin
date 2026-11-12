@@ -274,6 +274,10 @@ if(e.getAttribute&&e.tagName!=='IMG'){var cs=getComputedStyle(e);if((cs.fill==='
 if(b.bottom<=R.top||b.top>=R.bottom)return;var d=b.left>x?b.left-x:(b.right<x?x-b.right:-1);
 if(d<g){var p=e.t||((e.closest('[data-sw-part]')||{getAttribute:function(){return e.tagName}}).getAttribute('data-sw-part')+'/'+e.tagName);bad.push(p+' '+d.toFixed(1)+'<'+g.toFixed(1)+' @'+x.toFixed(0));}});});
 var u=[];bad.forEach(function(s){if(u.indexOf(s)<0)u.push(s)});return u.slice(0,8).join('; ');})()})
+      # Sun times (owner 2026-11-12, step 12): one line each, 12 h too (the AM/PM smaller, on the same line).
+      st = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-suntime]').forEach(function(e){var rg=document.createRange();rg.selectNodeContents(e);var r=[].filter.call(rg.getClientRects(),function(q){return q.width>0&&q.height>0});if(r.length>1&&r.some(function(q){return q.left<r[0].right-1&&q.top>r[0].top+2}))bad.push(e.textContent.replace(/\s+/g,' ').trim());});return bad.join('; ');})()})
+      puts "SUNTIME #{c['name']}: #{st}" unless st.empty?
+      expect(st).to eq('')
       puts "DIVGAP #{c['name']}: #{dg}" unless dg.empty?
       expect(dg).to eq('')
       puts "GEO #{c['name']}: unequal day rows #{geo}"
