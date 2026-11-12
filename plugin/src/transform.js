@@ -378,18 +378,18 @@ var pq = h.pressure_msl || [], ago = k >= 3 && typeof pq[k - 3] === 'number' ? p
 Object.keys(h).forEach((key) => { nh[key] = Array.isArray(h[key]) ? h[key].slice(k) : h[key]; });
 return { weather: Object.assign({}, w, { hourly: nh }), ago: ago };
 }
-// Calm clothing cues (owner): a list, the top layer first, then the extras. Top: raincoat in rain with wind (>= 30 km/h
-// or gusts >= 50); else parka when the coldest felt temperature is under 3 C; else from the warmest: jacket under 12 C,
-// sweater under 18 C (owner, after WhetherWear's guides), t-shirt. Extras in order: umbrella (rain, no raincoat), mittens
-// (coldest under -2 C), sunglasses (daytime, UV 6 or more). Fahrenheit and mph converted. No temperature: no top layer.
+// Calm clothing cues (owner): a list, the top layer first, then the extras. Top, by felt temperature: parka when the
+// coldest is under 3 C; else from the warmest: jacket under 12 C, sweater under 18 C (owner, after WhetherWear's guides),
+// t-shirt. Extras in order: umbrella (rain), mittens (coldest under -2 C), sunglasses (daytime, UV 6 or more).
+// Fahrenheit converted. No temperature: no top layer. (Owner 2026-11-12: no raincoat.)
 function cueFor(o, F_) {
-var T = (c) => F_ ? c * 1.8 + 32 : c, W = (k) => F_ ? k / 1.609344 : k, has = (v) => v !== null && v !== undefined;
-var lo = has(o.lo) ? o.lo : o.hi, hi = has(o.hi) ? o.hi : o.lo, coat = !!o.rain && ((has(o.wind) && o.wind >= W(30)) || (has(o.gust) && o.gust >= W(50)));
-var top = coat ? 'raincoat' : (!has(lo) ? null : (lo < T(3) ? 'parka' : (hi < T(12) ? 'jacket' : (hi < T(18) ? 'sweater' : 'tshirt'))));
-return [top, o.rain && !coat ? 'umbrella' : null, has(lo) && lo < T(-2) ? 'mittens' : null, o.day !== false && has(o.uv) && o.uv >= 6 ? 'sunglasses' : null].filter((k) => k);
+var T = (c) => F_ ? c * 1.8 + 32 : c, has = (v) => v !== null && v !== undefined;
+var lo = has(o.lo) ? o.lo : o.hi, hi = has(o.hi) ? o.hi : o.lo;
+var top = !has(lo) ? null : (lo < T(3) ? 'parka' : (hi < T(12) ? 'jacket' : (hi < T(18) ? 'sweater' : 'tshirt')));
+return [top, o.rain ? 'umbrella' : null, has(lo) && lo < T(-2) ? 'mittens' : null, o.day !== false && has(o.uv) && o.uv >= 6 ? 'sunglasses' : null].filter((k) => k);
 }
 // Per-day cue input (owner): the daytime hours 07:00 to 19:00 of that day from the hourly data (coldest and warmest felt
-// temperature, highest rain chance, wind and gusts); a field the hours lack comes from the daily values; UV from the daily max.
+// temperature, highest rain chance); a field the hours lack comes from the daily values; UV from the daily max.
 function dayCueInput(hourly, daily, i) {
 var list = (o, k) => o && Array.isArray(o[k]) ? o[k] : [], num = (v) => typeof v === 'number' && isFinite(v) ? v : null, hourOf = (t) => { var m = /T(\d{2})/.exec(String(t || '')); return m ? +m[1] : -1; };
 var h = hourly || {}, d = daily || {}, date = String(list(d, 'time')[i] || ''), ht = list(h, 'time'), idx = [];
@@ -399,7 +399,7 @@ var dv = (key) => num(list(d, key)[i]), or = (a, b) => a !== null ? a : b;
 var lo = or(pick('apparent_temperature', Math.min), or(dv('apparent_temperature_min'), or(pick('temperature_2m', Math.min), dv('temperature_2m_min'))));
 var hi = or(pick('apparent_temperature', Math.max), or(dv('apparent_temperature_max'), or(pick('temperature_2m', Math.max), dv('temperature_2m_max'))));
 var p = or(pick('precipitation_probability', Math.max), dv('precipitation_probability_max'));
-return { rain: p !== null && p >= 50, wind: or(pick('wind_speed_10m', Math.max), dv('wind_speed_10m_max')), gust: or(pick('wind_gusts_10m', Math.max), dv('wind_gusts_10m_max')), lo: lo, hi: hi, uv: dv('uv_index_max'), day: true };
+return { rain: p !== null && p >= 50, lo: lo, hi: hi, uv: dv('uv_index_max'), day: true };
 }
 function rainRows(c) { return c.slice(6, 9).some((q) => q.wet) ? 3 : 2; }
 // Hours strip (owner): 12 hours from the current one, hour stamp per time format, icon, temperature, rain as in the
@@ -444,7 +444,7 @@ var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--'
 var trend = calm ? pressTrend(n.press, opt.pressAgo) : null;
 var hrs = opt && opt.hours ? hourStrip(M.hours || [], fmt, deg) : null;   // owner: bottom strip Hours instead of the days
 var out = {
-ok: M.ok, meters: meters, calm: calm, cue: calm ? cueFor({ rain: wetIn12, wind: n.wind, gust: n.gust, lo: n.feels === null ? tv : n.feels, hi: n.feels === null ? tv : n.feels, uv: t.uvMax, day: n.day !== false }, F_) : null,
+ok: M.ok, meters: meters, calm: calm, cue: calm ? cueFor({ rain: wetIn12, lo: n.feels === null ? tv : n.feels, hi: n.feels === null ? tv : n.feels, uv: t.uvMax, day: n.day !== false }, F_) : null,
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
 temp: tStr, unit: deg + M.unit, feels: feelsOn && inT === null ? fmt(n.feels) : null,
 inn: inT === null ? null : { temp: (Math.round(inT * 10) / 10).toFixed(1), out: O.outdoor, in: O.indoor, felt: n.feels === null ? '' : O.feels + ' ' + fmt(n.feels) + deg, hum: M.inn.hum === null ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
@@ -472,8 +472,8 @@ async function run(input) {
   var fahrenheit = String(UNIT || field(input, 'unit', 'celsius')) === 'fahrenheit';
   var forecast = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
     '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index' +
-    '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,pressure_msl,weather_code,is_day,wind_speed_10m,wind_gusts_10m' +
-    '&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,precipitation_sum,sunrise,sunset' +
+    '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,pressure_msl,weather_code,is_day' +
+    '&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,uv_index_max,wind_gusts_10m_max,precipitation_sum,sunrise,sunset' +
     '&timezone=auto&past_hours=3&forecast_days=14&temperature_unit=' + (fahrenheit ? 'fahrenheit' : 'celsius') +
     '&precipitation_unit=' + (fahrenheit ? 'inch' : 'mm') + '&wind_speed_unit=' + (fahrenheit ? 'mph' : 'kmh');
   var air = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon +
