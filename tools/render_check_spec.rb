@@ -75,6 +75,13 @@ return bad.join('; ');})()})
         puts "PATTERN #{c['name']}: #{pat}" unless pat.zero?
         expect(pat).to eq(0)
       end
+      # Weather icon (owner 2026-11-12): one-line condition: icon as tall as the capitals, centred on them; two lines: the block.
+      ci = s.evaluate(%q{(function(){var bad=[],cx=document.createElement('canvas').getContext('2d');document.querySelectorAll('[data-sw-cond]').forEach(function(sp){var sb=sp.getBoundingClientRect();if(!sb.height)return;
+var ic=sp.parentElement.firstElementChild,ib=ic.getBoundingClientRect(),k=sb.width/(sp.offsetWidth||sb.width),cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var m=cx.measureText('H'),fa=m.fontBoundingBoxAscent*k,fd=m.fontBoundingBoxDescent*k,cap=m.actualBoundingBoxAscent*k;
+var rg=document.createRange();rg.selectNodeContents(sp);var lr=[].filter.call(rg.getClientRects(),function(q){return q.width>0}),bl=function(q){return q.top+(q.height-fa-fd)/2+fa},t0=bl(lr[0])-cap,t1=bl(lr[lr.length-1]),n=lr.filter(function(q,i){return i===0||Math.abs(q.top-lr[i-1].top)>2}).length;
+var h=n>1?t1-t0:cap,mid=n>1?(t0+t1)/2:t0+cap/2;if(Math.abs(ib.height-h)>2)bad.push('icon h '+ib.height.toFixed(1)+' want '+h.toFixed(1)+' ('+n+' lines)');if(Math.abs(ib.top+ib.height/2-mid)>1.5)bad.push('icon centre off '+(ib.top+ib.height/2-mid).toFixed(1));});return bad.join('; ');})()})
+      puts "CONDICON #{c['name']}: #{ci}" unless ci.empty?
+      expect(ci).to eq('')
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"

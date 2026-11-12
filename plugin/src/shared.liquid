@@ -60,8 +60,8 @@
 {%- capture c_temp %}
   <div class="flex flex--col flex--center gap--medium grow">
    <div class="flex flex--row flex--center-y gap--medium h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]">
-    {%- if ui.icon %}<img class="image image--adaptive h--full" src="{{ ui.icon }}" alt="" data-sw-icon>{% endif %}
-    <span class="title title--base text--bold" data-clamp="2">{{ ui.cond }}</span>
+    {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-icon></span>{% endif %}
+    <span class="title title--base text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
    <div class="flex flex--row flex--center-y gap--small lg:gap--medium h--[{{ 15 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 13 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
@@ -410,8 +410,30 @@ return API;
   // the person, as tall as the drawn digits and centred on them. Measured on the ink, so it needs the page.
   function ink(svgEl) { var r = svgEl.getBoundingClientRect(), vb = svgEl.viewBox.baseVal, b = svgEl.getBBox(), kx = r.width / (vb.width || r.width), ky = r.height / (vb.height || r.height);
     return { l: r.left + (b.x - vb.x) * kx, r: r.left + (b.x - vb.x + b.width) * kx, t: r.top + (b.y - vb.y) * ky, h: b.height * ky }; }
+  // Weather icon next to the condition (owner 2026-11-12): one line: as tall as the capitals, centred on them; two lines:
+  // as tall as the text block, centred on it. Measured on the real font, so it needs the page.
+  function swCond(cx) {
+    document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
+      var ic = sp.parentElement.firstElementChild; if (!ic || ic === sp) return;
+      var sb = sp.getBoundingClientRect(); if (!sb.height) return;
+      var k = (sp.offsetWidth && sb.width / sp.offsetWidth) || 1, cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+      function size(v) { ic.style.setProperty('height', v.toFixed(1) + 'px', 'important'); ic.style.setProperty('width', v.toFixed(1) + 'px', 'important'); }
+      size(cx.measureText('H').actualBoundingBoxAscent); ic.style.transform = '';   // the smallest icon first: does the label fit on one line?
+      var rg = document.createRange(); rg.selectNodeContents(sp); var lr = [].filter.call(rg.getClientRects(), function (q) { return q.width > 0; }), tops = [];
+      lr.forEach(function (q) { if (!tops.some(function (t) { return Math.abs(t - q.top) < 2; })) tops.push(q.top); });
+      var m = cx.measureText('H'), cap = m.actualBoundingBoxAscent, fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent, lh = parseFloat(cs.lineHeight) || (fa + fd);
+      var first = lr[0] || sb, base = first.top / k + (first.height / k - (fa + fd)) / 2 + fa, h, mid;
+      if (tops.length <= 1) { h = cap; mid = base - cap / 2; }
+      else { var last = lr[lr.length - 1], lb = last.top / k + (last.height / k - (fa + fd)) / 2 + fa; h = lb - (base - cap); mid = (lb + base - cap) / 2; }
+      size(h);
+      var sv = ic.querySelector('svg'); if (sv) { sv.setAttribute('width', h.toFixed(1)); sv.setAttribute('height', h.toFixed(1)); }
+      var ib = ic.getBoundingClientRect(); ic.style.transform = 'translateY(' + (mid - (ib.top + ib.height / 2) / k).toFixed(1) + 'px)';
+      ic.setAttribute('data-sw-condicon', tops.length + ',' + h.toFixed(1) + ',' + mid.toFixed(1));
+    });
+  }
   function swAlign() {
     var cx = document.createElement('canvas').getContext('2d');
+    swCond(cx);
     document.querySelectorAll('[data-sw-div]').forEach(function (dv) {
       var row = dv.parentElement, u = row.querySelector('[data-sw-unit=""]'), t = row.querySelector('[data-sw-part="temp"] svg'), p = row.querySelector('[data-sw-part="person"] svg');
       dv.style.transform = ''; dv.style.removeProperty('height');
@@ -457,7 +479,8 @@ return API;
     });
     swAlign();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(swAlign);   // the unit's ink width needs the real font
-    if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-part="person"], [data-sw-part="feels"], [data-sw-div]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
+    if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-part="person"], [data-sw-part="feels"], [data-sw-div], [data-sw-cond]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
+    if (window.MutationObserver) { var mo = new MutationObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-cond]').forEach(function (q) { mo.observe(q, { attributes: true, childList: true, characterData: true, subtree: true }); }); }   // the Framework's clamp rewrites the condition
     [200, 800, 2000].forEach(function (ms) { setTimeout(swAlign, ms); });   // the Framework refits text after first paint
     document.body.setAttribute('data-sw-drawn', '1');
   });
