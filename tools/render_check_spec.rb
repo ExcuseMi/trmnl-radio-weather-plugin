@@ -237,6 +237,11 @@ return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.len
       else
         expect(d[3]).to eq(0)
       end
+      # Felt temperature icon (owner): the outline figure, its drawn height the felt digits' height (2 px), centred on them.
+      fi = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="person"] svg').forEach(function(p){var b=p.getBoundingClientRect();if(!b.width)return;if(!p.querySelector('[data-sw-feelsicon]')){bad.push('not the outline icon');return;}
+var f=p.closest('[data-sw-part="person"]').parentElement.querySelector('[data-sw-part="feels"] svg');if(!f)return;var a=f.getBoundingClientRect();if(Math.abs(a.height-b.height)>2||Math.abs((a.top+a.bottom)/2-(b.top+b.bottom)/2)>2)bad.push('icon '+b.height.toFixed(1)+'@'+b.top.toFixed(0)+' digits '+a.height.toFixed(1)+'@'+a.top.toFixed(0));});return bad.join('; ');})()})
+      puts "FEELSICON #{c['name']}: #{fi}" unless fi.empty?
+      expect(fi).to eq('')
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"
