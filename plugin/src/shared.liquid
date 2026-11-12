@@ -98,11 +98,12 @@
     {%- else %}
     <div class="flex flex--row flex--top gap--xsmall {{ tg_h }}"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
     {%- endif %}
-    {%- if ui.feels %}
-    <div data-sw-div class="border--v-60{{ dv_x }} h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[6cqh]"></div>
+    {%- assign felt_on = false %}{% if ui.feels and view != 4 %}{% assign felt_on = true %}{% endif %}{% assign felt_v = '' %}{% if view == 3 %}{% assign felt_v = ' hidden lg:block' %}{% endif %}{% comment %} owner: the felt reading (label and digits) only where it fits: never in the quadrant, half vertical on lg only {% endcomment %}
+    {%- if felt_on %}
+    <div data-sw-div class="border--v-60{{ dv_x }}{{ felt_v }} h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[6cqh]"></div>
     {%- if view == 3 %}<div class="flex flex--row flex--center-y gap--small lg:gap--medium">{% endif %}
-    <div class="h--[{{ fe_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 7 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="person"></div>{% comment %} owner: the felt icon as tall as the felt digits {% endcomment %}
-    <div class="h--[{{ fe_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 7 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="feels"></div>
+    <div class="{{ felt_v | strip }}"><div class="flex flex--col flex--left gap--xsmall" data-sw-felt><span class="label label--inverted label--large lg:portrait:label--xxlarge text--bold" data-sw-feltlabel>{{ i18n.ours.feels }}</span>{% comment %} owner: the felt word over the felt digits, as today's day label {% endcomment %}
+<div class="shrink-0 h--[{{ fe_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 7 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="feels"></div></div></div>
 {{ cue_html }}    {%- if view == 3 %}</div>{% endif %}
     {%- elsif ui.cue %}
 {{ cue_html }}    {%- endif %}
@@ -406,13 +407,6 @@ if (k === 'coat') { var sw = Math.max(1.8, 1.5 * 27 / Math.max(1, H));   // owne
 return svg(H * 25 / 27, H, '<g fill="none" stroke="currentColor" stroke-width="' + n1(sw * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-coat><path d="M9 7 Q14 1 19 7"/><path d="M10.5 8.5 Q14 5 17.5 8.5 Q14 12 10.5 8.5"/><path d="M9 7 L5 9.5 L3 21 L6.5 21.5 L7.5 14 L7.5 26 H20.5 L20.5 14 L21.5 21.5 L25 21 L23 9.5 L19 7"/><path d="M14 11.5 V26"/><path d="M9.5 19.5 H12"/><path d="M16 19.5 H18.5"/></g>', '1.6 1.6 25 25.8'); }
 return '';
 }
-// Felt temperature icon (owner): the outline figure with two wind strokes. The view box is cropped to the drawn ink (stroke
-// included), so the drawn height is the box height: the box is as tall as the felt-temperature digits and centred on them.
-// Stroke 1.8 of its 28-unit icon, scaled with size, never under 1.5 px.
-function person(W, H) {
-var vh = 20.05, sw = Math.max(1.8, 1.5 * vh / Math.max(1, H));
-return svg(H * 19.3 / vh, H, '<g fill="none" stroke="currentColor" stroke-width="' + n1(sw * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-feelsicon><circle cx="13.5" cy="7.5" r="3.25"/><path d="M7.5 22.5V18.5C7.5 15.74 9.74 13.5 12.5 13.5H14.5C17.26 13.5 19.5 15.74 19.5 18.5V22.5"/><path d="M2 11.5H6"/><path d="M3 15.5H5.5"/></g>', '1.1 3.35 19.3 ' + vh);
-}
 // Receiver dial: arc, ticks, range band with low (hollow) and high (solid) marks, scale labels; barometer zone bands
 // with their icons; the needle and hub last, on top of everything.
 // Dial light: light mode, 2-bit and up, a radial backlight behind the face; dark mode a soft glow on ring, needle
@@ -519,7 +513,6 @@ case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
 case 'tri': return tri(i === 0, W, H);
 case 'rule': return rule(W, H);
-case 'person': return person(W, H);
 case 'moon': return moon(SW.sun && SW.sun.phase, H);
 case 'baro': return dial(SW.baro, W, H, true);
 case 'tdial': return dial(SW.tdial, W, H, false);
@@ -575,13 +568,13 @@ return API;
     var cx = document.createElement('canvas').getContext('2d');
     swCond(cx);
     document.querySelectorAll('[data-sw-div]').forEach(function (dv) {
-      var row = dv.parentElement, u = row.querySelector('[data-sw-unit=""]'), t = row.querySelector('[data-sw-part="temp"] svg'), p = row.querySelector('[data-sw-part="person"] svg');
+      var row = dv.parentElement, u = row.querySelector('[data-sw-unit=""]'), t = row.querySelector('[data-sw-part="temp"] svg'), p = row.querySelector('[data-sw-felt]');
       dv.style.transform = ''; dv.style.removeProperty('height');
       if (!u || !t || !p || !dv.getBoundingClientRect().height) return;
       var cs = getComputedStyle(u); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
       // The preview may scale the page: screen boxes are scaled, the canvas text width and the translate are CSS px.
       var ub = u.getBoundingClientRect(), sc = (u.offsetWidth && ub.width / u.offsetWidth) || 1;
-      var ur = ub.left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight * sc, pi = ink(p), ti = ink(t);
+      var ur = ub.left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight * sc, pi = { l: p.getBoundingClientRect().left }, ti = ink(t);
       dv.style.setProperty('height', Math.round(ti.h / sc) + 'px', 'important'); dv.style.setProperty('flex-shrink', '0');
       var r = dv.getBoundingClientRect();
       dv.style.transform = 'translate(' + (((ur + pi.l) / 2 - (r.left + r.right) / 2) / sc).toFixed(1) + 'px,' + ((ti.t - r.top) / sc).toFixed(1) + 'px)';
@@ -624,7 +617,7 @@ return API;
     });
     swAlign();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(swAlign);   // the unit's ink width needs the real font
-    if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-part="person"], [data-sw-part="feels"], [data-sw-div], [data-sw-cond]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
+    if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-felt], [data-sw-part="feels"], [data-sw-div], [data-sw-cond]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
     if (window.MutationObserver) { var mo = new MutationObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-cond]').forEach(function (q) { mo.observe(q, { attributes: true, childList: true, characterData: true, subtree: true }); }); }   // the Framework's clamp rewrites the condition
     [200, 800, 2000].forEach(function (ms) { setTimeout(swAlign, ms); });   // the Framework refits text after first paint
     document.body.setAttribute('data-sw-drawn', '1');
