@@ -205,5 +205,10 @@ test('segment digits: one lit polygon per segment', () => {
   eq((s.match(/<polygon/g) || []).length, 14); ok(/<rect/.test(s), 'decimal point');
 });
 
+test('block meter: half lit lights five of ten, no data lights none', () => {
+  const lit = (s) => ((s.split('text--gray-30')[1] || '').match(/<rect/g) || []).length;
+  eq([lit(T.SWSvg.meter(0.5, 10)), lit(T.SWSvg.meter(null, 10)), lit(T.SWSvg.meter(2, 10))], [5, 0, 10]);
+});
+
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
