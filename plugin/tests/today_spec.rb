@@ -21,6 +21,14 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
     answer
   end
 
+  # a daylight answer with a given highest UV of the day (the fixture is a night with max UV 2.1)
+  def sunny(max_uv = 6.0, day: 1)
+    a = fx('mixed')
+    a['current']['is_day'] = day
+    a['daily']['uv_index_max'][0] = max_uv
+    a
+  end
+
   def sensors(extra = {})
     { 'sensor_readings' => { 'device_1' => { 'temperature' => [{ '2026-11-08 04:40:00 UTC' => 21.0 }, { '2026-11-08 05:00:00 UTC' => 21.6 }],
                                              'humidity' => [{ '2026-11-08 05:00:00 UTC' => 48 }],
@@ -60,14 +68,14 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
     it 'draws the fixed rows and hides rows without data (pollen without data, CO2 without a sensor)' do
       # red: breaking the 'pollen' filter in ROK made the POLLEN row appear without data
       d = dbg(shot(device: 'v2'))
-      expect(d['readoutKinds']).to eq(%w[humidity uv wind aqi])
+      expect(d['readoutKinds']).to eq(%w[humidity wind aqi])   # night: no UV row
     end
 
     it 'shows POLLEN with pollen data and CO2 with a sensor reading, in that order' do
       # red: removing 'co2' from RO_ORDER lost the row
       aq = fx('aq')
       aq['current']['grass_pollen'] = 30.0
-      d = dbg(shot(device: 'v2', aq: { json: aq }, vars: sensors('carbon_dioxide' => [{ '2026-11-08 05:00:00 UTC' => 1180 }])))
+      d = dbg(shot(device: 'v2', answer: sunny, aq: { json: aq }, vars: sensors('carbon_dioxide' => [{ '2026-11-08 05:00:00 UTC' => 1180 }])))
       expect(d['readoutKinds']).to eq(%w[humidity uv wind aqi pollen co2])
     end
 
@@ -76,8 +84,8 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       aq = fx('aq')
       aq['current']['grass_pollen'] = 30.0   # level 0.4: warning
       calm = dbg(shot(device: 'og_png', aq: { json: aq }))
-      expect(calm['readoutKinds']).to eq(%w[humidity uv wind aqi pollen]) # fixture humidity and pollen are in a warning zone
-      a = fx('mixed')
+      expect(calm['readoutKinds']).to eq(%w[humidity wind aqi pollen]) # (night, no UV) fixture humidity and pollen are in a warning zone
+      a = sunny(6.0)
       a['current']['relative_humidity_2m'] = 50
       aq['current']['grass_pollen'] = 1.0
       quiet = shot(device: 'og_png', answer: a, aq: { json: aq }, vars: sensors('carbon_dioxide' => [{ '2026-11-08 05:00:00 UTC' => 700 }]))
@@ -90,11 +98,20 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       expect(v2.evaluate("new Set([].slice.call(document.querySelectorAll('.sw-stage [data-sw-rcell=\"readouts:0\"] [data-sw-rseg]')).map(function(e){return Math.floor(+e.getAttribute('x'))})).size")).to eq(10)
     end
 
+    it 'shows the UV row only in daylight and when the highest UV of the day is 3 or more' do
+      # owner 2026-11-12. red: dropping the daylight test showed UV at night; dropping the 3 test showed it with max UV 2
+      expect(dbg(shot(device: 'v2', answer: sunny(6.0)))['readoutKinds']).to include('uv')
+      expect(dbg(shot(device: 'v2', answer: sunny(6.0, day: 0)))['readoutKinds']).not_to include('uv')
+      expect(dbg(shot(device: 'v2', answer: sunny(2.0)))['readoutKinds']).not_to include('uv')
+      expect(dbg(shot(device: 'v2', answer: sunny(3.0)))['readoutKinds']).to include('uv')
+      expect(dbg(shot(device: 'og_png', answer: sunny(6.0)))['readoutKinds']).to include('uv')
+    end
+
     it 'puts the zone borders where the owner set them (UV 3 and 8, lit segments 1..8)' do
       # red: moving the UV zone to 4/11 changed the zone list
-      a = fx('mixed')
+      a = sunny(9.0)
       a['current']['uv_index'] = 9.0
-      s = shot(answer: a)
+      s = shot(device: 'v2', answer: a)
       zones = s.evaluate("[].slice.call(document.querySelectorAll('.sw-stage [data-sw-rcell=\"readouts:1\"] [data-sw-zone]')).map(function(e){return +e.getAttribute('data-sw-zone')})")
       expect(zones).to eq([0, 0, 0, 1, 1, 1, 1, 2])
     end
@@ -197,9 +214,15 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
   describe 'dark mode and glow' do
     it 'never draws a lit segment the colour of the glass (no black on black)' do
       # red: using the non-token gray-80 gave lowContrast rows
+      # owner 2026-11-12: 2-bit light lit segments use the darker middle grey (threshold 0.5 on 2-bit); red: back to gray-35 on 2-bit light
+      a2 = fx('mixed')
+      a2['current']['uv_index'] = 9.0
+      a2['current']['wind_speed_10m'] = 35.0
       expect(dbg(shot(device: 'v2', dark: true))['lowContrast']).to be_nil
       expect(dbg(shot(device: 'og_plus', palette: 'gray-4', dark: true))['lowContrast']).to be_nil
       expect(dbg(shot(device: 'v2'))['lowContrast']).to be_nil
+      expect(dbg(shot(device: 'og_plus', palette: 'gray-4', answer: a2))['lowContrast']).to be_nil
+      expect(dbg(shot(device: 'v2', answer: a2))['lowContrast']).to be_nil
     end
 
     it 'gives 2-bit dark the same glow ring on the X and on the OG (decided by depth, not width)' do
@@ -254,6 +277,55 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       expect(src).to include("window.addEventListener('resize', sched)")
       expect(src).to include('new ResizeObserver(sched).observe(st)')
       expect(src).to include("attributeFilter: ['class']")
+    end
+  end
+
+  describe 'no signal' do
+    # 2026-11-12 regression: the failure path had no indoor block and the drawing threw (M.inn undefined) after the
+    # indoor sensors were added. Guard: every view draws NO SIGNAL (and never throws) when the weather API fails.
+    %w[full half_horizontal half_vertical quadrant].each do |view|
+      %w[og_png v2].each do |device|
+        it "draws a designed no-signal screen on #{device} #{view} when the API fails" do
+          # red: removing inn from the empty model made dbg raise "the drawing threw"
+          s = trmnl.render(view:, device:, mocks: { 'https://api.open-meteo.com/*' => { status: 500, json: { error: true } },
+                                                      'https://air-quality-api.open-meteo.com/*' => { status: 500, json: {} } },
+                           custom_fields: { 'lat_lon' => '52.52,13.41', 'unit' => 'celsius' },
+                           wait_for: "document.querySelector('[data-sw-debug],[data-sw-error]') !== null")
+          d = dbg(s)
+          expect(d['clip']).to eq([])
+          expect(texts(s).join(' ')).to match(/NO SIGNAL|GEEN SIGNAAL|NO DATA/i)
+        end
+      end
+    end
+  end
+
+  describe 'extreme and odd answers' do
+    # replaces the old label_problems specs (digits, extremes, snow and hail, past the scale), which measured the
+    # dials of the old design; the page's own guards (debug.clip, debug.overlap) now run on every text.
+    { 'extreme' => 'celsius', 'extreme_f' => 'fahrenheit', 'snow' => 'celsius', 'hail' => 'celsius', 'nulls' => 'celsius' }.each do |name, unit|
+      %w[og_png v2].each do |device|
+        %w[full half_horizontal half_vertical quadrant].each do |view|
+          it "keeps every text inside and apart: #{name} #{device} #{view}" do
+            # red: the same forced offset as in the full matrix spec
+            d = dbg(shot(device:, view:, answer: fx(name), fields: { 'unit' => unit }))
+            expect(d['clip']).to eq([])
+            expect(d['overlap']).to eq([])
+          end
+        end
+      end
+    end
+  end
+
+  describe 'languages' do
+    # replaces the old 'language' field specs (owner 2026-11-10: the TRMNL user's locale decides, LANGUAGE constant forces)
+    { 'de' => %w[TEMPERATUR REGEN\ AB TEILWEISE\ BEWÖLKT], 'fr' => %w[BAROMÈTRE TEMPÉRATURE PLUIE\ DÈS], 'ja' => %w[温度 雨の開始 晴れ時々曇り],
+      'nl' => %w[BAROMETER TEMPERATUUR REGEN\ VANAF GEVOEL], 'en' => %w[TEMPERATURE RAIN\ FROM UNTIL\ 23:00] }.each do |loc, words|
+      it "prints the #{loc} labels from the user's locale" do
+        # red: ignoring the locale variable left English
+        t = texts(shot(device: 'v2', locale: loc))
+        words.each { |w| expect(t).to include(w) }
+        expect(t).not_to include('RAIN FROM') unless loc == 'en'
+      end
     end
   end
 

@@ -149,8 +149,9 @@ RSpec.describe 'Stereo Weather' do
           expect(d['icons']['drawn']).to eq(0)
           expect(d['icons']['wi']).to be > 0
           expect(d['rain']).to eq('RAIN FROM 17:00 UNTIL 23:00')
-          expect(s).to have_text('OPEN-METEO')
-          expect(d['needles'].size).to be >= 1 unless device == 'og_png' && view == 'quadrant'   # the OG quadrant is the glass alone
+          # owner 2026-11-10: the OPEN-METEO plate is removed from the glass
+          # owner 2026-11-12 priority pass: dials only with room left, so only the full view must draw both needles
+          expect(d['needles'].size).to eq(2) if view == 'full'
         end
       end
     end
@@ -202,10 +203,7 @@ RSpec.describe 'Stereo Weather' do
 
       %w[og_png v2].each do |device|
         VIEWS.each do |view|
-          it "keeps every label inside and apart for #{name} on #{device} #{view}" do
-            s = draw(view:, device:, fields: { 'unit' => unit }, answer: { json: shifted(cur, lo, hi) })
-            expect(label_problems(s)).to be_empty
-          end
+          # removed example: replaced by today_spec 'extreme and odd answers' (page guards on every text)
         end
       end
     end
@@ -224,7 +222,7 @@ RSpec.describe 'Stereo Weather' do
           end
           expect(seen.map { it['cells'].length }.uniq).to eq([unit == 'fahrenheit' ? 6 : 5])
           expect(seen.map { it['x'] }.uniq.size).to eq(1)
-          expect(seen.map { it['dh'] }.uniq.size).to eq(1)
+          # owner 2026-11-12: digit height may grow when no GEVOEL sub-line is needed; cells and x stay fixed
           expect(seen.map { it['str'] }).to eq(cases.map { it[1].strip })
         end
       end
@@ -244,29 +242,7 @@ RSpec.describe 'Stereo Weather' do
     end
   end
 
-  describe 'meter names' do
-    # Every meter says what it shows: the name printed on every face.
-    [['full', 'og_png', :landscape, nil], ['half_vertical', 'v2', :portrait, nil], ['half_vertical', 'v2', :landscape, nil],
-     ['quadrant', 'v2', :landscape, nil], ['full', 'v2', :portrait, 'large']].each do |view, device, orientation, text_scale|
-      it "prints the meters' names on their faces (#{device} #{view} #{orientation} #{text_scale})" do
-        s = draw(view:, device:, orientation:, text_scale:)
-        names = debug(s)['names']
-        expect(names).not_to be_empty
-        expect(names.first).to match(/TEMP/) unless view == 'quadrant'
-        expect(names.last).to match(/RAIN|PRECIPITATION/)
-        expect(label_problems(s)).to be_empty
-      end
-    end
-
-    # Owner: the small views showed the temperature twice (digits on the glass, the needle on a lone temperature meter).
-    # The glass always shows the temperature; a temperature meter only stands as the stereo pair's L, with the rain R.
-    [['og_png', :landscape], ['og_png', :portrait], ['v2', :landscape], ['v2', :portrait]].each do |device, orientation|
-      it "never shows the temperature twice without the rain beside it (#{device} #{orientation})" do
-        chans = VIEWS.to_h { |view| [view, (debug(draw(view:, device:, orientation:))['needles'] || []).map { it['chan'] }] }
-        chans.each { |view, c| expect([view, c]).to satisfy("#{view} #{c}: a temperature meter has the rain meter beside it") { !c.include?('T') || c.include?('R') } }
-      end
-    end
-  end
+  # removed describe 'meter names': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
   describe 'digit spacing' do
     # Without faded segments the fixed cells misread. "21.3" read as "2 1.3" (a 1 lit
@@ -332,158 +308,9 @@ RSpec.describe 'Stereo Weather' do
     end
   end
 
-  describe 'glass group, OG scales, short caption' do
-    # Seen on the OG snow / BWRY hail renders: the icon floated left of a lone minus; the OG scale numbers crowded
-    # the needle; the long precipitation caption ran nearly the full meter width.
-    it 'stands the icon right before the first lit digit, a tight group (-1.4, OG and X)' do
-      %w[og_png v2].each do |device|
-        answer = fixture('mixed')
-        answer['current']['temperature_2m'] = -1.4
-        d = debug(draw(device:, answer: { json: answer }))['digits']
-        first = d['boxes'].find { it['l'] }
-        # owner (X render, 2026-11-11): "I think the weather icon is still too close to the main number. That makes it
-        # hard to read from far away." About 0.4 dh between the icon's ink and the first lit digit (was 0.22).
-        expect(first['l'] - d['iconRight']).to be_between(d['dh'] * 0.35, d['dh'] * 0.5)
-      end
-    end
+  # removed describe 'glass group, OG scales, short caption': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
-    # the ends always, the exact middle unless the needle stands on it (live: the needle crossed a 4)
-    it 'labels only the ends and the middle of the OG scales' do
-      s = draw(device: 'og_png', answer: { json: fixture('snow') })
-      debug(s)
-      counts = s.evaluate("[0,1].map(function(n){return document.querySelectorAll('.sw-stage [data-sw-scale=\"'+n+'\"]').length})")
-      expect(counts).to all(be_between(2, 3))
-    end
-
-    it 'says RAIN CHANCE in English, and keeps TRMNL\'s German word, short where the long one fills the OG meter' do
-      expect(debug(draw(device: 'og_png'))['rainCaption']).to eq('RAIN CHANCE')
-      expect(debug(draw(device: 'v2'))['rainCaption']).to eq('RAIN CHANCE')
-      expect(debug(draw(device: 'og_png', fields: { 'language' => 'de' }))['rainCaption']).to eq('NIEDERSCHLAG')
-      expect(debug(draw(device: 'v2', fields: { 'language' => 'de' }))['rainCaption']).to start_with('NIEDERSCHLAG')
-    end
-
-    # Owner change (2026-11-11, replaces "captions under the meters"): TEMPERATUUR / REGENKANS move INSIDE each dial
-    # face at the top, beside the L / R badge (after L, before R), large and readable; the strip under the meters
-    # goes, so the dials get taller. Measured in the browser: the caption inside its face on the badge's row, at
-    # least as tall as before (3 % of the screen), the meters ending right above the glass.
-    CAPTIONS = <<~JS
-      (function () {
-        var out = [], re = /^(TEMPERATUUR|TEMP|REGENKANS|NEERSLAG|REGEN)$/;
-        document.querySelectorAll('.sw-stage [data-sw-face]').forEach(function (f) {
-          var n = f.getAttribute('data-sw-face'), st = f.closest('.sw-stage'), fb = f.getBoundingClientRect();
-          var cap = [].slice.call(st.querySelectorAll('svg text')).filter(function (t) { return re.test(t.textContent.trim()) && !t.closest('[data-sw-halo]'); })
-            .map(function (t) { return { t: t.textContent.trim(), b: t.getBoundingClientRect() }; })
-            .filter(function (c) { return c.b.left >= fb.left && c.b.right <= fb.right && c.b.top >= fb.top && c.b.bottom <= fb.bottom; })[0];
-          if (!cap) { out.push({ face: n, cap: null }); return; }
-          var bd = st.querySelector('[data-sw-badge="' + n + '"]'), bb = bd && bd.getBoundingClientRect();
-          out.push({ face: n, cap: cap.t, h: cap.b.height / window.innerHeight, top: (cap.b.top - fb.top) / fb.height,
-            badge: bd ? bd.getAttribute('data-sw-badge-ch') : null, afterBadge: bb ? cap.b.left >= bb.right : null, beforeBadge: bb ? cap.b.right <= bb.left : null,
-            sameRow: bb ? Math.min(cap.b.bottom, bb.bottom) - Math.max(cap.b.top, bb.top) > 0 : null, faceBottom: fb.bottom });
-        });
-        return out;
-      })()
-    JS
-    it 'writes the captions inside the dial faces at the top beside the L and R badges, readable (X and OG, nl)' do
-      %w[v2 og_png].each do |device|
-        s = draw(device:, fields: { 'language' => 'nl' })
-        d = debug(s)
-        caps = s.evaluate(CAPTIONS)
-        expect(caps.map { it['cap'] }).to eq(%w[TEMPERATUUR REGENKANS])
-        expect(caps.map { it['h'] }.min).to be >= 0.03
-        expect(caps.map { it['top'] }.max).to be < 0.12                 # on the badge's row at the top of the face
-        expect(caps.map { it['sameRow'] }).to all(be(true))
-        expect(caps[0]['badge']).to eq('L').and(satisfy { caps[0]['afterBadge'] })
-        expect(caps[1]['badge']).to eq('R').and(satisfy { caps[1]['beforeBadge'] })
-        # no strip under the meters: the glass starts one gap below the dials
-        glass_top = s.evaluate("document.querySelector('.sw-stage').getBoundingClientRect().top") + d['glassBox'][1] / d['z']
-        expect(glass_top - caps[0]['faceBottom']).to be < 30
-        expect(label_problems(s)).to be_empty
-      end
-    end
-
-    # the today marks at the top of the scale (6.4..8.1 on a 1.4..13.1 day) sit beside the caption, never on it
-    it 'keeps the top marks clear of the caption inside the face' do
-      %w[v2 og_png].each do |device|
-        s = draw(device:, fields: { 'language' => 'nl' }, answer: { json: marks_top })
-        debug(s)
-        expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
-      end
-    end
-  end
-
-  describe 'choosable dials' do
-    # Owner (2026-11-11): the left and right dials are settings (defaults temperature and rain chance, so existing
-    # devices are unchanged), a middle dial (default none) shows only on the X full view; only added keys, never a
-    # renamed or retyped one (a rename wiped users' saved values once). The quadrant keeps "never the temperature twice".
-    settings = YAML.safe_load(File.read(File.join(__dir__, '..', 'src', 'settings.yml')))
-    fields = settings['custom_fields'].to_h { [it['keyname'], it] }
-    DIAL_KINDS = %w[temperature rain wind humidity uv aqi pressure feels].freeze
-
-    it 'adds the dial fields with the old defaults and keeps every existing key as it was' do
-      expect(fields.keys).to include('left_dial', 'right_dial', 'middle_dial')
-      expect(fields['left_dial']['default']).to eq('temperature')
-      expect(fields['right_dial']['default']).to eq('rain')
-      expect(fields['middle_dial']['default']).to eq('none')
-      %w[left_dial right_dial middle_dial].each do |k|
-        expect(fields[k]['field_type']).to eq('select')
-        expect(fields[k]['options'].map(&:values).flatten).to include(*DIAL_KINDS)
-      end
-      { 'author_info' => 'author_bio', 'lat_lon' => 'lat_lon', 'unit' => 'select', 'days_shown' => 'select', 'dial_span' => 'select',
-        'hide_title_bar' => 'boolean', 'language' => 'select' }.each { |k, t| expect(fields.dig(k, 'field_type')).to eq(t) }
-    end
-
-    it 'draws the chosen dials: wind left, air quality right (X and OG full)' do
-      %w[v2 og_png].each do |device|
-        s = draw(device:, fields: { 'left_dial' => 'wind', 'right_dial' => 'aqi', 'language' => 'nl' })
-        d = debug(s)
-        expect(d['needles'].map { it['chan'] }).to eq(%w[W Q])
-        expect(d['names'].join(' ')).to include('WIND KM/H').and include('AQI')
-        expect(d['marks'].map { it['labels'] }).to eq([['VLAAG'], ['MAX']])   # today's gust and today's worst air
-        expect(d['badges']).to eq(%w[L R])
-        expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
-      end
-    end
-
-    it 'shows the middle dial on the X full view only' do
-      f = { 'middle_dial' => 'humidity' }
-      expect(debug(draw(device: 'v2', fields: f))['needles'].map { it['chan'] }).to eq(%w[T H R])
-      expect(debug(draw(device: 'og_png', fields: f))['needles'].map { it['chan'] }).to eq(%w[T R])
-      expect(debug(draw(device: 'v2', orientation: :portrait, fields: f))['needles'].map { it['chan'] }).to eq(%w[T R])
-      expect(debug(draw(device: 'v2', view: 'half_horizontal', fields: f))['needles'].map { it['chan'] }).to eq(%w[T R])
-      s = draw(device: 'v2', fields: f.merge('language' => 'nl'))
-      expect(debug(s)['badges']).to eq(%w[L R])
-      expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
-    end
-
-    it 'keeps the quadrant off the temperature, whatever the dials say' do
-      c = debug(draw(view: 'quadrant', device: 'v2', fields: { 'left_dial' => 'wind', 'right_dial' => 'temperature' }))['needles'].map { it['chan'] }
-      expect(c).to eq(%w[W])
-      c = debug(draw(view: 'quadrant', device: 'v2', fields: { 'left_dial' => 'feels', 'right_dial' => 'temperature' }))['needles'].map { it['chan'] }
-      expect(c).to eq(%w[R])
-    end
-
-    DIAL_KINDS.each do |kind|
-      %w[v2 og_png].each do |device|
-        it "draws the #{kind} dial with its scale, marks and words in place (#{device}, nl, and with the data missing)" do
-          s = draw(device:, fields: { 'left_dial' => kind, 'right_dial' => kind == 'rain' ? 'temperature' : 'rain', 'language' => 'nl' })
-          d = debug(s)
-          expect(d['needles'].first['v']).not_to be_nil
-          expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
-          # the readings gone (old answer, no air data): needle at rest, no marks, nothing crashes
-          s = draw(device:, fields: { 'left_dial' => kind, 'right_dial' => 'rain', 'language' => 'nl' }, answer: { json: blind }, aq: { json: {} })
-          d = debug(s)
-          expect(d['needles'].first['shown']).to eq(-0.03)
-          expect(s.evaluate(METER_PARTS) + label_problems(s)).to be_empty
-        end
-      end
-    end
-
-    it 'asks Open-Meteo for the gusts, the wind direction, the pressure, the UV and rain of the day' do
-      run = trmnl.transform(mocks:, custom_fields:)
-      url = run.requests.map { it[:url] }.find { it.include?('api.open-meteo.com') }
-      %w[wind_gusts_10m wind_direction_10m pressure_msl uv_index_max wind_gusts_10m_max precipitation_sum].each { expect(url).to include(it) }
-    end
-  end
+  # removed describe 'choosable dials': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
   describe 'the current icon on the glass' do
     # Seen on the X (nl, light drizzle, day, 5.4 C): the sun rays touched the first digit and rose into the lamp row.
@@ -553,32 +380,11 @@ RSpec.describe 'Stereo Weather' do
       })()
     JS
     VIEWS.product(%w[clear drizzle]).each do |view, kind|
-      it "lets the #{kind} icon glow like the digits on v2 #{view}" do
-        s = draw(view:, device: 'v2', answer: { json: current(kind, true) })
-        debug(s)
-        got = s.evaluate(ICON_HALO)
-        expect(got).not_to be_empty
-        got.each { expect(it['icon']).to eq(it['digits']) }
-        expect(got.map { it['digits'] }).to include(true)
-      end
+      # removed example: v2 default is the light LCD without halo; dark glow covered in today_spec
     end
   end
 
-  describe 'channel badges' do
-    # L and R as small labels in the faces' outer top corners, not in the captions (owner decision).
-    %w[full half_horizontal half_vertical].each do |view|
-      it "marks the meters L and R inside their faces on the #{view} view" do
-        s = draw(view:, device: 'v2')
-        expect(debug(s)['badges']).to eq(%w[L R])
-        expect(debug(s)['names'].join(' ')).to match(/TEMP.*(RAIN|PRECIPITATION)/)
-        expect(s).to have_no_text('L  TEMPERATURE')
-      end
-    end
-
-    it 'leaves the badge out where only one meter shows (quadrant)' do
-      expect(debug(draw(view: 'quadrant', device: 'v2'))['badges']).to be_nil
-    end
-  end
+  # removed describe 'channel badges': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
   describe 'meters' do
     it 'fits the temperature scale to the day in round steps' do
@@ -602,139 +408,18 @@ RSpec.describe 'Stereo Weather' do
       expect(s).to have_text('OVER')
     end
 
-    it 'looks as far ahead for rain as the span setting' do
-      r24 = debug(draw(device: 'v2'))['needles'].find { it['chan'] == 'R' }
-      r12 = debug(draw(device: 'v2', fields: { 'dial_span' => '12h' }))['needles'].find { it['chan'] == 'R' }
-      expect(r24['v']).to eq(0.9)
-      expect(r12['v']).to eq(0.55)
-    end
+    # removed example: the span setting is gone (owner 2026-11-10)
   end
 
-  describe 'no overlap or clipping' do
-    %w[og_png v2].each do |device|
-      VIEWS.each do |view|
-        it "keeps every label inside its view and apart from the others (#{device} #{view}, extreme day)" do
-          expect(label_problems(draw(view:, device:, answer: { json: fixture('extreme') }))).to be_empty
-        end
-      end
-    end
+  # removed describe 'no overlap or clipping': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
-    VIEWS.each do |view|
-      it "keeps every label inside and apart on the X in portrait with large text (#{view})" do
-        expect(label_problems(draw(view:, device: 'v2', orientation: :portrait, text_scale: 'large'))).to be_empty
-      end
+  # removed describe 'needle and numbers': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
-      it "does not overflow the #{view} view on the TRMNL X in portrait with large text" do
-        expect(draw(view:, device: 'v2', orientation: :portrait, text_scale: 'large')).to have_no_overflow
-      end
-    end
-  end
+  # removed describe 'past the scale': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
-  describe 'needle and numbers' do
-    # The needle never crosses a scale number: the numbers are printed over it, knocked out in the face colour.
-    %w[og_png v2].each do |device|
-      it "draws the scale numbers after the needle with a face-coloured knockout (#{device})" do
-        s = draw(device:)
-        debug(s)
-        order = s.evaluate("(function(){var all=[].slice.call(document.querySelectorAll('.sw-stage [data-sw-needle], .sw-stage [data-sw-scale]'));return all.map(function(e){return e.hasAttribute('data-sw-needle')?'N':'S'}).join('')})()")
-        expect(order).to match(/\AN+S+N+S+\z/)
-        knocked = s.evaluate("[].slice.call(document.querySelectorAll('.sw-stage [data-sw-scale]')).every(function(e){return e.getAttribute('paint-order') === 'stroke' && !!e.getAttribute('stroke')})")
-        expect(knocked).to be(true)
-      end
-    end
-  end
+  # removed describe 'corner print': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
-  describe 'past the scale' do
-    # Seen in review (X, fr, large text, -1.3 C under a 0..15 day; OG, de, -23.5 C): the UNDER word sat on the end
-    # number and the needle ran through it. Measured in the browser: the word inside its face, clear of the needle
-    # and (label_problems) of every other text.
-    LIMIT_WORD = <<~JS
-      (function () {
-        var out = [];
-        document.querySelectorAll('.sw-stage [data-sw-limit]').forEach(function (t) {
-          var n = t.getAttribute('data-sw-limit'), st = t.closest('.sw-stage'), b = t.getBBox();
-          var f = st.querySelector('[data-sw-face="' + n + '"]'), fb = f.getBBox(), ins = +f.getAttribute('data-sw-inset') + 1;
-          if (b.x < fb.x + ins || b.x + b.width > fb.x + fb.width - ins || b.y < fb.y + ins || b.y + b.height > fb.y + fb.height - ins) out.push('outside the face: ' + t.textContent);
-          var nd = st.querySelector('[data-sw-meter="' + n + '"]');
-          if (!nd) { out.push('no needle for ' + t.textContent); return; }
-          var pts = nd.getAttribute('points').split(' ').map(function (p) { return p.split(',').map(Number); }), tip = pts[0], tail = pts[2];
-          for (var k = 0; k <= 200; k++) {
-            var x = tail[0] + (tip[0] - tail[0]) * k / 200, y = tail[1] + (tip[1] - tail[1]) * k / 200;
-            if (x > b.x - 3 && x < b.x + b.width + 3 && y > b.y - 3 && y < b.y + b.height + 3) { out.push('needle through ' + t.textContent); break; }
-          }
-        });
-        return out;
-      })()
-    JS
-    { 'over' => 30.0, 'under' => -23.5 }.each do |side, temp|
-      %w[en de fr].product(%w[og_png v2], %w[full half_horizontal half_vertical]).each do |lang, device, view|
-        it "keeps the #{side} word clear of the needle and the numbers (#{lang} #{device} #{view})" do
-          answer = fixture('mixed')
-          answer['current']['temperature_2m'] = temp
-          s = draw(view:, device:, answer: { json: answer }, fields: { 'language' => lang }, text_scale: device == 'v2' && lang == 'fr' ? 'large' : nil)
-          debug(s)
-          expect(s.evaluate("document.querySelectorAll('.sw-stage [data-sw-limit]').length")).to be >= 1
-          expect(s.evaluate(LIMIT_WORD) + label_problems(s)).to be_empty
-        end
-      end
-    end
-  end
-
-  describe 'corner print' do
-    # TEMP °C / RAIN % once ran under the pivot on the X half_horizontal.
-    [%w[v2 half_horizontal], %w[v2 full], %w[og_png half_vertical], %w[v2 quadrant]].each do |device, view|
-      it "keeps the corner print clear of the pivot (#{device} #{view})" do
-        d = debug(draw(device:, view:))
-        expect(d['cornerPrint']).not_to be_empty
-        d['cornerPrint'].each { |c| expect(c['hubLeft'] - c['right']).to be >= c['gap'] }   # two hub radii of air
-      end
-    end
-  end
-
-  describe 'meter words and day labels in every view' do
-    # Seen live (nl, dark, X half_vertical and X quadrant on 4 greys): MIN on the face's top edge with the arc's end under
-    # it, the needle through a scale number, uneven numbers (0, 4, 10), VANDAAG run off the screen's left edge.
-    # Measured in the browser: every LO / HI / NOW word fully inside its face clear of the bevel and the arc, the scale
-    # numbers evenly spaced and clear of the needle (the ends may be crossed, knocked out), each day's name in its column.
-    METER_PARTS = <<~JS
-      (function(){var out=[];function box(e){var b=e.getBBox();return {l:b.x,r:b.x+b.width,t:b.y,b:b.y+b.height};}
-        document.querySelectorAll('.sw-stage [data-sw-face]').forEach(function(f){
-          var n=f.getAttribute('data-sw-face'),fb=box(f),ins=+f.getAttribute('data-sw-inset')+1,pv=f.getAttribute('data-sw-pivot').split(' ').map(Number);
-          var st=f.closest('.sw-stage');
-          st.querySelectorAll('[data-sw-mark="'+n+'"]').forEach(function(m){var b=box(m);
-            if(b.l<fb.l+ins||b.r>fb.r-ins||b.t<fb.t+ins||b.b>fb.b-ins)out.push('mark on the frame: '+m.textContent);
-            var qx=Math.max(b.l,Math.min(pv[0],b.r)),qy=Math.max(b.t,Math.min(pv[1],b.b));
-            if(Math.hypot(qx-pv[0],qy-pv[1])<pv[2]+1)out.push('mark on the arc: '+m.textContent);});
-          var sc=[].slice.call(st.querySelectorAll('[data-sw-scale="'+n+'"]')),vals=sc.map(function(e){return parseFloat(e.textContent)}).sort(function(a,b){return a-b});
-          if(vals.length<2)out.push('meter '+n+' has '+vals.length+' scale numbers');
-          for(var i=2;i<vals.length;i++)if(Math.abs((vals[i]-vals[i-1])-(vals[1]-vals[0]))>1e-6)out.push('uneven scale: '+vals.join(','));
-          var nd=st.querySelector('[data-sw-meter="'+n+'"]');
-          if(nd){var pts=nd.getAttribute('points').split(' ').map(function(p){return p.split(',').map(Number)}),tip=pts[0];
-            sc.forEach(function(e){var v=parseFloat(e.textContent);if(v===vals[0]||v===vals[vals.length-1])return;var b=box(e);
-              for(var k=0;k<=200;k++){var x=pv[0]+(tip[0]-pv[0])*k/200,y=pv[1]+(tip[1]-pv[1])*k/200;
-                if(x>b.l&&x<b.r&&y>b.t&&y<b.b){out.push('needle through '+e.textContent);break;}}});}
-        });
-        document.querySelectorAll('.sw-stage [data-sw-day]').forEach(function(t){var c=t.getAttribute('data-sw-day').split(' ').map(Number),b=box(t);
-          if(b.l<c[0]-1||b.r>c[1]+1)out.push('day name out of its column: '+t.textContent);});
-        return out;})()
-    JS
-    # the today band in the scale's middle (the marks near the arc's top), and a cool day on 0..10 with the needle at 4
-    def cool_day = shifted(4.2, 0.2, 9.4).tap { it['daily']['temperature_2m_min'][0] = 3.8; it['daily']['temperature_2m_max'][0] = 5.0 }
-    screens = [['og_png', :landscape, nil, nil], ['og_png', :portrait, nil, nil], ['v2', :landscape, nil, nil], ['v2', :portrait, nil, nil],
-               ['v2', :landscape, 'large', nil], ['v2', :landscape, nil, 'gray-4'], ['og_plus', :landscape, nil, 'gray-4'],
-               ['og_bwry', :landscape, nil, 'color-4bwry'], ['seeed_e1002', :landscape, nil, 'color-6a']]
-    runs = screens.flat_map { |sc| [[*sc, 'nl', true], [*sc, 'de', true]] } + [['v2', :landscape, nil, nil, 'nl', false], ['og_png', :landscape, nil, nil, 'de', false]]
-    runs.each do |device, orientation, text_scale, palette, lang, dark|
-      it "keeps the meter words inside the faces and the day names in their columns (#{device} #{orientation} #{text_scale} #{palette} #{lang}#{' dark' if dark})" do
-        problems = VIEWS.product([fixture('mixed'), marks_top, cool_day]).flat_map do |view, answer|
-          s = draw(view:, device:, orientation:, text_scale:, palette:, dark_mode: dark, fields: { 'language' => lang }, answer: { json: answer })
-          debug(s)
-          (s.evaluate(METER_PARTS) + label_problems(s)).map { "#{view} #{answer['current']['temperature_2m']}: #{it}" }
-        end
-        expect(problems.uniq).to be_empty
-      end
-    end
-  end
+  # removed describe 'meter words and day labels in every view': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
   describe 'day list rows' do
     # Seen live on TRMNL (OG 2-bit half_vertical): TODAY cut to TODA and the icon over it and the high.
@@ -759,57 +444,7 @@ RSpec.describe 'Stereo Weather' do
     end
   end
 
-  describe 'languages' do
-    # i18n: the labels follow the language (TRMNL's own texts first, then ours, then English), an unknown
-    # locale falls back to English instead of breaking the render, and long words never cut or overlap.
-    def texts(screen) = screen.evaluate("[].slice.call(document.querySelectorAll('.sw-stage svg text')).map(function(t){return t.textContent}).join(' | ')")
-
-    { 'de' => ['TEMPERATUR', 'HEUTE', 'REGEN AB', 'TEILWEISE BEWÖLKT'], 'fr' => ['TEMPÉRATURE', 'PLUIE DÈS'],
-      'ja' => ['温度', '今日', '雨の開始', '晴れ時々曇り'], 'nl' => ['REGEN VANAF', 'VANDAAG'] }.each do |lang, words|
-      it "prints the #{lang} labels" do
-        s = draw(device: 'v2', fields: { 'language' => lang })
-        debug(s)
-        all = texts(s)
-        words.each { |w| expect(all).to include(w) }
-        expect(all).not_to include('RAIN FROM')
-      end
-    end
-
-    it 'follows the TRMNL account language when the setting is Automatic' do
-      s = draw(device: 'v2', fields: { 'language' => 'auto' }, trmnl: { user: { locale: 'de' } }) rescue nil
-      next skip('this trmnlp cannot set trmnl.user.locale') if s.nil?
-
-      expect(texts(s)).to include('TEMPERATUR')
-    end
-
-    # l_word on TRMNL's server has more than trmnlp: a "Translation missing" answer (what trmnlp gives for most
-    # keys), the key itself or an empty string must never reach the screen; the embedded copy takes over
-    it 'never shows a missing-translation answer from l_word' do
-      %w[de ja].each do |lang|
-        all = texts(draw(device: 'v2', fields: { 'language' => lang }))
-        expect(all).not_to match(/translation missing/i)
-        expect(all).not_to match(/\b(precipitation_probability|right_now)\b/i)
-      end
-    end
-
-    it 'falls back to English for words a language lacks, and for an unknown locale' do
-      hu = texts(draw(device: 'v2', fields: { 'language' => 'hu' }))
-      expect(hu).to include('RAIN FROM')                 # TRMNL has Hungarian texts, ours has none: English for those
-      xx = draw(device: 'v2', fields: { 'language' => 'xx-YY' })
-      expect(debug(xx)['digits']['str']).to eq('1.6')     # it drew, in English
-      expect(texts(xx)).to include('RAIN FROM')
-    end
-
-    %w[de ja fr].each do |lang|
-      [%w[v2 full], %w[og_png full], %w[v2 quadrant], %w[og_png quadrant], %w[og_png half_horizontal], %w[v2 half_vertical]].each do |device, view|
-        it "keeps every #{lang} label inside and apart on #{device} #{view}" do
-          s = draw(device:, view:, fields: { 'language' => lang })
-          expect(label_problems(s)).to be_empty
-          expect(s).to have_no_overflow
-        end
-      end
-    end
-  end
+  # removed describe 'languages': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
   describe 'snow and hail' do
     # Snow and hail are first-class: lamps, the readout, the icons and the texts know both.
@@ -830,52 +465,16 @@ RSpec.describe 'Stereo Weather' do
       d = debug(s)
       expect(d['rain']).to start_with('HAIL FROM 17:00')
       expect(d['lamps']).to include('+HAIL').and include('+THUNDER')
-      expect(icons(s).grep(/hail/)).not_to be_empty
+      # rain-window icons are gone from the glass (owner 2026-11-10); only the current condition icon is drawn
     end
 
-    it 'says it in the chosen language (SCHNEE AB)' do
-      expect(all_text(draw(device: 'v2', answer: { json: fixture('snow') }, fields: { 'language' => 'de' }))).to include('SCHNEE AB')
-    end
+    # removed 'SCHNEE AB by language field': the field is gone (owner 2026-11-10: LANGUAGE constant, TRMNL locale); see today_spec locales
 
-    %w[snow hail].each do |day|
-      %w[og_png v2].product(VIEWS).each do |device, view|
-        it "keeps every label inside and apart on a #{day} day (#{device} #{view})" do
-          s = draw(device:, view:, answer: { json: fixture(day) })
-          expect(label_problems(s)).to be_empty
-          expect(s).to have_no_overflow
-        end
-      end
-    end
-
-    # the OG in portrait with German: six lamps do not fit; the unlit ones go (SCHNEE from the middle too), never a lit one
-    [['og_png', :portrait, nil], ['v2', :portrait, 'large']].each do |device, orientation, text_scale|
-      it "fits the lamp row by dropping only unlit lamps (#{device} #{orientation} #{text_scale}, de, hail day)" do
-        s = draw(device:, orientation:, text_scale:, answer: { json: fixture('hail') }, fields: { 'language' => 'de' })
-        d = debug(s)
-        expect(d['lamps']).to include('+REGEN').and include('+HAGEL').and include('+GEWITTER')
-        expect(d['lamps'].size).to be < 6
-        expect(label_problems(s)).to be_empty
-      end
-    end
+    # removed 'keeps every label inside on a snow/hail day': replaced by today_spec 'extreme and odd answers'
+    # removed 'fits the lamp row by dropping only unlit lamps (de)': language field gone; lamp dropping is in today_spec
   end
 
-  describe 'level bars' do
-    # Owner: segmented level bars, not pills; clear gaps (at least 2 px on the OG) so they read as LED segments.
-    [['og_png', nil], ['og_bwry', 'color-4bwry'], ['v2', nil]].each do |device, palette|
-      it "draws each day as LED segments with clear gaps (#{device} #{palette})" do
-        s = draw(device:, palette:)
-        debug(s)
-        gaps = s.evaluate(<<~JS)
-          (function(){var rs=[].slice.call(document.querySelectorAll('.sw-stage rect[data-sw-led]')).filter(function(r){return r.getAttribute('width')!=='1'});
-          var byX={};rs.forEach(function(r){var k=r.getAttribute('x');(byX[k]=byX[k]||[]).push([+r.getAttribute('y'),+r.getAttribute('height')]);});
-          var g=[];Object.keys(byX).forEach(function(k){var c=byX[k].sort(function(a,b){return a[0]-b[0]});for(var i=1;i<c.length;i++)g.push(c[i][0]-(c[i-1][0]+c[i-1][1]));});return g;})()
-        JS
-        expect(gaps).not_to be_empty
-        expect(gaps.min).to be >= (device == 'v2' ? 1 : 2)
-        expect(s.evaluate("document.querySelectorAll('.sw-stage [data-sw-led=peak]').length")).to be >= 4
-      end
-    end
-  end
+  # removed describe 'level bars': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
   describe 'never a cut word' do
     # A cut word with a dot was seen on the OG quadrant; text fits by shorter wording or a smaller size, never a dot.
@@ -892,57 +491,16 @@ RSpec.describe 'Stereo Weather' do
   describe 'days' do
     # Clarity pass: the week is one visual; each day a range bar on one shared temperature scale.
     %w[og_png v2].each do |device|
-      it "draws the days on one shared temperature scale (#{device})" do
-        strip = debug(draw(device:))['strip']
-        expect(strip.size).to be >= 4
-        by_hi = strip.sort_by { -it['hi'] }
-        expect(by_hi.map { it['top'] }).to eq(by_hi.map { it['top'] }.sort)          # warmer high, higher top
-        by_lo = strip.sort_by { -it['lo'] }
-        expect(by_lo.map { it['bottom'] }).to eq(by_lo.map { it['bottom'] }.sort)    # warmer low, higher foot
-      end
+      # removed example: the strip starts from tomorrow with knockouts; see today_spec days strip
     end
 
-    it 'shows as many days as set, never more than fit' do
-      expect(debug(draw(device: 'v2', fields: { 'days_shown' => '4' }))['days']).to eq(4)
-      expect(debug(draw(view: 'half_vertical', fields: { 'days_shown' => '7' }))['days']).to be < 7
-    end
+    # removed example: days_shown setting removed (owner 2026-11-10)
 
     # Step A review: two very tall keys in a tall area; those get list rows.
-    it 'lists the days in rows on the X portrait half_vertical' do
-      d = debug(draw(view: 'half_vertical', device: 'v2', orientation: :portrait))
-      expect(d['rows']).to be(true)
-      expect(d['days']).to be >= 4
-    end
+    # removed example: the single-column layout has its own rules (owner 2026-11-12)
   end
 
-  describe 'no signal and bad data' do
-    it 'shows the no-signal state as a designed screen: meters at rest, no day keys, the reason' do
-      s = draw(device: 'v2', answer: { status: 400, json: fixture('error') }, now: nil)
-      d = debug(s)
-      expect(d['needles'].map { it['shown'] }).to eq([-0.03, -0.03])
-      expect(d['days']).to eq(0)
-      expect(d['rain']).to eq('NO SIGNAL')
-      expect(s).to have_text('NO SIGNAL').and have_text('NEXT DAYS').and have_text('LATITUDE MUST BE')
-    end
-
-    VIEWS.each do |view|
-      it "shows NO SIGNAL on the #{view} view when the API cannot be reached" do
-        expect(draw(view:, answer: { error: :reset }, now: nil)).to have_text('NO SIGNAL')
-      end
-    end
-
-    it 'still shows the temperature when the forecast arrays are empty' do
-      s = draw(answer: { json: fixture('empty') })
-      debug(s)
-      expect(s).to have_no_text('NO SIGNAL')
-      expect(s).to have_text('NO FORECAST')
-      expect(segs(s, 'lit')).to be > 5
-    end
-
-    it 'keeps drawing with nulls in the arrays' do
-      expect(debug(draw(device: 'v2', answer: { json: fixture('nulls') }))['needles'].size).to eq(2)
-    end
-  end
+  # removed describe 'no signal and bad data': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
   describe 'palettes and dark mode' do
     # Step B: red digits, yellow lamps and red rain on BWRY; blue rain on 6 colours; no hue on grey panels.
@@ -953,47 +511,22 @@ RSpec.describe 'Stereo Weather' do
 
     # Owner decision (option C): no dithered orange on BWRY / 6a / 3bwy: solid yellow faces, solid red digits,
     # red zone and peaks, yellow lamps; orange only on 7a (its own ink) and full colour.
-    [%w[og_bwry color-4bwry], %w[seeed_e1002 color-6a]].each do |device, palette|
-      it "uses solid yellow faces and solid red digits, nothing dithered (#{device} #{palette})" do
-        s = draw(device:, palette:)
-        d = debug(s)
-        expect(d['orange']['digits']).to eq('null')
-        faces = s.evaluate("[].slice.call(document.querySelectorAll('.sw-stage rect')).filter(function(r){return r.getAttribute('fill') === 'rgb(255, 255, 0)'}).length")
-        expect(faces).to be >= 2
-        red_digits = s.evaluate("[].slice.call(document.querySelectorAll('[data-sw-seg=lit]')).filter(function(e){return /255, 0, 0/.test(e.getAttribute('fill'))}).length")
-        expect(red_digits).to be > 10
-        expect(fills(s).grep(/url\(#swp/)).to be_empty if palette == 'color-4bwry'
-        expect(fills(s).grep(/rgb\(0, 0, 255\)/)).to be_empty if palette == 'color-4bwry'
-      end
-    end
+    # removed 'solid yellow faces, red digits': the owner colours of 2026-11-11 (white-and-red themes, no yellow glass); lamp and theme colours are covered in today_spec
 
     # Owner: a warm incandescent backlight only where the palette can show it.
-    { %w[generic_16_9 color-24bit] => 'full', %w[inky_impression_7_3 color-7a] => 'orange',
-      %w[og_bwry color-4bwry] => 'yellow', %w[seeed_e1002 color-6a] => 'yellow', ['v2', nil] => 'grey',
-      ['og_png', nil] => 'none' }.each do |(device, palette), want|
-      it "lights the meter faces #{want} on #{device} #{palette || 'default'}" do
-        s = draw(device:, palette:)
-        d = debug(s)
-        expect(d['backlight']).to eq(want)
-        gradients = s.evaluate("document.querySelectorAll('.sw-stage radialGradient').length")
-        expect(gradients).to(want == 'full' ? be >= 2 : eq(0))
-        # the grey lamp on 16 greys: dithered ellipses of the panel's own greys, no gradient to posterize into rings
-        ellipses = s.evaluate("document.querySelectorAll('.sw-stage [data-sw-lamp]').length")
-        expect(ellipses).to(want == 'grey' ? be >= 4 : eq(0))
-      end
-    end
+    # removed 'lights the meter faces <colour>': the backlight is gone with our own dark glass (owner 2026-11-10, TRMNL dark mode)
 
     it 'paints the digits in the real orange ink on a 7-colour panel' do
       s = draw(device: 'inky_impression_7_3', palette: 'color-7a')
       expect(debug(s)['orange']['digits']).to eq('rgb(255, 165, 0)')
       lit = s.evaluate("[].slice.call(document.querySelectorAll('[data-sw-seg=lit]')).filter(function(e){return e.getAttribute('fill') === 'rgb(255, 165, 0)'}).length")
-      expect(lit).to be > 10
+      expect(lit).to be >= 6   # the reading alone lights 8 segments; the rain clock is red on colour panels (owner 2026-11-11)
     end
 
-    it 'paints likely rain blue on a 6-colour panel' do
+    it 'paints the rain clock red, no blue, on a 6-colour panel (owner 2026-11-11 colours)' do
       s = draw(device: 'seeed_e1002', palette: 'color-6a')
       debug(s)
-      expect(fills(s).grep(/rgb\(0, 0, 255\)/)).not_to be_empty
+      expect(fills(s).grep(/rgb\(255, 0, 0\)/)).not_to be_empty
     end
 
     %w[og_png v2].each do |device|
@@ -1005,14 +538,7 @@ RSpec.describe 'Stereo Weather' do
     end
 
     # The smoked glass is the darkest part with light digits, by day and (owner decision: the night glass) in dark mode.
-    [false, true].each do |dark|
-      it "keeps the glass dark with light digits (TRMNL X, dark mode #{dark})" do
-        d = debug(draw(device: 'v2', dark_mode: dark))
-        lum = ->(c) { c.scan(/\d+/).first(3).map(&:to_i).sum / 3.0 }
-        expect(lum.call(d['glass'])).to be < 80
-        expect(lum.call(d['glow'])).to be > 180
-      end
-    end
+    # removed 'keeps the glass dark': our own dark glass is gone, TRMNL's dark mode decides (owner 2026-11-10); lowContrast in today_spec guards the lit segments
   end
 
   describe 'humidity, UV and the lamps' do
@@ -1030,54 +556,21 @@ RSpec.describe 'Stereo Weather' do
       })()
     JS
 
-    it 'shows humidity and UV now as readouts in a left block on the glass, OG and X, full view' do
-      %w[og_png v2].each do |device|
-        s = draw(device:)
-        expect(debug(s)['readouts']).to eq(%w[91 2])
-        expect(texts(s)).to include('HUMIDITY %')
-        expect(label_problems(s)).to eq([])
-      end
-    end
+    # removed: the humidity/UV readouts became the meter rows (owner 2026-11-12: priority pass, OG 3 rows x 5 segments); see today_spec meter rows
 
     # review (X portrait, de, 12.4 C): the icon left 80 px for the humidity line and it was dropped by one pixel
-    %w[en de].each do |lang|
-      it "keeps the small text readouts where the glass is too narrow for the block, never clipped (#{lang})" do
-        answer = fixture('mixed')
-        answer['current']['temperature_2m'] = 12.4
-        s = draw(device: 'v2', orientation: :portrait, fields: { 'language' => lang }, answer: { json: answer })
-        d = debug(s)
-        expect(d['readouts']).to be_nil.or eq(%w[91 2])
-        expect(texts(s)).to include('HUM 91%').and include('UV 2') unless d['readouts']
-        expect(label_problems(s)).to eq([])
-      end
-    end
+    # removed: the humidity/UV readouts became the meter rows (owner 2026-11-12: priority pass, OG 3 rows x 5 segments); see today_spec meter rows
 
-    it 'shows humidity and UV on the quadrant glass of the OG' do
-      expect(texts(draw(view: 'quadrant', device: 'og_png'))).to include('HUM 91%').and include('UV 2')
-    end
+    # removed: the humidity/UV readouts became the meter rows (owner 2026-11-12: priority pass, OG 3 rows x 5 segments); see today_spec meter rows
 
-    it 'says them in Dutch, and falls back to English for a language without our words' do
-      expect(texts(draw(fields: { 'language' => 'nl' }, device: 'v2'))).to include('VOCHTIGHEID %')
-      expect(texts(draw(fields: { 'language' => 'sv' }, device: 'v2'))).to include('HUMIDITY %')
-    end
+    # removed: the humidity/UV readouts became the meter rows (owner 2026-11-12: priority pass, OG 3 rows x 5 segments); see today_spec meter rows; language field gone
 
     it 'lights the UV lamp when the UV now is 6 or more, and not below' do
       expect(debug(draw(device: 'v2', answer: { json: fixture('extreme') }))['lamps']).to include('+UV')
       expect(debug(draw(device: 'v2'))['lamps']).not_to include('+UV')
     end
 
-    it 'draws -- for humidity and UV and does not crash when an old answer lacks them' do
-      old = fixture('mixed')
-      old['current'].delete('uv_index'); old['current'].delete('relative_humidity_2m')
-      %w[og_png v2].each do |device|
-        VIEWS.each do |view|
-          s = draw(view:, device:, answer: { json: old })
-          d0 = debug(s)
-          expect(label_problems(s)).to eq([])
-          expect(d0['readouts']).to eq(%w[-- --]) if view == 'full'
-        end
-      end
-    end
+    # removed: the humidity/UV readouts became the meter rows (owner 2026-11-12: priority pass, OG 3 rows x 5 segments); see today_spec meter rows (the -- case: today_spec nodata)
 
     it 'keeps the day highs at a native pixel size on the OG, never fractional' do
       s = draw(device: 'og_png')
@@ -1100,49 +593,18 @@ RSpec.describe 'Stereo Weather' do
       end
     end
 
-    it 'draws the OG lamps as rectangles with square corners' do
-      lamps = draw(device: 'og_png').evaluate(LAMP_BOXES)
-      expect(lamps.size).to be >= 5
-      expect(lamps.map { it['rx'].to_f }.max).to eq(0)
-    end
+    # removed: lamps are lit-only with theme fallback (owner 2026-11-11); see today_spec lamps
   end
 
   it 'asks Open-Meteo for the chosen place and unit' do
     run = trmnl.transform(mocks:, custom_fields: custom_fields.merge('lat_lon' => '48.85, 2.35', 'unit' => 'fahrenheit'))
-    url = run.requests.map { it[:url] }.find { it.include?('open-meteo') }
+    url = run.requests.map { it[:url] }.find { it.include?('api.open-meteo.com') }   # the forecast, not the air-quality call (transform fetches both)
     expect(url).to include('latitude=48.85&longitude=2.35')
     expect(url).to include('temperature_unit=fahrenheit').and include('wind_speed_unit=mph')
     expect(url).to include('is_day')
   end
 
-  describe 'title bar' do
-    # No location label; the sync time goes in the title bar's instance slot, on the faceplate only when it is hidden.
-    it 'puts the sync time in the title bar instance and never the coordinates' do
-      s = draw(device: 'v2')
-      expect(s).to have_css('.title_bar .instance', exact_text: '06:00')
-      expect(s).to have_no_text('52.52')
-    end
-
-    { 'full' => 'og_png' }.each do |view, device|
-      it "hides the title bar when asked and shows no time on the faceplate (#{device} #{view})" do
-        s = draw(view:, device:, fields: { 'hide_title_bar' => 'true' })
-        expect(s).to have_no_css('.title_bar')
-        expect(s).to have_no_text('06:00')
-        expect(s).to have_no_text('52.52')
-        expect(label_problems(s)).to be_empty
-      end
-    end
-
-    # Owner: no title bar outside the full view, whatever the setting; the credit and the time stay on the glass.
-    VIEWS.drop(1).product(%w[og_png v2]).each do |view, device|
-      it "never draws the title bar on the #{view} view, and keeps Open-Meteo and the time (#{device})" do
-        s = draw(view:, device:)
-        expect(s).to have_no_css('.title_bar')
-        expect(s).to have_text(/06:00\s+·\s+OPEN-METEO/)
-        expect(label_problems(s)).to be_empty
-      end
-    end
-  end
+  # removed describe 'title bar': obsolete, owner 2026-11-10/12 design change (barometer and temperature dials, serverless transform, TRMNL dark mode, no brand plate); covered by tests/today_spec.rb
 
   it 'reads Fahrenheit' do
     s = draw(answer: { json: fixture('extreme_f') }, fields: { 'unit' => 'fahrenheit' })

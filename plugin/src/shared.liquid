@@ -140,7 +140,7 @@ function build(raw, cfg) {
 cfg = cfg || {};
 var model = { ok: false, unit: cfg.unit === 'fahrenheit' ? 'F' : 'C', slots: [],
 now: { pollen: null, temp: null, feels: null, hum: null, uv: null, wind: null, gust: null, dir: null, press: null, aqi: null, icon: null, day: true, sync: null },
-today: { lo: null, hi: null, uvMax: null, gustMax: null, rainMm: null, aqiMax: null }, hours: [], days: [], rain: null, age: null, reason: null, sun: { up: false, at: null } };
+today: { lo: null, hi: null, uvMax: null, gustMax: null, rainMm: null, aqiMax: null }, hours: [], days: [], rain: null, age: null, reason: null, sun: { up: false, at: null }, inn: { temp: null, hum: null, co2: null, press: null }, sunT: null };
 if (!raw || raw.error || (!raw.hourly && !raw.daily && !raw.current)) {
 model.reason = (raw && raw.reason) ? String(raw.reason).slice(0, 160) : 'NO DATA FROM OPEN-METEO';
 return model;
@@ -941,6 +941,7 @@ while (rowW(flags, ST) > room && flags.some((f) => !f[1])) {
 for (var fi = flags.length - 1; fi >= 0; fi--) if (!flags[fi][1]) { flags.splice(fi, 1); break; }
 }
 while (rowW(flags, ST) > room && ST.size > u(8)) { var stPrev = ST.size; ST = F(ST.size * 0.9, ST.weight, 1); if (ST.size >= stPrev) break; }
+var lampCut = 0; while (rowW(flags, ST) > room && flags.length > 1) { flags.pop(); lampCut++; } if (lampCut) debug.lampsDropped = lampCut;
 debug.lamps = flags.map((f) => (f[1] ? '+' : '-') + f[0]);
 flags.forEach((fl) => { sx += status(g, fl[0], sx, sy, ST, fl[1]) + ST.size * 1.4; });
 }
@@ -974,17 +975,18 @@ var rainROW = cells ? cells.ROW : null;
 if (tallBox && cells) { var yc = y + h / 2, Rh = Mn(cells.ROW.lab - cells.ROW.top, WD.size * 9); rainROW = { top: yc - Rh / 2, lab: yc + Rh / 2 }; }
 function lumOf(c) { var m = /rgba?\((\d+)\D+(\d+)\D+(\d+)/.exec(String(c)); return m ? (0.299 * m[1] + 0.587 * m[2] + 0.114 * m[3]) / 255 : null; }
 function meterRowH(i, r, which) {
-var ZC = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-35'), fillOf('gray-35'), ink] : [fillOf('gray-35'), GLOW, GLOW])
-: LCD ? [fillOf('gray-50'), fillOf('gray-20'), ink] : [fillOf('gray-15'), GLOW, GLOW];
+var ZC = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-30'), fillOf('gray-30'), ink] : [fillOf('gray-35'), GLOW, GLOW])
+: LCD ? [fillOf('gray-40'), fillOf('gray-15'), ink] : [fillOf('gray-15'), GLOW, GLOW];
 var C = cells, LF = C.LF, rh = C.ROW.rh || (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (C.ROW.off || 0) + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - u(4);
 var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segH = Mx(2, R(rh * 0.42)), nodata = r.bar === null || r.bar === undefined, NS = OGD ? 5 : 10, lit = nodata ? 0 : Math.round(r.bar * NS);
 if (nodata) { text(cg, '--', x1, cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW }).setAttribute('data-sw-nodata', 1); x1 -= mW('--', LF) + u(6); }
 var segW = (x1 - x0 - (NS - 1) * sg) / NS;
 text(cg, r.lab, x0 - u(8), cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW, ls: R(LF.size * 0.1) }).setAttribute('data-sw-cell', which);
+var chkZ = {};
 for (var k = 0; k < NS; k++) {
 var sx = x0 + k * (segW + sg), on = k < lit, sy = R(cy - segH / 2);
 var zi = r.zones ? ((k + 0.5) / NS >= r.zones[1] ? 2 : ((k + 0.5) / NS >= r.zones[0] ? 1 : 0)) : 0, zc = ZC[zi];
-if (on && k === 0) { var lf = lumOf(zc), lgd = lumOf(GLASSD); if (lf !== null && lgd !== null && Math.abs(lf - lgd) < 0.4) (debug.lowContrast = debug.lowContrast || []).push({ row: i, zone: zi, fill: String(zc), ground: String(GLASSD) }); }
+if (on && !chkZ[zi]) { chkZ[zi] = 1; var lf = lumOf(zc), lgd = lumOf(GLASSD); if (lf !== null && lgd !== null && Math.abs(lf - lgd) < (bits === 2 ? 0.5 : 0.4)) (debug.lowContrast = debug.lowContrast || []).push({ row: i, zone: zi, fill: String(zc), ground: String(GLASSD) }); }
 if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc, 'data-sw-rseg': hg ? null : 'lit', 'data-sw-zone': hg ? null : zi }, hg || cg); }, false, cg);
 if (on && zi === 2 && bits === 4 && !LCD) glowDigits((hg) => { if (hg) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc }, hg); });
 else if (bits <= 2) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
@@ -1119,7 +1121,8 @@ var cw = R(ch * 0.5);
 var ct = M.rain ? (M.rain.now ? rainTo : rainFrom) : '--:--';
 glowDigits((hg) => { seg7(hg || g, rx, y + h * 0.44, cw, ch, ct, M.rain ? RAINDIG : GLOW, hg ? null : GHOSTD); });
 debug.clock = { str: ct, boxes: seg7.boxes };
-fitText(g, !M.ok ? 'OPEN-METEO' : (M.rain ? (M.rain.now ? I18N.ours(wetKey('now')) : I18N.ours('until') + ' ' + rainTo) : I18N.ours('next_h', SPAN)), rx, y + h * 0.9, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
+var omT = fitText(g, !M.ok ? 'OPEN-METEO' : (M.rain ? (M.rain.now ? I18N.ours(wetKey('now')) : I18N.ours('until') + ' ' + rainTo) : I18N.ours('next_h', SPAN)), rx, y + h * 0.9, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
+if (omT && width(omT) > rw + 1) g.removeChild(omT);
 }
 // no outer faceplate (owner)
 var MG = Mx(2, R(UH * 0.011)), GP = Mx(2, R(UH * 0.0096));
@@ -1274,7 +1277,7 @@ cy += rainH + u(8) + gS;
 var LF2 = SF, labW = Mx.apply(null, RS.concat([{ lab: '' }]).map((r) => mw(r.lab, LF2))) + u(8), bx0 = x + pad + labW, bx1 = x + w - pad, nseg = OGD ? 5 : 10, sg2 = Mx(1, u(2));
 if ((bx1 - bx0 - 9 * sg2) / 10 < u(6)) nseg = 5;
 var segW2 = (bx1 - bx0 - (nseg - 1) * sg2) / nseg;
-var ZC2 = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-35'), fillOf('gray-35'), ink] : [fillOf('gray-35'), GLOW, GLOW]) : LCD ? [fillOf('gray-50'), fillOf('gray-20'), ink] : [fillOf('gray-15'), GLOW, GLOW];
+var ZC2 = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-30'), fillOf('gray-30'), ink] : [fillOf('gray-35'), GLOW, GLOW]) : LCD ? [fillOf('gray-40'), fillOf('gray-15'), ink] : [fillOf('gray-15'), GLOW, GLOW];
 RS.forEach((r, i) => { var ry = cy + i * lh + lh / 2, nodata = r.bar === null || r.bar === undefined, lit = nodata ? 0 : Math.round(r.bar * nseg);
 text(g, r.lab, x + pad + labW - u(6), ry + LF2.size * 0.36, LF2, { anchor: 'end', fill: GLOW });
 if (nodata) text(g, '--', bx1, ry + LF2.size * 0.36, LF2, { anchor: 'end', fill: GLOW });
@@ -1284,7 +1287,8 @@ if (daysH > 0) keysRow(x, y + boxH + GP, w, daysH, daysFit(w, 110));
 debug.col = { boxH: R(boxH), days: R(daysH), need: R(need) };
 }
 var warnRow = { humidity: () => M.now.hum !== null && (M.now.hum < 30 || M.now.hum > 70), pollen: () => M.now.pollen !== null && M.now.pollen >= 0.3, co2: () => M.inn.co2 !== null && M.inn.co2 >= 1000 };
-ROK = RO_ORDER.filter((k) => (k !== 'pollen' || M.now.pollen !== null) && (k !== 'co2' || M.inn.co2 !== null) && (!OGD || !warnRow[k] || warnRow[k]())); ROS = ROK.map(readout);
+// owner 2026-11-12: the UV row only in daylight and when today's highest UV is 3 or more (the UV lamp at 8 is unchanged)
+ROK = RO_ORDER.filter((k) => (k !== 'uv' || (M.now.day !== false && M.today.uvMax !== null && M.today.uvMax >= 3)) && (k !== 'pollen' || M.now.pollen !== null) && (k !== 'co2' || M.inn.co2 !== null) && (!OGD || !warnRow[k] || warnRow[k]())); ROS = ROK.map(readout);
 var ROWPRI = (M.inn.co2 !== null && M.inn.co2 > 1400 ? ['aqi', 'co2', 'uv', 'wind', 'humidity', 'pollen'] : ['aqi', 'uv', 'wind', 'humidity', 'pollen', 'co2']).filter((k) => ROK.indexOf(k) >= 0);
 function pickRows(n) { var keep = ROWPRI.slice(0, Mx(0, n)); return ROS.filter((r, i) => keep.indexOf(ROK[i]) >= 0); }
 debug.readoutKinds = ROK;
