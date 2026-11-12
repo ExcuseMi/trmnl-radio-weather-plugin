@@ -751,7 +751,7 @@ var has = (k) => { return X1.some((hh) => hh.icon === k && !(hh.p !== null && hh
 var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain')], [I18N.snow, has('snow')],
 [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
 [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, (!M.ev && M.now.wind !== null && M.now.wind >= (M.unit === 'F' ? 31 : 50)) || (nz(M.today.gustMax) !== null && M.today.gustMax >= (M.unit === 'F' ? 47 : 75))],
-[I18N.ours('uv'), M.ev ? M.today.uvMax !== null && M.today.uvMax >= 8 : M.now.uv !== null && M.now.uv >= 8], ['SMOG', !M.ev && M.now.aqi !== null && M.now.aqi > 60]];
+[I18N.ours('uv'), M.ev ? M.today.uvMax !== null && M.today.uvMax >= 8 : M.now.uv !== null && M.now.uv >= 8], ['SMOG', M.now.aqi !== null && M.now.aqi > 60]];
 if (M.ev) flags.unshift([I18N.ours('tomorrow'), true]);   // the MORGEN tag: an always-lit lamp, no new warning lamps
 var innerD = u(6), sy = (h / w > 0.42 && !compact && !part) ? y + innerD + u(3) + ST.size * 1.1 : Mx(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
 if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
@@ -785,7 +785,7 @@ crMoved.setAttribute('y', R(y + h * 0.88 - WD.size * 1.6));
 var lw = iw * (OGD ? 0.3 : 0.4), rx = ix + iw * (OGD ? 0.74 : 0.78), rw = iw * (OGD ? 0.26 : 0.22), WL = { ls: R(WD.size * 0.15), fill: GLOW };
 var blk = null, cells = null, stackDual = false;
 function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.removeChild(tt); return ww; }
-if (!compact && M.ok && ROS.length >= 3) {
+if (!compact && M.ok && ROS.length >= 2) {
 var ROW = { top: tallBox || noLampBox ? lampBottom + u(8) : Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * (tallBox ? 0.92 : 0.9) }, LF = F(RD(hb * 0.075, 10), '700'), lmax = 0;
 ['m_hum', 'uv'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF), mW('BARO', LF), mW(I18N.ours('pollen'), LF), mW('CO2', LF));
 cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), left: ROS };
@@ -893,7 +893,7 @@ glowDigits((hg) => { seg7(hg || g, x2, dy, dw, dh, str2, DIGIT, hg ? null : GHOS
 if (R(dh * 0.45) < u(28)) glowDigits((hg) => { text(hg || g, deg + M.unit, x2 + dwid2 + R(dw * 0.25), dy + dh * 0.42, F(R(dh * 0.4), '700'), { fill: DIGIT }); });
 else glowDigits((hg) => { seg7(hg || g, x2 + dwid2 + R(dw * 0.25), dy, sw, R(dh * 0.45), 'o', DIGIT, null); seg7(hg || g, x2 + dwid2 + R(dw * 0.25) + sw + R(dw * 0.12), dy, sw, R(dh * 0.45), M.unit, DIGIT, null); });
 if (dy - WD.size * 1.5 >= lampBottom) {
-text(g, I18N.ours('outdoor'), dx + dwid / 2, dy - WD.size * 0.5, WD, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.1) });
+text(g, I18N.ours(EV ? 'tomorrow' : 'outdoor'), dx + dwid / 2, dy - WD.size * 0.5, WD, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.1) });
 text(g, I18N.ours('indoor'), x2 + dwid2 / 2, dy - WD.size * 0.5, WD, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.1) });
 }
 }
@@ -983,7 +983,7 @@ text(root, I18N.ours('next_days'), x + w / 2, y + h / 2 - P.size * 0.2, P, { anc
 text(root, I18N.ours(M.ok ? 'no_forecast' : 'no_signal'), x + w / 2, y + h / 2 + P.size * 1.3, F(P.size * 0.8, '600', 1), { anchor: 'middle', ls: R(P.size * 0.2) });
 return;
 }
-if (h > w * 0.6) nd = Mx(2, Mn(M.days.length - (TD ? (M.ev ? 2 : 1) : 0) || 1, 7, Fl((h - u(44)) / dayPitch(w))));
+if (h > w * 0.6) nd = Mx(2, Mn(M.days.length - (M.ev ? 2 : TD ? 1 : 0) || 1, 7, Fl((h - u(44)) / dayPitch(w))));
 debug.rows = false;
 daysDial(x, y, w, h, nd);
 }
@@ -994,7 +994,7 @@ mW: (str, sp) => { var tt = text(root, str, 0, 0, sp); var ww = width(tt); root.
 }
 // A: preset keys, one per day; today pressed in
 function daysDial(x, y, w, h, nd) {
-var d0 = TD ? (M.ev ? 2 : 1) : 0, days = M.days.slice(d0, d0 + nd), D = dayFonts(w, h, nd), F_ = M.unit === 'F', lo = null, hi = null;
+var d0 = M.ev ? 2 : TD ? 1 : 0, days = M.days.slice(d0, d0 + nd), D = dayFonts(w, h, nd), F_ = M.unit === 'F', lo = null, hi = null;
 days.forEach((d) => { if (d.lo !== null && (lo === null || d.lo < lo)) lo = d.lo; if (d.hi !== null && (hi === null || d.hi > hi)) hi = d.hi; });
 if (M.now.temp !== null) { lo = lo === null ? M.now.temp : Mn(lo, M.now.temp); hi = hi === null ? M.now.temp : Mx(hi, M.now.temp); }
 if (lo === null) { lo = 0; hi = 10; }
@@ -1064,7 +1064,7 @@ var pad = u(10), iw = w - 2 * pad, base = Mx(9, R(w / z * 0.06)) * z, BF = F(bas
 var cl = []; var has = (k) => X1.some((hh) => hh.icon === k && !(hh.p !== null && hh.p < 30));
 var lamps = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain')], [I18N.snow, has('snow')], [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
 [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, (!M.ev && M.now.wind !== null && M.now.wind >= (M.unit === 'F' ? 31 : 50)) || (nz(M.today.gustMax) !== null && M.today.gustMax >= (M.unit === 'F' ? 47 : 75))],
-[I18N.ours('uv'), M.ev ? M.today.uvMax !== null && M.today.uvMax >= 8 : M.now.uv !== null && M.now.uv >= 8], ['SMOG', !M.ev && M.now.aqi !== null && M.now.aqi > 60]].filter((f) => f[1]);
+[I18N.ours('uv'), M.ev ? M.today.uvMax !== null && M.today.uvMax >= 8 : M.now.uv !== null && M.now.uv >= 8], ['SMOG', M.now.aqi !== null && M.now.aqi > 60]].filter((f) => f[1]);
 if (M.ev) lamps.unshift([I18N.ours('tomorrow'), true]);
 var LS = F(base * 0.8, '700', 1);
 function mw(s0, sp) { var tq = text(g, s0, 0, 0, sp); var ww = width(tq); g.removeChild(tq); return ww; }
@@ -1084,7 +1084,7 @@ if (h - (need - (n5 - rowsN) * lh) - GP < dayMin) while (rowsN > 0 && need - (n5
 if (rowsN < n5) { RS = pickRows(rowsN); need -= (n5 - rowsN) * lh; n5 = rowsN; meterH = n5 * lh; }
 var boxH = Mn(h, need), daysH = h - boxH - GP;
 if (daysH < dayMin) { boxH = h; daysH = 0; }
-if (daysH > 0 && M.days.length) { var ndC = Mx(2, Mn(M.days.length - (TD ? (M.ev ? 2 : 1) : 0) || 1, 7, Fl((daysH - u(44)) / dayPitch(w)))), capC = u(44) + ndC * dayPitch(w); if (capC < daysH) { boxH += daysH - capC; daysH = capC; } }
+if (daysH > 0 && M.days.length) { var ndC = Mx(2, Mn(M.days.length - (M.ev ? 2 : TD ? 1 : 0) || 1, 7, Fl((daysH - u(44)) / dayPitch(w)))), capC = u(44) + ndC * dayPitch(w); if (capC < daysH) { boxH += daysH - capC; daysH = capC; } }
 vfdBox(g, x, y, w, boxH);
 var slack = Mx(0, boxH - need), lhAdd = Mn(lh * 0.45, slack * 0.45 / Mx(1, n5)); lh += lhAdd; slack -= lhAdd * n5; var gS = slack / 4, cy = y + u(10) + gS;
 var lx0 = x + pad;
@@ -1132,7 +1132,7 @@ debug.col = { boxH: R(boxH), days: R(daysH), need: R(need) };
 }
 var warnRow = { humidity: () => M.now.hum !== null && (M.now.hum < 30 || M.now.hum > 70), pollen: () => M.now.pollen !== null && M.now.pollen >= 0.3, co2: () => M.inn.co2 !== null && M.inn.co2 >= 1000 };
 // owner 2026-11-12: the UV row only in daylight and when today's highest UV is 3 or more (the UV lamp at 8 is unchanged)
-ROK = RO_ORDER.filter((k) => (k !== 'uv' || (M.now.day !== false && M.today.uvMax !== null && M.today.uvMax >= 3)) && (k !== 'baro' || (OGD && M.now.press !== null)) && (k !== 'pollen' || M.now.pollen !== null) && (k !== 'co2' || M.inn.co2 !== null) && (!OGD || !warnRow[k] || warnRow[k]())); ROS = ROK.map(readout);
+ROK = RO_ORDER.filter((k) => (k !== 'aqi' || !M.ev || M.now.aqi !== null) && (k !== 'uv' || (M.now.day !== false && M.today.uvMax !== null && M.today.uvMax >= 3)) && (k !== 'baro' || (OGD && M.now.press !== null)) && (k !== 'pollen' || M.now.pollen !== null) && (k !== 'co2' || M.inn.co2 !== null) && (!OGD || !warnRow[k] || warnRow[k]())); ROS = ROK.map(readout);
 var ROWPRI = (M.inn.co2 !== null && M.inn.co2 > 1400 ? ['aqi', 'co2', 'baro', 'uv', 'wind', 'humidity', 'pollen'] : ['aqi', 'baro', 'uv', 'wind', 'humidity', 'pollen', 'co2']).filter((k) => ROK.indexOf(k) >= 0);
 function pickRows(n) { var keep = ROWPRI.slice(0, Mx(0, n)); return ROS.filter((r, i) => keep.indexOf(ROK[i]) >= 0); }
 debug.readoutKinds = ROK;

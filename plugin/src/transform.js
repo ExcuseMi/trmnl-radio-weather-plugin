@@ -108,7 +108,8 @@ function pollenLevel(aq) {
   var best = null;
   ['grass', 'birch', 'alder', 'mugwort', 'olive', 'ragweed'].forEach(function (k) {
     var key = k + '_pollen', cv = typeof aq.current[key] === 'number' ? aq.current[key] : null, hv = null;
-    ((aq.hourly || {})[key] || []).forEach(function (v) { if (typeof v === 'number' && (hv === null || v > hv)) hv = v; });
+    var dd = String(aq.current.time || '').slice(0, 10), tms = (aq.hourly || {}).time || [];
+    ((aq.hourly || {})[key] || []).forEach(function (v, i) { if (typeof v === 'number' && (!tms[i] || String(tms[i]).slice(0, 10) === dd) && (hv === null || v > hv)) hv = v; });
     var val = cv === null ? hv : (hv === null ? cv : Math.max(cv, hv));
     if (val !== null) best = best === null ? sc(val) : Math.max(best, sc(val));
   });
@@ -290,7 +291,9 @@ if (raw.sun) model.sunT = Object.assign({}, raw.sun, { riseL: raw.sun.rise1L, se
 }
 var aq = raw.aq && typeof raw.aq === 'object' ? raw.aq : null;
 model.now.aqi = aq && aq.current ? num(aq.current.european_aqi) : null;
-model.today.aqiMax = aq ? maxOf(list(aq.hourly || {}, 'european_aqi')) : null;
+var aqD = aq && aq.current ? String(aq.current.time || '').slice(0, 10) : '', aqH = (day) => aq ? maxOf(list(aq.hourly || {}, 'european_aqi').filter((v, i) => String(list(aq.hourly, 'time')[i]).slice(0, 10) === day)) : null;
+model.today.aqiMax = aqH(aqD);
+if (model.ev) model.now.aqi = aqH(d1);   // evening: tomorrow's highest index; null (row hidden) when the air-quality answer does not reach tomorrow
 model.now.pollen = num(raw.pollen);
 model.inn = { temp: null, hum: null, co2: null, press: null };
 var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;
@@ -332,7 +335,7 @@ async function run(input) {
     '&timezone=auto&forecast_hours=48&forecast_days=14&temperature_unit=' + (fahrenheit ? 'fahrenheit' : 'celsius') +
     '&precipitation_unit=' + (fahrenheit ? 'inch' : 'mm') + '&wind_speed_unit=' + (fahrenheit ? 'mph' : 'kmh');
   var air = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon +
-    '&current=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&hourly=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto&forecast_days=1';
+    '&current=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&hourly=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto&forecast_days=2';
   var got = await Promise.allSettled([getJson(forecast), getJson(air)]);
   var weather = got[0].status === 'fulfilled' ? got[0].value : { error: true, reason: String(got[0].reason && got[0].reason.message || got[0].reason).slice(0, 160) };
   var aq = got[1].status === 'fulfilled' && got[1].value && got[1].value.current ? got[1].value : null;

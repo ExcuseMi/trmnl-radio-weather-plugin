@@ -323,10 +323,12 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       expect(first_day(shot(device: 'v2', view: 'half_vertical', orientation: :portrait))).to eq('MA')   # the X half_vertical keeps both dials
     end
 
-    it 'in the evening starts with the day after tomorrow with the dial, and with today without it' do
-      # evening mode shows MORGEN in the console; no day shows twice where the dial is drawn
+    it 'in the evening always starts with the day after tomorrow, with or without the dial' do
+      # owner 2026-11-12: today is over and tomorrow is in the console. red: d0 back to today without a dial
       expect(first_day(shot(device: 'v2', answer: evening))).to eq('DI')
-      expect(first_day(shot(device: 'og_png', answer: evening))).to eq('ZO')
+      og = shot(device: 'og_png', answer: evening)
+      expect(first_day(og)).to eq('DI')
+      expect(count(og, '[data-sw-today]')).to eq(0)
     end
 
     it 'never shows a day twice' do
@@ -334,6 +336,40 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
         days = texts(s).select { |x| %w[MA DI WO DO VR ZA ZO].include?(x) }
         expect(days.uniq).to eq(days)
       end
+    end
+  end
+
+  describe 'evening mode' do
+    def evening(a = fx('mixed'))
+      a['current']['time'] = '2026-11-08T19:00'
+      a
+    end
+
+    it 'labels the left readout MORGEN with a sensor, and keeps the MORGEN tag' do
+      # owner 2026-11-12. red: the label back to BUITEN
+      t = texts(shot(device: 'v2', answer: evening, vars: sensors))
+      expect(t.count('MORGEN')).to eq(2)   # the tag and the readout label
+      expect(t).not_to include('BUITEN')
+      expect(texts(shot(device: 'v2', vars: sensors))).to include('BUITEN')
+    end
+
+    it 'hides the AQI row and the SMOG lamp when the air-quality answer does not reach tomorrow, and uses the maximum of tomorrow when it does' do
+      # owner 2026-11-12. red: showing the row with "--"; the transform asking for one day only
+      d = dbg(shot(device: 'v2', answer: evening))
+      expect(d['readoutKinds']).not_to include('aqi')
+      expect(d['lamps']).not_to include('+SMOG')
+      aq = fx('aq')
+      aq['hourly'] = { 'time' => (0..47).map { |i| format('2026-11-%02dT%02d:00', 8 + i / 24, i % 24) }, 'european_aqi' => (0..47).map { |i| i < 24 ? 20 : 75 } }
+      d = dbg(shot(device: 'v2', answer: evening, aq: { json: aq }))
+      expect(d['readoutKinds']).to include('aqi')
+      expect(d['lamps']).to include('+SMOG')
+    end
+
+    it 'asks for two days of air quality, so tomorrow can be shown' do
+      # red: forecast_days=1 in the air-quality URL
+      run = trmnl.transform(mocks: { 'https://api.open-meteo.com/*' => { json: fx('mixed') }, 'https://air-quality-api.open-meteo.com/*' => { json: fx('aq') } },
+                            custom_fields: { 'lat_lon' => '52.52,13.41', 'unit' => 'celsius' })
+      expect(run.requests.map { |r| r[:url] }.find { |u| u.include?('air-quality') }).to include('forecast_days=2')
     end
   end
 
