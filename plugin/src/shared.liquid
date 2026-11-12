@@ -204,9 +204,10 @@ n = n || 10;
 var lit = frac === null || frac === undefined ? 0 : Math.round(Math.max(0, Math.min(1, frac)) * n), cw = (W - SO) / n, gp = cw * 0.12, ch = H - SO, on = '', sh = '', off = '';
 for (var i = 0; i < n; i++) {
 var x = i * cw + gp / 2, w = cw - gp;
-if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
+var DK = API.mode && API.mode.dark && API.mode.bits >= 2;   // owner: in dark mode the empty cells are dark grey blocks, as live
+if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += DK ? rect(x, 0, w, ch, 2) : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
 }
-return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')), off) + g(API.mode && API.mode.dark ? '' : 'text--gray-40', glow(on, GPX)));   // dark: lit cells in full ink, as live
+return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && API.mode.dark ? '' : 'text--gray-40', glow(on, GPX)));   // dark: lit cells in full ink, as live
 }
 // Days strip row: rules every major step (dark grey), the low to high blocks (one per degree, shadowed), the now line.
 function day(d, sc, W, H) {
