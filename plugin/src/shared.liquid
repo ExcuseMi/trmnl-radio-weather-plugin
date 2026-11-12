@@ -230,7 +230,7 @@ return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65
 // Days strip x mapping, one for the header and every row (owner 2026-11-12): each grid line runs through the centre of
 // its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.
 function tick(v) { return String(v === 0 ? 0 : v); }
-function lfs(sc) { return (API.scaleH || 20) * 0.7; }
+function lfs(sc) { return Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }   // axis labels at least the meter label size (owner 2026-11-12)
 function xmap(sc, W) {
 var fs = lfs(sc), cw = fs * 0.62, pl = cw * tick(sc.a).length / 2 + 2, pr = cw * tick(sc.b).length / 2 + cw * 0.7 + 2;
 return (t) => pl + (t - sc.a) / (sc.b - sc.a) * (W - pl - pr);
@@ -260,7 +260,7 @@ if (xn !== null && xn > l - 8 && xn < l + tw + fs * 0.4 + 8) cross = true;
 body += text(p, ty, s, fs, 'middle', ' dominant-baseline="middle" data-sw-tick="' + s + '"') + text(p + tw / 2, ty, sc.deg, fs, 'start', ' dominant-baseline="middle"');
 if (H + E > lb + 2) rules += rect(p - 1, lb + 2, 2, H + E - lb - 2);
 }
-body = g('text--gray-70', rules) + g('text--gray-20', body);
+body = g('text--gray-70', rules) + '<g data-sw-axis>' + body + '</g>';   // labels in full ink (owner 2026-11-12)
 if (xn !== null) {
 var tr = fs * 0.3;
 body += poly([[xn - tr, 0], [xn + tr, 0], [xn, tr * 1.4]]);
