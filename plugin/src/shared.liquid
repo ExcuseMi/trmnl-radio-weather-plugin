@@ -11,7 +11,7 @@
 <div class="title_bar">
  <img class="image image--adaptive" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
  <span class="title">{{ trmnl.plugin_settings.instance_name | default: 'Radio Weather' }}</span>
- {%- assign sw_sync = current.time | slice: 11, 5 -%}
+ {%- assign sw_sync = clock | default: current.time | slice: 11, 5 -%}
  <span class="instance">Open-Meteo{% if sw_sync != blank %} · {{ sw_sync }}{% endif %}</span>
 </div>
 {%- endunless %}
@@ -973,9 +973,9 @@ return;
 if (cells) {
 // owner 2026-11-12: the rain column is a rain icon over a calendar of hours that lights up from the start
 var RW = part || !cells ? rainROW : { top: y + innerD + u(14) + WD.size * 0.2, lab: rainROW.lab }, SL = F(Mx(8, WD.size * 0.75), '700', 1), chB = R(SL.size * 1.45), calH = M.rain ? 2 * chB + u(3) : 0, rK = M.rain ? (M.rain.type === 'snow' ? 'snow' : M.rain.type === 'hail' ? 'hail' : 'rain') : 'cloud';   // plain icon (no sun or moon): isDay null
-var amtP = M.rain ? [((v) => (M.unit === 'F' ? (v < 0.01 ? null : (v < 0.1 ? v.toFixed(2) : v.toFixed(1))) : (v < 0.05 ? null : (v < 1 ? v.toFixed(1) : String(Math.round(v))))))(M.rain.mm), M.rain.maxP === null ? null : Math.round(M.rain.maxP) + ' %'] : [];
+var amtP = M.rain ? [((v) => (M.unit === 'F' ? (v < 0.01 ? null : (v < 0.1 ? v.toFixed(2) : v.toFixed(1))) : (v < 0.05 ? null : (v < 1 ? v.toFixed(1) : String(Math.round(v))))))(M.rain.mm)] : [];   // owner 2026-11-12: no percentage, only the amount
 amtP[0] = amtP[0] === null || amtP[0] === undefined ? null : amtP[0] + (M.unit === 'F' ? ' IN' : ' MM');
-var amtS = amtP.filter(Boolean).join(' \u00b7 ') || null, icH = R(Mn(RW.lab - RW.top - WD.size * 1.8 - calH - u(12), rw * 0.42)), gp2 = (RW.lab - RW.top - WD.size * 1.2 - icH - calH) / 2, iTop = RW.top - WD.size * 0.2;
+var amtS = amtP.filter(Boolean).join(' \u00b7 ') || null, icH = R(Mn(RW.lab - RW.top - WD.size * 1.8 - calH - u(12), rw * 0.42, s9 * 0.85)), gp2 = (RW.lab - RW.top - (amtS ? WD.size * 1.2 : 0) - icH - calH) / (amtS ? 2 : 1.5), iTop = RW.top - WD.size * 0.2;
 if (!M.rain) fitText(g, I18N.ours('no_rain'), rx, RW.top + WD.size * 0.8, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
 else { var rf0 = iconFit(g, rK, null, { l: 0, r: 1e5, t: -1e5, b: 1e5 }, icH, 0, true), icx = rx + (rw - u(4)) / 2; ICON_INK = GLOW; glowIcon(g, (gg) => iconFit(gg, rK, null, { l: icx - rf0.w / 2, r: icx + rf0.w / 2, t: iTop, b: iTop + icH }, icH, iTop + icH / 2)); ICON_INK = null; }
 var dTop2 = iTop, ch2 = icH;
@@ -984,7 +984,8 @@ debug.clock = { str: M.rain ? (M.rain.now ? rainTo : rainFrom) : '--:--' };
 if (M.rain) { var h0 = Mx(0, Mn(M.rain.from - 2, M.hours.length - 12)), hs = M.hours.slice(h0, h0 + 12), cwB = (rw - u(4)) / 6, sy0 = dTop2 + ch2 + gp2;
 for (var k = 0; k < 12 && hs[k]; k++) { var mp = hs[k].p === null ? 0 : hs[k].p, hk = h0 + k, x8 = R(rx + (k % 6) * cwB), y8 = R(sy0 + Fl(k / 6) * (chB + u(3))), on8 = hk >= M.rain.from && hk <= M.rain.to;
 if (on8) mk('rect', { x: x8, y: y8, width: R(cwB - u(3)), height: chB, rx: R(chB * 0.2), fill: RAINDIG, 'data-sw-rainblk': 1 }, g);
-text(g, String(hs[k].h).padStart(2, '0'), x8 + R(cwB - u(3)) / 2, y8 + chB * 0.5 + SL.size * 0.36, SL, { anchor: 'middle', fill: on8 ? GLASSD : (mp >= 30 ? GLOW : DIMW || GLOW) }); } }fitText(g, amtS || (!M.rain ? I18N.ours('next_h', SPAN) : I18N.ours(wetKey('now'))), rx, RW.lab, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW }); if (amtS) debug.rainAmt = amtS;
+text(g, hs[k].hl || hs[k].h, x8 + R(cwB - u(3)) / 2, y8 + chB * 0.5 + SL.size * 0.36, SL, { anchor: 'middle', fill: on8 ? GLASSD : (mp >= 30 ? GLOW : DIMW || GLOW) }); } }
+if (amtS || !M.rain) fitText(g, amtS || I18N.ours('next_h', SPAN), rx, RW.lab, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW }); if (amtS) debug.rainAmt = amtS;
 return;
 }
 fitText(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? I18N.ours(wetKey(M.rain.now ? 'until' : 'from')) : I18N.ours('no_rain')), rx, y + h * 0.36, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
