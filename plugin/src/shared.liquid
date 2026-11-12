@@ -35,7 +35,7 @@
    <span class="absolute top--3 {% if k == 1 %}left--3{% else %}right--3{% endif %} label label--inverted text--bold">{% if k == 1 %}L{% else %}R{% endif %}</span>
    <div class="absolute bottom--3 left--4 flex flex--row flex--bottom gap--small" data-sw-cap>
     {%- if k == 1 %}<span class="value value--small value--tnums">{{ ui.baro.value }}</span><span class="title title--small text--bold">{{ ui.baro.unit }}</span>
-    {%- else %}<span class="value value--small">{{ ui.tdial.unit }}</span>{% endif -%}
+    {%- else %}<span class="value value--small value--tnums">{{ ui.tdial.value }}</span><span class="title title--small text--bold">{{ ui.tdial.unit }}</span>{% endif -%}
    </div>
    <span class="absolute bottom--4 right--5 title title--base text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>
   </div>{{ p_close }}
@@ -133,13 +133,14 @@
 {{ c_right }}
 {%- endif %}
  </div>{{ p_close }}</div>
+{%- assign w_lo = '' %}{% assign w_hi = '' %}{% for d in ui.days %}{% assign a = d.lo | append: '' %}{% assign b = d.hi | append: '' %}{% if a.size > w_lo.size %}{% assign w_lo = a %}{% endif %}{% if b.size > w_hi.size %}{% assign w_hi = b %}{% endif %}{% endfor %}{% comment %} owner 2026-11-12: numbers right aligned, each triangle centred over its column's widest number {% endcomment %}
 {%- if days_h %}
  <div class="w--full px--4"><div class="border--h-60"></div></div>
  <div class="{{ days_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4">
   <div class="grid grid--cols-12 gap--small h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
    <div class="{{ pad_cls }}"></div>
-   <div class="col--span-1 flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
-   <div class="col--span-1 flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
+   <div class="col--span-1 flex flex--right flex--center-y h--full{{ num_cls }}"><div class="relative flex flex--center"><span class="title title--base text--bold" data-sw-ghost>{{ w_lo }}</span><div class="absolute inset--0 flex flex--center"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw] shrink-0" data-sw-part="tri" data-sw-i="0"></div></div></div></div>
+   <div class="col--span-1 flex flex--right flex--center-y h--full{{ num_cls }}"><div class="relative flex flex--center"><span class="title title--base text--bold" data-sw-ghost>{{ w_hi }}</span><div class="absolute inset--0 flex flex--center"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw] shrink-0" data-sw-part="tri" data-sw-i="1"></div></div></div></div>
    <div class="{{ bar_cls }} h--full" data-sw-part="scale"></div>
   </div>
   {%- assign t0 = ui.days.first.today %}{% assign nd_last = nd_lg | minus: 1 %}
@@ -154,8 +155,8 @@
   <div class="grid grid--cols-12 gap--small h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
    <div class="{{ name_cls }} flex flex--center-y"><div class="flex flex--col gap--xsmall"><span class="title title--base{{ name_t }} text--bold">{{ d.name }}</span>{%- if d.today %}<div class="w--full border--h-black lg:hidden" data-sw-today></div>{% endif %}</div></div>
    <div class="{{ icon_cls }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
-   <div class="col--span-1 flex flex--center{{ num_cls }}"><span class="title title--base text--bold">{{ d.lo }}</span></div>
-   <div class="col--span-1 flex flex--center{{ num_cls }}"><span class="title title--base text--bold">{{ d.hi }}</span></div>
+   <div class="col--span-1 flex flex--right flex--center-y{{ num_cls }}"><span class="title title--base text--bold">{{ d.lo }}</span></div>
+   <div class="col--span-1 flex flex--right flex--center-y{{ num_cls }}"><span class="title title--base text--bold">{{ d.hi }}</span></div>
    <div class="{{ bar_cls }} h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>
   </div></div>
   {%- endif %}
@@ -457,6 +458,8 @@ return API;
     return { l: r.left + (b.x - vb.x) * kx, r: r.left + (b.x - vb.x + b.width) * kx, t: r.top + (b.y - vb.y) * ky, h: b.height * ky }; }
   // Weather icon next to the condition (owner 2026-11-12, revised): its drawn ink about twice the cap height (the label's
   // line), centred on the capitals; two lines: the block (first cap top to last baseline, plus one cap), centred on it. Measured on the real font, so it needs the page.
+  // Triangle header (owner 2026-11-12): a placeholder of the column's widest number gives the triangle its centre; it stays unseen.
+  document.querySelectorAll('[data-sw-ghost]').forEach(function (g) { g.style.visibility = 'hidden'; });
   function swCond(cx) {
     document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
       var ic = sp.parentElement.firstElementChild; if (!ic || ic === sp) return;

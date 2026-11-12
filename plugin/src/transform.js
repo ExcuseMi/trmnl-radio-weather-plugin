@@ -392,7 +392,7 @@ scale: sc,
 baro: { now: pr, lo: ps.length ? Math.min.apply(null, ps) : null, hi: ps.length ? Math.max.apply(null, ps) : null, a: 970, b: 1050,
 value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro,
 icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'].map((k) => WI_BASE + k + '.svg') },
-tdial: { now: tv, twin: inT, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b : 15, step: tst, name: O.temperature, unit: deg + M.unit }
+tdial: { now: tv, twin: inT, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b : 15, step: tst, name: O.temperature, unit: deg + M.unit, value: tStr }
 };
 }
 
