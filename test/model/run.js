@@ -265,13 +265,13 @@ test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 s
 });
 test('rain unit: icon left of the grid at its height on lg, above it on md; separator under the unit', () => {
   const u = sh.indexOf('data-sw-unit="rain"'), end = sh.indexOf('data-sw-part="rain"', u);
-  ok(u > 0 && /flex--col lg:flex--row/.test(sh.slice(sh.lastIndexOf('<div', u), u)), 'column on md, row on lg');
-  ok(/hidden lg:block h--\[8cqh\][^>]*ui.rain.icon/.test(sh.slice(u, end)) && /lg:h--\[8cqh\][^"]*" data-sw-part="rain"/.test(sh), 'lg icon as tall as the grid');
+  ok(u > 0 && /\{\{ ru_cls \}\}/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign ru_cls = 'flex--col lg:flex--row lg:portrait:flex--col'/.test(sh), 'column on md, row on lg');
+  ok(/\{\{ ri_lg \}\} h--\[8cqh\][^>]*ui.rain.icon/.test(sh.slice(u, end)) && /assign ri_lg = 'hidden lg:block lg:portrait:hidden'/.test(sh) && /lg:h--\[8cqh\][^"]*" data-sw-part="rain"/.test(sh), 'lg icon as tall as the grid');
   ok(sh.indexOf('data-sw-sep="rain-sun"') > end, 'separator after the unit');
 });
 test('sun/moon unit like the rain unit: moon left at the rows\' height on lg, centred above on md, grey ink (owner 2026-11-12)', () => {
   const u = sh.indexOf('data-sw-unit="sun"'), rows = sh.indexOf('ui.sun.rise', u);
-  ok(u > 0 && /flex--col lg:flex--row flex--center/.test(sh.slice(sh.lastIndexOf('<div', u), u)), 'column on md, row on lg, centred');
+  ok(u > 0 && /\{\{ su_cls \}\} flex--center/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign su_cls = 'flex--col lg:flex--row lg:portrait:flex--col'/.test(sh), 'column on md, row on lg, centred');
   const m = sh.indexOf('data-sw-part="moon"', u); ok(m > u && m < rows, 'moon before the sun rows');
   ok(!/<img[^>]*ui.sun.moon/.test(sh), 'no moon icon image');
   eq(D.moon(null, 60), '');
