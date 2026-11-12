@@ -596,12 +596,12 @@ var zro = rArc - fh * 0.085, zri = zro - fh * 0.05, zg = 0.012, ZS = bits === 1 
 function zpt(f, rad) { var q = at(f, rad); return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
 for (var zi2 = 0; zi2 < 4; zi2++) {
 var z0 = zi2 / 4 + zg, z1 = (zi2 + 1) / 4 - zg;
-mk('path', { d: 'M' + zpt(z0, zro) + ' A' + zro + ' ' + zro + ' 0 0 1 ' + zpt(z1, zro) + ' L' + zpt(z1, zri) + ' A' + zri + ' ' + zri + ' 0 0 0 ' + zpt(z0, zri) + ' Z',
-fill: zi2 % 2 ? 'none' : ZS, stroke: ink, 'stroke-width': Mx(1, R(lw * 0.5)), 'shape-rendering': GPX, 'data-sw-zone4': zi2 }, g);
+glowDigits((hg) => { mk('path', { d: 'M' + zpt(z0, zro) + ' A' + zro + ' ' + zro + ' 0 0 1 ' + zpt(z1, zro) + ' L' + zpt(z1, zri) + ' A' + zri + ' ' + zri + ' 0 0 0 ' + zpt(z0, zri) + ' Z',
+fill: zi2 % 2 ? 'none' : ZS, stroke: ink, 'stroke-width': Mx(1, R(lw * 0.5)), 'shape-rendering': GPX, 'data-sw-zone4': hg ? null : zi2 }, hg || g); });
 }
 var isz = rArc * 0.26, irad = zri - isz * 0.63;
 isz = Mn(isz, irad * A / 2 * 0.7); irad = zri - isz * 0.63;
-o.icons.forEach((nm, i) => { var ip = at((2 * i + 1) / 8, irad); icon(g, nm, ip[0], ip[1], isz, null); });
+o.icons.forEach((nm, i) => { var ip = at((2 * i + 1) / 8, irad); glowIcon(g, (gg) => icon(gg, nm, ip[0], ip[1], isz, null)); });
 }
 mks.forEach((q) => {
 var m = q.m, r0 = rArc + bm + u(2), r1 = rArc + bm + fh * 0.05, t0 = at(m.f, r0), t1 = at(m.f - 0.012, r1), t2 = at(m.f + 0.012, r1);
