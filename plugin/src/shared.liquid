@@ -163,7 +163,7 @@ function build(raw, cfg) {
 cfg = cfg || {};
 var interval = ({ '1h': 1, '2h': 1, '3h': 1, daily: 1 })[cfg.interval] ? cfg.interval : '3h';
 var model = { ok: false, unit: cfg.unit === 'fahrenheit' ? 'F' : 'C', interval: interval, slots: [],
-now: { temp: null, feels: null, hum: null, uv: null, wind: null, gust: null, dir: null, press: null, aqi: null, word: '', icon: null, day: true, sync: null, rain6: null },
+now: { pollen: null, temp: null, feels: null, hum: null, uv: null, wind: null, gust: null, dir: null, press: null, aqi: null, word: '', icon: null, day: true, sync: null, rain6: null },
 today: { lo: null, hi: null, uvMax: null, gustMax: null, rainMm: null, aqiMax: null }, hours: [], days: [], rain: null, age: null, reason: null, sun: { up: false, at: null } };
 if (!raw || raw.error || (!raw.hourly && !raw.daily && !raw.current)) {
 model.reason = (raw && raw.reason) ? String(raw.reason).slice(0, 160) : 'NO DATA FROM OPEN-METEO';
@@ -188,6 +188,9 @@ var tmm = minMax([list(d, 'temperature_2m_min')[0], list(d, 'temperature_2m_max'
 model.today = { lo: tmm.lo, hi: tmm.hi, uvMax: num(list(d, 'uv_index_max')[0]), gustMax: num(list(d, 'wind_gusts_10m_max')[0]), rainMm: num(list(d, 'precipitation_sum')[0]) };
 var sr = list(d, 'sunrise'), ss = list(d, 'sunset'), nowT = String(c.time || ''), hm = (iso) => { var m = /T(\d{2}:\d{2})/.exec(String(iso || '')); return m ? m[1] : null; };
 model.sun = nowT && sr[0] && nowT < sr[0] ? { up: true, at: hm(sr[0]) } : (nowT && ss[0] && nowT < ss[0] ? { up: false, at: hm(ss[0]) } : { up: true, at: hm(sr[1]) });
+var mins = (iso) => { var m = /T(\d{2}):(\d{2})/.exec(String(iso || '')); return m ? +m[1] * 60 + +m[2] : null; };
+var rise0 = mins(sr[0]), set0 = mins(ss[0]), mNow = mins(nowT);
+model.sunT = rise0 !== null && set0 !== null && mNow !== null && set0 > rise0 ? { rise: rise0, set: set0, now: mNow, day: mNow >= rise0 && mNow <= set0, riseL: hm(sr[0]), setL: hm(ss[0]), rise1L: hm(sr[1]) || hm(sr[0]) } : null;
 model.slots = slotsFor(raw, interval);
 model.hours = hoursAhead(raw, 25);
 model.days = slotsFor(raw, 'daily');
@@ -196,6 +199,12 @@ model.now.rain6 = maxOf(model.hours.slice(0, 6).map((h) => h.p));
 var aq = raw.aq && typeof raw.aq === 'object' ? raw.aq : null;
 model.now.aqi = aq && aq.current ? num(aq.current.european_aqi) : null;
 model.today.aqiMax = aq ? maxOf(list(aq.hourly || {}, 'european_aqi')) : null;
+var pol = null, psc = (v) => v <= 0 ? 0 : (v < 10 ? v / 10 * 0.3 : (v < 50 ? 0.3 + (v - 10) / 40 * 0.3 : (v < 150 ? 0.6 + (v - 50) / 100 * 0.3 : Mn(1, 0.9 + (v - 150) / 500 * 0.1))));
+if (aq && aq.current) ['grass', 'birch', 'alder', 'mugwort', 'olive', 'ragweed'].forEach((k) => {
+var cv = num(aq.current[k + '_pollen']), hv = maxOf(list(aq.hourly || {}, k + '_pollen')), val = cv === null ? hv : (hv === null ? cv : Mx(cv, hv));
+if (val !== null) pol = pol === null ? psc(val) : Mx(pol, psc(val));
+});
+model.now.pollen = pol;
 model.age = ageMinutes(c.time, raw.offset, raw.renderedAt);
 var any = false;
 for (var i = 0; i < model.slots.length; i++) if (!model.slots[i].missing) any = true;
@@ -542,10 +551,13 @@ function at(f, rad) { var an = -A + 2 * A * Mx(-0.03, Mn(1.03, f)); return [cx +
 function arc(rad, f0, f1, sw, col, par) {
 var p0 = at(f0, rad), p1 = at(f1, rad);
 return mk('path', { d: 'M' + p0[0].toFixed(1) + ' ' + p0[1].toFixed(1) + ' A' + rad + ' ' + rad + ' 0 0 1 ' + p1[0].toFixed(1) + ' ' + p1[1].toFixed(1),
-fill: 'none', stroke: col || ink, 'stroke-width': sw, 'shape-rendering': GPX }, par || g);
+fill: 'none', stroke: col || ink, 'stroke-width': sw, 'stroke-dasharray': arc.dash || null, 'shape-rendering': GPX }, par || g);
 }
 var SC = F(RD(fh * (o.small ? 0.085 : 0.065) * (vu ? 1.5 : 1), o.small ? 12 : 11), o.small ? '700' : '500');
-arc(rArc, 0, 1, lw);
+var DIMC = o.dim ? (bits === 1 ? ink : fillOf('gray-60', '#aaa')) : null;
+arc.dash = o.dim && bits === 1 ? '4 4' : null;
+arc(rArc, 0, 1, lw, DIMC);
+arc.dash = null;
 faceEl.setAttribute('data-sw-pivot', [cx, py, rArc + (o.band ? R(fh * 0.045) + lw : lw / 2)].join(' '));
 if (o.band) {
 var bw = R(fh * 0.045);
@@ -553,7 +565,7 @@ glowDigits((hg) => { arc(rArc + bw / 2 + lw, o.band[0], o.band[1], bw, o.bandCol
 }
 o.ticks.forEach((tk) => {
 var p0 = at(tk.f, rArc), p1 = at(tk.f, rArc - (tk.major ? fh * 0.07 : fh * 0.035));
-mk('line', { x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], stroke: ink, 'stroke-width': tk.major ? lw : Mx(1, R(lw * 0.6)), 'shape-rendering': GPX }, g);
+mk('line', { x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], stroke: DIMC || ink, 'stroke-width': tk.major ? lw : Mx(1, R(lw * 0.6)), 'shape-rendering': GPX }, g);
 });
 var labs = o.ticks.filter((tk) => tk.label !== undefined), compact = o.small || fw / z < 420;
 if (compact) SC = F(SC.size * 1.12, SC.weight);
@@ -591,14 +603,17 @@ if (ks >= nl || sel.every((bx, i) => { return (i === 0 || i === sel.length - 1 |
 sel.every((q, j) => j === i || bx.r < q.l || bx.l > q.r || bx.b < q.t || bx.t > q.b); })) { placed = sel; break; }
 }
 var scaleLabels = placed;
-if (o.icons) {
+(o.endLabels || []).forEach((e) => { var pp = at(e.f, rArc), ew = wOf(e.t) * SC.size / MK.size; text(g, e.t, pp[0] + (e.f ? -1 : 1) * (ew / 2 + u(10)), pp[1] + SC.size * 0.9, SC, { anchor: 'middle' }); });
+if (o.cornerIcon) { var cs = Mn(fh, fw) * 0.12, ccx = fx0 + bm + cs, ccy = fy0 + bm + cs; glowIcon(g, (gg) => icon(gg, o.cornerIcon, ccx, ccy, cs, null)); if (o.moonWord) text(g, o.moonWord, ccx, ccy + cs * 1.5, MK, { anchor: 'middle' }); }
+if (o.zoneBands) {
 var zro = rArc - fh * 0.085, zri = zro - fh * 0.05, zg = 0.012, ZS = bits === 1 ? ink : fillOf('gray-35', '#666');
 function zpt(f, rad) { var q = at(f, rad); return q[0].toFixed(1) + ' ' + q[1].toFixed(1); }
-for (var zi2 = 0; zi2 < 4; zi2++) {
-var z0 = zi2 / 4 + zg, z1 = (zi2 + 1) / 4 - zg;
+o.zoneBands.forEach((zb, zi2) => {
+var z0 = zb[0] + zg, z1 = zb[1] - zg;
 glowDigits((hg) => { mk('path', { d: 'M' + zpt(z0, zro) + ' A' + zro + ' ' + zro + ' 0 0 1 ' + zpt(z1, zro) + ' L' + zpt(z1, zri) + ' A' + zri + ' ' + zri + ' 0 0 0 ' + zpt(z0, zri) + ' Z',
-fill: zi2 % 2 ? 'none' : ZS, stroke: ink, 'stroke-width': Mx(1, R(lw * 0.5)), 'shape-rendering': GPX, 'data-sw-zone4': hg ? null : zi2 }, hg || g); });
-}
+fill: zb[2] === 'outline' || o.dim ? 'none' : ZS, stroke: DIMC || ink, 'stroke-width': Mx(1, R(lw * 0.5)), 'shape-rendering': GPX, 'data-sw-zone4': hg ? null : zi2 }, hg || g); });
+});
+if (o.icons) {
 var nmw = o.icons.map((nm) => { var r0 = iconFit(g, nm, null, { l: 0, r: 1e5, t: -1e5, b: 1e5 }, 100, 0, true); return { w: r0.w / r0.sz, h: r0.h / r0.sz }; });
 var isz = rArc * 0.26, pos = [];
 for (var gi = 0; gi < 40; gi++) {
@@ -611,6 +626,7 @@ var s = WI[wiName(nm, null)], q = pos[i];
 if (!s || !s.ink) return icon(gg, nm, q.x, q.y, isz, null);
 var k = isz * 1.4 / Mx(s.vb[2], s.vb[3]);
 return icon(gg, nm, q.x - (s.ink.x + s.ink.width / 2 - s.vb[0] - s.vb[2] / 2) * k, q.y - (s.ink.y + s.ink.height / 2 - s.vb[1] - s.vb[3] / 2) * k, isz, null); }); });
+}
 }
 mks.forEach((q) => {
 var m = q.m, r0 = rArc + bm + u(2), r1 = rArc + bm + fh * 0.05, t0 = at(m.f, r0), t1 = at(m.f - 0.012, r1), t2 = at(m.f + 0.012, r1);
@@ -634,6 +650,8 @@ return [[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[
 var NEEDLE = bits === 4 ? fillOf('gray-15', '#222') : ink;
 if (bits === 4) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55', '#999'), 'shape-rendering': GPX }, ng);
 glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true, ng);
+if (o.tipIcon && !o.dim) glowIcon(g, (gg) => icon(gg, o.tipIcon, cx + ux * tipR, py + uy * tipR, fh * 0.1, null));
+if (o.centerIcon) { glowIcon(g, (gg) => icon(gg, o.centerIcon, cx, py - rArc * 0.45, rArc * 0.3, null)); if (o.moonWord) text(g, o.moonWord, cx, py - rArc * 0.45 + rArc * 0.3 * 1.1, MK, { anchor: 'middle' }); }
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
 tl2.setAttribute('stroke', FF); tl2.setAttribute('stroke-width', Mx(3, u(5))); tl2.setAttribute('paint-order', 'stroke');
@@ -706,22 +724,17 @@ if ((b0 - a0) / st <= 5) return { a: a0, b: b0 + (even && ((b0 - a0) / st) % 2 ?
 }
 return { a: Fl(lo / 50) * 50, b: Math.ceil(hi / 50) * 50, major: 50, minor: 10 };
 }
-function tempMeter(g, x, y, w, h, small, badge, captioned) {
-var tl = M.today.lo, th = M.today.hi, nv = M.now.temp;
-var vals = [day24.lo, day24.hi, tl, th].filter((v) => v !== null);
-var lo = vals.length ? Math.min.apply(null, vals) : 0, hi = vals.length ? Math.max.apply(null, vals) : 10;
-var sc = niceScale(lo, hi, small || (w - u(14)) / z < 420), a = sc.a, b = sc.b;
-debug.scale = { a: a, b: b, major: sc.major, lo: lo, hi: hi };
-var f = (v) => (v - a) / (b - a);
-var ticks = [];
-for (var v = a; v <= b + 1e-9; v += sc.minor) {
-var vv = Math.round(v * 10) / 10, major = Math.abs(vv / sc.major - Math.round(vv / sc.major)) < 1e-6;
-ticks.push({ f: f(vv), major: major, label: major ? String(vv) : undefined, skip: major && Math.round((vv - a) / sc.major) % 2 === 1 && vv !== b });
+function sunMeter(g, x, y, w, h, small, badge, captioned) {
+var S = M.sunT, ticks = [], night = !S || !S.day, len = S ? S.set - S.rise : 1;
+if (S) {
+for (var tm = Math.ceil(S.rise / 30) * 30; tm < S.set; tm += 30) ticks.push({ f: (tm - S.rise) / len, major: tm % 60 === 0 });
+ticks.push({ f: 0, major: true });
+ticks.push({ f: 1, major: true });
 }
-return meter(g, x, y, w, h, { chan: 'T', badge: badge, captioned: captioned, ticks: ticks, needle: nv === null ? null : f(nv), small: small,
-band: tl !== null && th !== null ? [f(tl), f(th)] : null,
-marks: [tl !== null ? { f: f(tl), label: I18N.lo, lo: true } : null, th !== null ? { f: f(th), label: I18N.hi } : null].filter(Boolean),
-name: I18N.temperature, shortName: I18N.ours('temp_s'), unitName: deg + M.unit, });
+var g0 = Mn(120 / len, 0.33), dl = S ? Fl(len / 60) + ':' + ('0' + (len % 60)).slice(-2) + ' ' + I18N.ours('dl_u') : '--';
+return meter(g, x, y, w, h, { chan: 'S', badge: badge, captioned: captioned, ticks: ticks, needle: S && !night ? (S.now - S.rise) / len : (S ? 0 : null), small: small, band: null, marks: [],
+zoneBands: S ? [[0, g0, 'solid'], [g0, 1 - g0, 'outline'], [1 - g0, 1, 'solid']] : null, endLabels: S ? [{ f: 0, t: S.day ? S.riseL : (S.now < S.rise ? S.riseL : S.rise1L) }].concat(night ? [] : [{ f: 1, t: S.setL }]) : [], moonWord: MOON_W, dim: night, cornerIcon: !night && S ? 'moon' : null, tipIcon: S && !night ? 'wi-day-sunny' : null, centerIcon: S && night ? 'moon' : null,
+name: I18N.ours('daylight'), shortName: I18N.ours('daylight'), unitName: dl });
 }
 function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
 var WUNIT = M.unit === 'F' ? 'MPH' : 'KM/H', WTHR = M.unit === 'F' ? 20 : 30;
@@ -733,8 +746,9 @@ if (pn !== null) ps.push(pn);
 var lo = ps.length ? Mn.apply(null, ps) : null, hi = ps.length ? Mx.apply(null, ps) : null;
 return meter(g, x, y, w, h, { chan: 'R', badge: badge, captioned: captioned, ticks: ticks, needle: pn === null ? null : f(pn), band: lo === null ? null : [f(lo), f(hi)], small: small,
 marks: lo === null ? [] : [{ f: f(lo), label: I18N.lo, lo: true }, { f: f(hi), label: I18N.hi }],
-icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'], name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: 'hPa', });
+zoneBands: [[0, 0.25, 'solid'], [0.25, 0.5, 'outline'], [0.5, 0.75, 'solid'], [0.75, 1, 'outline']], icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'], name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: 'hPa', });
 }
+var MOON_W = ({ 0: 'moon_new', 7: 'moon_fq', 14: 'moon_full', 21: 'moon_lq' })[MOON_I] ? I18N.ours(({ 0: 'moon_new', 7: 'moon_fq', 14: 'moon_full', 21: 'moon_lq' })[MOON_I]) : null;
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = bits >= 2 && !darkMode;
 var GLASSD = LCD ? paper : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25', '#333') : (bits === 2 ? (darkMode ? paper : fillOf('gray-15', '#333')) : paper);
@@ -906,11 +920,12 @@ return tw2 + 2 * bpad;
 function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
 function fv1(v) { return v === null ? '--' : (v < 10 ? (Math.round(v * 10) / 10).toFixed(1) : SWModel.fmt(v)); }
 function compass(d) { if (d === null) return ''; var pts = I18N.ours('compass').split(','); return pts.length === 8 ? pts[Math.round(d / 45) % 8] : ''; }
-var RO_ORDER = ['humidity', 'uv', 'wind', 'aqi'];
+var RO_ORDER = ['humidity', 'uv', 'wind', 'aqi', 'pollen'];
 function readout(k) {
 var n = M.now, t = M.today, c = compass(n.dir), F_ = M.unit === 'F';
 var bar = (v, lo, hi) => v === null ? null : Mx(0, Mn(1, (v - lo) / (hi - lo)));
 if (k === 'wind') return { lab: I18N.wind, bar: bar(n.wind, 0, F_ ? 40 : 60), zones: [0.5, F_ ? 0.75 : 0.83], txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
+if (k === 'pollen') return { lab: I18N.ours('pollen'), bar: n.pollen, zones: [0.3, 0.6], txt: I18N.ours('pollen') + ' ' + fv(n.pollen === null ? null : Math.round(n.pollen * 100)) };
 if (k === 'aqi') return { lab: 'AQI', bar: bar(nz(n.aqi), 0, 100), ticks: [0.6], zones: [0.4, 0.6], txt: 'AQI ' + fv(nz(n.aqi)) };
 if (k === 'uv') return { lab: I18N.ours('uv'), bar: bar(n.uv, 0, 11), ticks: [3 / 11, 8 / 11], zones: [3 / 11, 8 / 11], txt: I18N.ours('uv') + ' ' + fv(n.uv) };
 return { lab: I18N.ours('m_hum'), bar: bar(n.hum, 0, 100), txt: I18N.ours('hum') + ' ' + fv(n.hum, '%') };
@@ -972,7 +987,7 @@ var blk = null, cells = null;
 function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.removeChild(tt); return ww; }
 if (!compact && M.ok && ROS.length >= 3) {
 var ROW = { top: Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * 0.9 }, LF = F(RD(hb * 0.075, 10), '700'), lmax = 0;
-['m_hum', 'uv'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF));
+['m_hum', 'uv'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF), mW(I18N.ours('pollen'), LF));
 cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), left: ROS };
 blk = { divX: ix + lw + u(14), cL: ix + lw + u(22), cR: rx - u(22) };
 if (part === 'meters') { lw = iw; blk = null; }
@@ -1189,7 +1204,7 @@ text(root, I18N.ours('next_days'), x + w / 2, y + h / 2 - P.size * 0.2, P, { anc
 text(root, I18N.ours(M.ok ? 'no_forecast' : 'no_signal'), x + w / 2, y + h / 2 + P.size * 1.3, F(P.size * 0.8, '600'), { anchor: 'middle', ls: R(P.size * 0.2) });
 return;
 }
-if (h > w * 0.6) nd = Mx(2, Mn(M.days.length - 1 || 1, 7, Fl((h - u(44)) / u(52))));
+if (h > w * 0.6) nd = Mx(2, Mn(M.days.length || 1, 7, Fl((h - u(44)) / u(52))));
 debug.days = nd; debug.rows = false;
 daysDial(x, y, w, h, nd);
 }
@@ -1200,7 +1215,7 @@ mW: (str, sp) => { var tt = text(root, str, 0, 0, sp); var ww = width(tt); root.
 }
 // A: preset keys, one per day; today pressed in
 function daysDial(x, y, w, h, nd) {
-var days = M.days.slice(1, nd + 1), D = dayFonts(w, h, nd), F_ = M.unit === 'F', lo = null, hi = null;
+var days = M.days.slice(0, nd), D = dayFonts(w, h, nd), F_ = M.unit === 'F', lo = null, hi = null;
 days.forEach((d) => { if (d.lo !== null && (lo === null || d.lo < lo)) lo = d.lo; if (d.hi !== null && (hi === null || d.hi > hi)) hi = d.hi; });
 if (M.now.temp !== null) { lo = lo === null ? M.now.temp : Mn(lo, M.now.temp); hi = hi === null ? M.now.temp : Mx(hi, M.now.temp); }
 if (lo === null) { lo = 0; hi = 10; }
@@ -1220,6 +1235,7 @@ mk('rect', { x: px - Mx(1, u(1)) / 2, y: R(top), width: Mx(1, u(1)), height: R(y
 days.forEach((d, i) => {
 var cy = top + (i + 0.5) * rh;
 text(g, dayName(d), x + u(10), cy + D.L.size * 0.36, D.L, { fill: fg, ls: R(D.L.size * 0.08) });
+if (i === 0) mk('rect', { x: x + u(10), y: R(cy + D.L.size * 0.62), width: R(D.mW(dayName(d), D.L)), height: Mx(1, u(1.5)), fill: fg }, g);
 ICON_INK = fg; iconFit(g, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz); ICON_INK = null;
 mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: glass ? DIMW : fillOf('gray-60', '#bbb') }, g);
 if (d.hi === null || d.lo === null) return;
@@ -1285,9 +1301,9 @@ var fit = Mx(1, Fl(w / (u(minCss) * TS))), n = 0;
 return Mx(1, Mn(M.days.length || 1, 7, fit, n > 0 ? n : (autoCap || 7)));
 }
 var HS = F(RD(H0 * 0.03, 12), '700');
-function dialName(k) { return k === 'temperature' ? I18N.temperature : I18N.ours('baro'); }
+function dialName(k) { return k === 'sun' ? I18N.ours('daylight') : I18N.ours('baro'); }
 function meterRow(x, y, w, h, captions) {
-var kinds = ['temperature', 'rain'], n = 2, mw = Fl((w - GP) / 2), capSp = null;
+var kinds = ['baro', 'sun'], n = 2, mw = Fl((w - GP) / 2), capSp = null;
 if (captions) {
 var fh = h - u(14), fw = mw - u(14), BG = F(RD(Mn(fh, fw) * 0.055, 10), '800'), size = Mx(HS.size, BG.size * 1.1);
 var bwd = (() => { var t0 = text(root, 'L', 0, 0, BG); var ww = width(t0); root.removeChild(t0); return ww + 2 * BG.size * 0.45; })();
@@ -1303,10 +1319,10 @@ return [nm, allowShort ? SHORTER[nm] : null].filter(Boolean).some((wd) => { var 
 return false;
 });
 }
-tempMeter(root, x, y, mw, h, smallFace(h, mw), 'L', captions ? capSp : false);
-baroMeter(root, x + mw + GP, y, w - mw - GP, h, smallFace(h, mw), 'R', captions ? capSp : false);
+baroMeter(root, x, y, mw, h, smallFace(h, mw), 'L', captions ? capSp : false);
+sunMeter(root, x + mw + GP, y, w - mw - GP, h, smallFace(h, mw), 'R', captions ? capSp : false);
 }
-ROK = RO_ORDER; ROS = ROK.map(readout);
+ROK = RO_ORDER.filter((k) => k !== 'pollen' || M.now.pollen !== null); ROS = ROK.map(readout);
 debug.readoutKinds = ROK;
 if (view === 4) {
 if (H0 / z >= 260) {
@@ -1340,7 +1356,9 @@ debug.unit = M.unit;
 stage.setAttribute('data-sw-debug', JSON.stringify(debug));
 }
 var WI_BASE = 'https://trmnl.com/images/plugins/weather/';
-var WI_MAP = { clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
+var MOON_I = (() => { var m = /(\d{4})-(\d{2})-(\d{2})/.exec(String((SW_RAW.current || {}).time || '')); if (!m) return null; var jd = Date.UTC(+m[1], +m[2] - 1, +m[3], 12) / 86400000 + 2440587.5, P = 29.530588853; return Math.round(((((jd - 2451550.1) % P) + P) % P) / P * 28) % 28; })();
+var MOON_N = MOON_I === null ? 'wi-night-clear' : 'wi-moon-alt-' + (MOON_I === 0 ? 'new' : MOON_I < 7 ? 'waxing-crescent-' + MOON_I : MOON_I === 7 ? 'first-quarter' : MOON_I < 14 ? 'waxing-gibbous-' + (MOON_I - 7) : MOON_I === 14 ? 'full' : MOON_I < 21 ? 'waning-gibbous-' + (MOON_I - 14) : MOON_I === 21 ? 'third-quarter' : 'waning-crescent-' + (MOON_I - 21));
+var WI_MAP = { moon: [MOON_N, MOON_N, MOON_N], clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
 cloud: ['wi-cloudy', 'wi-cloudy', 'wi-cloudy'], fog: ['wi-day-fog', 'wi-night-fog', 'wi-fog'],
 drizzle: ['wi-day-sprinkle', 'wi-night-alt-sprinkle', 'wi-sprinkle'], rain: ['wi-day-rain', 'wi-night-alt-rain', 'wi-rain'],
 heavy: ['wi-rain', 'wi-rain', 'wi-rain'], sleet: ['wi-day-sleet', 'wi-night-alt-sleet', 'wi-sleet'],
