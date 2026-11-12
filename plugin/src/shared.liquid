@@ -75,20 +75,20 @@
 {%- endcapture %}
 {%- capture c_right %}
   {%- comment -%} Rain unit (owner 2026-11-12): calendar rows of one size per view (rc_m/rc_l cqh), 2 or 3 rows; rain icon and moon as tall as the calendar, the same size, on one left edge; a gap of one calendar row before the sun unit. Portrait: icon above. {%- endcomment -%}
-  {%- assign rr = 2 %}{% if ui.rain.rows == 3 %}{% assign rr = 3 %}{% endif %}{% assign rr_m = rr %}{% if stk %}{% assign rr_m = 2 %}{% endif %}
-  {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% if rr == 3 %}{% assign k_l = 3 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = rc_l | times: rr | at_most: 100 %}{% assign cal_p = 2 | times: rr %}
+  {%- assign rr = 2 %}{% if ui.rain.rows == 3 %}{% assign rr = 3 %}{% endif %}{% assign rr_m = rr %}{% if stk or view == 2 %}{% assign rr_m = 2 %}{% endif %}
+  {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.8 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}
   {%- assign ib_m = cal_m %}{% if stk %}{% assign ib_m = rc_m | times: 0.8 | round %}{% endif %}
-  {%- capture ib_cls %}w--[{{ ib_m }}cqh] h--[{{ ib_m }}cqh] lg:w--[{{ cal_l }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:w--[3cqh] lg:portrait:h--[3cqh] shrink-0{% endcapture %}
+  {%- capture ib_cls %}aspect--1/1 h--[{{ ib_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[3cqh] shrink-0{% endcapture %}
   <div class="flex flex--col flex--center gap--xsmall lg:gap--small {{ rc_w }}">
    {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small">
    <div class="flex {{ ru_cls }} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full pr--1" data-sw-unit="rain">
     <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
-    <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | round | at_most: 100 }}cqw] lg:portrait:w--[18cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain"></div>
+    <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | times: kw | round | at_most: 100 }}cqw] lg:portrait:w--[18cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"></div>
    </div>
    <div class="h--[{{ rc_m }}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
    {%- endif %}
    {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% endif %}
-   <div class="flex {{ su_cls }} {% if ui.rain %}flex--left flex--center-y w--full {% else %}flex--center {% endif %}gap--xsmall lg:gap--medium shrink-0" data-sw-unit="sun">
+   <div class="flex {{ su_cls }} {% if ui.rain %}flex--left flex--center-y w--full gap--xsmall lg:gap--small{% else %}flex--center gap--xsmall lg:gap--medium{% endif %} shrink-0" data-sw-unit="sun">
     {%- if ui.rain %}<div class="{{ ib_cls }}" data-sw-part="moon"></div>
     {%- else %}<div class="w--[{{ 11 | times: hm | round }}cqh] h--[{{ 11 | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="moon"></div>
     <div class="hidden lg:block h--[{{ 13 | times: mh_l | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="moon"></div>{% endif %}
@@ -247,10 +247,10 @@ if (!cross) body += rect(xn - 1.5, tr, 3, H - tr + (API.ext || 0)); else body +=
 return svg(W, H, body);
 }
 // 12-hour rain calendar: two rows of six, rain hours lit (inverted), the others in full text colour.
-// Rain calendar: 3 columns, 2 rows (6 hours) or 3 rows (9 hours), whichever gives squarer cells: the page sizes the
-// box for 3 rows when the rain runs on (rain.rows), and a narrow box fits 3 rows better (owner 2026-11-12); rain hours lit (inverted), the others in full text colour.
-function rain(hours, W, H) {
-var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = fit(3) < fit(2) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.65), body = '';
+// Rain calendar: 3 columns, 2 rows (6 hours) or 3 rows (9 hours), 3 when the page sized the box for 3 rows
+// (rain runs on: rain.rows; data-sw-rows per size), else whichever gives squarer cells (a narrow box fits 3 rows better) (owner 2026-11-12); rain hours lit (inverted), the others in full text colour.
+function rain(hours, W, H, rows) {
+var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = rows === 3 || fit(3) < fit(2) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.65), body = '';
 hours.slice(0, C * R).forEach((q, i) => {
 var x = (i % C) * cw, y = Math.floor(i / C) * rh;
 if (q.wet) body += glow(rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22), GPX);
@@ -370,7 +370,7 @@ case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
 case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10);
 case 'day': return day(SW.days[i], SW.scale, W, H);
 case 'scale': return scale(SW.scale, W, H);
-case 'rain': return SW.rain ? rain(SW.rain.hours, W, H) : '';
+case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
 case 'tri': return tri(i === 0, W, H);
 case 'rule': return rule(W, H);
 case 'person': return person(W, H);
@@ -416,6 +416,7 @@ return API;
         var r = el.getBoundingClientRect();
         if (!r.width && !r.height) return;   // the other size's copy (lg:hidden / hidden lg:block)
         SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null;
+        var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;   // rows the md / lg box was sized for
         var rows = [].filter.call(document.querySelectorAll('[data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), pitch = rows.length > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : r.height;
         SWDraw.ext = Math.max(0, (pitch - r.height) / 2 + 1);   // day rows: rules and the now line run on through the gap to the next row
         el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.round(r.width), Math.round(r.height));
