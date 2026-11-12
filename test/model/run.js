@@ -129,8 +129,8 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   eq([T.timeIs12(null, '12'), T.timeIs12(null, 12), T.timeIs12(null, '24'), T.timeIs12(null, T.field({}, 'time_format', '24'))], [true, true, false, false], 'missing field: 24 h');
   eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
-  ok(/- keyname: time_format\n  field_type: select\n[\s\S]*- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n- keyname: bottom\n/.test(y), 'time_format, 24 by default, followed only by the later bottom field (style removed: Calm is the only style)');
-  ok(/- keyname: bottom\n  field_type: select\n[\s\S]*- Days: days\n  - Hours: hours\n  default: days\n(name:|$)/.test(y), 'bottom is the last custom field, Days by default (owner)');
+  ok(/- keyname: author_info\n[\s\S]*- keyname: lat_lon\n[\s\S]*- keyname: unit\n[\s\S]*- keyname: time_format\n[\s\S]*- keyname: bottom\n[\s\S]*- keyname: hide_title_bar\n/.test(y), 'settings in the owner order: about, location, unit, time format, bottom strip, title bar (owner 2026-11-13)');
+  ok(/- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n/.test(y) && /- Days: days\n  - Hours: hours\n  default: days\n/.test(y), 'time format 24 by default, bottom strip Days by default');
 });
 
 test('air quality: the current index at any hour (no evening mode)', () => {

@@ -38,7 +38,7 @@ custom_fields:
   default: 52.52,13.41
 - keyname: unit
   field_type: select
-  name: Temperature Unit
+  name: Temperature unit
   description: 'Celsius or Fahrenheit for every temperature on the screen.'
   description-de: 'Celsius oder Fahrenheit für alle Temperaturen auf dem Bildschirm.'
   description-fr: 'Celsius ou Fahrenheit pour toutes les températures à l''écran.'
@@ -49,16 +49,6 @@ custom_fields:
   - Celsius: celsius
   - Fahrenheit: fahrenheit
   default: celsius
-- keyname: hide_title_bar
-  field_type: boolean
-  name: Hide Title Bar
-  description: 'Hide the bar with the plugin name and update time at the bottom.'
-  description-de: 'Die Leiste mit Plugin-Name und Aktualisierungszeit unten ausblenden.'
-  description-fr: 'Masquer la barre du bas avec le nom du plugin et l''heure de mise à jour.'
-  description-es-ES: 'Ocultar la barra inferior con el nombre del plugin y la hora de actualización.'
-  description-nl: 'De balk onderaan met de pluginnaam en de update-tijd verbergen.'
-  description-ja: '下部のプラグイン名と更新時刻のバーを非表示にします。'
-  default: false
 - keyname: time_format
   field_type: select
   name: Time format
@@ -85,6 +75,16 @@ custom_fields:
   - Days: days
   - Hours: hours
   default: days
+- keyname: hide_title_bar
+  field_type: boolean
+  name: Hide title bar
+  description: 'Hide the bar with the plugin name and update time at the bottom.'
+  description-de: 'Die Leiste mit Plugin-Name und Aktualisierungszeit unten ausblenden.'
+  description-fr: 'Masquer la barre du bas avec le nom du plugin et l''heure de mise à jour.'
+  description-es-ES: 'Ocultar la barra inferior con el nombre del plugin y la hora de actualización.'
+  description-nl: 'De balk onderaan met de pluginnaam en de update-tijd verbergen.'
+  description-ja: '下部のプラグイン名と更新時刻のバーを非表示にします。'
+  default: false
 name: Radio Weather
 description: Weather as a vintage radio receiver
 refresh_interval: 5
