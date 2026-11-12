@@ -269,5 +269,19 @@ test('rain unit: icon left of the grid at its height on lg, above it on md; sepa
   ok(/hidden lg:block h--\[8cqh\][^>]*ui.rain.icon/.test(sh.slice(u, end)) && /lg:h--\[8cqh\][^"]*" data-sw-part="rain"/.test(sh), 'lg icon as tall as the grid');
   ok(sh.indexOf('data-sw-sep="rain-sun"') > end, 'separator after the unit');
 });
+test('sun/moon unit like the rain unit: moon left at the rows\' height on lg, centred above on md, grey ink (owner 2026-11-12)', () => {
+  const u = sh.indexOf('data-sw-unit="sun"'), rows = sh.indexOf('ui.sun.rise', u);
+  ok(u > 0 && /flex--col lg:flex--row flex--center/.test(sh.slice(sh.lastIndexOf('<div', u), u)), 'column on md, row on lg, centred');
+  const m = sh.indexOf('data-sw-part="moon"', u); ok(m > u && m < rows, 'moon before the sun rows');
+  ok(!/<img[^>]*ui.sun.moon/.test(sh), 'no black moon image');
+  const v = D.moon('m.svg', 60); ok(/mask-type="alpha"/.test(v) && /text--gray-45/.test(v), 'moon masked, grey ink'); eq(D.moon(null, 60), '');
+});
+test('moon in dark mode keeps the phase: lit part in light ink, shadow as panel, limb outline (owner 2026-11-12)', () => {
+  D.mode = { dark: false, bits: 4 }; const l = D.moon('wi-moon-alt-waning-crescent-2.svg', 60);
+  D.mode = { dark: true, bits: 4 }; const d = D.moon('wi-moon-alt-waning-crescent-2.svg', 60); D.mode = null;
+  ok(/data-sw-moon="shadow"/.test(l) && /mask-type="alpha"/.test(l), 'light: the icon ink (shadow) drawn');
+  ok(/data-sw-moon="lit"/.test(d) && /<mask[^>]*><circle[^>]*fill="#fff"\/><image /.test(d), 'dark: disc minus the icon ink, so the lit part is light ink');
+  ok(/fill="none" stroke="currentColor"/.test(d), 'dark: limb outline');
+});
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

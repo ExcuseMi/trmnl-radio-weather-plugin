@@ -44,7 +44,7 @@
    <div class="flex flex--row flex--center-y gap--small lg:gap--medium h--[{{ 15 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 13 | times: hl | round | at_most: 100 }}cqh]">
     <div class="flex flex--row flex--top gap--xsmall h--full"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
     {%- if ui.feels %}
-    <div class="border--v-60 h--[{{ 12 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | round | at_most: 100 }}cqh]"></div>
+    <div data-sw-div class="border--v-60 h--[{{ 12 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | round | at_most: 100 }}cqh]"></div>
     <div class="h--[{{ 10 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="person"></div>
     <div class="h--[{{ 9 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 7 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="feels"></div>
     {%- endif %}
@@ -92,7 +92,7 @@
    <div class="flex flex--row flex--center-y gap--small lg:gap--medium h--[{{ 15 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 13 | times: hl | round | at_most: 100 }}cqh]">
     <div class="flex flex--row flex--top gap--xsmall h--full"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
     {%- if ui.feels %}
-    <div class="border--v-60 h--[{{ 12 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | round | at_most: 100 }}cqh]"></div>
+    <div data-sw-div class="border--v-60 h--[{{ 12 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | round | at_most: 100 }}cqh]"></div>
     <div class="h--[{{ 10 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="person"></div>
     <div class="h--[{{ 9 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 7 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="feels"></div>
     {%- endif %}
@@ -108,12 +108,14 @@
    </div>
    <div class="w--full h--[{{ 1 | times: hm | round | at_most: 100 }}cqh] shrink-0" data-sw-part="rule" data-sw-sep="rain-sun"></div>
    {%- endif %}
-   <div class="flex flex--row flex--center-y gap--medium shrink-0">
+   {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% endif %}
+   <div class="flex flex--col lg:flex--row flex--center gap--xsmall lg:gap--medium shrink-0" data-sw-unit="sun">
+    <div class="h--[{% if ui.rain %}{{ 5 | times: hm | round | at_most: 100 }}{% else %}{{ 11 | times: hm | round | at_most: 100 }}{% endif %}cqh] lg:hidden" data-sw-part="moon"></div>
+    <div class="hidden lg:block h--[{% if ui.rain %}{{ 11 | times: hl | round | at_most: 100 }}{% else %}{{ 17 | times: hl | round | at_most: 100 }}{% endif %}cqh]" data-sw-part="moon"></div>
     <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
-     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]" src="{{ ui.sun.riseIcon }}" alt=""><span class="title title--base text--bold">{{ ui.sun.rise }}</span></div>
-     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]" src="{{ ui.sun.setIcon }}" alt=""><span class="title title--base text--bold">{{ ui.sun.set }}</span></div>
+     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh]" src="{{ ui.sun.riseIcon }}" alt=""><span class="title title--base{% unless ui.rain %} lg:title--large{% endunless %} text--bold">{{ ui.sun.rise }}</span></div>
+     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh]" src="{{ ui.sun.setIcon }}" alt=""><span class="title title--base{% unless ui.rain %} lg:title--large{% endunless %} text--bold">{{ ui.sun.set }}</span></div>
     </div>
-    <img class="image image--adaptive h--[{% if ui.rain %}11{% else %}18{% endif %}cqh] lg:h--[{% if ui.rain %}7{% else %}12{% endif %}cqh]" src="{{ ui.sun.moon }}" alt="">
    </div>
   </div>
 {%- endif %}
@@ -257,6 +259,20 @@ var tx = text(x + cw / 2, y + rh / 2, q.h, fs, 'middle', ' dominant-baseline="ce
 return svg(W, H, body);
 }
 function rule(W, H) { return svg(W, H, g('text--gray-40', '<line x1="0" y1="' + n1(H / 2) + '" x2="' + W + '" y2="' + n1(H / 2) + '" stroke="currentColor" stroke-width="3" stroke-dasharray="3 7"/>')); }
+// Moon: the icon as an alpha mask filled with grey ink, so the weather icon leads (owner 2026-11-12); square at the box height.
+function moon(url, H) {
+if (!url) return '';
+// wi-moon-alt icons: a ring (centre 15,14.44, radius 11.26 of 30) with the shadow filled and the lit part left open.
+// Light mode: draw the icon ink (shadow + ring) in grey on paper. Dark mode: inverting would swap lit and shadow, so
+// draw the complement instead: the lit part in light ink, the shadow left as panel, plus a thin limb outline (owner 2026-11-12).
+var id = 'swm' + (K++), k = H / 30, img = '<image href="' + url + '" width="' + n1(H) + '" height="' + n1(H) + '"/>', box = ' maskUnits="userSpaceOnUse" x="0" y="0" width="' + n1(H) + '" height="' + n1(H) + '"';
+if (API.mode && API.mode.dark) {
+DEFS += '<mask id="' + id + '"' + box + '><circle cx="' + n1(15 * k) + '" cy="' + n1(14.44 * k) + '" r="' + n1(11.26 * k) + '" fill="#fff"/>' + img + '</mask>';
+return svg(H, H, g('text--gray-45', rect(0, 0, H, H, 0, ' mask="url(#' + id + ')" data-sw-moon="lit"') + '<circle cx="' + n1(15 * k) + '" cy="' + n1(14.44 * k) + '" r="' + n1(10.6 * k) + '" fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.5, k * 0.9)) + '"/>'));
+}
+DEFS += '<mask id="' + id + '" mask-type="alpha"' + box + '>' + img + '</mask>';
+return svg(H, H, g('text--gray-45', rect(0, 0, H, H, 0, ' mask="url(#' + id + ')" data-sw-moon="shadow"')));
+}
 function person(W, H) {
 return svg(H * 0.4, H, '<circle cx="20" cy="12" r="9"/><rect x="9" y="25" width="22" height="38" rx="4"/><rect x="2" y="27" width="6" height="32" rx="3"/><rect x="32" y="27" width="6" height="32" rx="3"/><rect x="10" y="60" width="8" height="38" rx="3"/><rect x="22" y="60" width="8" height="38" rx="3"/>', '0 0 40 100');
 }
@@ -345,17 +361,35 @@ case 'rain': return SW.rain ? rain(SW.rain.hours, W, H) : '';
 case 'tri': return tri(i === 0, W, H);
 case 'rule': return rule(W, H);
 case 'person': return person(W, H);
+case 'moon': return moon(SW.sun && SW.sun.moon, H);
 case 'baro': return dial(SW.baro, W, H, true);
 case 'tdial': return dial(SW.tdial, W, H, false);
 }
 return '';
 }
-Object.assign(API, { part: part, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial });
+Object.assign(API, { part: part, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon });
 return API;
 })();
 // ==== DRAW_END ====
 (function () {
   function whenReady(cb) { var tries = 0; (function attempt() { if (window.TRMNLPaint) return cb(); if (++tries > 200) return; setTimeout(attempt, 50); })(); }
+  // Temperature row divider (owner 2026-11-12): midway between the drawn right edge of the unit and the drawn left edge of
+  // the person, as tall as the drawn digits and centred on them. Measured on the ink, so it needs the page.
+  function ink(svgEl) { var r = svgEl.getBoundingClientRect(), vb = svgEl.viewBox.baseVal, b = svgEl.getBBox(), kx = r.width / (vb.width || r.width), ky = r.height / (vb.height || r.height);
+    return { l: r.left + (b.x - vb.x) * kx, r: r.left + (b.x - vb.x + b.width) * kx, t: r.top + (b.y - vb.y) * ky, h: b.height * ky }; }
+  function swAlign() {
+    var cx = document.createElement('canvas').getContext('2d');
+    document.querySelectorAll('[data-sw-div]').forEach(function (dv) {
+      var row = dv.parentElement, u = row.querySelector('[data-sw-unit=""]'), t = row.querySelector('[data-sw-part="temp"] svg'), p = row.querySelector('[data-sw-part="person"] svg');
+      dv.style.transform = ''; dv.style.removeProperty('height');
+      if (!u || !t || !p || !dv.getBoundingClientRect().height) return;
+      var cs = getComputedStyle(u); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+      var ur = u.getBoundingClientRect().left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight, pi = ink(p), ti = ink(t);
+      dv.style.setProperty('height', Math.round(ti.h) + 'px', 'important'); dv.style.setProperty('flex-shrink', '0');
+      var r = dv.getBoundingClientRect();
+      dv.style.transform = 'translate(' + ((ur + pi.l) / 2 - (r.left + r.right) / 2).toFixed(1) + 'px,' + (ti.t - r.top).toFixed(1) + 'px)';
+    });
+  }
   whenReady(function () {
     document.querySelectorAll('[data-sw-part]').forEach(function (el) {
       TRMNLPaint.watch(el, function () {
@@ -369,8 +403,13 @@ return API;
         var rows = [].filter.call(document.querySelectorAll('[data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), pitch = rows.length > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : r.height;
         SWDraw.ext = Math.max(0, (pitch - r.height) / 2 + 1);   // day rows: rules and the now line run on through the gap to the next row
         el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.round(r.width), Math.round(r.height));
+        swAlign();   // every repaint (the Framework may rebuild or refit the page after the first one) realigns the divider
       });
     });
+    swAlign();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(swAlign);   // the unit's ink width needs the real font
+    if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-part="person"], [data-sw-part="feels"], [data-sw-div]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
+    [200, 800, 2000].forEach(function (ms) { setTimeout(swAlign, ms); });   // the Framework refits text after first paint
     document.body.setAttribute('data-sw-drawn', '1');
   });
 })();
