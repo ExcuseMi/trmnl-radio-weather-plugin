@@ -114,11 +114,11 @@
   {%- assign rr = 2 %}{% if ui.rain.rows == 3 %}{% assign rr = 3 %}{% endif %}{% assign rr_m = rr %}{% if view == 4 or view == 2 %}{% assign rr_m = 2 %}{% endif %}
   {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% if view == 3 %}{% assign k_m = 5 %}{% if rr_m == 3 %}{% assign k_m = 4 %}{% endif %}{% endif %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.75 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}
   {%- assign ib_m = cal_m %}{% if stk and view != 3 %}{% assign ib_m = rc_m | times: 0.7 | round %}{% endif %}
-  {%- capture ib_cls %}aspect--1/1 h--[{{ ib_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[3cqh] shrink-0{% endcapture %}
+  {%- capture ib_cls %}aspect--1/1 h--[{{ ib_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[3cqh] shrink-0{% endcapture %}{% if calm_q %}{% assign ib_cls = ib_cls | append: ' hidden' %}{% endif %}{% comment %} Calm quadrant: the calendar alone, its moon hidden with the sun unit {% endcomment %}
   <div class="flex flex--col flex--center gap--xsmall lg:gap--small shrink-0 {{ rc_w }}">
    {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small">
    <div class="flex {{ ru_cls }} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full pr--1" data-sw-unit="rain">
-    <img class="image image--adaptive {{ ib_cls }}{% if calm_q %} hidden{% endif %}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
+    <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
     <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | times: kw | round | at_most: 100 }}cqw] lg:portrait:w--[18cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"></div>
    </div>
    <div class="h--[{% if view == 3 %}2{% else %}{{ rc_m }}{% endif %}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
@@ -413,7 +413,7 @@ return svg(W, H, '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"
 function dial(D, W, H, baro) {
 var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, py = H * (W < H * 1.8 ? 0.72 : 0.88),   // narrow box: hub up, clear of the corner captions (owner 2026-11-12)
  bw = H * 0.045, mh = H * 0.05;
-var cm = API.calm && !baro, mfs = H * 0.075, mg = Math.max(2.5, H * 0.008);   // Calm (owner): bigger low/high marks with their numbers
+var cm = API.calm && !baro, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);   // Calm (owner): bigger low/high marks with their numbers
 if (cm) mh *= 1.6;
 var r = Math.min(W * 0.42 / Math.sin(A), py - H * 0.015 - mh - bw - lw - (cm ? mfs * 1.6 + mg : 0));
 var F = (v) => (v - D.a) / (D.b - D.a), cl = (f) => Math.max(-0.03, Math.min(1.03, f));
