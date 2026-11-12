@@ -148,7 +148,7 @@
 {{ c_right }}
   </div>
   {%- unless calm_q %}
-  <div class="w--full px--4"><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-hair="console" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: block hairline between the top part and the meters {% endcomment %}
+  <div class="w--full px--4" data-sw-hairwrap><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-hair="console" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: block hairline between the top part and the meters; step 12: the same gap above and below (swHair) {% endcomment %}
 {{ c_meters }}
   {%- endunless %}
 {%- else %}
@@ -598,9 +598,24 @@ return API;
       row.setAttribute('data-sw-fit', f.toFixed(3));
     });
   }
+  // Console hairline (owner 2026-11-12, step 12): the same paper above (to the top part's lowest ink) and below (to the
+  // meters' first ink); the meter rows carry their own inset, which changes with the row count.
+  function swHair() {
+    document.querySelectorAll('[data-sw-hairwrap]').forEach(function (w) {
+      var up = w.previousElementSibling, dn = w.nextElementSibling, hr = [].filter.call(w.children, function (e) { return e.getBoundingClientRect().width > 0; })[0];
+      if (!up || !dn || !hr) return;
+      var H = hr.getBoundingClientRect(), k = (w.offsetWidth && w.getBoundingClientRect().width / w.offsetWidth) || 1;
+      function ink(root, lo) { var v = lo ? -1e9 : 1e9; [].forEach.call(root.querySelectorAll('svg path, svg rect, svg circle, svg text, svg polygon, img, span'), function (e) { if (e.tagName === 'SPAN' && e.children.length) return; var b = e.getBoundingClientRect(); if (!b.width || !b.height) return; v = lo ? Math.max(v, b.bottom) : Math.min(v, b.top); }); return v; }
+      var pt = parseFloat(w.style.paddingTop) || 0, pb = parseFloat(w.style.paddingBottom) || 0;
+      var a = (H.top - ink(up, true)) / k - pt, b = (ink(dn, false) - H.bottom) / k - pb;   // without our own padding
+      if (!isFinite(a) || !isFinite(b)) return;
+      var nt = Math.max(0, b - a), nb = Math.max(0, a - b);
+      if (Math.abs(nt - pt) > 0.3 || Math.abs(nb - pb) > 0.3) { w.style.paddingTop = nt.toFixed(1) + 'px'; w.style.paddingBottom = nb.toFixed(1) + 'px'; }
+    });
+  }
   function swAlign() {
     var cx = document.createElement('canvas').getContext('2d');
-    swCond(cx); swFit();
+    swCond(cx); swFit(); swHair();
     document.querySelectorAll('[data-sw-div]').forEach(function (dv) {
       var row = dv.parentElement, u = row.querySelector('[data-sw-unit=""]'), t = row.querySelector('[data-sw-part="temp"] svg'), p = row.querySelector('[data-sw-felt]');
       dv.style.transform = ''; dv.style.removeProperty('height');
