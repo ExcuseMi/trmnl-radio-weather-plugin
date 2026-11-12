@@ -17,8 +17,9 @@
 {%- assign name_w = 'w--[6cqw] lg:w--[5cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw]' %}{% assign num_w = 'w--[6cqw] lg:w--[5cqw]' %}
 {%- if view == 1 %}{% assign name_w = 'w--[6cqw] lg:w--[5cqw] lg:portrait:w--[14cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign hide_today_lg = true %}{% assign num_cls = ' lg:portrait:hidden' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign last_p = ' lg:portrait:hidden' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh]' %}
 {%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
-{%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 5 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden' %}{% assign name_w = 'w--[12cqw] lg:w--[8cqw]' %}{% assign icon_w = 'w--[7cqw]' %}{% assign num_w = 'w--[9cqw]' %}{% assign rw_m = 5 %}{% assign hh_m = 5 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[62cqh] lg:h--[54cqh]' %}{% assign days_h = 'h--[36cqh] lg:h--[44cqh]' %}
+{%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 4 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden' %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% assign name_w = 'w--[12cqw] lg:w--[8cqw]' %}{% assign icon_w = 'w--[7cqw]' %}{% assign num_w = 'w--[9cqw]' %}{% assign rw_m = 6 %}{% assign hh_m = 6 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[60cqh] lg:h--[54cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[44cqh]' %}
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 1.7 %}{% assign n_md = 1 %}{% assign n_lg = 3 %}{% assign con_h = 'h--full' %}{% endif %}
+{%- if mr_m == nil %}{% assign mr_m = 9 %}{% assign mb_m = 7 %}{% endif %}
 {%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
 {%- comment -%} Right column: rain unit and sun unit side by side on lg; stacked views keep the icon above the grid and the moon beside the sun times. {%- endcomment -%}
 {%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3 = 26 | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign ri_lg = 'hidden lg:block lg:portrait:hidden' %}{% assign su_cls = 'flex--row lg:portrait:flex--col' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6b = 20 %}{% if stk %}{% assign q6b = 15 %}{% assign ru_cls = 'flex--col lg:flex--row' %}{% endif %}{% assign q6 = q6b | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
@@ -54,13 +55,13 @@
    <div class="flex flex--row {% if stk %}{% else %}grow{% endif %} gap--small w--full">
     <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %} shrink-0">
     {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
-     <div class="{% if forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--right flex--center-y w--full h--[{{ 9 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
+     <div class="{% if forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--right flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
     {%- endfor %}
     </div>
     <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %} grow">
     {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
-     <div class="{% if forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y w--full h--[{{ 9 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]">
-      <div class="w--full h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
+     <div class="{% if forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]">
+      <div class="w--full h--[{{ mb_m | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
       <div class="hidden lg:block w--full h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
      </div>
     {%- endfor %}
@@ -76,8 +77,8 @@
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y' %}{% assign tg_h = 'h--full' %}{% assign dv_x = '' %}{% assign pf_m = 10 %}{% assign fe_m = 9 %}
-   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line, the felt temperature under it {% endcomment %}{% assign th_m = 24 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y' %}{% assign tg_h = 'h--[15cqh] lg:h--full' %}{% assign dv_x = ' hidden lg:block' %}{% assign pf_m = 6 %}{% assign fe_m = 6 %}{% endif %}
-   <div class="flex {{ tr_cls }} gap--small lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
+   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line, the felt temperature under it {% endcomment %}{% assign th_m = 26 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full' %}{% assign dv_x = ' hidden lg:block' %}{% assign pf_m = 6 %}{% assign fe_m = 6 %}{% endif %}
+   <div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
     {%- if ui.inn %}{% comment %} Indoor sensor (as live): BUITEN and BINNEN twin readouts, the felt temperature under the outdoor one, the indoor humidity under the indoor one. {% endcomment %}
     {%- for tw in (1..2) %}
     {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
@@ -269,6 +270,13 @@ return svg(W, H, '<g data-sw-lit="' + lit + '"></g>' + g(SHADOW + ' text--gray-6
 // its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.
 function tick(v) { return String(v === 0 ? 0 : v); }
 function lfs(sc) { return Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }   // axis labels at least the meter label size (owner 2026-11-12)
+function ticks(sc, W) {
+var fs = lfs(sc), st = sc.major, w = (v) => fs * 0.62 * (tick(v).length + 1.2) + fs * 0.6, n = 0, out = [];
+for (var v = sc.a; v <= sc.b + 1e-9; v += st) n += w(v);
+if (n > W * 0.75) st = sc.major * 2;   // crowded: every other step
+for (var v = Math.ceil(sc.a / st - 1e-9) * st; v <= sc.b + 1e-9; v += st) out.push(v);
+return out;
+}
 function xmap(sc, W) {
 var fs = lfs(sc), cw = fs * 0.62, pl = cw * tick(sc.a).length / 2 + 2, pr = cw * tick(sc.b).length / 2 + cw * 0.7 + 2;
 return (t) => pl + (t - sc.a) / (sc.b - sc.a) * (W - pl - pr);
@@ -278,7 +286,7 @@ return (t) => pl + (t - sc.a) / (sc.b - sc.a) * (W - pl - pr);
 function day(d, sc, W, H, hi) {   // hi: the highlighted row (today, or tomorrow when the strip starts tomorrow)
 var X = xmap(sc, W), body = '';
 var E = API.extD || 0;
-for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) body += rect(X(v) - 1, 0, 2, H + E, 0, ' data-sw-tick="' + tick(v) + '"');
+ticks(sc, W).forEach((v) => { body += rect(X(v) - 1, 0, 2, H + E, 0, ' data-sw-tick="' + tick(v) + '"'); });
 body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.8, y = (H - bh) / 2, cells = '', sh = '';
@@ -298,11 +306,11 @@ return svg(W, H, body);
 // Days strip header: degree labels (dark grey) and the now pointer; its line starts here unless it would cross a label.
 function scale(sc, W, H) {
 var X = xmap(sc, W), fs = lfs(sc), body = '', rules = '', ty = Math.max(H * 0.62, fs * 0.3 * 1.4 + 2 + fs * 0.4), lb = ty + fs * 0.55, E = API.extD || 0, cross = false, xn = sc.now === null || sc.now === undefined ? null : X(sc.now);
-for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) {
+ticks(sc, W).forEach((v) => {
 var p = X(v), s = tick(v), tw = fs * 0.62 * s.length, l = p - tw / 2;
 body += text(p, ty, s, fs, 'middle', ' dominant-baseline="middle" data-sw-tick="' + s + '"') + text(p + tw / 2, ty, sc.deg, fs, 'start', ' dominant-baseline="middle"');
 if (H + E > lb + 2) rules += rect(p - 1, lb + 2, 2, H + E - lb - 2);
-}
+});
 var pw = (API.paint && (API.paint('white') || {}).color) || '#fff';
 body = g('text--gray-70', rules) + '<g data-sw-axis stroke="' + pw + '" stroke-width="' + n1(fs * 0.22) + '" paint-order="stroke" stroke-linejoin="round">' + body + '</g>';   // labels in full ink (owner 2026-11-12)
 if (xn !== null) {

@@ -276,7 +276,7 @@ test('moon glow outside the disk in dark mode, none in light or 1-bit (owner 202
 });
 test('days strip in narrow views: X half vertical 7 days without numbers, OG half vertical 5, portrait larger names and icons (owner 2026-11-12)', () => {
   const v3 = /elsif view == 3 %}([^\n]*)/.exec(sh)[1], v1 = /if view == 1 %}([^\n]*)/.exec(sh)[1];
-  ok(/nd_md = 5 %}/.test(v3) && /nd_lg = 7 %}/.test(v3), 'half vertical: 5 days on md, 7 on lg');
+  ok(/nd_md = 4 %}/.test(v3) && /nd_lg = 7 %}/.test(v3), 'half vertical: 4 days on md (owner 2026-11-12: taller rows), 7 on lg');
   ok(/num_cls = ' lg:hidden' %}/.test(v3), 'half vertical: low/high numbers on the OG (owner 2026-11-12), dropped on the X');
   ok(/bar_cls = 'col--span-7 lg:col--span-8' %}/.test(v3) && /name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}/.test(v3), 'bars keep at least half the strip, header pad matches name + icon');
   ok(/name_t = ' lg:portrait:title--xlarge' %}/.test(v1) && /icon_x = ' lg:portrait:h--\[7cqh\]' %}/.test(v1), 'portrait: names and icons at the live size');
