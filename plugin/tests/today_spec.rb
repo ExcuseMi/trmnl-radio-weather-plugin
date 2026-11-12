@@ -169,7 +169,7 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       aq['current']['grass_pollen'] = 30.0   # four rows: humidity, wind, AQI, pollen
       s = shot(device: 'og_png', view: 'half_horizontal', aq: { json: aq })
       r = s.evaluate("(function(){ var k = document.querySelector('.sw-stage').getBoundingClientRect().width / +document.querySelector('.sw-stage svg').getAttribute('viewBox').split(' ')[2]; var t = [].slice.call(document.querySelectorAll('.sw-stage text[data-sw-cell]')); var ys = t.map(function(e){return parseFloat(e.getAttribute('y'))}).sort(function(a,b){return a-b}); return { size: parseFloat(t[0].getAttribute('font-size')), pitch: ys[1] - ys[0], k: k, n: t.length }; })()")
-      expect(r['size'] / r['pitch']).to be >= 0.45
+      expect(r['size'].to_f / r['pitch']).to be >= 0.45
     end
   end
 
