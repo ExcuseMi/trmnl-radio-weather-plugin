@@ -678,6 +678,19 @@ cx += dw + gap;
 });
 return cx - x - gap;
 }
+// owner 2026-11-12: an RDS-style station-name strip: the text in 5x7 dots inside a thin window; false when it does not fit
+function dotNorm(str) { return String(str).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'SS').toUpperCase(); }
+function dotText(g, str, cx, cy, maxW, maxH, col, pFix) {
+var FT = M.dotFont || null; if (!FT) return false;
+var t = dotNorm(str), n = t.length, p = pFix || Fl(Mn(maxH / 11, maxW / (n * 6 + 3)) * 2) / 2; if (p < 1.5) return false;
+var tw = n * 6 * p - p, ww = tw + 4 * p, hh = 11 * p, x0 = cx - ww / 2, y0 = cy - hh / 2, ds = Mx(1, p - (p >= 3 ? Mx(1, R(p * 0.2)) : 0));
+var sg = mk('g', { 'data-sw-dotstrip': t }, g);
+rrect(sg, R(x0) + 0.5, R(y0) + 0.5, R(ww) - 1, R(hh) - 1, R(p), 'none', col, 1);
+for (var i = 0; i < n; i++) { var hx = FT[t.charAt(i)]; if (!hx) continue;
+for (var r = 0; r < 7; r++) { var bits5 = parseInt(hx.substr(r * 2, 2), 16);
+for (var c = 0; c < 5; c++) if (bits5 & (16 >> c)) mk('rect', { x: R(x0 + 2 * p + (i * 6 + c) * p), y: R(y0 + 2 * p + r * p), width: ds, height: ds, fill: col }, sg); } }
+return { x: x0, y: y0, w: ww, h: hh, p: p };
+}
 function seg7W(dw, str) {
 var t = Mx(3, dw * 0.18), gap = Mx(2, R(dw * 0.22)), w = 0;
 str.split('').forEach((ch) => { w += (ch === '.' ? R(t * 1.2) : ch === ':' ? R(t * 1.1) : dw) + gap; });
@@ -902,10 +915,20 @@ text(g, I18N.ours(EV ? 'tomorrow' : 'outdoor'), dx + dwid / 2, dy - WD.size * 0.
 text(g, I18N.ours('indoor'), x2 + dwid2 / 2, dy - WD.size * 0.5, WD, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.1) });
 }
 }
-var ybC = feelsOn && !(dual && EV) ? yb - WD.size * 1.6 : yb;   // owner 2026-11-12: the condition first, the feels-like under it
-if (blk) wt = fitText(g, condS, blk.cL + avail / 2, ybC, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
+var presetDone = false, stripOK = false;
+// owner 2026-11-12: the condition in an RDS station-name strip; the feels-like in a small window beside it, GEVOEL printed above
+if (blk && !compact && !dual && M.dotFont) { var c1 = dotNorm(condS).length, fsS = feelsOn && !EV ? '@!' + String(Math.round(M.now.feels)) + '\u00b0' : '',   // person + thermometer glyphs: the felt temperature
+ c2 = fsS.length;
+var units = (c1 * 6 + 3) + (c2 ? 3 + c2 * 6 + 3 : 0), PL = F(Mx(9, R(WD.size * 0.7)), '700', 1), sTop = dy + dh + u(10) + (c2 ? PL.size * 1.3 : 0), sBot = yb + WD.size * 0.5, sH = Mn(sBot - sTop, WD.size * 3), pp = Fl(Mn(sH / 11, avail / units) * 2) / 2;
+if (pp >= 1.5) { var tot = units * pp, sx0 = blk.cL + avail / 2 - tot / 2, scy = sBot - 5.5 * pp;
+var b1 = dotText(g, condS, sx0 + (c1 * 6 + 3) * pp / 2, scy, 1e9, 1e9, GLOW, pp); stripOK = !!b1;
+if (stripOK && c2) { var b2 = dotText(g, fsS, sx0 + (c1 * 6 + 3 + 3) * pp + (c2 * 6 + 3) * pp / 2, scy, 1e9, 1e9, GLOW, pp);
+if (b2) { presetDone = true; text(g, I18N.ours('feels'), b2.x + b2.w / 2, b2.y - R(PL.size * 0.35), PL, { anchor: 'middle', fill: GLOW, ls: R(PL.size * 0.12) }).setAttribute('data-sw-feels', 1); } } } }
+var ybC = feelsOn && !presetDone && !(dual && EV) ? yb - WD.size * 1.6 : yb;   // owner 2026-11-12: the condition first, the feels-like under it
+if (stripOK) wt = null;
+else if (blk) wt = fitText(g, condS, blk.cL + avail / 2, ybC, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
 else if (!compact) wt = fitText(g, condS, lx, ybC, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
-if (feelsOn) {
+if (feelsOn && !presetDone) {
 var fl = I18N.ours('feels'), fs = fv(M.now.feels), fy2 = yb;
 if (dual) {
 var SW2 = F(WD.size, '700', 1), fw5 = mW(fl + ' ' + fs + deg, SW2) + WD.size * 1.2;
