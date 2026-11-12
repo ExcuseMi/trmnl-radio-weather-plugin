@@ -15,7 +15,7 @@
 {%- comment -%} One console and one days strip for every view; per view: what shows, stacked or side by side, and a size factor for the cqh/cqw values (1 = the full view the values were tuned for). {%- endcomment -%}
 {%- assign stk = false %}{% assign hm = 1 %}{% assign hl = 1 %}{% assign wm = 1 %}{% assign wl = 1 %}{% assign n_md = 9 %}{% assign n_lg = 9 %}{% assign nd_md = 4 %}{% assign nd_lg = 5 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1' %}{% assign pad_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1' %}{% assign name_t = '' %}{% assign icon_x = '' %}{% assign rgw_l = 18 %}
 {%- assign name_w = 'w--[6cqw] lg:w--[5cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw]' %}{% assign num_w = 'w--[6cqw] lg:w--[5cqw]' %}
-{%- if view == 1 %}{% assign name_w = 'w--[6cqw] lg:w--[5cqw] lg:portrait:w--[14cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign num_cls = ' lg:portrait:hidden' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign last_p = ' lg:portrait:hidden' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh]' %}
+{%- if view == 1 %}{% assign name_w = 'w--[6cqw] lg:w--[5cqw] lg:portrait:w--[14cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign num_cls = ' lg:portrait:hidden' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign last_p = ' lg:portrait:hidden' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh] lg:portrait:h--[38cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh] lg:portrait:h--[26cqh]' %}
 {%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
 {%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 4 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden' %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% assign name_w = 'w--[12cqw] lg:w--[8cqw]' %}{% assign icon_w = 'w--[7cqw]' %}{% assign num_w = 'w--[9cqw]' %}{% assign rw_m = 6 %}{% assign hh_m = 6 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[60cqh] lg:h--[54cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[44cqh]' %}
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 2.3 %}{% assign n_md = 1 %}{% assign n_lg = 2 %}{% assign con_h = 'h--full' %}{% endif %}
@@ -26,7 +26,7 @@
 {%- if mr_m == nil %}{% assign mr_m = 9 %}{% assign mb_m = 7 %}{% endif %}
 {%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
 {%- comment -%} Right column: rain unit and sun unit side by side on lg; stacked views keep the icon above the grid and the moon beside the sun times. {%- endcomment -%}
-{%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3w = 26 %}{% if ui.rain %}{% assign q3w = 23 %}{% endif %}{% assign q3 = q3w | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign ri_lg = 'hidden lg:block lg:portrait:hidden' %}{% assign su_cls = 'flex--row lg:portrait:flex--col' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6b = 20 %}{% if stk %}{% assign q6b = 15 %}{% assign ru_cls = 'flex--col lg:flex--row' %}{% endif %}{% assign q6 = q6b | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
+{%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3w = 26 %}{% if ui.rain %}{% assign q3w = 23 %}{% endif %}{% assign q3 = q3w | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign ri_lg = 'hidden lg:block lg:portrait:hidden' %}{% assign su_cls = 'flex--row' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6b = 20 %}{% if stk %}{% assign q6b = 15 %}{% assign ru_cls = 'flex--col lg:flex--row' %}{% endif %}{% assign q6 = q6b | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
 {%- if stk %}{% assign ri_md = 'w--[8cqw] lg:hidden' %}{% assign rgw_l = 15 %}{% assign rg_p = '' %}{% assign su_cls = 'flex--row' %}{% assign rc_w = 'w--[40cqw] lg:w--[37cqw] shrink-0' %}{% assign rule_w = 'w--full' %}{% assign tf = 0.7 %}{% assign mh_l = 0.4 %}{% if ui.rain %}{% assign su_cls = 'hidden lg:flex flex--row' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}{% if view == 3 %}{% assign su_cls = 'flex--row' %}{% assign sep_cls = '' %}{% assign ru_cls = 'flex--row' %}{% assign rc_w = 'w--[44cqw] lg:w--[37cqw] shrink-0' %}{% endif %}{% endif %}
 {%- if calm_q %}{% assign rc_w = 'w--[33cqw] lg:w--[39cqw] shrink-0' %}{% assign rg_m = 'w--[31cqw]' %}{% endif %}
 {%- if hh_m == nil %}{% assign hh_m = 6 %}{% endif %}{% if rw_m == nil %}{% assign rw_m = 6 %}{% endif %}
@@ -52,7 +52,7 @@
  <div class="hidden lg:block lg:4bit:hidden dark:lg:4bit:block{{ calm_btw }} w--full px--4" data-sw-between><div class="border--h-60"></div></div>
 {%- endif %}
 {%- capture c_meters %}
-  <div class="flex flex--col {% if view == 3 %}gap--medium pt--3 lg:gap--small lg:pt--0{% else %}gap--small{% endif %} {% if stk %}w--full{% else %}shrink-0 w--[{{ 30 | times: wm | round | at_most: 100 }}cqw] lg:w--[{{ 22 | times: wm | round | at_most: 100 }}cqw] lg:portrait:w--[{{ 35 | times: wm | round | at_most: 100 }}cqw]{% endif %}">
+  <div class="flex flex--col {% if view == 3 %}gap--medium pt--3 lg:gap--small lg:pt--0{% else %}gap--small{% endif %} {% if stk %}w--full{% else %}shrink-0 w--[{{ 30 | times: wm | round | at_most: 100 }}cqw] lg:w--[{{ 22 | times: wm | round | at_most: 100 }}cqw] lg:portrait:w--full{% endif %}">
    {%- comment %} owner 2026-11-12: no lamps; the rain unit's icon shows rain, snow or hail {% endcomment %}
    {%- comment %} owner 2026-11-12: the meters take the full width; the label column is only as wide as its longest label {% endcomment %}
    <div class="flex flex--row {% if stk %}{% else %}grow{% endif %} gap--small w--full">
@@ -141,7 +141,7 @@
    {%- if ui.rain %}</div>{% endif %}
   </div>
 {%- endcapture %}
- <div class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% else %}flex--row flex--stretch-y gap--medium lg:gap--large{% endif %} {% if view == 3 %}px--2 pt--5 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
+ <div class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% else %}flex--row lg:portrait:flex--col-reverse flex--stretch-y gap--medium lg:gap--large{% endif %} {% if view == 3 %}px--2 pt--5 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
 {%- if stk %}
   <div class="flex flex--row flex--stretch-y gap--medium w--full">
 {{ c_temp }}
@@ -152,12 +152,14 @@
   <div class="w--full px--4" data-sw-hairwrap><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-hair="console" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: block hairline between the top part and the meters; step 12: the same gap above and below (swHair) {% endcomment %}
 {{ c_meters }}
   {%- if calm_q %}</div>{% endif %}
-{%- else %}
+{%- else %}{% comment %} X portrait (owner step 12): one stack, the temperature and right units on top, the meters under them {% endcomment %}
 {{ c_meters }}
-  {{ vr }}
+  <div class="flex lg:portrait:hidden">{{ vr }}</div>
+  <div class="flex flex--row flex--stretch-y gap--medium lg:gap--large grow">
 {{ c_temp }}
   {{ vr }}
 {{ c_right }}
+  </div>
 {%- endif %}
  </div>{{ p_close }}</div>
 {%- if days_h %}
