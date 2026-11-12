@@ -384,10 +384,12 @@ return API;
       dv.style.transform = ''; dv.style.removeProperty('height');
       if (!u || !t || !p || !dv.getBoundingClientRect().height) return;
       var cs = getComputedStyle(u); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-      var ur = u.getBoundingClientRect().left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight, pi = ink(p), ti = ink(t);
-      dv.style.setProperty('height', Math.round(ti.h) + 'px', 'important'); dv.style.setProperty('flex-shrink', '0');
+      // The preview may scale the page: screen boxes are scaled, the canvas text width and the translate are CSS px.
+      var ub = u.getBoundingClientRect(), sc = (u.offsetWidth && ub.width / u.offsetWidth) || 1;
+      var ur = ub.left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight * sc, pi = ink(p), ti = ink(t);
+      dv.style.setProperty('height', Math.round(ti.h / sc) + 'px', 'important'); dv.style.setProperty('flex-shrink', '0');
       var r = dv.getBoundingClientRect();
-      dv.style.transform = 'translate(' + ((ur + pi.l) / 2 - (r.left + r.right) / 2).toFixed(1) + 'px,' + (ti.t - r.top).toFixed(1) + 'px)';
+      dv.style.transform = 'translate(' + (((ur + pi.l) / 2 - (r.left + r.right) / 2) / sc).toFixed(1) + 'px,' + ((ti.t - r.top) / sc).toFixed(1) + 'px)';
     });
   }
   whenReady(function () {
