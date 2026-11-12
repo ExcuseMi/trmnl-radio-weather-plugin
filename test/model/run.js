@@ -216,6 +216,13 @@ test('days strip: 5-degree lines faint, blocks at least half the row, now line d
   const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-40')[1])[1];
   ok(h >= 20, 'block height ' + h + ' of 40');
 });
+test('panel lamps (owner 2026-11-12): one per square-ish section on 4-bit light, one wide band on 2-bit without dither, none in dark or 1-bit', () => {
+  const f = (m, W, H) => { D.mode = m; const s = D.part({}, 'face', 0, W, H); D.mode = null; return s; };
+  const lamps = (s) => new Set((s.match(/<ellipse cx="([\d.]+)"/g) || [])).size;
+  eq([lamps(f({ dark: false, bits: 4 }, 1200, 400)), lamps(f({ dark: false, bits: 4 }, 400, 400))], [3, 1], 'lamps by width / height');
+  ok(lamps(f({ dark: false, bits: 2 }, 1200, 400)) === 1 && !/<pattern/.test(f({ dark: false, bits: 2 }, 1200, 400)), '2-bit: one lamp, no pattern');
+  ok(!/ellipse/.test(f({ dark: true, bits: 4 }, 1200, 400)) && !/ellipse/.test(f({ dark: false, bits: 1 }, 1200, 400)), 'dark and 1-bit: none');
+});
 test('dial light: backlight in light mode (2-bit up), glow in dark (blur 4-bit, halo 2-bit, none 1-bit)', () => {
   const t = (m) => { D.mode = m; const s = D.dial({ now: 5, lo: 1, hi: 9, a: 0, b: 15, step: 5 }, 900, 380, false); D.mode = null; return s; };
   ok(/data-sw-backlight/.test(t({ dark: false, bits: 4 })), 'light 4-bit backlight'); ok(!/data-sw-backlight/.test(t({ dark: false, bits: 1 })), 'no backlight on 1-bit');
