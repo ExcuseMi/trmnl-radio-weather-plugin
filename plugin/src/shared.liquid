@@ -770,7 +770,7 @@ if (part === 'meters') lampBottom = y + u(4);
 var tallBox = !compact && !part && (h / w > 0.42 || OGD), noLampBox = !compact && view !== 1 && !part && flags.length === 0;
 if (noLampBox) lampBottom = y + u(8);
 if (!compact && part !== 'meters') {
-var room = part || !M.ok ? iw - u(20) : iw * (OGD ? 0.3 : 0.4);   // owner 2026-11-12: the lamps stay over the meter column
+var room = part || !M.ok ? iw - u(20) : iw * (OGD ? 0.3 : 0.4);   // owner 11-12: lamps over the meters
 var rowW = (fl, sp) => fl.reduce((a, f) => a + tW(g, f[0], sp, { ls: R(sp.size * 0.15) }) + sp.size * (bits === 1 || !color ? 2.6 : 1.4), 0);
 while (rowW(flags, ST) > room && flags.some((f) => !f[1])) {
 for (var fi = flags.length - 1; fi >= 0; fi--) if (!flags[fi][1]) { flags.splice(fi, 1); break; }
@@ -855,9 +855,8 @@ function evLoW(d) { return EV && !compact ? R(d * 0.3) + seg7W(R(d * 0.3), evLoS
 var GRP = blk && !compact && !dual && !EV && part !== 'meters', FV = (d) => R(d * 0.62), FS = String(Math.round(M.now.feels === null ? 0 : M.now.feels)), FW = GRP && feelsOn0() ? 1 : 0;   // owner 2026-11-12: temps together, icon + text together
 function feelsOn0() { return M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2; }
 function fwOf(d) { return FW ? FV(d) * 0.65 + u(14) + seg7W(R(FV(d) * 0.5), FS) + FV(d) * 0.45 + u(THM ? 40 : 20) : 0; }
-var THM = true;
+var THM = false;
 function need(d) { var dw0 = R(d * 0.5); if (GRP) return (THM ? d * 0.9 + u(8) : 0) + seg7W(dw0, CELLSX) + dw0 * 1.2 + fwOf(d); if (dual) return 2 * (seg7W(dw0, CELLSX) + dw0 * 1.3) + d * 1.3 + dw0 * 0.9 + evLoW(d); return seg7W(dw0, CELLSX) + dw0 * 1.2 + (compact ? 0 : d * 1.25) + evLoW(d); }
-THM = !GRP || need(WD.size * 3.4) <= avail;   // narrow: no thermometer, so the digits stay large
 var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
 var feelsOn = EV ? !compact && blk && dual && M.inn.hum !== null : !compact && blk && M.now.feels !== null && M.now.temp !== null && (Math.abs(M.now.feels - M.now.temp) >= 2 || dual);
 var dyTop = compact ? y + h * 0.27 : (tallBox ? lampBottom + u(8) : Mx(y + h * (noRow || part === 'main' ? 0.14 : 0.25), lampBottom + u(4))), dyEnd = GRP ? yb + WD.size * 0.3 - WD.size * 2.1 - u(20) : yb - WD.size - u(2) - (feelsOn ? WD.size * 1.2 : 0), fo = feelsOn && !GRP;
@@ -884,7 +883,7 @@ lx = blk.cL + avail / 2 - ((fl.l - dh * 0.4 - ib0.w) + (dwid + R(dw * 0.25) + 2 
 if (GRP) { var tw0 = THM ? dh * 0.9 : 0; lx = blk.cL + avail / 2 - (tw0 + dwid - fl.l + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + fwOf(dh)) / 2 - fl.l + tw0; }
 }
 var CF = F(WD.size * 1.25, '700', 1), s9 = WD.size * 2.1, gV = u(10), yRB = dy + CF.size * 1.1, ySep = 0;
-if (GRP) { var tM = part ? dyTop : y + innerD + u(12), T9 = s9 + 2 * gV + dh * 1.34, top9 = Mx(tM, (tM + yb + WD.size * 0.3 - T9) / 2); yRB = top9 + s9 / 2 + CF.size * 0.35; ySep = top9 + s9 + gV; dy = ySep + gV + dh * 0.34; }   // owner 2026-11-12: icon + text above the temperature
+if (GRP) { var tM = part ? dyTop : y + innerD + u(12), T9 = s9 + 2 * gV + dh * 1.34, top9 = Mx(tM, (tM + yb + WD.size * 0.3 - T9) / 2); yRB = top9 + s9 / 2 + CF.size * 0.35; ySep = top9 + s9 + gV; dy = ySep + gV + dh * 0.34; }   // owner 11-12
 var dx = lx + iconW;
 glowDigits((hg) => { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
 debug.digits.boxes = seg7.boxes;
@@ -918,8 +917,8 @@ text(g, I18N.ours('indoor'), x2 + dwid2 / 2, dy - WD.size * 0.5, WD, { anchor: '
 }
 var presetDone = false, stripOK = false;
 if (GRP) { stripOK = true;
-if (THM) { ICON_INK = bits >= 2 && LCD ? fillOf('gray-30') : (bits >= 2 ? DIMW || GLOW : GLOW); glowIcon(g, (gg) => iconFit(gg, 'thermo', null, { l: dx + (firstLit ? firstLit.l - dx : 0) - dh * 0.9, r: dx + (firstLit ? firstLit.l - dx : 0) - u(20), t: dy - dh * 0.2, b: dy + dh * 1.2 }, dh * 1.4, dy + dh / 2)); ICON_INK = null; }   // owner 2026-11-12: the thermometer in front of the temperature
-var SEPC = DIMW || ink; mk('rect', { x: R(blk.cL + avail * 0.12), y: R(ySep), width: R(avail * 0.76), height: 1, fill: SEPC, 'data-sw-sep': 1 }, g);   // owner 2026-11-12: separators
+// owner 2026-11-12: no thermometer, it looked better without   // owner 2026-11-12: the thermometer in front of the temperature
+var SEPC = DIMW || ink; mk('rect', { x: R(blk.cL + avail * 0.12), y: R(ySep), width: R(avail * 0.76), height: 1, fill: SEPC, 'data-sw-sep': 1 }, g);   // owner 11-12: separators
 if (FW) mk('rect', { x: R(dx + dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + u(THM ? 20 : 10)), y: R(dy + dh * 0.1), width: Mx(1, u(1.5)), height: R(dh * 0.9), fill: SEPC, 'data-sw-sep': 2 }, g);
 if (FW) { presetDone = true; var fh9 = FV(dh), q = fh9 * 0.1, fx9 = dx + dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + u(THM ? 40 : 20), fb9 = dy + dh / 2 + FV(dh) / 2;
 feelsIcon(g, fx9, fb9 - fh9, q); glowDigits((hg) => { seg7(hg || g, fx9 + 6.5 * q + u(14), fb9 - fh9, R(fh9 * 0.5), fh9, FS, DIGIT, null); text(hg || g, deg, fx9 + 6.5 * q + u(14) + seg7W(R(fh9 * 0.5), FS) + R(fh9 * 0.08), fb9 - fh9 * 0.45, F(R(fh9 * 0.55), '700'), { fill: DIGIT }); }); }
@@ -967,7 +966,7 @@ if (S2) for (var si = 0; si < 30 && (tot(s3) > rw - u(4) || (mUnder ? 5.2 : 2.7)
 if (S2) {
 var rf = F(s3, '700'), lw3 = s3 * 2 + tws(s3), x03 = dcx - tot(s3) / 2, yA = dM - (mUnder ? 1.6 : 0.35) * s3, yB = yA + s3 * 1.7;
 [['sunrise', S2.riseL, yA, 'riseTom'], ['sunset', S2.setL, yB, 'setTom']].forEach((it) => { glowIcon(g, (gg) => icon(gg, it[0], x03 + s3 * 0.8, it[2] - s3 * 0.3, s3 * 1.4, null)); text(g, it[1], x03 + s3 * 1.8, it[2], rf, { fill: GLOW }); if (S2[it[3]]) skipIcon(g, x03 + s3 * 1.8 + mW(it[1], rf) + s3 * 0.25, it[2] - s3 * 0.62, s3 * 0.6).setAttribute('data-sw-suntom', it[0]); });
-glowIcon(g, (gg) => icon(gg, 'moon', mUnder ? dcx : x03 + lw3 + s3 * 1.4, mUnder ? yB + s3 * 1.9 : (yA + yB) / 2 - s3 * 0.3, mUnder ? s3 * 2 : s3 * 2.4, null));
+ICON_INK = bits >= 2 ? BMUT : null; glowIcon(g, (gg) => icon(gg, 'moon', mUnder ? dcx : x03 + lw3 + s3 * 1.4, mUnder ? yB + s3 * 1.9 : (yA + yB) / 2 - s3 * 0.3, mUnder ? s3 * 2 : s3 * 2.4, null)); ICON_INK = null;
 }
 debug.clock = { str: '', boxes: [] };
 return;
