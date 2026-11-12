@@ -102,6 +102,10 @@ return n+(bad.length?' '+bad.slice(0,4).join('; '):'');})()})
       puts "HUE #{c['name']}: #{hu}"
       expect(hu).to match(/\A\d+\z/)
       expect(hu.to_i.positive?).to eq(colour)
+      # Days strip structure (owner 2026-11-12): a hairline over every shown day row and one between the high column and the graph.
+      hr = s.evaluate(%q{(function(){var bad=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(r){if(!r.getBoundingClientRect().height)return;var h=r.querySelector('[data-sw-hair="row"]');if(!h||!h.getBoundingClientRect().height||!h.getBoundingClientRect().width)bad.push('row line');var v=r.querySelector('[data-sw-part="day"] [data-sw-hair="v"]');if(!v||!v.getBoundingClientRect().height)bad.push('v line');});return bad.join('; ');})()})
+      puts "HAIR #{c['name']}: #{hr}" unless hr.empty?
+      expect(hr).to eq('')
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"
