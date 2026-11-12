@@ -773,7 +773,7 @@ mk('path', { d: dd + ' Z', fill: st[2] < 1 ? dith(st[0], st[1], st[2]) : st[0], 
 }
 function glowDigits(draw, noLcd, par) {
 if (LCD) return draw(null);
-if (bits === 2 && darkMode && !color) {
+if (bits === 2 && darkMode && !color && FB === 1) {
 var RG = DIMW, rw2 = 2 * Mx(1, u(2)), rgg = mk('g', { fill: RG, stroke: RG, 'stroke-width': rw2, 'stroke-linejoin': 'round', 'data-sw-halo': '1' }, par || root);
 draw(rgg);
 [].forEach.call(rgg.querySelectorAll('*'), (e) => { var f = e.getAttribute('fill'), s = e.getAttribute('stroke'), sw0 = parseFloat(e.getAttribute('stroke-width')) || 0;
