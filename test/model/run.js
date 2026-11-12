@@ -130,7 +130,7 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
   ok(/- keyname: time_format\n  field_type: select\n[\s\S]*- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n- keyname: style\n/.test(y), 'time_format, 24 by default, followed only by the later style field');
-  ok(/- keyname: style\n  field_type: select\n[\s\S]*- Receiver: receiver\n  - Calm: calm\n  default: receiver\n(name:|$)/.test(y), 'style is the last custom field, Receiver by default');
+  ok(/- keyname: style\n  field_type: select\n[\s\S]*- Receiver: receiver\n  - Calm: calm\n  default: calm\n(name:|$)/.test(y), 'style is the last custom field, Calm by default (owner 2026-11-12)');
 });
 
 test('air quality: the current index at any hour (no evening mode)', () => {

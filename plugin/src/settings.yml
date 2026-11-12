@@ -62,7 +62,7 @@ custom_fields:
   options:
   - Receiver: receiver
   - Calm: calm
-  default: receiver
+  default: calm
 name: Radio Weather
 description: Weather as a vintage radio receiver
 refresh_interval: 60
