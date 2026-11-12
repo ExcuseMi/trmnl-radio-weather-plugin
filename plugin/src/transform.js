@@ -138,6 +138,187 @@ async function getJson(url) {
   return body;
 }
 
+// ==== MODEL_BEGIN ====
+var Mx = Math.max, Mn = Math.min, Fl = Math.floor;
+var SWModel = (() => {
+function num(v) { return (typeof v === 'number' && isFinite(v)) ? v : null; }
+function list(o, k) { return (o && Array.isArray(o[k])) ? o[k] : []; }
+function severity(code) {
+code = num(code);
+if (code === null) return 0;
+if (code >= 95) return 4;
+if ((code >= 71 && code <= 77) || code === 85 || code === 86) return 3;
+if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 2;
+if (code === 45 || code === 48) return 1;
+return 0;
+}
+var KIND_RANK = { clear: 0, partly: 1, cloud: 2, fog: 3, drizzle: 4, rain: 5, sleet: 6, snow: 7, heavy: 8, storm: 9, hail: 10 };
+function kind(code) {
+code = num(code);
+if (code === null) return null;
+if (code === 96 || code === 99) return 'hail';
+if (code >= 95) return 'storm';
+if (code === 65 || code === 82 || code === 75 || code === 86) return code === 65 || code === 82 ? 'heavy' : 'snow';
+if ((code >= 71 && code <= 77) || code === 85) return 'snow';
+if (code === 56 || code === 57 || code === 66 || code === 67) return 'sleet';
+if (code === 61 || code === 63 || code === 80 || code === 81) return 'rain';
+if (code >= 51 && code <= 55) return 'drizzle';
+if (code === 45 || code === 48) return 'fog';
+if (code === 3) return 'cloud';
+if (code === 2) return 'partly';
+return 'clear';
+}
+function worstKind(codes) {
+var best = null;
+for (var i = 0; i < codes.length; i++) {
+var k = kind(codes[i]);
+if (k && (best === null || KIND_RANK[k] > KIND_RANK[best])) best = k;
+}
+return best;
+}
+var DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+function weekday(iso) {
+var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || ''));
+if (!m) return '--';
+return DAYS[new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay()];
+}
+function hourOf(iso) {
+var m = /T(\d{2})/.exec(String(iso || ''));
+return m ? m[1] : '--';
+}
+function minMax(vals) {
+var lo = null, hi = null;
+for (var i = 0; i < vals.length; i++) {
+var v = num(vals[i]);
+if (v === null) continue;
+if (lo === null || v < lo) lo = v;
+if (hi === null || v > hi) hi = v;
+}
+return { lo: lo, hi: hi };
+}
+function maxOf(vals) { return minMax(vals).hi; }
+function slotsFor(raw) {
+var out = [];
+{
+var d = raw.daily || {};
+var dt = list(d, 'time'), dmin = list(d, 'temperature_2m_min'), dmax = list(d, 'temperature_2m_max');
+var dp = list(d, 'precipitation_probability_max'), dc = list(d, 'weather_code');
+for (var i = 0; i < dt.length && out.length < 24; i++) {
+var mm = minMax([dmin[i], dmax[i]]);
+out.push({ label: weekday(dt[i]), lo: mm.lo, hi: mm.hi, rain: num(dp[i]), sev: severity(dc[i]),
+first: i === 0, missing: mm.lo === null, icon: kind(dc[i]), day: true });
+}
+return out;
+}
+return out;
+}
+function hoursAhead(raw, n) {
+var h = raw.hourly || {}, out = [];
+var ht = list(h, 'time'), tt = list(h, 'temperature_2m'), tp = list(h, 'precipitation_probability');
+var tc = list(h, 'weather_code'), td = list(h, 'is_day'), pm = list(h, 'precipitation'), pq = list(h, 'pressure_msl');
+for (var i = 0; i < ht.length && i < n; i++) {
+out.push({ h: hourOf(ht[i]), t: num(tt[i]), p: num(tp[i]), mm: num(pm[i]), pr: num(pq[i]), icon: kind(tc[i]), day: num(td[i]) !== 0,
+wet: severity(tc[i]) >= 2 });
+}
+return out;
+}
+function hoursOn(raw, date) {
+var h = raw.hourly || {}, out = [], ht = list(h, 'time'), tt = list(h, 'temperature_2m'), tp = list(h, 'precipitation_probability');
+var tc = list(h, 'weather_code'), td = list(h, 'is_day'), pm = list(h, 'precipitation'), pq = list(h, 'pressure_msl');
+for (var i = 0; i < ht.length; i++) {
+if (String(ht[i]).slice(0, 10) !== date) continue;
+out.push({ h: hourOf(ht[i]), t: num(tt[i]), p: num(tp[i]), mm: num(pm[i]), pr: num(pq[i]), icon: kind(tc[i]), day: num(td[i]) !== 0, wet: severity(tc[i]) >= 2 });
+}
+return out;
+}
+function rainWindow(hours, chance) {
+var from = -1, to = -1;
+for (var i = 0; i < hours.length; i++) {
+var wet = hours[i].p !== null ? hours[i].p >= (hours[i].wet ? Mn(30, chance) : chance) : hours[i].wet;
+if (wet) { if (from < 0) from = i; to = i; } else if (from >= 0) break;
+}
+if (from < 0) return null;
+var k0 = hours[from].icon, type = k0 === 'snow' ? 'snow' : (k0 === 'hail' ? 'hail' : 'rain');
+return { from: from, to: to, fromLabel: hours[from].h + ':00', toLabel: hours[Mn(to + 1, hours.length - 1)].h + ':00',
+now: from === 0, type: type,
+mm: hours.slice(from, to + 1).reduce((s, q) => s + (q.mm || 0), 0), maxP: maxOf(hours.slice(from, to + 1).map((q) => q.p)) };
+}
+function build(raw, cfg) {
+cfg = cfg || {};
+var model = { ok: false, unit: cfg.unit === 'fahrenheit' ? 'F' : 'C', slots: [],
+now: { pollen: null, temp: null, feels: null, hum: null, uv: null, wind: null, gust: null, dir: null, press: null, aqi: null, icon: null, day: true, sync: null },
+today: { lo: null, hi: null, uvMax: null, gustMax: null, rainMm: null, aqiMax: null }, hours: [], days: [], rain: null, age: null, reason: null, sun: { up: false, at: null }, inn: { temp: null, hum: null, co2: null, press: null }, sunT: null };
+if (!raw || raw.error || (!raw.hourly && !raw.daily && !raw.current)) {
+model.reason = (raw && raw.reason) ? String(raw.reason).slice(0, 160) : 'NO DATA FROM OPEN-METEO';
+return model;
+}
+var c = raw.current || {};
+var tt = list(raw.hourly || {}, 'temperature_2m');
+model.now = {
+temp: num(c.temperature_2m) !== null ? num(c.temperature_2m) : num(tt[0]),
+feels: num(c.apparent_temperature),
+hum: num(c.relative_humidity_2m),
+uv: num(c.uv_index),
+wind: num(c.wind_speed_10m), gust: num(c.wind_gusts_10m), dir: num(c.wind_direction_10m), press: num(c.pressure_msl),
+code: num(c.weather_code),
+icon: kind(c.weather_code),
+day: num(c.is_day) !== 0,
+sync: (/T(\d{2}:\d{2})/.exec(String(c.time || '')) || [])[1] || null
+};
+var d = raw.daily || {};
+var tmm = minMax([list(d, 'temperature_2m_min')[0], list(d, 'temperature_2m_max')[0]]);
+model.today = { lo: tmm.lo, hi: tmm.hi, uvMax: num(list(d, 'uv_index_max')[0]), gustMax: num(list(d, 'wind_gusts_10m_max')[0]), rainMm: num(list(d, 'precipitation_sum')[0]) };
+model.sunT = raw.sun || null;
+model.slots = slotsFor(raw);
+model.hours = hoursAhead(raw, 25);
+model.days = model.slots;
+model.rain = rainWindow(model.hours, 50);
+// EVENING MODE (owner 2026-11-12): from 18:00 local the console shows tomorrow (MORGEN); the dial needle stays on the current temperature
+model.ev = null;
+var syncH = model.now.sync ? parseInt(model.now.sync, 10) : null, d1 = list(d, 'time')[1];
+if (syncH !== null && syncH >= 18 && d1) {
+var tomH = hoursOn(raw, d1);
+if (tomH.length >= 12) {
+var tm1 = minMax([list(d, 'temperature_2m_min')[1], list(d, 'temperature_2m_max')[1]]), tcode = num(list(d, 'weather_code')[1]);
+if (tm1.hi !== null) {
+model.ev = { hi: tm1.hi, lo: tm1.lo, code: tcode, icon: kind(tcode) };
+model.hours = tomH; model.rain = rainWindow(tomH, 50); if (model.rain) model.rain.now = false;
+model.today = { lo: tm1.lo, hi: tm1.hi, uvMax: num(list(d, 'uv_index_max')[1]), gustMax: num(list(d, 'wind_gusts_10m_max')[1]), rainMm: num(list(d, 'precipitation_sum')[1]) };
+if (raw.sun) model.sunT = Object.assign({}, raw.sun, { riseL: raw.sun.rise1L, setL: raw.sun.set1L });
+}
+}
+}
+var aq = raw.aq && typeof raw.aq === 'object' ? raw.aq : null;
+model.now.aqi = aq && aq.current ? num(aq.current.european_aqi) : null;
+model.today.aqiMax = aq ? maxOf(list(aq.hourly || {}, 'european_aqi')) : null;
+model.now.pollen = num(raw.pollen);
+model.inn = { temp: null, hum: null, co2: null, press: null };
+var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;
+var dk = sd ? Object.keys(sd).sort().filter((k) => sd[k] && typeof sd[k] === 'object' && Object.keys(sd[k]).some((q) => Array.isArray(sd[k][q]) && sd[k][q].length))[0] : null;
+if (dk) {
+var latest = (arr) => { var best = null, bt = ''; (arr || []).forEach((e) => { var ts = Object.keys(e || {})[0]; if (ts && ts > bt) { bt = ts; best = num(e[ts]); } });
+var m3 = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(bt);
+if (best !== null && raw.renderedAt && m3 && raw.renderedAt - Date.UTC(+m3[1], +m3[2] - 1, +m3[3], +m3[4], +m3[5], +m3[6]) / 1000 > 10800) best = null;
+return best; };
+model.inn = { temp: latest(sd[dk].temperature), hum: latest(sd[dk].humidity), co2: latest(sd[dk].carbon_dioxide), press: latest(sd[dk].pressure) };
+if (model.now.press === null) model.now.press = model.inn.press;
+}
+var any = false;
+for (var i = 0; i < model.slots.length; i++) if (!model.slots[i].missing) any = true;
+model.ok = any || model.now.temp !== null;
+if (!model.ok) model.reason = 'NO FORECAST IN THE ANSWER';
+return model;
+}
+function fmt(v) {
+if (v === null || v === undefined) return '--';
+var r = Math.round(v);
+return String(r === 0 ? 0 : r);
+}
+return { build: build, severity: severity, kind: kind, worstKind: worstKind, rainWindow: rainWindow,
+fmt: fmt };
+})();
+// ==== MODEL_END ====
+
 async function run(input) {
   var loc = LANGUAGE || (((input || {}).trmnl || {}).user || {}).locale;
   var i18n = buildI18n(loc);
@@ -156,7 +337,11 @@ async function run(input) {
   var weather = got[0].status === 'fulfilled' ? got[0].value : { error: true, reason: String(got[0].reason && got[0].reason.message || got[0].reason).slice(0, 160) };
   var aq = got[1].status === 'fulfilled' && got[1].value && got[1].value.current ? got[1].value : null;
   var sensors = (input && (input.sensor_readings || (input.trmnl && input.trmnl.sensor_readings))) || null;
-  return { sun: sunTimes(weather), moon: moonIcon(weather && weather.current && weather.current.time), pollen: pollenLevel(aq), sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius' };
+  var sunO = sunTimes(weather), pollenV = pollenLevel(aq), w = weather || {};
+  var raw = { current: w.current || null, hourly: w.hourly || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
+    error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
+    renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
+  return { model: SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), sun: sunO, moon: moonIcon(weather && weather.current && weather.current.time), pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius' };
 }
 
 if (typeof module !== 'undefined') module.exports = { run: run, buildI18n: buildI18n, normaliseLocale: normaliseLocale };

@@ -1,13 +1,13 @@
-// Pure-logic tests for the SWModel block in plugin/src/shared.liquid. Run: node test/model/run.js
+// Pure-logic tests for the SWModel block in plugin/src/transform.js. Run: node test/model/run.js
 // The block is cut out between its markers, so the test runs the same bytes the device does.
 'use strict';
 const fs = require('fs');
 const path = require('path');
 
-const src = fs.readFileSync(path.join(__dirname, '../../plugin/src/shared.liquid'), 'utf-8');
+const src = fs.readFileSync(path.join(__dirname, '../../plugin/src/transform.js'), 'utf-8');
 const a = src.indexOf('// ==== MODEL_BEGIN ====');
 const b = src.indexOf('// ==== MODEL_END ====');
-if (a < 0 || b < 0) throw new Error('MODEL markers missing in shared.liquid: move them with the block, never delete them');
+if (a < 0 || b < 0) throw new Error('MODEL markers missing in transform.js: move them with the block, never delete them');
 const SWModel = new Function(src.slice(a, b) + '\nreturn SWModel;')();
 const fx = (n) => JSON.parse(fs.readFileSync(path.join(__dirname, '../../plugin/tests/fixtures', n + '.json'), 'utf-8'));
 
