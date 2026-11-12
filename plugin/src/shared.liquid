@@ -21,7 +21,7 @@
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 1.7 %}{% assign n_md = 1 %}{% assign n_lg = 3 %}{% assign con_h = 'h--full' %}{% endif %}
 {%- if ui.calm %}{% assign calm_btw = ' 1bit:hidden 2bit:hidden dark:2bit:block' %}{% endif %}{% comment %} Calm: 2-bit panels are filled too, no dividers between them {% endcomment %}
 {%- assign calm_q = false %}{% if ui.calm and view == 4 %}{% assign calm_q = true %}{% assign th_q = 30 %}{% endif %}{% comment %} Calm quadrant (owner): console essentials only, no meters, one unit {% endcomment %}
-{%- if ui.calm and view == 3 %}{% assign rw_m = 9 %}{% assign nd_md = 2 %}{% assign rh_l = 6 %}{% assign nd_lg = 6 %}{% endif %}{% comment %} Calm half view (owner): rows at the full-view height, fewer of them {% endcomment %}
+{%- if ui.calm and view == 3 %}{% assign rw_m = 8 %}{% assign nd_md = 3 %}{% assign rh_l = 6 %}{% assign nd_lg = 6 %}{% endif %}{% comment %} Calm half view (owner): rows at the full-view height, fewer of them {% endcomment %}
 {%- if ui.calm and view == 1 %}{% assign rw_m = 9 %}{% assign rh_l = 6 %}{% assign nd_md = 3 %}{% assign nd_lg = 4 %}{% endif %}{% comment %} Calm (owner): airier day rows {% endcomment %}
 {%- if mr_m == nil %}{% assign mr_m = 9 %}{% assign mb_m = 7 %}{% endif %}
 {%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
@@ -77,7 +77,7 @@
   <div class="flex flex--col flex--center gap--medium grow">
    <div class="flex flex--row flex--center-y {% if view == 3 %}gap--small lg:gap--medium{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]">
     {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
-    <span class="title {% if view == 3 %}title--small lg:title--base{% elsif view == 4 %}title--base{% else %}title--base lg:title--large{% endif %} text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
+    <span class="title {% if view == 3 %}title--small lg:title--base{% elsif view == 4 and ui.calm %}title--small{% elsif view == 4 %}title--base{% else %}title--base lg:title--large{% endif %} text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y' %}{% assign tg_h = 'h--full' %}{% assign dv_x = '' %}{% assign pf_m = 10 %}{% assign fe_m = 9 %}
@@ -306,6 +306,8 @@ if (!API.calm) ticks(sc, W).forEach((v) => { body += rect(X(v) - 1, 0, 2, H + E,
 body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * (API.calm ? 0.62 : 0.8), y = (H - bh) / 2, cells = '', sh = '';
+var ptH = lfs(sc) * 0.3 * 1.4;   // Calm today's pointer: the size of the header triangle
+if (API.calm && hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); }   // blocks start under it, never cover it
 var gp = Math.max(2, cw * 0.16), pc = [];   // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner 2026-11-12: never blocks merged into stripes)
 if (cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = a; t < b; t++) pc.push([X(t) + gp / 2, X(t + 1) - gp / 2]);
 var hasNow = sc.now !== null && sc.now !== undefined, xn = hasNow ? X(sc.now) : 0, c0 = xn - 1.5 - 1, c1 = xn + 1.5 + 1, mw = Math.max(3, (cw - gp) / 2);
@@ -316,7 +318,7 @@ pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + S
 body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells>' + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells) + '</g>';
 }
 if (sc.now !== null && sc.now !== undefined) { var nl = rect(X(sc.now) - 1.5, 0, 3, H + E, 0, ' data-sw-now'); body += hue('red') ? hg('red', nl) : nl; }
-if (hi && API.calm && nowV !== null && nowV !== undefined) { var pxn = X(nowV), ph = Math.max(4, H * 0.19 - 1), pw = ph * 0.75, ptr = poly([[pxn - pw, 0], [pxn + pw, 0], [pxn, ph]], ' data-sw-nowmark'); body += hue('red') ? hg('red', ptr) : ptr; }
+if (hi && API.calm && nowV !== null && nowV !== undefined) { var pxn = X(nowV), pr2 = ptH / 1.4, ptr = poly([[pxn - pr2, 0], [pxn + pr2, 0], [pxn, ptH]], ' data-sw-nowmark'); body += hue('red') ? hg('red', ptr) : ptr; }
 if (hi) body += '<g data-sw-hl="1"></g>';
 return svg(W, H, body);
 }

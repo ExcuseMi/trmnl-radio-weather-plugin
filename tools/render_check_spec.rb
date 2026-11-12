@@ -227,13 +227,17 @@ if(L<1e9)out.push([L-q.left,q.right-R,T-q.top,q.bottom-B].map(function(v){return
       # full view's light row, 34 px on the OG and 63 px on the X, less 15 % for dark mode's divider); Calm: one now pointer, on today's row.
       dr = s.evaluate(%q{(function(){var r=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),function(e){return e.getBoundingClientRect().height>0}).map(function(e){return e.getBoundingClientRect().height});
 var nm=[].filter.call(document.querySelectorAll('[data-sw-nowmark]'),function(e){return e.getBoundingClientRect().width>0}),tod=nm.filter(function(e){var d=e.closest('[data-sw-part="day"]');return d&&SW.days[+d.getAttribute('data-sw-i')].today}).length;
-return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.length,tod].join(',');})()})
-      puts "DAYROW #{c['name']}: rows,minH,screenH,ptr,ptrToday #{dr}"
+var ax=[].filter.call(document.querySelectorAll('[data-sw-part="scale"] text[data-sw-tick]'),function(e){return e.getBoundingClientRect().width>0})[0],big=1;
+nm.forEach(function(e){var b=e.getBoundingClientRect(),k=ax?ax.ownerSVGElement.getBoundingClientRect().height/+ax.ownerSVGElement.getAttribute('height'):1,fs=ax?+ax.getAttribute('font-size')*k:0;if(b.height<fs*0.42*0.9)big=0;
+[].forEach.call(e.ownerSVGElement.querySelectorAll('[data-sw-cells] rect'),function(r){var q=r.getBoundingClientRect();if(q.top<b.bottom-0.5&&q.left<b.right&&q.right>b.left)big=0;});});
+return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.length,tod,big].join(',');})()})
+      puts "DAYROW #{c['name']}: rows,minH,screenH,ptr,ptrToday,ptrBigAndClear #{dr}"
       d = dr.split(',').map(&:to_f)
       expect(d[0]).to eq(0) if c['view'] == 'quadrant'
       if (c['fields'] || {})['style'] == 'calm'
         expect(d[1]).to be >= (c['device'] == 'v2' ? 53 : 28) if d[0].positive?
         expect([d[3], d[4]]).to eq(d[0].positive? ? [1, 1] : [0, 0])
+        expect(d[5]).to eq(1)
       else
         expect(d[3]).to eq(0)
       end
