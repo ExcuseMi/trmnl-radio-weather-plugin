@@ -679,18 +679,12 @@ cx += dw + gap;
 return cx - x - gap;
 }
 // owner 2026-11-12: an RDS-style station-name strip: the text in 5x7 dots inside a thin window; false when it does not fit
-function dotNorm(str) { return String(str).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'SS').toUpperCase(); }
-function dotText(g, str, cx, cy, maxW, maxH, col, pFix) {
-var FT = M.dotFont || null; if (!FT) return false;
-var t = dotNorm(str), n = t.length, p = pFix || Fl(Mn(maxH / 11, maxW / (n * 6 + 3)) * 2) / 2; if (p < 1.5) return false;
-var tw = n * 6 * p - p, ww = tw + 4 * p, hh = 11 * p, x0 = cx - ww / 2, y0 = cy - hh / 2, ds = Mx(1, p - (p >= 3 ? Mx(1, R(p * 0.2)) : 0));
-var sg = mk('g', { 'data-sw-dotstrip': t }, g);
-rrect(sg, R(x0) + 0.5, R(y0) + 0.5, R(ww) - 1, R(hh) - 1, R(p), 'none', col, 1);
-for (var i = 0; i < n; i++) { var hx = FT[t.charAt(i)]; if (!hx) continue;
-for (var r = 0; r < 7; r++) { var bits5 = parseInt(hx.substr(r * 2, 2), 16);
-for (var c = 0; c < 5; c++) if (bits5 & (16 >> c)) mk('rect', { x: R(x0 + 2 * p + (i * 6 + c) * p), y: R(y0 + 2 * p + r * p), width: ds, height: ds, fill: col }, sg); } }
-return { x: x0, y: y0, w: ww, h: hh, p: p };
-}
+// the feels-like pictogram: a person beside a thermometer, q = one unit (owner 2026-11-12)
+function feelsIcon(g, ix0, iy0, q) { var sw = Mx(2, R(q * 0.9)), fg9 = mk('g', { stroke: GLOW, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none', 'data-sw-feels': 1 }, g), P = (a, b) => R(ix0 + a * q) + ' ' + R(iy0 + b * q);
+mk('circle', { cx: R(ix0 + 2.2 * q), cy: R(iy0 + 1 * q), r: R(1 * q), fill: GLOW, stroke: 'none' }, fg9);
+mk('path', { d: 'M' + P(2.2, 2.6) + ' L' + P(2.2, 5) + ' M' + P(0.4, 3.4) + ' L' + P(2.2, 2.9) + ' L' + P(4, 3.4) + ' M' + P(0.9, 7.6) + ' L' + P(2.2, 5) + ' L' + P(3.5, 7.6) }, fg9);
+mk('path', { d: 'M' + P(6.6, 4.9) + ' L' + P(6.6, 1) + ' A' + R(0.9 * q) + ' ' + R(0.9 * q) + ' 0 0 1 ' + P(8.4, 1) + ' L' + P(8.4, 4.9) }, fg9);
+mk('circle', { cx: R(ix0 + 7.5 * q), cy: R(iy0 + 6.3 * q), r: R(1.5 * q), fill: GLOW }, fg9); }
 function seg7W(dw, str) {
 var t = Mx(3, dw * 0.18), gap = Mx(2, R(dw * 0.22)), w = 0;
 str.split('').forEach((ch) => { w += (ch === '.' ? R(t * 1.2) : ch === ':' ? R(t * 1.1) : dw) + gap; });
@@ -916,19 +910,18 @@ text(g, I18N.ours('indoor'), x2 + dwid2 / 2, dy - WD.size * 0.5, WD, { anchor: '
 }
 }
 var presetDone = false, stripOK = false;
-// owner 2026-11-12: the condition in an RDS station-name strip; the feels-like in a small window beside it, GEVOEL printed above
-if (blk && !compact && !dual && M.dotFont) { var c1 = dotNorm(condS).length, fsS = feelsOn && !EV ? '@!' + String(Math.round(M.now.feels)) + '\u00b0' : '',   // person + thermometer glyphs: the felt temperature
- c2 = fsS.length;
-var units = (c1 * 6 + 3) + (c2 ? 3 + c2 * 6 + 3 : 0), PL = F(Mx(9, R(WD.size * 0.7)), '700', 1), sTop = dy + dh + u(10) + (c2 ? PL.size * 1.3 : 0), sBot = yb + WD.size * 0.5, sH = Mn(sBot - sTop, WD.size * 3), pp = Fl(Mn(sH / 11, avail / units) * 2) / 2;
-if (pp >= 1.5) { var tot = units * pp, sx0 = blk.cL + avail / 2 - tot / 2, scy = sBot - 5.5 * pp;
-var b1 = dotText(g, condS, sx0 + (c1 * 6 + 3) * pp / 2, scy, 1e9, 1e9, GLOW, pp); stripOK = !!b1;
-if (stripOK && c2) { var b2 = dotText(g, fsS, sx0 + (c1 * 6 + 3 + 3) * pp + (c2 * 6 + 3) * pp / 2, scy, 1e9, 1e9, GLOW, pp);
-if (b2) { presetDone = true; text(g, I18N.ours('feels'), b2.x + b2.w / 2, b2.y - R(PL.size * 0.35), PL, { anchor: 'middle', fill: GLOW, ls: R(PL.size * 0.12) }).setAttribute('data-sw-feels', 1); } } } }
+// owner 2026-11-12: the condition under its weather icon, the feels-like (person + thermometer, then the value) under the temperature
+if (blk && !compact && !dual && !EV && ib && ib.r > ib.l) { var cxI = (ib.l + ib.r) / 2, splitX = (ib.r + (firstLit ? firstLit.l : dx)) / 2, cwI = 2 * Mn(cxI - blk.cL, splitX - cxI);
+var roomC = splitX - blk.cL - u(8), cw0 = condS.split(' '), cl = mW(condS, WD) <= roomC ? [condS] : (cw0.length > 1 ? [cw0.slice(0, Math.ceil(cw0.length / 2)).join(' '), cw0.slice(Math.ceil(cw0.length / 2)).join(' ')] : [condS]);
+if (cl.every((t) => mW(t, WD) <= roomC) && (cl.length < 2 || yb - WD.size * 2.6 > ib.b)) { stripOK = true; cl.forEach((t, li) => { var tw9 = mW(t, WD); text(g, t, Mn(Mx(blk.cL + u(8) + tw9 / 2, cxI), splitX - tw9 / 2), yb - (cl.length - 1 - li) * WD.size * 1.35, WD, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) }).setAttribute('data-sw-cond', li); });
+if (feelsOn) { var fsT = fv(M.now.feels) + deg, q = WD.size / 5.5, fvw = mW(fsT, WD), totF = 11 * q + fvw, litB = (debug.digits.boxes || []).filter((b) => b.l !== null), dC = litB.length ? (litB[0].l + litB[litB.length - 1].r) / 2 : dx + dwid / 2, fxs = Mx(splitX + u(8), dC - totF / 2), ix0 = fxs, iy0 = yb - WD.size * 1.1;
+if (fxs + totF <= blk.cR) { presetDone = true; feelsIcon(g, ix0, iy0, q);
+text(g, fsT, ix0 + 11 * q, yb, WD, { fill: GLOW, ls: R(WD.size * 0.1) }).setAttribute('data-sw-feels-value', 1); } } } }
 var ybC = feelsOn && !presetDone && !(dual && EV) ? yb - WD.size * 1.6 : yb;   // owner 2026-11-12: the condition first, the feels-like under it
 if (stripOK) wt = null;
 else if (blk) wt = fitText(g, condS, blk.cL + avail / 2, ybC, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
 else if (!compact) wt = fitText(g, condS, lx, ybC, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
-if (feelsOn && !presetDone) {
+if (feelsOn && !presetDone && !stripOK) {
 var fl = I18N.ours('feels'), fs = fv(M.now.feels), fy2 = yb;
 if (dual) {
 var SW2 = F(WD.size, '700', 1), fw5 = mW(fl + ' ' + fs + deg, SW2) + WD.size * 1.2;
@@ -936,8 +929,8 @@ if (dx + fw5 > x2) SW2 = F(SW2.size * Mx(0.4, 0.88 * (x2 - dx - WD.size * 1.2) /
 if (!EV) text(g, fl + ' ' + fs + deg, dx, fy2, SW2, { fill: GLOW, ls: R(WD.size * 0.08) }).setAttribute('data-sw-feels', 1);
 if (M.inn.hum !== null) text(g, I18N.ours('hum') + ' ' + Math.round(M.inn.hum) + ' %', x2, fy2, SW2, { fill: GLOW, ls: R(WD.size * 0.08) });
 } else {
-var flw = mW(fl, WD) * 1.15, fg = u(14), fdw = mW(fs + deg, WD) * 1.1, fx0 = blk.cL + avail / 2 - (flw + fg + fdw) / 2;   // owner 2026-11-12: the word, a thermometer icon was not clear
-text(g, fl, fx0, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.15) }).setAttribute('data-sw-feels', 1);
+var flw = WD.size * 10 / 5.5, fg = u(6), fdw = mW(fs + deg, WD) * 1.1, fx0 = blk.cL + avail / 2 - (flw + fg + fdw) / 2;   // owner 2026-11-12: the person + thermometer pictogram, then the value
+feelsIcon(g, fx0, fy2 - WD.size * 1.1, WD.size / 5.5);
 text(g, fs + deg, fx0 + flw + fg, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.1) }).setAttribute('data-sw-feels-value', 1);
 }
 }
@@ -963,11 +956,13 @@ var dTop = cells ? rainROW.top : y + h * 0.3, dBot = cells ? rainROW.lab : y + h
 var dcx = rx + rw / 2, S2 = M.sunT;
 var tomT = (k) => S2 && S2[k] ? ' ' + I18N.ours('tomorrow') : '', tws = (q) => Mx(mW(S2 ? S2.riseL : '', F(q, '700')), mW(S2 ? S2.setL : '', F(q, '700')), mW(tomT('riseTom') + tomT('setTom') ? I18N.ours('tomorrow') : '', F(q * 0.42, '700'))), s3 = WD.size * 1.3, tot = (q) => q * 1.6 + q * 0.4 + tws(q) + q * 0.8 + q * 2.4;
 // owner 2026-11-12: on a dry day the block shows only the sun times and the moon, centred (no GEEN REGEN label)
-if (S2) for (var si = 0; si < 30 && (tot(s3) > rw - u(4) || 2.7 * s3 > dBot - dTop) && s3 > 8; si++) s3 *= 0.93;
+var mUnder = S2 && (dBot - dTop) >= 5.4 * s3 && s3 * 4.6 <= rw - u(4);   // owner 2026-11-12: the moon under the sun times when there is room
+if (mUnder) tot = (q) => q * 1.8 + tws(q);
+if (S2) for (var si = 0; si < 30 && (tot(s3) > rw - u(4) || (mUnder ? 5.2 : 2.7) * s3 > dBot - dTop) && s3 > 8; si++) s3 *= 0.93;
 if (S2) {
-var rf = F(s3, '700'), lw3 = s3 * 2 + tws(s3), x03 = dcx - tot(s3) / 2, yA = dM - 0.35 * s3, yB = yA + s3 * 1.7;
+var rf = F(s3, '700'), lw3 = s3 * 2 + tws(s3), x03 = dcx - tot(s3) / 2, yA = dM - (mUnder ? 1.6 : 0.35) * s3, yB = yA + s3 * 1.7;
 [['sunrise', S2.riseL, yA, 'riseTom'], ['sunset', S2.setL, yB, 'setTom']].forEach((it) => { glowIcon(g, (gg) => icon(gg, it[0], x03 + s3 * 0.8, it[2] - s3 * 0.3, s3 * 1.4, null)); text(g, it[1], x03 + s3 * 1.8, it[2], rf, { fill: GLOW }); if (S2[it[3]]) text(g, tomT(it[3]).trim(), x03 + s3 * 1.8, it[2] + s3 * 0.52, F(s3 * 0.42, '700'), { fill: GLOW, ls: R(s3 * 0.08) }).setAttribute('data-sw-suntom', it[0]); });
-glowIcon(g, (gg) => icon(gg, 'moon', x03 + lw3 + s3 * 1.4, (yA + yB) / 2 - s3 * 0.3, s3 * 2.4, null));
+glowIcon(g, (gg) => icon(gg, 'moon', mUnder ? dcx : x03 + lw3 + s3 * 1.4, mUnder ? yB + s3 * 1.9 : (yA + yB) / 2 - s3 * 0.3, mUnder ? s3 * 2 : s3 * 2.4, null));
 }
 debug.clock = { str: '', boxes: [] };
 return;
