@@ -317,7 +317,7 @@ test('rain unit: icon left of the grid on every size (owner 2026-11-12, later de
 });
 test('sun/moon unit: moon left of the sun rows on every size, grey ink (owner 2026-11-12, later decision)', () => {
   const u = sh.indexOf('data-sw-unit="sun"'), rows = sh.indexOf('ui.sun.rise', u);
-  ok(u > 0 && /\{\{ su_cls \}\} \{% if ui.rain %\}flex--left[^%]*\{% else %\}flex--center/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign su_cls = 'flex--row lg:portrait:flex--col'/.test(sh), 'row on md and lg; centred when dry, on the rain icon\'s left edge when it rains');
+  ok(u > 0 && /\{\{ su_cls \}\} \{% if ui.rain %\}flex--left[^%]*\{% else %\}flex--center/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign su_cls = 'flex--row'/.test(sh) && !/lg:portrait:flex--col/.test(sh.slice(sh.lastIndexOf('<div', u), u)), 'row on md and lg; centred when dry, on the rain icon\'s left edge when it rains');
   const m = sh.indexOf('data-sw-part="moon"', u); ok(m > u && m < rows, 'moon before the sun rows');
   ok(!/<img[^>]*ui.sun.moon/.test(sh), 'no moon icon image');
   eq(D.moon(null, 60), '');
