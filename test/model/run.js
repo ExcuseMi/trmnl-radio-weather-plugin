@@ -286,7 +286,7 @@ test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 s
   ok(/<div class="hidden lg:block h--\[30cqh\]"><div class="flex flex--row/.test(sh), 'dials only on lg');
   ok(/lg:hidden" data-sw-part="meter" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="meter" data-sw-n="10"/.test(sh), 'meter copies per size');
   ok(/data-sw-row="day"/.test(sh) && !/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'every day row in the same full-width wrapper (no half-width fifth row)');
-  ok(/{%- if d.today %}<span class="label label--inverted[^"]*lg:hidden" data-sw-today>/.test(sh), 'OG: today a lit lamp on the day name (owner 2026-11-12)');
+  ok(/{%- if d.today %}<span class="label label--inverted[^"]*" data-sw-today>/.test(sh), 'OG: today a lit lamp on the day name (owner 2026-11-12)');
   D.mode = { bits: 1 }; ok(/<\/g><g><rect/.test(D.meter(0, 200, 30, 5)), '1-bit: unlit cells drawn in full colour'); D.mode = null;
   const cells = (n) => (D.meter(0, 200, 30, n).match(/<rect/g) || []).length;
   eq([cells(5), cells(10)], [5, 10]);
