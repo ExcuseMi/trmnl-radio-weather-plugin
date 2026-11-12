@@ -644,7 +644,7 @@ return d;
 function frame(g, x, y, w, h, fill, onGlass) {
 rrect(g, x, y, w, h, u(8), BSTR);
 var b = { fx: x + EI, fy: y + EI, fw: w - 2 * EI, fh: h - 2 * EI };
-rrect(g, b.fx, b.fy, b.fw, b.fh, u(4), fill);
+rrect(g, b.fx, b.fy, b.fw, b.fh, u(4), bits === 1 && !darkMode && fill === paper ? dith(paper, ink, 1 / 16) : fill);
 insetBevel(g, b.fx, b.fy, b.fw, b.fh, u(4), onGlass);
 return b;
 }
