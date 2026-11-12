@@ -705,9 +705,9 @@ if (bits === 1) {
 var tf = on ? (LAMP && LAMP !== RED ? ink : (LAMP ? '#fff' : paper)) : ink, lh0 = R(sp.size * 1.4), ly0 = R(y - sp.size * 1.05);
 var tm = text(g, str, 0, 0, sp, { ls: R(sp.size * 0.15) }), tw0 = width(tm); g.removeChild(tm);
 var lw0 = Math.ceil(tw0 + sp.size), bx = R(x), cr = { 'shape-rendering': 'crispEdges', 'data-sw-status': 1 };
-if (on && (LAMP || color || !darkMode)) mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP || ink }, cr), g);
-text(g, str, x + sp.size * 0.5, y, sp, { ls: R(sp.size * 0.15), fill: on && !LAMP && !color ? (darkMode ? ink : paper) : tf });
-if (on && !LAMP && !color && darkMode) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, rx: R(sp.size * 0.3), fill: 'none', stroke: ink, 'stroke-width': Mx(1, R(sp.size * 0.1)) }, cr), g);
+if (on) mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP || ink }, cr), g);
+text(g, str, x + sp.size * 0.5, y, sp, { ls: R(sp.size * 0.15), fill: on && !LAMP && !color ? paper : tf });
+if (false) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, rx: R(sp.size * 0.3), fill: 'none', stroke: ink, 'stroke-width': Mx(1, R(sp.size * 0.1)) }, cr), g);
 if (!on) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, fill: 'none', stroke: ink, 'stroke-width': 1 }, cr), g);
 return lw0;
 }
@@ -1021,10 +1021,11 @@ var cy = top + (i + 0.5) * rh;
 var dnT = text(g, dayName(d), x + u(10), cy + D.L.size * 0.36, D.L, { fill: fg, ls: R(D.L.size * 0.08) });
 if (d === M.days[0]) mk('rect', { x: x + u(10), y: R(cy + D.L.size * 0.5), width: R(width(dnT)), height: Mx(1, u(1)), fill: fg, 'data-sw-today': 1 }, g);
 ICON_INK = fg; iconFit(g, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz); ICON_INK = null;
-if (glass && !LCD) mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: DIMW }, g);
+
 if (d.hi === null || d.lo === null) return;
-var PILL = !glass || LCD, xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = PILL ? Mx(6, R(rh * 0.5)) : Mx(3, u(5));
-var SHL = SHL || (SHD ? (bits === 2 ? dith(paper, SHD, 0.5) : fillOf('gray-75')) : null), BF = PILL ? (d === M.days[0] ? (bits === 1 ? ink : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))) : fg, bs = st / 5, bgap = Mx(1, u(2));
+var PILL = true, DARKB = glass && !LCD,   // owner 2026-11-12: the same blocks in dark mode
+ xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = PILL ? Mx(6, R(rh * 0.5)) : Mx(3, u(5));
+var SHL = SHL || (SHD ? (bits === 2 ? dith(paper, SHD, 0.5) : fillOf('gray-75')) : null), BF = DARKB ? (d === M.days[0] ? fg : (bits === 1 ? dith(GLASSD, fg, 0.5) : fillOf('gray-50'))) : (d === M.days[0] ? (bits === 1 ? ink : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))), bs = st / 5, bgap = Mx(1, u(2));
 [st / 5, st * 2 / 5, st].some((c) => { bs = c; return xOf(a0 + c) - xOf(a0) >= Mx(u(10), 3 * (bgap + (SHD ? SO : 0))); });
 if (PILL) { var bpx = xOf(a0 + bs) - xOf(a0), k0 = Fl((d.lo - a0) / bs + 1e-9), k1 = Mx(k0 + 1, Math.ceil((d.hi - a0) / bs - 1e-9)); xa = xOf(a0 + k0 * bs); xb = xOf(a0 + k1 * bs); for (var bk = k0; bk < k1; bk++) { if (SHD) mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap + (SHD ? SO : 0), bpx * 0.18) / 2) + SO, y: R(cy - th / 2) + SO, width: R(bpx - Mx(bgap + (SHD ? SO : 0), bpx * 0.18)), height: th, fill: d === M.days[0] ? SHD : SHL, 'data-sw-shadow': 1 }, g); mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap + (SHD ? SO : 0), bpx * 0.18) / 2), y: R(cy - th / 2), width: R(bpx - Mx(bgap + (SHD ? SO : 0), bpx * 0.18)), height: th, fill: BF, 'data-sw-band': i }, g); } }
 else mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': i }, g);
