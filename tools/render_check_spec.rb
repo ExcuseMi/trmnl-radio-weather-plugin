@@ -63,7 +63,7 @@ var d=Math.min(b.left-S.left,b.top-S.top,S.right-b.right,S.bottom-b.bottom);if(d
       # header and the rows); the now line continuous from the header down through all rows.
       ds = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e.getBoundingClientRect();return b.width>0||b.height>0};
 var sc=[].filter.call(document.querySelectorAll('[data-sw-part="scale"]'),vis)[0],d0=[].filter.call(document.querySelectorAll('[data-sw-part="day"]'),vis)[0];if(!sc||!d0)return '';
-sc.querySelectorAll('text[data-sw-tick]').forEach(function(t){var b=t.getBoundingClientRect(),r=d0.querySelector('rect[data-sw-tick="'+t.getAttribute('data-sw-tick')+'"]');if(!r){bad.push('no line '+t.textContent);return;}var q=r.getBoundingClientRect(),dx=(b.left+b.right)/2-(q.left+q.right)/2;if(Math.abs(dx)>1)bad.push('label '+t.textContent+' off '+dx.toFixed(1));});
+if(!SW.calm)sc.querySelectorAll('text[data-sw-tick]').forEach(function(t){var b=t.getBoundingClientRect(),r=d0.querySelector('rect[data-sw-tick="'+t.getAttribute('data-sw-tick')+'"]');if(!r){bad.push('no line '+t.textContent);return;}var q=r.getBoundingClientRect(),dx=(b.left+b.right)/2-(q.left+q.right)/2;if(Math.abs(dx)>1)bad.push('label '+t.textContent+' off '+dx.toFixed(1));});
 var n=[].map.call(document.querySelectorAll('[data-sw-now]'),function(e){return e.getBoundingClientRect()}).filter(function(b){return b.height>0}).sort(function(a,b){return a.top-b.top});
 for(var i=1;i<n.length;i++){if(n[i].top>n[i-1].bottom+0.5)bad.push('now gap '+(n[i].top-n[i-1].bottom).toFixed(1));if(Math.abs(n[i].left-n[0].left)>0.6)bad.push('now x');}
 return bad.join('; ');})()})
@@ -103,7 +103,7 @@ return n+(bad.length?' '+bad.slice(0,4).join('; '):'');})()})
       expect(hu).to match(/\A\d+\z/)
       expect(hu.to_i.positive?).to eq(colour)
       # Days strip (owner 2026-11-12, item 17): a visible hairline over every shown day row; no edge line left of the graph.
-      hr = s.evaluate(%q{(function(){var bad=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(r){if(!r.getBoundingClientRect().height)return;var h=r.querySelector('[data-sw-hair="row"]'),hb=h&&h.getBoundingClientRect();var ink=function(st){return st&&(st.backgroundImage!=='none'||!/rgba\(0, 0, 0, 0\)|transparent/.test(st.backgroundColor)||st.borderTopStyle!=='none'||st.borderBottomStyle!=='none'||st.boxShadow!=='none')};if(!h||!hb.width||hb.height<0.9||!(ink(getComputedStyle(h))||ink(getComputedStyle(h,'::before'))||ink(getComputedStyle(h,'::after'))))bad.push('row line '+(hb?hb.width.toFixed(0)+'x'+hb.height.toFixed(1):'none'));});[].forEach.call(document.querySelectorAll('[data-sw-hair="row"]'),function(h){var hb=h.getBoundingClientRect();if(!hb.width)return;var y=hb.top+hb.height/2;[].forEach.call(document.querySelectorAll('[data-sw-part="day"] [data-sw-now], [data-sw-part="scale"] [data-sw-now]'),function(n){var nb=n.getBoundingClientRect();if(!nb.width||nb.top>y||nb.bottom<y||nb.left<hb.left||nb.right>hb.right)return;if(document.elementFromPoint(nb.left+nb.width/2,y)===h)bad.push('row line over the now line');});});var v=document.querySelectorAll('[data-sw-hair="v"]').length;if(v)bad.push(v+' edge lines');return bad.join('; ');})()})
+      hr = s.evaluate(%q{(function(){var bad=[];if(SW.calm)return '';[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(r){if(!r.getBoundingClientRect().height)return;var h=r.querySelector('[data-sw-hair="row"]'),hb=h&&h.getBoundingClientRect();var ink=function(st){return st&&(st.backgroundImage!=='none'||!/rgba\(0, 0, 0, 0\)|transparent/.test(st.backgroundColor)||st.borderTopStyle!=='none'||st.borderBottomStyle!=='none'||st.boxShadow!=='none')};if(!h||!hb.width||hb.height<0.9||!(ink(getComputedStyle(h))||ink(getComputedStyle(h,'::before'))||ink(getComputedStyle(h,'::after'))))bad.push('row line '+(hb?hb.width.toFixed(0)+'x'+hb.height.toFixed(1):'none'));});[].forEach.call(document.querySelectorAll('[data-sw-hair="row"]'),function(h){var hb=h.getBoundingClientRect();if(!hb.width)return;var y=hb.top+hb.height/2;[].forEach.call(document.querySelectorAll('[data-sw-part="day"] [data-sw-now], [data-sw-part="scale"] [data-sw-now]'),function(n){var nb=n.getBoundingClientRect();if(!nb.width||nb.top>y||nb.bottom<y||nb.left<hb.left||nb.right>hb.right)return;if(document.elementFromPoint(nb.left+nb.width/2,y)===h)bad.push('row line over the now line');});});var v=document.querySelectorAll('[data-sw-hair="v"]').length;if(v)bad.push(v+' edge lines');return bad.join('; ');})()})
       puts "HAIR #{c['name']}: #{hr}" unless hr.empty?
       expect(hr).to eq('')
       # Pollen (owner 2026-11-12): a pollen meter row is shown only when it lights at least one cell.
@@ -184,6 +184,24 @@ var sc=(document.querySelector('.screen')||document.body).classList;if(sc.contai
 return bad.join('; ');})()})
         puts "OGHV #{c['name']}: #{hv}" unless hv.empty?
         expect(hv).to eq('')
+      end
+      # Calm style (owner): no L/R badges, the barometer shows a trend word, the temperature dial carries the low/high numbers,
+      # no now line, no grid or row lines in the days strip; the cue (umbrella or coat) only in Calm. Receiver: the opposite.
+      cm = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},n=function(q){return [].filter.call(document.querySelectorAll(q),vis).length};
+var dial=n('[data-sw-part="baro"]');return [SW.calm?1:0,dial,n('[data-sw-part="baro"] ~ .label--inverted, [data-sw-part="tdial"] ~ .label--inverted'),n('[data-sw-trend]'),n('[data-sw-mark]'),document.querySelectorAll('[data-sw-now]').length,document.querySelectorAll('[data-sw-part="day"] rect[data-sw-tick]').length,n('[data-sw-hair="row"]'),n('[data-sw-part="cue"] svg'),SW.cue?1:0].join(',');})()})
+      puts "CALM #{c['name']}: calm,dial,badges,trend,marks,now,grid,hair,cue,wantcue #{cm}"
+      q = cm.split(',').map(&:to_i)
+      if (c['fields'] || {})['style'] == 'calm'
+        expect(q[0]).to eq(1)
+        expect(q[2]).to eq(0)
+        expect(q[3]).to eq(q[1])
+        expect(q[4]).to eq(q[1] * 2)
+        expect(q[5..7]).to eq([0, 0, 0])
+        expect(q[8].positive?).to eq(q[9] == 1)
+      else
+        expect(q[0]).to eq(0)
+        expect(q[2]).to eq(q[1] * 2)
+        expect([q[3], q[4], q[8]]).to eq([0, 0, 0])
       end
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')

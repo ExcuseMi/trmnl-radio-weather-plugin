@@ -129,7 +129,8 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   eq([T.timeIs12(null, '12'), T.timeIs12(null, 12), T.timeIs12(null, '24'), T.timeIs12(null, T.field({}, 'time_format', '24'))], [true, true, false, false], 'missing field: 24 h');
   eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
-  ok(/- keyname: time_format\n  field_type: select\n[\s\S]*- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n(name:|$)/.test(y), 'last custom field, 24 by default');
+  ok(/- keyname: time_format\n  field_type: select\n[\s\S]*- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n- keyname: style\n/.test(y), 'time_format, 24 by default, followed only by the later style field');
+  ok(/- keyname: style\n  field_type: select\n[\s\S]*- Receiver: receiver\n  - Calm: calm\n  default: receiver\n(name:|$)/.test(y), 'style is the last custom field, Receiver by default');
 });
 
 test('air quality: the current index at any hour (no evening mode)', () => {
@@ -363,6 +364,18 @@ test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter,
   for (let d = 1; d <= 30; d++) { const t = '2026-11-' + String(d).padStart(2, '0') + 'T12:00', ic = T.moonIcon(t), p = T.moonPhase(t);
     if (ic === 'wi-moon-alt-full') ok(Math.abs(p - 0.5) < 0.03, t + ' full at ' + p); if (ic === 'wi-moon-alt-new') ok(p < 0.03 || p > 0.97, t + ' new at ' + p); }
   eq(T.moonPhase(null), null);
+});
+test('calm style: barometer trend over 3 h with +/-1 hPa thresholds; cue umbrella beats coat, coat under 3 C / 37 F', () => {
+  const h = (a, b) => [{ pr: a }, { pr: null }, { pr: null }, { pr: b }];
+  eq([T.pressTrend(h(1010, 1011)), T.pressTrend(h(1010, 1010.9)), T.pressTrend(h(1010, 1009)), T.pressTrend(h(1010, 1009.1)), T.pressTrend(h(1010, null)), T.pressTrend([])], ['rising', 'steady', 'falling', 'steady', null, null]);
+  eq([T.calmCue(true, -5, false), T.calmCue(false, 2.9, false), T.calmCue(false, 3, false), T.calmCue(false, 36, true), T.calmCue(false, 37, true), T.calmCue(false, null, false)], ['umbrella', 'coat', null, 'coat', null, null]);
+  const i = T.buildI18n('nl');
+  eq([i.ours.p_steady, i.ours.p_rising, i.ours.p_falling], ['STABIEL', 'STIJGEND', 'DALEND']);
+  eq(T.buildI18n('ja').ours.p_rising, 'RISING', 'missing language falls back to English');
+  const f = fx('mixed'); f.hourly.pressure_msl = f.hourly.time.map((_, k) => 1013 - k);
+  const M = SWModel.build(f, {}), calm = T.buildView(M, i, f.daily, null, 0.3, { calm: true }), rec = T.buildView(M, i, f.daily, null, 0.3);
+  eq([calm.calm, calm.cue, calm.baro.trend], [true, 'umbrella', 'DALEND'], 'mixed has rain in the window');
+  eq([rec.calm, rec.cue, rec.baro.trend], [false, null, null], 'receiver: no cue, no trend');
 });
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
