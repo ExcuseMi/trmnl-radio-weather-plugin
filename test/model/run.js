@@ -161,6 +161,11 @@ test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 me
   ok(lo.indexOf('co2') < 0 || lo.indexOf('co2') === lo.length - 1, 'normal CO2 stays last');
 });
 
+test('temperature readout: no decimal once the whole part has 3+ characters (owner, step 12: 104.6 F touched the divider)', () => {
+  const raw = fx('mixed'), at = (t) => { const M = SWModel.build(raw, {}); M.now.temp = t; return T.buildView(M, T.buildI18n('nl'), raw.daily); };
+  eq([104.6, -13.2, -12, 38.3, -2.5, 99.96, -0.04].map((t) => at(t).tdial.value), ['105', '-13', '-12', '38.3', '-2.5', '100', '0.0']);
+});
+
 test('sun: the next sunrise and sunset, tomorrow flagged (owner 2026-11-12)', () => {
   const at = (hm) => { const d = JSON.parse(JSON.stringify(fx('mixed'))); d.current.time = '2026-11-08T' + hm; return T.sunTimes(d); };
   const m = at('06:00'), a = at('15:00'), e = at('17:00');
@@ -428,6 +433,16 @@ test('per-day clothing cue: daytime hours 07:00 to 19:00 from the hourly data, d
   const v = T.buildView(M, i, f.daily, null, 0.3, { hourly: f.hourly });
   ok(v.days.every((q) => Array.isArray(q.cue) && q.cue.length >= 1 && q.cue.length <= 3), 'top and up to two extras on every day');
   eq(v.days.map((q) => q.cue), v.days.map((q, k) => T.cueFor(T.dayCueInput(f.hourly, f.daily, k), false).slice(0, 3)), 'days: the list capped at 3');
+});
+test('days axis (owner bug): from the values as shown (rounded, -0 as 0) and only the days a view shows; the current temperature counts', () => {
+  const f = JSON.parse(JSON.stringify(fx('mixed'))), D = f.daily;
+  D.temperature_2m_min = D.temperature_2m_min.map((v, k) => k < 5 ? -0.4 : (k === 5 ? -3 : 4)); D.temperature_2m_max = D.temperature_2m_max.map(() => 8);
+  f.current.temperature_2m = 1.6;
+  const v = T.buildView(SWModel.build(f, {}), T.buildI18n('nl'), f.daily, null, 0.3, {});
+  eq(v.days.slice(0, 5).map((d) => d.lo), ['0°', '0°', '0°', '0°', '0°'], 'lows -0.4 show as 0');
+  ok(v.scales && v.scales[5], 'a scale per shown row count');
+  eq([v.scales[5].a, v.scales[6].a], [0, -5], '5 rows: the hidden 6th day at -3 does not widen the axis; 6 rows: it does');
+  f.current.temperature_2m = -1; eq(T.buildView(SWModel.build(f, {}), T.buildI18n('nl'), f.daily, null, 0.3, {}).scales[5].a, -5, 'the current temperature still counts');
 });
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
