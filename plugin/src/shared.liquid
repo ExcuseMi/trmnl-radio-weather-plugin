@@ -1001,7 +1001,7 @@ var d0 = M.ev ? 2 : TD ? 1 : 0, days = M.days.slice(d0, d0 + nd), D = dayFonts(w
 days.forEach((d) => { if (d.lo !== null && (lo === null || d.lo < lo)) lo = d.lo; if (d.hi !== null && (hi === null || d.hi > hi)) hi = d.hi; });
 if (M.now.temp !== null) { lo = lo === null ? M.now.temp : Mn(lo, M.now.temp); hi = hi === null ? M.now.temp : Mx(hi, M.now.temp); }
 if (lo === null) { lo = 0; hi = 10; }
-var st = F_ ? 10 : 5, a0 = Fl(lo / st) * st - (lo - Fl(lo / st) * st < 1 ? st : 0), b0 = Math.ceil(hi / st) * st + (Math.ceil(hi / st) * st - hi < 1 ? st : 0);
+var st = F_ ? 10 : 5, a0 = Fl(lo / st) * st, b0 = Mx(a0 + st, Math.ceil(hi / st) * st);   // numbers sit in their own columns: no padding step
 var glass = bits >= 2, bg = glass ? GLASSD : paper, fg = glass ? GLOW : ink, g = mk('g', { 'data-sw-dial': 1 }, root);
 var fb = frame(g, x, y, w - u(3), h - u(3), bg, glass && !LCD); x = fb.fx + u(4); y = fb.fy; w = fb.fw - u(8); h = fb.fh;
 var dnW = days.reduce((m2, d) => Mx(m2, D.mW(dayName(d), D.L)), 0), nwC = D.mW('-88°', D.t2), cLo = x + u(16) + dnW + D.L.size * 3 + nwC, cHi = cLo + u(12) + nwC, labW = cHi - x + u(16) + D.mW('-88°', F(Mx(9, D.t2.size * 0.85), '700')) / 2, x0 = x + labW, x1 = x + w - u(10) - D.mW('-88°', F(Mx(9, D.t2.size * 0.85), '700')) / 2, xOf = (v) => x0 + (v - a0) / (b0 - a0) * (x1 - x0);
