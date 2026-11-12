@@ -48,13 +48,13 @@
    <div class="flex flex--row flex--left gap--small h--[{{ 6 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh] w--full">
     {%- for f in ui.flags %}<span class="label label--inverted label--large text--bold" data-sw-lamp>{{ f }}</span>{% endfor -%}
    </div>
-   <div class="flex flex--col {% if stk %}gap--small{% else %}flex--between grow{% endif %} w--full">
+   <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between grow{% endif %} w--full">
    {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
     <div class="w--full{% if forloop.index > n_md %} hidden lg:block{% endif %}">
     <div class="flex flex--row flex--center-y gap--small h--[{{ 9 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]">
      <div class="w--[{{ 13 | times: wm | round | at_most: 100 }}cqw] lg:w--[{{ 11 | times: wl | round | at_most: 100 }}cqw] text--right"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
-     <div class="w--[{{ 18 | times: wm | round | at_most: 100 }}cqw] h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}"></div>
-     <div class="hidden lg:block w--[{{ 22 | times: wl | round | at_most: 100 }}cqw] h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ m.idx }}"></div>
+     <div class="{% if stk %}grow{% else %}w--[{{ 18 | times: wm | round | at_most: 100 }}cqw]{% endif %} h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-key="{{ m.key }}" data-sw-n="5" data-sw-i="{{ m.idx }}"></div>
+     <div class="hidden lg:block {% if stk %}grow{% else %}w--[{{ 22 | times: wl | round | at_most: 100 }}cqw]{% endif %} h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="meter" data-sw-key="{{ m.key }}" data-sw-n="10" data-sw-i="{{ m.idx }}"></div>
     </div></div>
    {%- endfor %}
    </div>
@@ -95,7 +95,7 @@
    <div class="flex {{ su_cls }} {% if ui.rain %}flex--left flex--center-y w--full gap--xsmall lg:gap--small{% else %}flex--center gap--xsmall lg:gap--medium{% endif %} shrink-0" data-sw-unit="sun">
     {%- if ui.rain %}<div class="{{ ib_cls }}" data-sw-part="moon"></div>
     {%- else %}{% assign mo_m = si_m | times: 2 | plus: 1 | times: hm | round | at_most: 100 %}<div class="w--[{{ mo_m }}cqh] h--[{{ mo_m }}cqh] lg:hidden" data-sw-part="moon"></div>
-    <div class="hidden lg:block h--[{{ 13 | times: mh_l | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="moon"></div>{% endif %}
+    {% if stk %}{% assign mo_l = si_l | times: 0.65 | times: hl | round | at_most: 100 %}{% else %}{% assign mo_l = 13 | times: mh_l | round | at_most: 100 %}{% endif %}<div class="hidden lg:block h--[{{ mo_l }}cqh] lg:portrait:h--[4cqh]" data-sw-part="moon"></div>{% comment %} stacked: as big as the sun icons ink (owner 2026-11-12 asked for the two rows; that does not fit the column width) {% endcomment %}{% endif %}
     <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
      <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.riseIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.rise }}</span></div>
      <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.setIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.set }}</span></div>
@@ -104,13 +104,14 @@
    {%- if ui.rain %}</div>{% endif %}
   </div>
 {%- endcapture %}
- <div class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--small{% else %}flex--row flex--stretch-y gap--medium lg:gap--large{% endif %} p--2 lg:p--4 h--full">
+ <div class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% else %}flex--row flex--stretch-y gap--medium lg:gap--large{% endif %} p--2 lg:p--4 h--full">
 {%- if stk %}
   <div class="flex flex--row flex--stretch-y gap--medium w--full">
 {{ c_temp }}
   <div class="border--v-60"></div>
 {{ c_right }}
   </div>
+  <div class="w--full px--4"><div class="border--h-60" data-sw-hair="console"></div></div>{% comment %} owner 2026-11-12: block hairline between the top part and the meters {% endcomment %}
 {{ c_meters }}
 {%- else %}
 {{ c_meters }}
@@ -239,7 +240,7 @@ var DK = API.mode && API.mode.dark && API.mode.bits >= 2;   // owner: in dark mo
 var zi = zones ? ((i + 0.5) / n >= zones[1] ? 2 : ((i + 0.5) / n >= zones[0] ? 1 : 0)) : 0;   // warning zone of this cell
 if (i < lit && ZT[zi]) { zc[zi] += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += DK ? rect(x, 0, w, ch, 2) : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
 }
-return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && API.mode.dark ? '' : 'text--gray-40', glow(on, GPX)) + (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : ''));   // dark: lit cells in full ink, as live
+return svg(W, H, '<g data-sw-lit="' + lit + '"></g>' + g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && API.mode.dark ? '' : 'text--gray-40', glow(on, GPX)) + (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : ''));   // dark: lit cells in full ink, as live
 }
 // Days strip x mapping, one for the header and every row (owner 2026-11-12): each grid line runs through the centre of
 // its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.

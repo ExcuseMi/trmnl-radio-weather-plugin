@@ -103,9 +103,13 @@ return n+(bad.length?' '+bad.slice(0,4).join('; '):'');})()})
       expect(hu).to match(/\A\d+\z/)
       expect(hu.to_i.positive?).to eq(colour)
       # Days strip structure (owner 2026-11-12): a hairline over every shown day row and one between the high column and the graph.
-      hr = s.evaluate(%q{(function(){var bad=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(r){if(!r.getBoundingClientRect().height)return;var h=r.querySelector('[data-sw-hair="row"]');if(!h||!h.getBoundingClientRect().height||!h.getBoundingClientRect().width)bad.push('row line');var v=r.querySelector('[data-sw-part="day"] [data-sw-hair="v"]');if(!v||!v.getBoundingClientRect().height)bad.push('v line');});return bad.join('; ');})()})
+      hr = s.evaluate(%q{(function(){var bad=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(r){if(!r.getBoundingClientRect().height)return;var h=r.querySelector('[data-sw-hair="row"]');if(!h||!h.getBoundingClientRect().width)bad.push('row line');var v=r.querySelector('[data-sw-part="day"] [data-sw-hair="v"]');if(!v||!v.getBoundingClientRect().height)bad.push('v line');});return bad.join('; ');})()})
       puts "HAIR #{c['name']}: #{hr}" unless hr.empty?
       expect(hr).to eq('')
+      # Pollen (owner 2026-11-12): a pollen meter row is shown only when it lights at least one cell.
+      po = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="meter"][data-sw-key="pollen"]').forEach(function(m){if(!m.getBoundingClientRect().width)return;var l=m.querySelector('[data-sw-lit]');if(!l||!(+l.getAttribute('data-sw-lit')>0))bad.push('pollen 0 cells');});return bad.join('; ');})()})
+      puts "POLLEN #{c['name']}: #{po}" unless po.empty?
+      expect(po).to eq('')
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"
