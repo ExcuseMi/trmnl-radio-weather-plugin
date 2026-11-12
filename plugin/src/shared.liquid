@@ -497,6 +497,16 @@ var ib = { l: R(icx - w / 2), r: R(box.r), t: R(icy - h / 2), b: R(icy + h / 2),
 if (!dry && kind) icon(g, kind, icx - (bb.x + bb.width / 2 - vb[0] - vb[2] / 2) * k, icy - (bb.y + bb.height / 2 - vb[1] - vb[3] / 2) * k, sz, isDay);
 return ib;
 }
+function guardFace(g, from, x, y, w, h, tag) {
+var tx = g.querySelectorAll('text');
+debug.guardN = debug.guardN || 0;
+for (var i = 0; i < tx.length; i++) {
+var bb; try { bb = tx[i].getBBox(); } catch (er) { continue; }
+debug.guardN++;
+var inter = bb.x < x + w && bb.x + bb.width > x && bb.y < y + h && bb.y + bb.height > y, inside = bb.x >= x - 1 && bb.x + bb.width <= x + w + 1 && bb.y >= y - 1 && bb.y + bb.height <= y + h + 1;
+if (inter && !inside) (debug.outside = debug.outside || []).push({ face: tag, text: tx[i].textContent, box: [R(bb.x), R(bb.y), R(bb.width), R(bb.height)] });
+}
+}
 var clipK = 0, meterK = 0;
 function meter(g, x, y, w, h, o) {
 var gi0 = g.childNodes.length;
@@ -715,7 +725,7 @@ var br = rrect(g, badge.x, badge.y, badge.w, badge.h, R(badge.h * 0.3), ink); br
 text(g, o.badge, badge.x + badge.w / 2, badge.y + badge.h * 0.5 + badge.sp.size * 0.36, badge.sp, { anchor: 'middle', fill: paper });
 (debug.badges = debug.badges || []).push(o.badge);
 }
-[].slice.call(g.childNodes, gi0).forEach((e) => { [].slice.call(e.tagName === 'text' ? [e] : (e.querySelectorAll ? e.querySelectorAll('text') : [])).forEach((te) => { var bb; try { bb = te.getBBox(); } catch (er) { return; } if (bb.x < x - 1 || bb.y < y - 1 || bb.x + bb.width > x + w + 1 || bb.y + bb.height > y + h + 1) (debug.outside = debug.outside || []).push({ face: o.chan, text: te.textContent, box: [R(bb.x), R(bb.y), R(bb.width), R(bb.height)] }); }); });
+guardFace(g, gi0, x, y, w, h, o.chan);
 return { fx: fx, fy: fy, fw: fw, fh: fh };
 }
 function niceScale(lo, hi, even) {
@@ -1338,9 +1348,68 @@ return false;
 baroMeter(root, x, y, mw, h, smallFace(h, mw), 'L', captions ? capSp : false);
 tempMeter(root, x + mw + GP, y, w - mw - GP, h, smallFace(h, mw), 'R', captions ? capSp : false);
 }
+function colLayout(g, x, y, w, h) {
+var pad = u(10), iw = w - 2 * pad, base = Mx(9, R(w / z * 0.06)) * z, BF = F(base, '700', 1), SF = F(base * 0.85, '700', 1), lh = base * 1.9;
+var cl = []; var has = (k) => X1.some((hh) => hh.icon === k && !(hh.p !== null && hh.p < 30));
+var lamps = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain')], [I18N.snow, has('snow')], [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
+[I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, (M.now.wind !== null && M.now.wind >= (M.unit === 'F' ? 31 : 50)) || (nz(M.today.gustMax) !== null && M.today.gustMax >= (M.unit === 'F' ? 47 : 75))],
+[I18N.ours('uv'), M.now.uv !== null && M.now.uv >= 8], ['SMOG', M.now.aqi !== null && M.now.aqi > 60]].filter((f) => f[1]);
+var LS = F(base * 0.8, '700', 1);
+function mw(s0, sp) { var tq = text(g, s0, 0, 0, sp); var ww = width(tq); g.removeChild(tq); return ww; }
+var lrows = [[]], cw0 = 0;
+lamps.forEach((f) => { var wd = mw(f[0], LS) + LS.size * 1.2 + LS.size * 0.6; if (cw0 + wd > iw && lrows[lrows.length - 1].length) { lrows.push([]); cw0 = 0; } lrows[lrows.length - 1].push([f[0], wd]); cw0 += wd; });
+var lampH = lamps.length ? lrows.length * LS.size * 2 + u(4) : 0;
+var str = tempDigits(), dh = Mn(h * 0.16, base * 4.5), dw, iconW;
+for (var di = 0; di < 40; di++) { dw = R(dh * 0.5); iconW = dh * 1.1; if (iconW + u(6) + seg7W(dw, str) + dw * 1.3 <= iw || dh <= 12) break; dh -= 2; }
+var feelsOn = M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2;
+var condS = M.ok ? (I18N.cond(M.now.code, M.now.day) || M.now.word || '') : String(M.reason || 'NO DATA').toUpperCase();
+var rainH = (M.ok && !M.rain) ? base * 4.2 : base * 3.6 + dh * 0.5;
+var n5 = ROS.length, tempH = dh + u(4) + (feelsOn ? base * 1.6 : 0) + base * 1.6, meterH = n5 * lh;
+var need = u(10) + lampH + tempH + u(8) + rainH + u(8) + meterH + u(8);
+var dayMin = u(44) + 2 * u(52), boxH = Mn(h, need), daysH = h - boxH - GP;
+if (daysH < dayMin) { boxH = h; daysH = 0; }
+vfdBox(g, x, y, w, boxH);
+var slack = Mx(0, boxH - need), cy = y + u(10) + slack / 2;
+var lx0 = x + pad;
+if (lamps.length) { var ly = cy; lrows.forEach((r) => { var sx = lx0; r.forEach((it) => { status(g, it[0], sx, ly + LS.size * 1.2, LS, true); sx += it[1]; }); ly += LS.size * 2; }); cy += lampH; }
+var cx = x + w / 2, tw3 = iconW + u(6) + seg7W(dw, str) + dw * 1.3, tx0 = cx - tw3 / 2;
+glowDigits((hg) => { seg7(hg || g, tx0 + iconW + u(6), cy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
+var sw3 = R(dw * 0.45), ux = tx0 + iconW + u(6) + seg7W(dw, str) + R(dw * 0.25);
+seg7(g, ux, cy, sw3, R(dh * 0.45), 'o', DIGIT, null); seg7(g, ux + sw3 + R(dw * 0.12), cy, sw3, R(dh * 0.45), M.unit, DIGIT, null);
+ICON_INK = GLOW; ICON_NOW = true; glowIcon(g, (gg) => iconFit(gg, M.now.icon, M.now.day, { l: tx0, r: tx0 + iconW, t: cy, b: cy + dh }, dh * 1.1, cy + dh / 2)); ICON_INK = null; ICON_NOW = false;
+cy += dh + u(4);
+if (feelsOn) { fitText(g, I18N.ours('feels') + ' ' + fv(M.now.feels) + deg, cx, cy + base, BF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.1) }); cy += base * 1.6; }
+fitText(g, condS, cx, cy + base, BF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.1) }); cy += base * 1.6 + u(8);
+if (M.ok && !M.rain) {
+fitText(g, I18N.ours('no_rain'), cx, cy + base, BF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.1) });
+var S2 = M.sunT; if (S2) { var rs = SF, rtxt = S2.riseL + '  ' + S2.setL, rw3 = mw(rtxt, rs) + rs.size * 4.2, rx3 = cx - rw3 / 2, yy = cy + base * 2.8;
+glowIcon(g, (gg) => icon(gg, 'sunrise', rx3 + rs.size * 0.6, yy - rs.size * 0.3, rs.size * 1.3, null)); text(g, S2.riseL, rx3 + rs.size * 1.4, yy, rs, { fill: GLOW });
+var rx4 = rx3 + rs.size * 1.4 + mw(S2.riseL, rs) + rs.size * 0.8; glowIcon(g, (gg) => icon(gg, 'sunset', rx4 + rs.size * 0.6, yy - rs.size * 0.3, rs.size * 1.3, null)); text(g, S2.setL, rx4 + rs.size * 1.4, yy, rs, { fill: GLOW });
+glowIcon(g, (gg) => icon(gg, 'moon', rx4 + rs.size * 1.4 + mw(S2.setL, rs) + rs.size * 1.2, yy - rs.size * 0.3, rs.size * 1.5, null)); }
+} else if (M.ok) {
+var chc = R(dh * 0.5), cwc = R(chc * 0.5), ct = M.rain.now ? rainTo : rainFrom;
+fitText(g, I18N.ours(wetKey(M.rain.now ? 'until' : 'from')), cx, cy + base, BF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.1) });
+glowDigits((hg) => { seg7(hg || g, cx - seg7W(cwc, '88:88') / 2, cy + base * 1.6, cwc, chc, ct, M.rain ? RAINDIG : GLOW, null); });
+fitText(g, I18N.ours(M.rain.now ? wetKey('now') : 'until') + (M.rain.now ? ' ' + rainTo : ' ' + rainTo), cx, cy + base * 1.9 + chc + base, SF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.08) });
+}
+cy += rainH + u(8);
+var LF2 = SF, labW = Mx.apply(null, ROS.map((r) => mw(r.lab, LF2))) + u(8), bx0 = x + pad + labW, bx1 = x + w - pad, nseg = 10, sg2 = Mx(1, u(2));
+if ((bx1 - bx0 - 9 * sg2) / 10 < u(6)) nseg = 5;
+var segW2 = (bx1 - bx0 - (nseg - 1) * sg2) / nseg;
+var ZC2 = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-35', '#666'), fillOf('gray-35', '#666'), ink] : [fillOf('gray-35', '#bbb'), GLOW, GLOW]) : LCD ? [fillOf('gray-50', '#777'), fillOf('gray-20', '#333'), ink] : [fillOf('gray-80', '#ddd'), GLOW, GLOW];
+ROS.forEach((r, i) => { var ry = cy + i * lh + lh / 2, nodata = r.bar === null || r.bar === undefined, lit = nodata ? 0 : Math.round(r.bar * nseg);
+text(g, r.lab, x + pad + labW - u(6), ry + LF2.size * 0.36, LF2, { anchor: 'end', fill: GLOW });
+if (nodata) text(g, '--', bx1, ry + LF2.size * 0.36, LF2, { anchor: 'end', fill: GLOW });
+for (var k = 0; k < nseg; k++) { var sx2 = bx0 + k * (segW2 + sg2), on = k < lit, zi = r.zones ? ((k + 0.5) / nseg >= r.zones[1] ? 2 : ((k + 0.5) / nseg >= r.zones[0] ? 1 : 0)) : 0, sh = Mx(3, R(lh * 0.4));
+if (on) mk('rect', { x: R(sx2), y: R(ry - sh / 2), width: R(segW2), height: sh, fill: ZC2[zi] }, g); else mk('rect', { x: R(sx2) + 0.5, y: R(ry - sh / 2) + 0.5, width: R(segW2) - 1, height: sh - 1, fill: DIMW && bits > 2 ? DIMW : 'none', stroke: ink, 'stroke-width': 1 }, g); } });
+if (daysH > 0) keysRow(x, y + boxH + GP, w, daysH, daysFit(w, 110));
+debug.col = { boxH: R(boxH), days: R(daysH), need: R(need) };
+}
 ROK = RO_ORDER.filter((k) => k !== 'pollen' || M.now.pollen !== null); ROS = ROK.map(readout);
 debug.readoutKinds = ROK;
-if (view === 4) {
+if (W0 / z < 320) {
+colLayout(root, X0, Y0, W0, H0);
+} else if (view === 4) {
 if (W0 / z >= 330 && H0 / z >= 170) {
 var ch4 = H0 / W0 >= 1.1 ? R(H0 * 0.58) : H0, rem4 = H0 - ch4 - GP;
 vfd(root, X0, Y0, W0, ch4, false);
