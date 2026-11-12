@@ -71,7 +71,7 @@
   <div class="flex flex--col flex--center gap--medium grow">
    <div class="flex flex--row flex--center-y {% if view == 3 %}gap--small lg:gap--medium{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]">
     {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
-    <span class="title {% if view == 3 %}title--small lg:title--base{% else %}title--base{% endif %} text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
+    <span class="title {% if view == 3 %}title--small lg:title--base{% elsif view == 4 %}title--base{% else %}title--base lg:title--large{% endif %} text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y' %}{% assign tg_h = 'h--full' %}{% assign dv_x = '' %}{% assign pf_m = 10 %}{% assign fe_m = 9 %}
@@ -380,7 +380,7 @@ function at(f, rad) { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(a
 function arc(rad, f0, f1) { var p0 = at(f0, rad), p1 = at(f1, rad); return 'M' + n1(p0[0]) + ' ' + n1(p0[1]) + ' A' + n1(rad) + ' ' + n1(rad) + ' 0 0 1 ' + n1(p1[0]) + ' ' + n1(p1[1]); }
 var id = 'swink' + (K++), body = '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>';
 var path = (d, sw, extra) => '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"' + (extra || '') + '/>';
-body += backlight(W, H, cx, py - r * 0.5, Math.max(W, H) * 0.62);
+body += backlight(W, H, cx, py - r * 0.5, Math.max(W, H) * 0.62, 0.8, Math.min(24, Math.min(W, H) * 0.08));
 if (baro) {
 var zro = r - H * 0.085, zri = zro - H * 0.05, zg = 0.012, isz = r * 0.34;
 [[0, 0.25, 1], [0.25, 0.5, 0], [0.5, 0.75, 1], [0.75, 1, 0]].forEach((z) => {
@@ -531,7 +531,10 @@ return API;
       function swap() { var r = im.getBoundingClientRect(), k = (im.offsetWidth && r.width / im.offsetWidth) || 1; if (!r.width || !r.height) return;
         SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: im.parentElement }); }; SWDraw.mode = { dark: true, bits: scr.contains('screen--2bit') ? 2 : 4 }; SWDraw.src = im.src;
         var w = document.createElement('span'); w.setAttribute('data-sw-part', 'icon'); if (im.getAttribute('data-sw-ink')) w.setAttribute('data-sw-ink', im.getAttribute('data-sw-ink')); w.className = 'block shrink-0'; w.innerHTML = SWDraw.part(SW, 'icon', 0, Math.round(r.width / k), Math.round(r.height / k));
-        var sv = w.firstChild; sv.setAttribute('class', 'block'); sv.setAttribute('width', Math.round(r.width / k)); sv.setAttribute('height', Math.round(r.height / k)); im.replaceWith(w); }
+        var sv = w.firstChild, nx = im.parentElement.nextElementSibling; sv.setAttribute('class', 'block');
+        if (nx && nx.hasAttribute('data-sw-cond')) { sv.setAttribute('width', '100%'); sv.setAttribute('height', '100%'); w.className = 'block shrink-0 h--full w--full'; }   // the weather icon follows its box: the condition label sizes it after the swap
+        else { sv.setAttribute('width', Math.round(r.width / k)); sv.setAttribute('height', Math.round(r.height / k)); }
+        im.replaceWith(w); }
       if (im.complete) swap(); else im.addEventListener('load', swap);
     });
     swAlign();
