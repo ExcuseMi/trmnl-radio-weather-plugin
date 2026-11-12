@@ -93,6 +93,38 @@ function buildI18n(rawLocale) {
   };
 }
 
+// Moon phase icon (wi-moon-alt-*) from the date, about 29.53 days from a known new moon.
+function moonIcon(timeStr) {
+  var m = /(\d{4})-(\d{2})-(\d{2})/.exec(String(timeStr || ''));
+  if (!m) return null;
+  var jd = Date.UTC(+m[1], +m[2] - 1, +m[3], 12) / 86400000 + 2440587.5, P = 29.530588853, i = Math.round(((((jd - 2451550.1) % P) + P) % P) / P * 28) % 28;
+  return 'wi-moon-alt-' + (i === 0 ? 'new' : i < 7 ? 'waxing-crescent-' + i : i === 7 ? 'first-quarter' : i < 14 ? 'waxing-gibbous-' + (i - 7) : i === 14 ? 'full' : i < 21 ? 'waning-gibbous-' + (i - 14) : i === 21 ? 'third-quarter' : 'waning-crescent-' + (i - 21));
+}
+
+// Highest pollen type now or today, mapped to 0..1 (grains/m3: low to 10, moderate to 50, high to 150, very high above); null without data.
+function pollenLevel(aq) {
+  if (!aq || !aq.current) return null;
+  var sc = function (v) { return v <= 0 ? 0 : (v < 10 ? v / 10 * 0.3 : (v < 50 ? 0.3 + (v - 10) / 40 * 0.3 : (v < 150 ? 0.6 + (v - 50) / 100 * 0.3 : Math.min(1, 0.9 + (v - 150) / 500 * 0.1)))); };
+  var best = null;
+  ['grass', 'birch', 'alder', 'mugwort', 'olive', 'ragweed'].forEach(function (k) {
+    var key = k + '_pollen', cv = typeof aq.current[key] === 'number' ? aq.current[key] : null, hv = null;
+    ((aq.hourly || {})[key] || []).forEach(function (v) { if (typeof v === 'number' && (hv === null || v > hv)) hv = v; });
+    var val = cv === null ? hv : (hv === null ? cv : Math.max(cv, hv));
+    if (val !== null) best = best === null ? sc(val) : Math.max(best, sc(val));
+  });
+  return best;
+}
+
+// Today's sunrise and sunset (minutes after midnight and HH:MM) and the time now, from the forecast's local times.
+function sunTimes(w) {
+  if (!w || !w.daily || !w.current) return null;
+  var mins = function (iso) { var m = /T(\d{2}):(\d{2})/.exec(String(iso || '')); return m ? +m[1] * 60 + +m[2] : null; };
+  var hm = function (iso) { var m = /T(\d{2}:\d{2})/.exec(String(iso || '')); return m ? m[1] : null; };
+  var sr = w.daily.sunrise || [], ss = w.daily.sunset || [], r = mins(sr[0]), s = mins(ss[0]), n = mins(w.current.time);
+  if (r === null || s === null || n === null || s <= r) return null;
+  return { rise: r, set: s, now: n, day: n >= r && n <= s, riseL: hm(sr[0]), setL: hm(ss[0]), rise1L: hm(sr[1]) || hm(sr[0]) };
+}
+
 function field(input, key, fallback) {
   var cf = (((input || {}).trmnl || {}).plugin_settings || {}).custom_fields_values || {};
   var v = cf[key];
@@ -124,7 +156,7 @@ async function run(input) {
   var weather = got[0].status === 'fulfilled' ? got[0].value : { error: true, reason: String(got[0].reason && got[0].reason.message || got[0].reason).slice(0, 160) };
   var aq = got[1].status === 'fulfilled' && got[1].value && got[1].value.current ? got[1].value : null;
   var sensors = (input && (input.sensor_readings || (input.trmnl && input.trmnl.sensor_readings))) || null;
-  return { sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius' };
+  return { sun: sunTimes(weather), moon: moonIcon(weather && weather.current && weather.current.time), pollen: pollenLevel(aq), sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius' };
 }
 
 if (typeof module !== 'undefined') module.exports = { run: run, buildI18n: buildI18n, normaliseLocale: normaliseLocale };

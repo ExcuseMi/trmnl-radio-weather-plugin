@@ -26,10 +26,12 @@ aq: {% if aq.current %}{ current: {{ aq.current | json }}, hourly: {{ aq.hourly 
 error: {% if error %}true{% else %}false{% endif %},
 reason: {% if reason %}{{ reason | json }}{% else %}null{% endif %},
 offset: {{ utc_offset_seconds | default: 0 }},
+pollen: {{ pollen | json }},
+sun: {{ sun | json }},
 renderedAt: {{ trmnl.system.timestamp_utc | default: 0 }}
 };
 {%- assign sw_loc = i18n.loc | default: 'en' -%}
-var SW_I18N = {{ i18n | json }};
+var SW_I18N = {{ i18n | json }}, SW_MOON = {{ moon | json }};
 var SW_DAYS = [{% for t in daily.time %}{{ t | l_date: '%a', sw_loc | json }}{% unless forloop.last %}, {% endunless %}{% endfor %}];
 var SW_CFG = {
 locale: {{ sw_loc | json }},
@@ -52,12 +54,6 @@ if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) return 2;
 if (code === 45 || code === 48) return 1;
 return 0;
 }
-var WORDS = { 0: 'CLEAR', 1: 'MOSTLY CLEAR', 2: 'PARTLY CLOUDY', 3: 'OVERCAST', 45: 'FOG', 48: 'RIME FOG',
-51: 'DRIZZLE', 53: 'DRIZZLE', 55: 'DRIZZLE', 56: 'ICY DRIZZLE', 57: 'ICY DRIZZLE', 61: 'LIGHT RAIN',
-63: 'RAIN', 65: 'HEAVY RAIN', 66: 'FREEZING RAIN', 67: 'FREEZING RAIN', 71: 'LIGHT SNOW', 73: 'SNOW',
-75: 'HEAVY SNOW', 77: 'SNOW GRAINS', 80: 'SHOWERS', 81: 'SHOWERS', 82: 'HEAVY SHOWERS', 85: 'SNOW SHOWERS',
-86: 'SNOW SHOWERS', 95: 'THUNDERSTORM', 96: 'HAIL STORM', 99: 'HAIL STORM' };
-function word(code) { code = num(code); return code === null ? '' : (WORDS[code] || ''); }
 var KIND_RANK = { clear: 0, partly: 1, cloud: 2, fog: 3, drizzle: 4, rain: 5, sleet: 6, snow: 7, heavy: 8, storm: 9, hail: 10 };
 function kind(code) {
 code = num(code);
@@ -103,9 +99,9 @@ if (hi === null || v > hi) hi = v;
 return { lo: lo, hi: hi };
 }
 function maxOf(vals) { return minMax(vals).hi; }
-function slotsFor(raw, interval) {
+function slotsFor(raw) {
 var out = [];
-if (interval === 'daily') {
+{
 var d = raw.daily || {};
 var dt = list(d, 'time'), dmin = list(d, 'temperature_2m_min'), dmax = list(d, 'temperature_2m_max');
 var dp = list(d, 'precipitation_probability_max'), dc = list(d, 'weather_code');
@@ -115,20 +111,6 @@ out.push({ label: weekday(dt[i]), lo: mm.lo, hi: mm.hi, rain: num(dp[i]), sev: s
 first: i === 0, missing: mm.lo === null, icon: kind(dc[i]), day: true });
 }
 return out;
-}
-var step = interval === '1h' ? 1 : (interval === '2h' ? 2 : 3);
-var h = raw.hourly || {};
-var ht = list(h, 'time'), tt = list(h, 'temperature_2m'), tp = list(h, 'precipitation_probability');
-var tc = list(h, 'weather_code'), td = list(h, 'is_day');
-for (var s = 0; s < ht.length && out.length < 24; s += step) {
-var end = Mn(s + step, ht.length - 1);       // the slot runs to the next slot's first hour
-var span = tt.slice(s, Mx(end, s) + 1);
-var m2 = minMax(span);
-var sev = 0;
-for (var k = s; k < Mx(s + 1, end); k++) sev = Mx(sev, severity(tc[k]));
-out.push({ label: hourOf(ht[s]), lo: m2.lo, hi: m2.hi, rain: maxOf(tp.slice(s, Mx(s + 1, end))),
-sev: sev, first: s === 0, missing: m2.lo === null,
-icon: worstKind(tc.slice(s, Mx(s + 1, end))), day: num(td[s]) !== 0 });
 }
 return out;
 }
@@ -154,17 +136,10 @@ return { from: from, to: to, fromLabel: hours[from].h + ':00', toLabel: hours[Mn
 now: from === 0, type: type,
 mm: hours.slice(from, to + 1).reduce((s, q) => s + (q.mm || 0), 0), maxP: maxOf(hours.slice(from, to + 1).map((q) => q.p)) };
 }
-function ageMinutes(localIso, offsetSec, renderedAtSec) {
-var m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(String(localIso || ''));
-if (!m || !renderedAtSec) return null;
-var dataUtc = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) / 1000 - (offsetSec || 0);
-return Math.round((renderedAtSec - dataUtc) / 60);
-}
 function build(raw, cfg) {
 cfg = cfg || {};
-var interval = ({ '1h': 1, '2h': 1, '3h': 1, daily: 1 })[cfg.interval] ? cfg.interval : '3h';
-var model = { ok: false, unit: cfg.unit === 'fahrenheit' ? 'F' : 'C', interval: interval, slots: [],
-now: { pollen: null, temp: null, feels: null, hum: null, uv: null, wind: null, gust: null, dir: null, press: null, aqi: null, word: '', icon: null, day: true, sync: null, rain6: null },
+var model = { ok: false, unit: cfg.unit === 'fahrenheit' ? 'F' : 'C', slots: [],
+now: { pollen: null, temp: null, feels: null, hum: null, uv: null, wind: null, gust: null, dir: null, press: null, aqi: null, icon: null, day: true, sync: null },
 today: { lo: null, hi: null, uvMax: null, gustMax: null, rainMm: null, aqiMax: null }, hours: [], days: [], rain: null, age: null, reason: null, sun: { up: false, at: null } };
 if (!raw || raw.error || (!raw.hourly && !raw.daily && !raw.current)) {
 model.reason = (raw && raw.reason) ? String(raw.reason).slice(0, 160) : 'NO DATA FROM OPEN-METEO';
@@ -178,7 +153,6 @@ feels: num(c.apparent_temperature),
 hum: num(c.relative_humidity_2m),
 uv: num(c.uv_index),
 wind: num(c.wind_speed_10m), gust: num(c.wind_gusts_10m), dir: num(c.wind_direction_10m), press: num(c.pressure_msl),
-word: word(c.weather_code),
 code: num(c.weather_code),
 icon: kind(c.weather_code),
 day: num(c.is_day) !== 0,
@@ -187,25 +161,15 @@ sync: (/T(\d{2}:\d{2})/.exec(String(c.time || '')) || [])[1] || null
 var d = raw.daily || {};
 var tmm = minMax([list(d, 'temperature_2m_min')[0], list(d, 'temperature_2m_max')[0]]);
 model.today = { lo: tmm.lo, hi: tmm.hi, uvMax: num(list(d, 'uv_index_max')[0]), gustMax: num(list(d, 'wind_gusts_10m_max')[0]), rainMm: num(list(d, 'precipitation_sum')[0]) };
-var sr = list(d, 'sunrise'), ss = list(d, 'sunset'), nowT = String(c.time || ''), hm = (iso) => { var m = /T(\d{2}:\d{2})/.exec(String(iso || '')); return m ? m[1] : null; };
-model.sun = nowT && sr[0] && nowT < sr[0] ? { up: true, at: hm(sr[0]) } : (nowT && ss[0] && nowT < ss[0] ? { up: false, at: hm(ss[0]) } : { up: true, at: hm(sr[1]) });
-var mins = (iso) => { var m = /T(\d{2}):(\d{2})/.exec(String(iso || '')); return m ? +m[1] * 60 + +m[2] : null; };
-var rise0 = mins(sr[0]), set0 = mins(ss[0]), mNow = mins(nowT);
-model.sunT = rise0 !== null && set0 !== null && mNow !== null && set0 > rise0 ? { rise: rise0, set: set0, now: mNow, day: mNow >= rise0 && mNow <= set0, riseL: hm(sr[0]), setL: hm(ss[0]), rise1L: hm(sr[1]) || hm(sr[0]) } : null;
-model.slots = slotsFor(raw, interval);
+model.sunT = raw.sun || null;
+model.slots = slotsFor(raw);
 model.hours = hoursAhead(raw, 25);
-model.days = slotsFor(raw, 'daily');
+model.days = model.slots;
 model.rain = rainWindow(model.hours, 50);
-model.now.rain6 = maxOf(model.hours.slice(0, 6).map((h) => h.p));
 var aq = raw.aq && typeof raw.aq === 'object' ? raw.aq : null;
 model.now.aqi = aq && aq.current ? num(aq.current.european_aqi) : null;
 model.today.aqiMax = aq ? maxOf(list(aq.hourly || {}, 'european_aqi')) : null;
-var pol = null, psc = (v) => v <= 0 ? 0 : (v < 10 ? v / 10 * 0.3 : (v < 50 ? 0.3 + (v - 10) / 40 * 0.3 : (v < 150 ? 0.6 + (v - 50) / 100 * 0.3 : Mn(1, 0.9 + (v - 150) / 500 * 0.1))));
-if (aq && aq.current) ['grass', 'birch', 'alder', 'mugwort', 'olive', 'ragweed'].forEach((k) => {
-var cv = num(aq.current[k + '_pollen']), hv = maxOf(list(aq.hourly || {}, k + '_pollen')), val = cv === null ? hv : (hv === null ? cv : Mx(cv, hv));
-if (val !== null) pol = pol === null ? psc(val) : Mx(pol, psc(val));
-});
-model.now.pollen = pol;
+model.now.pollen = num(raw.pollen);
 model.inn = { temp: null, hum: null, co2: null, press: null };
 var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;
 var dk = sd ? Object.keys(sd).sort().filter((k) => sd[k] && typeof sd[k] === 'object' && Object.keys(sd[k]).some((q) => Array.isArray(sd[k][q]) && sd[k][q].length))[0] : null;
@@ -217,7 +181,6 @@ return best; };
 model.inn = { temp: latest(sd[dk].temperature), hum: latest(sd[dk].humidity), co2: latest(sd[dk].carbon_dioxide), press: latest(sd[dk].pressure) };
 if (model.now.press === null) model.now.press = model.inn.press;
 }
-model.age = ageMinutes(c.time, raw.offset, raw.renderedAt);
 var any = false;
 for (var i = 0; i < model.slots.length; i++) if (!model.slots[i].missing) any = true;
 model.ok = any || model.now.temp !== null;
@@ -229,8 +192,8 @@ if (v === null || v === undefined) return '--';
 var r = Math.round(v);
 return String(r === 0 ? 0 : r);
 }
-return { build: build, severity: severity, word: word, kind: kind, worstKind: worstKind, rainWindow: rainWindow,
-ageMinutes: ageMinutes, fmt: fmt };
+return { build: build, severity: severity, kind: kind, worstKind: worstKind, rainWindow: rainWindow,
+fmt: fmt };
 })();
 // ==== MODEL_END ====
 var I18N = (() => {
@@ -344,10 +307,6 @@ var SEVEN = /screen--color-7a/.test(cls);
 var ORANGE = SEVEN ? fillOf('orange') : null;
 var FACE_OR = ORANGE;
 var AMBER = FULL ? '#ff9a1f' : ORANGE;
-var LIT = ink;
-var PLATE = bits === 4 ? fillOf('gray-75') : null;
-var BRUSH = bits === 4 ? fillOf('gray-70') : null;
-var SHADE = bits >= 2 ? fillOf(bits === 4 ? 'gray-45' : 'gray-40') : null;
 function spec(role, fallbackPx) {
 var t = null;
 try { t = TP ? TP.type(role, opt) : null; } catch (e) { t = null; }
@@ -384,18 +343,6 @@ t.setAttribute('x', R(opts.anchor === 'middle' ? x - tw / 2 : x - tw));
 return t;
 }
 function width(t) { try { return t.getComputedTextLength(); } catch (e) { return 0; } }
-var capCache = {};
-function cap(sp) {
-var k = sp.family + sp.size;
-if (capCache[k]) return capCache[k];
-var t = text(root, 'H0', 0, 0, sp);
-var b = { height: sp.size * 0.7, y: -sp.size * 0.7 };
-try { b = t.getBBox(); } catch (e) { /* estimate */ }
-root.removeChild(t);
-var c = Mn(Math.abs(b.y), sp.size) * 0.98;
-capCache[k] = c > 0 ? c : sp.size * 0.7;
-return capCache[k];
-}
 var SHORTER = { 'PARTLY CLOUDY': 'SOME CLOUD', 'MOSTLY CLEAR': 'CLEAR', 'THUNDERSTORM': 'STORM', 'HAIL STORM': 'HAIL',
 'FREEZING RAIN': 'ICY RAIN', 'HEAVY SHOWERS': 'SHOWERS', 'SNOW SHOWERS': 'SNOW', 'LIGHT SNOW': 'SNOW', 'HEAVY SNOW': 'SNOW',
 'SNOW GRAINS': 'SNOW', 'LIGHT RAIN': 'RAIN', 'HEAVY RAIN': 'RAIN', 'ICY DRIZZLE': 'DRIZZLE', 'RIME FOG': 'FOG', 'TODAY': 'NOW' };
@@ -460,7 +407,6 @@ var rainTo = M.rain ? M.rain.toLabel : null, rainFrom = M.rain ? M.rain.fromLabe
 var day24 = (() => { var lo = null, hi = null; M.hours.slice(0, 24).forEach((h) => {
 if (h.t === null) return; if (lo === null || h.t < lo) lo = h.t; if (hi === null || h.t > hi) hi = h.t; }); return { lo: lo, hi: hi }; })();
 var portrait = UW / UH < 1.15;
-var station = (SW_CFG.label || '').toUpperCase();
 var ICON_INK = null, ICON_NOW = false, drawnIcon = icon, iconsUsed = { wi: 0, drawn: 0 };
 function wiName(kind, isDay) { return /^wi-/.test(kind) ? kind : (WI_MAP[kind] || [])[isDay === null ? 2 : (isDay === false ? 1 : 0)]; }
 icon = (g, kind, cx, cy, sz, isDay) => {
@@ -761,7 +707,6 @@ marks: [tl !== null ? { f: f(tl), label: I18N.lo, lo: true } : null, th !== null
 twin: M.inn.temp === null ? null : f(M.unit === 'F' ? M.inn.temp * 1.8 + 32 : M.inn.temp), name: I18N.temperature, shortName: I18N.ours('temp_s'), unitName: deg + M.unit, });
 }
 function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
-var WUNIT = M.unit === 'F' ? 'MPH' : 'KM/H', WTHR = M.unit === 'F' ? 20 : 30;
 function baroMeter(g, x, y, w, h, small, badge, captioned) {
 var ticks = [], f = (v) => (v - 970) / 80;
 for (var v = 970; v <= 1050; v += 5) ticks.push({ f: f(v), major: (v - 970) % 20 === 0, label: undefined });
@@ -942,7 +887,6 @@ if (bpad) { var lb = rrect(g, R(x), R(y - sp.size * 1.05), R(tw2 + 2 * bpad), R(
 return tw2 + 2 * bpad;
 }
 function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
-function fv1(v) { return v === null ? '--' : (v < 10 ? (Math.round(v * 10) / 10).toFixed(1) : SWModel.fmt(v)); }
 function compass(d) { if (d === null) return ''; var pts = I18N.ours('compass').split(','); return pts.length === 8 ? pts[Math.round(d / 45) % 8] : ''; }
 var RO_ORDER = ['humidity', 'uv', 'wind', 'aqi', 'pollen', 'co2'];
 function readout(k) {
@@ -1002,7 +946,7 @@ var pillW = 0;
 if (compact) pillW = status(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry')), ix, sy, ST, !M.ok || !!M.rain);
 var WD = F(RD(hb * (compact ? 0.09 : 0.085), 11), '700');
 var crW = 0, crMoved = null;
-var condS = M.ok ? (I18N.cond(M.now.code, M.now.day) || M.now.word || '') : String(M.reason || 'NO DATA').toUpperCase(), wt = null;
+var condS = M.ok ? (I18N.cond(M.now.code, M.now.day)) : String(M.reason || 'NO DATA').toUpperCase(), wt = null;
 if (compact) wt = fitText(g, condS, ix, y + h * 0.88, WD, iw - crW, { fill: GLOW, ls: R(WD.size * 0.15) });
 if (crMoved && width(wt) > iw - crW + 1) {
 g.removeChild(wt);
@@ -1166,52 +1110,6 @@ glowDigits((hg) => { seg7(hg || g, rx, y + h * 0.44, cw, ch, ct, M.rain ? RAINDI
 debug.clock = { str: ct, boxes: seg7.boxes };
 fitText(g, !M.ok ? 'OPEN-METEO' : (M.rain ? (M.rain.now ? I18N.ours(wetKey('now')) : I18N.ours('until') + ' ' + rainTo) : I18N.ours('next_h', SPAN)), rx, y + h * 0.9, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
 }
-function vfdQuad(g, x, y, w, h) {
-vfdBox(g, x, y, w, h);
-debug.glassBox = [R(x), R(y), R(w), R(h)]; debug.origin = [R(rect.left * z), R(rect.top * z)];
-debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
-var pad = Mx(u(12), h * 0.07), ix = x + pad, iw = w - 2 * pad, iy = y + pad, ih = h - 2 * pad;
-var LN = F(RD(ih * 0.085, 11), '700'), SM2 = F(RD(ih * 0.065, 9), '600');
-var isz = ih * 0.4;
-var rowH = ih * 0.47;
-var unitW = (dw0) => R(dw0 * 0.55) * 2 + R(dw0 * 0.3);
-var dh = R(rowH);
-function needQ(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + R(dw0 * 0.25) + unitW(dw0); }
-while (dh > 8 && needQ(dh) > iw - isz * 1.15) dh -= 2;
-var dw = R(dh * 0.5), str = tempDigits();
-var dx = ix + iw - needQ(dh), dy = iy;
-debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(dx) };
-ICON_INK = GLOW; ICON_NOW = true;
-var ib = glowIcon(g, (gg) => { return iconFit(gg, M.now.icon, M.now.day, { l: ix + u(4), t: iy + u(2), r: dx - dh * 0.4, b: iy + rowH }, rowH, iy + dh / 2); });
-ICON_INK = null; ICON_NOW = false;
-var dwid = seg7W(dw, str);
-glowDigits((hg) => { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
-debug.digits.boxes = seg7.boxes;
-var sw = R(dw * 0.55), ux = dx + dwid + R(dw * 0.25);
-seg7(g, ux, dy, sw, R(dh * 0.42), 'o', DIGIT, null);
-seg7(g, ux + sw + R(dw * 0.12), dy, sw, R(dh * 0.42), M.unit, DIGIT, null);
-var sy = iy + rowH + ih * 0.13, lo = M.today.lo, hi = M.today.hi, now = M.now.temp;
-if (M.ok && lo !== null && hi !== null && hi > lo && now !== null) {
-var sx0 = dx, sx1 = dx + dwid, lwS = Mx(1, u(1.5));
-mk('rect', { x: R(sx0), y: R(sy), width: R(sx1 - sx0), height: lwS, fill: GLOW }, g);
-[sx0, sx1].forEach((xx) => { mk('rect', { x: R(xx), y: R(sy - u(4)), width: lwS, height: R(u(8)), fill: GLOW }, g); });
-var f = Mx(0, Mn(1, (now - lo) / (hi - lo))), mx = sx0 + (sx1 - sx0) * f, ms = u(6);
-mk('polygon', { points: [[mx, sy - u(1)], [mx - ms, sy - ms * 1.5], [mx + ms, sy - ms * 1.5]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '),
-fill: DIGIT, 'shape-rendering': GPX }, g);
-debug.slim = { f: f };
-}
-var wy = iy + ih * 0.76, ly = iy + ih - LN.size * 0.3;
-var condTxt = M.ok ? (I18N.cond(M.now.code, M.now.day) || M.now.word || '') : I18N.ours('no_signal');
-fitText(g, condTxt, ix, wy, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
-var line = M.ok ? SWModel.fmt(hi) + deg + ' / ' + SWModel.fmt(lo) + deg + '  \u00b7  ' +
-(M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry_h', SPAN)) : String(M.reason || '').toUpperCase();
-var lt = fitText(g, line, ix, ly, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
-if (M.ok) [ROS[0].txt + '  ' + ROS[1].txt, ROS[0].txt].some((rd) => {
-var rt = text(g, rd, ix + iw, ly, LN, { anchor: 'end', ls: R(LN.size * 0.1), fill: GLOW });
-if (width(lt) + width(rt) + u(12) <= iw) return true;
-g.removeChild(rt);
-});
-}
 // no outer faceplate (owner)
 var MG = view === 1 ? Mx(2, R(UH * 0.011)) : u(view === 4 ? 8 : 14), GP = view === 1 ? Mx(2, R(UH * 0.0096)) : u(view === 4 ? 8 : 14);
 var X0 = MG, Y0 = MG, W0 = UW - 2 * MG, H0 = UH - 2 * MG;
@@ -1315,7 +1213,7 @@ var lampH = lamps.length ? lrows.length * LS.size * 2 + u(4) : 0;
 var str = tempDigits(), dh = Mn(h * 0.16, base * 4.5), dw, iconW;
 for (var di = 0; di < 40; di++) { dw = R(dh * 0.5); iconW = dh * 1.1; if (iconW + u(6) + seg7W(dw, str) + dw * 1.3 <= iw || dh <= 12) break; dh -= 2; }
 var feelsOn = M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2;
-var condS = M.ok ? (I18N.cond(M.now.code, M.now.day) || M.now.word || '') : String(M.reason || 'NO DATA').toUpperCase();
+var condS = M.ok ? (I18N.cond(M.now.code, M.now.day)) : String(M.reason || 'NO DATA').toUpperCase();
 var rainH = (M.ok && !M.rain) ? base * 4.2 : base * 3.6 + dh * 0.5;
 var n5 = ROS.length, tempH = dh + u(4) + (feelsOn ? base * 1.6 : 0) + base * 1.6, meterH = n5 * lh;
 var need = u(10) + lampH + tempH + u(8) + rainH + u(8) + meterH + u(8);
@@ -1372,7 +1270,7 @@ var qg = R(H0 * 0.42);
 vfd(root, X0, Y0, W0, qg, true);
 baroMeter(root, X0, Y0 + qg + GP, W0, H0 - qg - GP, true, null, true);
 } else {
-vfdQuad(root, X0, Y0, W0, H0);
+vfd(root, X0, Y0, W0, H0, true);
 }
 } else if (view === 2) {
 vfd(root, X0, Y0, W0, H0, false);
@@ -1398,8 +1296,7 @@ debug.unit = M.unit;
 stage.setAttribute('data-sw-debug', JSON.stringify(debug));
 }
 var WI_BASE = 'https://trmnl.com/images/plugins/weather/';
-var MOON_I = (() => { var m = /(\d{4})-(\d{2})-(\d{2})/.exec(String((SW_RAW.current || {}).time || '')); if (!m) return null; var jd = Date.UTC(+m[1], +m[2] - 1, +m[3], 12) / 86400000 + 2440587.5, P = 29.530588853; return Math.round(((((jd - 2451550.1) % P) + P) % P) / P * 28) % 28; })();
-var MOON_N = MOON_I === null ? 'wi-night-clear' : 'wi-moon-alt-' + (MOON_I === 0 ? 'new' : MOON_I < 7 ? 'waxing-crescent-' + MOON_I : MOON_I === 7 ? 'first-quarter' : MOON_I < 14 ? 'waxing-gibbous-' + (MOON_I - 7) : MOON_I === 14 ? 'full' : MOON_I < 21 ? 'waning-gibbous-' + (MOON_I - 14) : MOON_I === 21 ? 'third-quarter' : 'waning-crescent-' + (MOON_I - 21));
+var MOON_N = SW_MOON || 'wi-night-clear';
 var WI_MAP = { moon: [MOON_N, MOON_N, MOON_N], sunrise: ['wi-sunrise', 'wi-sunrise', 'wi-sunrise'], sunset: ['wi-sunset', 'wi-sunset', 'wi-sunset'], clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
 cloud: ['wi-cloudy', 'wi-cloudy', 'wi-cloudy'], fog: ['wi-day-fog', 'wi-night-fog', 'wi-fog'],
 drizzle: ['wi-day-sprinkle', 'wi-night-alt-sprinkle', 'wi-sprinkle'], rain: ['wi-day-rain', 'wi-night-alt-rain', 'wi-rain'],
