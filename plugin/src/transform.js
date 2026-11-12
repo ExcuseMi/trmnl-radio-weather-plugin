@@ -360,12 +360,20 @@ var s = Math.max(0, Math.min(R.from - 2, hours.length - 12));
 return hours.slice(s, s + 12).map((q, i) => ({ h: q.hl || q.h, wet: s + i >= R.from && s + i <= R.to }));
 }
 // Owner 2026-11-12: 2 x 3 hours; 3 x 3 when the rain runs on past the sixth shown hour.
-// Calm style: the barometer trend over a 3-hour window of the hourly data (owner: +/-1 hPa). Open-Meteo's hourly
-// list here starts at the current hour, so the window is now to 3 h ahead; null without hourly pressure.
-function pressTrend(hours) {
-var a = hours && hours[0] && hours[0].pr, b = hours && hours[3] && hours[3].pr;
-if (a === null || a === undefined || b === null || b === undefined) return null;
-return b - a >= 1 ? 'rising' : (b - a <= -1 ? 'falling' : 'steady');
+// Calm style: the barometer trend, now against 3 h ago (owner: +/-1 hPa); null without both readings.
+function pressTrend(now, ago) {
+if (now === null || now === undefined || ago === null || ago === undefined) return null;
+return now - ago >= 1 ? 'rising' : (now - ago <= -1 ? 'falling' : 'steady');
+}
+// The forecast asks for past_hours=3 (the trend needs the pressure 3 h ago). The model reads the hourly lists from
+// the current hour on, so the past hours are cut off here: every hourly list starts at the current hour again, as before.
+function dropPast(w) {
+var h = w && w.hourly, t = h && h.time, cur = w && w.current && w.current.time;
+if (!t || !cur) return { weather: w, ago: null };
+var k = 0; while (k < t.length && String(t[k]) < String(cur).slice(0, 13) + ':00') k++;
+var pq = h.pressure_msl || [], ago = k >= 3 && typeof pq[k - 3] === 'number' ? pq[k - 3] : null, nh = {};
+Object.keys(h).forEach((key) => { nh[key] = Array.isArray(h[key]) ? h[key].slice(k) : h[key]; });
+return { weather: Object.assign({}, w, { hourly: nh }), ago: ago };
 }
 // Calm style cue next to the felt temperature (owner): umbrella when rain is in the rain calendar window, else a coat
 // when the felt temperature is under 3 C (37 F); at most one.
@@ -401,7 +409,7 @@ var tsc = tvals.length ? { a: Math.floor(Math.min.apply(null, tvals) / tst) * ts
 if (tsc && tsc.b - tsc.a < 3 * tst) tsc.b = tsc.a + 3 * tst;
 var ps = (M.hours || []).slice(0, 24).map((q) => q.pr).filter((q) => q !== null && q !== undefined); if (pr !== null) ps.push(pr);
 var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg', phase: phase == null ? null : phase };
-var trend = calm ? pressTrend(M.hours) : null;
+var trend = calm ? pressTrend(n.press, opt.pressAgo) : null;
 return {
 ok: M.ok, meters: meters, calm: calm, cue: calm ? calmCue(wetIn12, n.feels === null ? tv : n.feels, F_) : null,
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
@@ -431,12 +439,13 @@ async function run(input) {
     '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index' +
     '&hourly=temperature_2m,precipitation_probability,precipitation,pressure_msl,weather_code,is_day' +
     '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_gusts_10m_max,precipitation_sum,sunrise,sunset' +
-    '&timezone=auto&forecast_hours=48&forecast_days=14&temperature_unit=' + (fahrenheit ? 'fahrenheit' : 'celsius') +
+    '&timezone=auto&past_hours=3&forecast_hours=48&forecast_days=14&temperature_unit=' + (fahrenheit ? 'fahrenheit' : 'celsius') +
     '&precipitation_unit=' + (fahrenheit ? 'inch' : 'mm') + '&wind_speed_unit=' + (fahrenheit ? 'mph' : 'kmh');
   var air = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon +
     '&current=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&hourly=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto&forecast_days=2';
   var got = await Promise.allSettled([getJson(forecast), getJson(air)]);
-  var weather = got[0].status === 'fulfilled' ? got[0].value : { error: true, reason: String(got[0].reason && got[0].reason.message || got[0].reason).slice(0, 160) };
+  var past = dropPast(got[0].status === 'fulfilled' ? got[0].value : null);
+  var weather = past.weather ? past.weather : { error: true, reason: String(got[0].reason && got[0].reason.message || got[0].reason).slice(0, 160) };
   var aq = got[1].status === 'fulfilled' && got[1].value && got[1].value.current ? got[1].value : null;
   var sensors = (input && (input.sensor_readings || (input.trmnl && input.trmnl.sensor_readings))) || null;
   var sunO = sunTimes(weather), pollenV = pollenLevel(aq), w = weather || {};
@@ -444,7 +453,7 @@ async function run(input) {
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
   var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
-  return { ui: buildView(model, i18n, w.daily, moon, phase, { calm: String(field(input, 'style', 'receiver')) === 'calm' }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
+  return { ui: buildView(model, i18n, w.daily, moon, phase, { calm: String(field(input, 'style', 'receiver')) === 'calm', pressAgo: past.ago }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, calmCue: calmCue, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
+if (typeof module !== 'undefined') module.exports = { run: run, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, calmCue: calmCue, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };

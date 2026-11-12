@@ -366,16 +366,28 @@ test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter,
   eq(T.moonPhase(null), null);
 });
 test('calm style: barometer trend over 3 h with +/-1 hPa thresholds; cue umbrella beats coat, coat under 3 C / 37 F', () => {
-  const h = (a, b) => [{ pr: a }, { pr: null }, { pr: null }, { pr: b }];
-  eq([T.pressTrend(h(1010, 1011)), T.pressTrend(h(1010, 1010.9)), T.pressTrend(h(1010, 1009)), T.pressTrend(h(1010, 1009.1)), T.pressTrend(h(1010, null)), T.pressTrend([])], ['rising', 'steady', 'falling', 'steady', null, null]);
+  eq([T.pressTrend(1011, 1010), T.pressTrend(1010.9, 1010), T.pressTrend(1009, 1010), T.pressTrend(1009.1, 1010), T.pressTrend(1010, null), T.pressTrend(null, 1010)], ['rising', 'steady', 'falling', 'steady', null, null]);
   eq([T.calmCue(true, -5, false), T.calmCue(false, 2.9, false), T.calmCue(false, 3, false), T.calmCue(false, 36, true), T.calmCue(false, 37, true), T.calmCue(false, null, false)], ['umbrella', 'coat', null, 'coat', null, null]);
   const i = T.buildI18n('nl');
   eq([i.ours.p_steady, i.ours.p_rising, i.ours.p_falling], ['STABIEL', 'STIJGEND', 'DALEND']);
   eq(T.buildI18n('ja').ours.p_rising, 'RISING', 'missing language falls back to English');
-  const f = fx('mixed'); f.hourly.pressure_msl = f.hourly.time.map((_, k) => 1013 - k);
-  const M = SWModel.build(f, {}), calm = T.buildView(M, i, f.daily, null, 0.3, { calm: true }), rec = T.buildView(M, i, f.daily, null, 0.3);
-  eq([calm.calm, calm.cue, calm.baro.trend], [true, 'umbrella', 'DALEND'], 'mixed has rain in the window');
+  const f = fx('mixed');
+  const M = SWModel.build(f, {}), calm = T.buildView(M, i, f.daily, null, 0.3, { calm: true, pressAgo: 1015 }), rec = T.buildView(M, i, f.daily, null, 0.3);
+  eq([calm.calm, calm.cue, calm.baro.trend], [true, 'umbrella', 'DALEND'], 'mixed has rain in the window, 1013.2 now against 1015');
   eq([rec.calm, rec.cue, rec.baro.trend], [false, null, null], 'receiver: no cue, no trend');
+});
+test('past_hours=3: the past hours are cut so every hourly list starts at the current hour; the pressure 3 h ago is kept', () => {
+  const f = fx('mixed'), p = JSON.parse(JSON.stringify(f)), H = p.hourly;
+  H.pressure_msl = H.time.map((_, k) => 1013 - k);
+  ['2026-11-08T03:00', '2026-11-08T04:00', '2026-11-08T05:00'].reverse().forEach((t, j) => Object.keys(H).forEach((k) => H[k].unshift(k === 'time' ? t : (k === 'pressure_msl' ? 1020 + j : H[k][0]))));
+  const d = T.dropPast(p);
+  eq(d.ago, 1022, 'pressure at 03:00');
+  eq(d.weather.hourly.time[0], f.hourly.current_time || f.current.time);
+  const a = SWModel.build(f, {}), b = SWModel.build(d.weather, {});
+  eq(b.hours.map((q) => [q.h, q.t, q.p]), a.hours.map((q) => [q.h, q.t, q.p]), 'hours unchanged by the cut');
+  eq(b.rain, a.rain, 'rain window unchanged');
+  eq(T.dropPast(f).ago, null, 'no past hours: no trend');
+  eq(T.dropPast(null).weather, null);
 });
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
