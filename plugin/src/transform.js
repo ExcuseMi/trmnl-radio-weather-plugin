@@ -361,7 +361,7 @@ var on = GLYPH[ch] || '', sh = shapes(x, 0, W, H, T);
 x += W + G;
 }
 var vw = Math.max(1, x - G);
-return svg(vw, H, (o.ghost === false ? '' : '<g class="text--gray-70">' + dim + '</g>') + lit, o.cls || 'h--full w--auto', 'xMinYMid meet');
+return svg(vw, H, (o.ghost === false ? '' : '<g class="text--gray-75">' + dim + '</g>') + lit, o.cls || 'h--full w--auto', 'xMinYMid meet');
 }
 // Block meter (tuner SIGNAL): n cells, frac lit. Percent geometry, no viewBox, so it fills any box.
 function meter(frac, n) {
@@ -410,13 +410,13 @@ return svg(0, 0, body);
 // Placeholder dial (step 1): a needle meter face with ticks, the needle at frac, and two end labels.
 function dial(frac, loLab, hiLab) {
 var cx = 200, cy = 190, r = 160, A0 = Math.PI * 1.1, A1 = -Math.PI * 0.1, at = (f) => A0 + (A1 - A0) * f, P = (a, rr) => [cx + rr * Math.cos(a), cy - rr * Math.sin(a)];
-var s = P(A0, r), e = P(A1, r), body = '<path d="M' + n1(s[0]) + ' ' + n1(s[1]) + ' A' + r + ' ' + r + ' 0 0 1 ' + n1(e[0]) + ' ' + n1(e[1]) + '" fill="none" stroke="currentColor" stroke-width="8"/>';
+var s = P(A0, r), e = P(A1, r), body = '<path d="M' + n1(s[0]) + ' ' + n1(s[1]) + ' A' + r + ' ' + r + ' 0 1 1 ' + n1(e[0]) + ' ' + n1(e[1]) + '" fill="none" stroke="currentColor" stroke-width="8"/>';
 for (var i = 0; i <= 20; i++) { var a = at(i / 20), p0 = P(a, r - 6), p1 = P(a, r - (i % 5 === 0 ? 32 : 18)); body += '<line x1="' + n1(p0[0]) + '" y1="' + n1(p0[1]) + '" x2="' + n1(p1[0]) + '" y2="' + n1(p1[1]) + '" stroke="currentColor" stroke-width="' + (i % 5 === 0 ? 6 : 3) + '"/>'; }
 if (frac !== null && frac !== undefined) { var q = P(at(Math.max(0, Math.min(1, frac))), r - 10); body += '<line x1="' + cx + '" y1="' + cy + '" x2="' + n1(q[0]) + '" y2="' + n1(q[1]) + '" stroke="currentColor" stroke-width="5"/>'; }
 body += '<circle cx="' + cx + '" cy="' + cy + '" r="12"/>';
-var l0 = P(A0, r - 58), l1 = P(A1, r - 58);
-body += '<text x="' + n1(l0[0]) + '" y="' + n1(l0[1]) + '" font-size="30" font-weight="700" text-anchor="start">' + loLab + '</text><text x="' + n1(l1[0]) + '" y="' + n1(l1[1]) + '" font-size="30" font-weight="700" text-anchor="end">' + hiLab + '</text>';
-return svg(400, 205, body, 'w--full h--full', 'xMidYMax meet');
+var l0 = P(A0, r - 40), l1 = P(A1, r - 40);
+body += '<text x="' + n1(l0[0]) + '" y="' + n1(l0[1]) + '" font-size="30" font-weight="700" text-anchor="middle">' + loLab + '</text><text x="' + n1(l1[0]) + '" y="' + n1(l1[1]) + '" font-size="30" font-weight="700" text-anchor="middle">' + hiLab + '</text>';
+return svg(400, 250, body, 'w--full h--full', 'xMidYMax meet');
 }
 function thermo() {
 return svg(40, 100, '<path d="M14 8 a6 6 0 0 1 12 0 v54 a16 16 0 1 1 -12 0 z" fill="none" stroke="currentColor" stroke-width="5"/><circle cx="20" cy="76" r="9"/><rect x="17.5" y="34" width="5" height="40"/>', 'h--full w--auto', 'xMidYMid meet');

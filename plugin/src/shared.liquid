@@ -11,30 +11,30 @@
  {%- comment -%} 1. dials (placeholder faces for step 1) {%- endcomment -%}
  <div class="grid grid--cols-2 gap--small h--[27cqh]">
   <div class="outline flex flex--col p--2 h--full">
-   <div class="grow w--full">{{ ui.baro.svg }}</div>
+   <div class="grow w--full value">{{ ui.baro.svg }}</div>
    <div class="flex flex--row flex--between flex--bottom w--full">
     <span class="value value--large value--tnums">{{ ui.baro.value }} <span class="label">hPa</span></span>
-    <span class="title">{{ ui.baro.name }}</span>
+    <span class="title text--bold">{{ ui.baro.name }}</span>
    </div>
   </div>
   <div class="outline flex flex--col p--2 h--full">
-   <div class="grow w--full">{{ ui.tdial.svg }}</div>
+   <div class="grow w--full value">{{ ui.tdial.svg }}</div>
    <div class="flex flex--row flex--between flex--bottom w--full">
     <span class="value value--large">{{ ui.tdial.unit }}</span>
-    <span class="title">{{ ui.tdial.name }}</span>
+    <span class="title text--bold">{{ ui.tdial.name }}</span>
    </div>
   </div>
  </div>
  {%- comment -%} 2. console: meters, temperature, rain {%- endcomment -%}
  <div class="outline flex flex--row flex--stretch-y gap--large p--4 h--[37cqh]">
   <div class="flex flex--col gap--xsmall w--[34cqw]">
-   <div class="flex flex--row gap--small h--[4cqh]">
+   <div class="flex flex--row flex--left gap--small h--[4cqh]">
     {%- for f in ui.flags %}<span class="label label--inverted">{{ f }}</span>{% endfor -%}
    </div>
    <div class="flex flex--col flex--between grow">
    {%- for m in ui.meters %}
     <div class="flex flex--row flex--center-y gap--small h--[5cqh]">
-     <span class="label text--right w--[10cqw]">{{ m.label }}</span>
+     <div class="w--[10cqw] text--right"><span class="title title--small text--bold">{{ m.label }}</span></div>
      <div class="grow h--full">{{ m.svg }}</div>
     </div>
    {%- endfor %}
@@ -43,7 +43,7 @@
   <div class="flex flex--col flex--center gap--medium grow">
    <div class="flex flex--row flex--center-y gap--medium h--[9cqh]">
     {%- if ui.icon %}<img class="image image--adaptive h--full" src="{{ ui.icon }}" alt="">{% endif %}
-    <span class="title title--large" data-clamp="1">{{ ui.cond }}</span>
+    <span class="title title--large text--bold" data-clamp="1">{{ ui.cond }}</span>
    </div>
    <div class="flex flex--row flex--center-y gap--small h--[13cqh]">
     <div class="h--[10cqh]">{{ ui.thermo }}</div>
@@ -75,10 +75,10 @@
   </div>
   {%- for d in ui.days %}
   <div class="grid grid--cols-12 gap--small h--[5cqh]">
-   <span class="col--span-1 title">{{ d.name }}</span>
+   <span class="col--span-1 title title--large text--bold">{{ d.name }}</span>
    <div class="col--span-1 h--full">{% if d.icon %}<img class="image image--adaptive h--full" src="{{ d.icon }}" alt="">{% endif %}</div>
-   <span class="col--span-1 value value--small value--tnums text--right">{{ d.lo }}</span>
-   <span class="col--span-1 value value--small value--tnums text--right">{{ d.hi }}</span>
+   <span class="col--span-1 value value--base value--tnums text--right text--bold">{{ d.lo }}</span>
+   <span class="col--span-1 value value--base value--tnums text--right text--bold">{{ d.hi }}</span>
    <div class="col--span-8 h--full">{{ d.blocks }}</div>
   </div>
   {%- endfor %}

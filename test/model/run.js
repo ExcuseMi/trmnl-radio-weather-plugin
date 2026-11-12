@@ -182,5 +182,28 @@ test('sun: the next sunrise and sunset, tomorrow flagged (owner 2026-11-12)', ()
   eq([e.riseL, e.riseTom, e.setL, e.setTom], ['07:22', true, '16:34', true], 'after sunset: both tomorrow');
 });
 
+// v2 X full view: the parts the layout places (buildView in transform.js)
+test('the X view: meters in owner order, rain calendar on a wet day, five days from tomorrow', () => {
+  const raw = fx('mixed'), M = SWModel.build(raw, {}), v = T.buildView(M, T.buildI18n('nl'), raw.daily, 'wi-moon-full');
+  eq(v.meters.map((m) => m.key), ['wind', 'humidity', 'baro']);
+  ok(v.rain && !v.dry && /<svg/.test(v.rain.cal), 'rain calendar on a wet day');
+  eq(v.days.map((d) => d.name), ['MA', 'DI', 'WO', 'DO', 'VR'], 'days start tomorrow');
+  ok((v.rain.cal.match(/<rect/g) || []).length === M.rain.to - M.rain.from + 1 || M.rain.to >= 12, 'one lit cell per rain hour');
+});
+test('the X view: a dry day shows sun times and the moon, no calendar', () => {
+  const raw = fx('mixed'), n = raw.hourly.time.length;
+  raw.hourly.precipitation_probability = Array(n).fill(0); raw.hourly.weather_code = Array(n).fill(1); raw.hourly.precipitation = Array(n).fill(0);
+  const v = T.buildView(SWModel.build(raw, {}), T.buildI18n('nl'), raw.daily, 'wi-moon-full');
+  ok(!v.rain && v.dry && /wi-moon-full/.test(v.dry.moon), 'dry block with the moon');
+});
+test('the X view: no data gives no crash and empty parts', () => {
+  const M = SWModel.build(fx('error'), {}), v = T.buildView(M, T.buildI18n('en'), null, null);
+  eq(v.ok, false); eq(v.days.length, 0);
+});
+test('segment digits: one lit polygon per segment', () => {
+  const s = T.SWSvg.digits('8.8', { ghost: false });
+  eq((s.match(/<polygon/g) || []).length, 14); ok(/<rect/.test(s), 'decimal point');
+});
+
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);
