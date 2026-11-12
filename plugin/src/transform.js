@@ -347,4 +347,4 @@ async function run(input) {
   return { model: SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), sun: sunO, moon: moonIcon(weather && weather.current && weather.current.time), pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius' };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, buildI18n: buildI18n, normaliseLocale: normaliseLocale };
+if (typeof module !== 'undefined') module.exports = { run: run, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon };
