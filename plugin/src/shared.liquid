@@ -545,6 +545,7 @@ zoneBands: [[0, 0.25, 'solid'], [0.25, 0.5, 'outline'], [0.5, 0.75, 'solid'], [0
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = bits >= 2 && !darkMode;
+var SHD = bits === 2 && !darkMode && !color ? fillOf('gray-30') : null, SO = Mx(3, u(3));   // owner 2026-11-12: drop shadows on the OG 2-bit light
 var GLASSD = LCD ? paper : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25') : (bits === 2 ? (darkMode ? paper : fillOf('gray-15')) : paper);
 var GLOW = LCD || bits === 1 ? ink : (darkMode ? ink : paper);
 var GHOSTD = null;
@@ -642,6 +643,7 @@ mk('rect', { x: R(x + d), y: R(y + d), width: R(w - 2 * d), height: R(h - 2 * d)
 return d;
 }
 function frame(g, x, y, w, h, fill, onGlass) {
+if (SHD) { w -= SO; h -= SO; rrect(g, x + SO, y + SO, w, h, u(8), SHD).setAttribute('data-sw-shadow', 1); }
 rrect(g, x, y, w, h, u(8), BSTR);
 var b = { fx: x + EI, fy: y + EI, fw: w - 2 * EI, fh: h - 2 * EI };
 rrect(g, b.fx, b.fy, b.fw, b.fh, u(4), bits === 1 && !darkMode && fill === paper ? dith(paper, ink, 1 / 16) : fill);
@@ -821,9 +823,10 @@ for (var k = 0; k < NS; k++) {
 var sx = x0 + k * (segW + sg), on = k < lit, sy = R(cy - segH / 2);
 var zi = r.zones ? ((k + 0.5) / NS >= r.zones[1] ? 2 : ((k + 0.5) / NS >= r.zones[0] ? 1 : 0)) : 0, zc = ZC[zi];
 if (on && !chkZ[zi] && !(color && bits === 1)) { chkZ[zi] = 1; var lf = lumOf(zc), lgd = lumOf(GLASSD); if (lf !== null && lgd !== null && Math.abs(lf - lgd) < (bits === 2 ? 0.5 : 0.4)) (debug.lowContrast = debug.lowContrast || []).push({ row: i, zone: zi, fill: String(zc), ground: String(GLASSD) }); }
+if (on && SHD) mk('rect', { x: R(sx) + SO, y: sy + SO, width: R(segW), height: segH, fill: SHD, 'data-sw-shadow': 1 }, cg);
 if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc, 'data-sw-rseg': hg ? null : 'lit', 'data-sw-zone': hg ? null : zi }, hg || cg); }, false, cg);
 if (on && zi === 2 && bits === 4 && !LCD) glowDigits((hg) => { if (hg) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc }, hg); });
-else if (bits <= 2) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
+else if (bits <= 2) { if (SHD && !on) mk('rect', { x: R(sx) + SO, y: sy + SO, width: R(segW), height: segH, fill: SHD, 'data-sw-shadow': 1 }, cg); mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: SHD && !on ? paper : 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg); }
 else if (DIMW && !on) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
 if (LCD) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: BMUT, 'stroke-width': Mx(1, u(1)) }, cg);
 }
@@ -1001,7 +1004,7 @@ if (lo === null) { lo = 0; hi = 10; }
 var st = F_ ? 10 : 5, a0 = Fl(lo / st) * st - (lo - Fl(lo / st) * st < 1 ? st : 0), b0 = Math.ceil(hi / st) * st + (Math.ceil(hi / st) * st - hi < 1 ? st : 0);
 var glass = bits >= 2, bg = glass ? GLASSD : paper, fg = glass ? GLOW : ink, g = mk('g', { 'data-sw-dial': 1 }, root);
 var fb = frame(g, x, y, w - u(3), h - u(3), bg, glass && !LCD); x = fb.fx + u(4); y = fb.fy; w = fb.fw - u(8); h = fb.fh;
-var dnW = days.reduce((m2, d) => Mx(m2, D.mW(dayName(d), D.L)), 0), labW = dnW + D.L.size * 3 + u(16), x0 = x + labW, x1 = x + w - u(14) - D.mW('-88°', D.t2), xOf = (v) => x0 + (v - a0) / (b0 - a0) * (x1 - x0);
+var dnW = days.reduce((m2, d) => Mx(m2, D.mW(dayName(d), D.L)), 0), nwC = D.mW('-88°', D.t2), cLo = x + u(16) + dnW + D.L.size * 3 + nwC, cHi = cLo + u(12) + nwC, labW = cHi - x + u(16), x0 = x + labW, x1 = x + w - u(10) - D.mW('-88°', F(Mx(9, D.t2.size * 0.85), '700')) / 2, xOf = (v) => x0 + (v - a0) / (b0 - a0) * (x1 - x0);
 var SC2 = F(Mx(9, D.t2.size * 0.85), '700'), top = y + u(14) + SC2.size, rows = days.length, rh = (y + h - u(8) - top) / rows;
 var AXC = !glass || LCD ? (bits === 1 ? ink : fillOf('gray-20')) : fg, wLab = D.mW('-88\u00b0', SC2), kSc = 1, bw = Mx(2, u(2)), GRID = glass && !LCD ? DIMW : fillOf('gray-60');
 while (kSc < 6 && xOf(a0 + kSc * st) - xOf(a0) < wLab * 1.5) kSc++;
@@ -1020,17 +1023,10 @@ if (d.hi === null || d.lo === null) return;
 var PILL = !glass || LCD, xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = PILL ? Mx(6, R(rh * 0.5)) : Mx(3, u(5));
 var BF = PILL ? (d === M.days[0] ? (bits === 1 ? ink : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))) : fg, bs = st / 5, bgap = Mx(1, u(2));
 while (bs < st && xOf(a0 + bs) - xOf(a0) < u(6)) bs *= 2;
-if (PILL) { var bpx = xOf(a0 + bs) - xOf(a0), k0 = Math.round((d.lo - a0) / bs), k1 = Mx(k0 + 1, Math.round((d.hi - a0) / bs)); xa = xOf(a0 + k0 * bs); xb = xOf(a0 + k1 * bs); for (var bk = k0; bk < k1; bk++) mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2), y: R(cy - th / 2), width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: BF, 'data-sw-band': i }, g); }
+if (PILL) { var bpx = xOf(a0 + bs) - xOf(a0), k0 = Math.round((d.lo - a0) / bs), k1 = Mx(k0 + 1, Math.round((d.hi - a0) / bs)); xa = xOf(a0 + k0 * bs); xb = xOf(a0 + k1 * bs); for (var bk = k0; bk < k1; bk++) { if (SHD) mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2) + SO, y: R(cy - th / 2) + SO, width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: SHD, 'data-sw-shadow': 1 }, g); mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2), y: R(cy - th / 2), width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: BF, 'data-sw-band': i }, g); } }
 else mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': i }, g);
-var knock = (str, xt, endA, fnt) => { var kw = D.mW(str, fnt); mk('rect', { x: R((endA ? xt - kw : xt) - u(3)), y: R(Mx(top + 1, cy - fnt.size * 0.8 - u(1))), width: R(kw + 2 * u(3)), height: R(fnt.size * 1.2 + u(2) - Mx(0, top + 1 - (cy - fnt.size * 0.8 - u(1)))), fill: bg }, g); };
-var nwLo = D.mW(tStr(d.lo), D.t2), roomLo = xa - x0 - u(8), tLo = nwLo > roomLo ? F(Mx(8, D.t2.size * Mx(0.55, roomLo / nwLo)), D.t2.weight, 1) : D.t2;
-var pxv = M.now.temp !== null ? R(xOf(M.now.temp)) : null, xLo = xa - u(8), xHi = xb + u(8), nwHi = D.mW(tStr(d.hi), D.t2), nwLo2 = D.mW(tStr(d.lo), tLo);
-if (pxv !== null && pxv >= xLo - nwLo2 - u(6) && pxv <= xLo + u(6)) xLo = pxv - u(6);
-if (pxv !== null && pxv >= xHi - u(6) && pxv <= xHi + nwHi + u(6)) xHi = pxv + u(6);
-knock(tStr(d.lo), xLo, true, tLo);
-text(g, tStr(d.lo), xLo, cy + tLo.size * 0.36, tLo, { anchor: 'end', fill: fg });
-knock(tStr(d.hi), xHi, false, D.t2);
-text(g, tStr(d.hi), xHi, cy + D.t2.size * 0.36, D.t2, { fill: fg });
+text(g, tStr(d.lo), cLo, cy + D.t2.size * 0.36, D.t2, { anchor: 'end', fill: fg, 'data-sw-lo': i });
+text(g, tStr(d.hi), cHi, cy + D.t2.size * 0.36, D.t2, { anchor: 'end', fill: fg, 'data-sw-hi': i });
 });
 if (M.now.temp !== null) { var px2 = R(xOf(M.now.temp)), PC2 = RED !== ink ? RED : fg;
 // owner 2026-11-12: the pointer is drawn last, so no bar or knockout covers it
