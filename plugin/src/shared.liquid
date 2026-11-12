@@ -58,7 +58,7 @@
 {%- capture c_temp %}
   <div class="flex flex--col flex--center gap--medium grow">
    <div class="flex flex--row flex--center-y gap--medium h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]">
-    {%- if ui.icon %}<img class="image image--adaptive h--full" src="{{ ui.icon }}" alt="">{% endif %}
+    {%- if ui.icon %}<img class="image image--adaptive h--full" src="{{ ui.icon }}" alt="" data-sw-icon>{% endif %}
     <span class="title title--base text--bold" data-clamp="2">{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]" data-sw-part="rule"></div>
@@ -76,8 +76,8 @@
   <div class="flex flex--col flex--center gap--xsmall lg:gap--small {{ rc_w }}">
    {%- if ui.rain %}
    <div class="flex {{ ru_cls }} flex--center gap--xsmall lg:gap--small w--full shrink-0" data-sw-unit="rain">
-    <img class="image image--adaptive {{ ri_md }}" src="{{ ui.rain.icon }}" alt="">
-    <img class="image image--adaptive {{ ri_lg }} h--[{{ 8 | times: hl | round | at_most: 100 }}cqh] shrink-0" src="{{ ui.rain.icon }}" alt="">
+    <img class="image image--adaptive {{ ri_md }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
+    <img class="image image--adaptive {{ ri_lg }} h--[{{ 8 | times: hl | round | at_most: 100 }}cqh] shrink-0" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
     <div class="w--full lg:w--[{{ rgw_l | times: wl | round | at_most: 100 }}cqw]{{ rg_p }} lg:portrait:h--[6cqh] h--[{{ 12 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | round | at_most: 100 }}cqh] shrink-0" data-sw-part="rain"></div>
    </div>
    <div class="w--full h--[{{ 1 | times: hm | round | at_most: 100 }}cqh] shrink-0{{ sep_cls }}" data-sw-part="rule" data-sw-sep="rain-sun"></div>
@@ -87,8 +87,8 @@
     <div class="h--[{% if ui.rain %}{{ 5 | times: hm | round | at_most: 100 }}{% else %}{{ 11 | times: hm | round | at_most: 100 }}{% endif %}cqh] lg:hidden" data-sw-part="moon"></div>
     <div class="hidden lg:block h--[{% if ui.rain %}{{ 11 | times: mh_l | round | at_most: 100 }}{% else %}{{ 13 | times: mh_l | round | at_most: 100 }}{% endif %}cqh] lg:portrait:h--[4cqh]" data-sw-part="moon"></div>
     <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
-     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.riseIcon }}" alt=""><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.rise }}</span></div>
-     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.setIcon }}" alt=""><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.set }}</span></div>
+     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.riseIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.rise }}</span></div>
+     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.setIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.set }}</span></div>
     </div>
    </div>
   </div>
@@ -195,7 +195,7 @@ var w = ch === '-' ? 46 : W, on = GLYPH[ch] || '', sh = shapes(x, w, HH, T);
 x += w + (ch === '-' ? G * 0.3 : G);
 }
 var vw = Math.max(1, x - G);
-return svg(H * vw / HH, H, body, '0 0 ' + vw + ' ' + HH);
+return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
 }
 // Block meter (tuner SIGNAL): n cells, frac lit; lit cells drop a lighter shadow.
 function meter(frac, W, H, n) {
@@ -205,7 +205,7 @@ for (var i = 0; i < n; i++) {
 var x = i * cw + gp / 2, w = cw - gp;
 if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
 }
-return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')), off) + g('text--gray-40', on));
+return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')), off) + g('text--gray-40', glow(on, GPX)));
 }
 // Days strip row: rules every major step (dark grey), the low to high blocks (one per degree, shadowed), the now line.
 function day(d, sc, W, H) {
@@ -243,7 +243,7 @@ function rain(hours, W, H) {
 var C = 6, cw = W / C, rh = H / 2, fs = Math.min(rh * 0.62, cw * 0.48), body = '';
 hours.slice(0, 12).forEach((q, i) => {
 var x = (i % C) * cw, y = Math.floor(i / C) * rh;
-if (q.wet) body += rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22);
+if (q.wet) body += glow(rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22), GPX);
 var tx = text(x + cw / 2, y + rh / 2, q.h, fs, 'middle', ' dominant-baseline="central"'); body += q.wet ? g('text--white', tx) : tx;
 });
 return svg(W, H, body);
@@ -261,7 +261,7 @@ if (p == null || isNaN(p)) return '';
 var r = H * 0.44, cx = H / 2, f = (1 - Math.cos(2 * Math.PI * p)) / 2, lit = '';
 if (f > 0.01) lit = '<path d="' + moonLit(p, cx, cx, r) + '" data-sw-moon="lit"/>';
 var limb = g('text--gray-45', '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.5, H * 0.03)) + '"/>');
-return svg(H, H, (API.mode && API.mode.dark ? lit : g('text--gray-45', lit)) + limb);
+return svg(H, H, (API.mode && API.mode.dark ? glow(lit, GPX) : g('text--gray-45', lit)) + limb);
 }
 function person(W, H) {
 return svg(H * 0.4, H, '<circle cx="20" cy="12" r="9"/><rect x="9" y="25" width="22" height="38" rx="4"/><rect x="2" y="27" width="6" height="32" rx="3"/><rect x="32" y="27" width="6" height="32" rx="3"/><rect x="10" y="60" width="8" height="38" rx="3"/><rect x="22" y="60" width="8" height="38" rx="3"/>', '0 0 40 100');
@@ -283,14 +283,22 @@ out += '<ellipse cx="' + n1(cx) + '" cy="' + n1(cy) + '" rx="' + n1(rad * st[1])
 });
 return '<defs>' + defs + '</defs>' + out;
 }
-function glow(s, H) {
+// Dark-mode glow (owner 2026-11-12, as live): lit things get a halo drawn UNDER them inside their own SVG, so it never
+// covers another part. sd = blur in user units (about 4 screen px). 4-bit: Gaussian halo at alpha 0.75; 2-bit: a crisp
+// dilated halo in the dim grey; 1-bit and light mode: nothing.
+function glow(s, sd) {
 var m = API.mode || {};
-if (!m.dark || (m.bits || 4) < 2) return s;
+if (!m.dark || (m.bits || 4) < 2 || !s) return s;
 var id = 'swgl' + (K++), f = m.bits === 2
-? '<feMorphology in="SourceAlpha" operator="dilate" radius="' + n1(Math.max(1, H * 0.006)) + '"/><feFlood flood-color="' + ((API.paint && (API.paint('gray-45') || {}).color) || '#777') + '"/><feComposite in2="SourceAlpha" operator="in"/>'
-: '<feGaussianBlur stdDeviation="' + n1(Math.max(2, H * 0.012)) + '"/><feComponentTransfer><feFuncA type="linear" slope="0.75"/></feComponentTransfer>';
-f = m.bits === 2 ? f.replace('<feComposite in2="SourceAlpha" operator="in"/>', '<feComposite operator="in" in2="d"/>').replace('operator="dilate"', 'operator="dilate" result="d"') : f;
-return '<defs><filter id="' + id + '" x="-20%" y="-20%" width="140%" height="140%">' + f + '</filter></defs><g filter="url(#' + id + ')" data-sw-glow="' + m.bits + '">' + s + '</g>' + s;
+? '<feMorphology in="SourceAlpha" operator="dilate" radius="' + n1(Math.max(0.5, sd / 2)) + '" result="d"/><feFlood flood-color="' + ((API.paint && (API.paint('gray-45') || {}).color) || '#777') + '"/><feComposite operator="in" in2="d"/>'
+: '<feGaussianBlur stdDeviation="' + n1(sd) + '"/><feComponentTransfer><feFuncA type="linear" slope="0.75"/></feComponentTransfer>';
+return '<defs><filter id="' + id + '" x="-30%" y="-30%" width="160%" height="160%">' + f + '</filter></defs><g filter="url(#' + id + ')" data-sw-glow="' + m.bits + '">' + s + '</g>' + s;
+}
+var GPX = 4;   // halo blur in screen px
+// Icon as SVG: the image flooded with the ink colour, glowing in dark mode (the page swaps dark-mode <img> icons for it).
+function icon(href, W, H) {
+var id = 'swink' + (K++);
+return svg(W, H, '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>' + glow('<image href="' + href + '" x="0" y="0" width="' + n1(W) + '" height="' + n1(H) + '" filter="url(#' + id + ')"/>', GPX));
 }
 function dial(D, W, H, baro) {
 var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, py = H * 0.88, bw = H * 0.045, mh = H * 0.05;
@@ -307,9 +315,9 @@ var zro = r - H * 0.085, zri = zro - H * 0.05, zg = 0.012, isz = r * 0.34;
 var a0 = at(z[0] + zg, zri), a1 = at(z[1] - zg, zri), d = arc(zro, z[0] + zg, z[1] - zg) + ' L' + n1(a1[0]) + ' ' + n1(a1[1]) + ' A' + n1(zri) + ' ' + n1(zri) + ' 0 0 0 ' + n1(a0[0]) + ' ' + n1(a0[1]) + ' Z';
 body += (z[2] ? g('text--gray-45', '<path d="' + d + '"/>') : '') + path(d, Math.max(1, lw * 0.5));
 });
-(D.icons || []).forEach((u, i) => { var q = at((2 * i + 1) / 8, zri - isz * 0.62); body += glow('<image href="' + u + '" x="' + n1(q[0] - isz / 2) + '" y="' + n1(q[1] - isz / 2) + '" width="' + n1(isz) + '" height="' + n1(isz) + '" filter="url(#' + id + ')"/>', H); });
+(D.icons || []).forEach((u, i) => { var q = at((2 * i + 1) / 8, zri - isz * 0.62); body += glow('<image href="' + u + '" x="' + n1(q[0] - isz / 2) + '" y="' + n1(q[1] - isz / 2) + '" width="' + n1(isz) + '" height="' + n1(isz) + '" filter="url(#' + id + ')"/>', Math.max(2, H * 0.012)); });
 }
-body += glow(path(arc(r, 0, 1), lw), H);
+body += glow(path(arc(r, 0, 1), lw), Math.max(2, H * 0.012));
 var step = baro ? 5 : 1, major = baro ? 20 : D.step, labs = '';
 for (var v = D.a; v <= D.b + 1e-9; v += step) {
 var mj = Math.abs((v - D.a) / major - Math.round((v - D.a) / major)) < 1e-6, p0 = at(F(v), r), p1 = at(F(v), r - (mj ? H * 0.07 : H * 0.035));
@@ -332,7 +340,7 @@ var np = (ox, oy) => { var b = [cx + ox, py + oy], t = [b[0] + ux * tipR, b[1] +
 return [[t[0] + nx * wt / 2, t[1] + ny * wt / 2], [b[0] + nx * wb / 2, b[1] + ny * wb / 2], [k[0] + nx * wb * 1.6, k[1] + ny * wb * 1.6], [k[0] - nx * wb * 1.6, k[1] - ny * wb * 1.6], [b[0] - nx * wb / 2, b[1] - ny * wb / 2], [t[0] - nx * wt / 2, t[1] - ny * wt / 2]]; };
 var hr = Math.max(6, H * 0.035);
 body += g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
-body += glow(poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '"/>', H) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>');
+body += glow(poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>');
 }
 return svg(W, H, body);
 }
@@ -354,10 +362,11 @@ case 'person': return person(W, H);
 case 'moon': return moon(SW.sun && SW.sun.phase, H);
 case 'baro': return dial(SW.baro, W, H, true);
 case 'tdial': return dial(SW.tdial, W, H, false);
+case 'icon': return icon(API.src, W, H);
 }
 return '';
 }
-Object.assign(API, { part: part, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit });
+Object.assign(API, { part: part, glow: glow, icon: icon, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit });
 return API;
 })();
 // ==== DRAW_END ====
@@ -397,6 +406,16 @@ return API;
         el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.round(r.width), Math.round(r.height));
         swAlign();   // every repaint (the Framework may rebuild or refit the page after the first one) realigns the divider
       });
+    });
+    // Dark mode, 2-bit and up: the lit icons glow (owner 2026-11-12). An <img> cannot carry an SVG halo, so each marked
+    // icon becomes the same-sized SVG from SWDraw.icon once laid out; light mode and 1-bit keep the plain image.
+    var scr = (document.querySelector('.screen') || document.body).classList;
+    if (scr.contains('screen--dark-mode') && !scr.contains('screen--1bit')) document.querySelectorAll('img[data-sw-icon]').forEach(function (im) {
+      function swap() { var r = im.getBoundingClientRect(), k = (im.offsetWidth && r.width / im.offsetWidth) || 1; if (!r.width || !r.height) return;
+        SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: im.parentElement }); }; SWDraw.mode = { dark: true, bits: scr.contains('screen--2bit') ? 2 : 4 }; SWDraw.src = im.src;
+        var w = document.createElement('span'); w.setAttribute('data-sw-part', 'icon'); w.className = 'block shrink-0'; w.innerHTML = SWDraw.part(SW, 'icon', 0, Math.round(r.width / k), Math.round(r.height / k));
+        var sv = w.firstChild; sv.setAttribute('class', 'block'); sv.setAttribute('width', Math.round(r.width / k)); sv.setAttribute('height', Math.round(r.height / k)); im.replaceWith(w); }
+      if (im.complete) swap(); else im.addEventListener('load', swap);
     });
     swAlign();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(swAlign);   // the unit's ink width needs the real font

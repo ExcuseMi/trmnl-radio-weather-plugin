@@ -253,6 +253,16 @@ test('dial light: backlight in light mode (2-bit up), glow in dark (blur 4-bit, 
   ok(!/data-sw-glow|data-sw-backlight/.test(t({ dark: true, bits: 1 })), '1-bit dark: nothing');
   ok(/<circle[^>]*\/><\/g><\/svg>$/.test(t({ dark: true, bits: 4 })), 'needle hub still last');
 });
+test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none in light mode or 1-bit (owner 2026-11-12)', () => {
+  const SWv = { temp: '12', feels: '9', meters: [{ frac: 0.5 }], rain: { hours: [{ h: '14', wet: true }, { h: '15', wet: false }] }, sun: { phase: 0.3 } };
+  const parts = (m) => { D.mode = m; D.src = 'x.svg'; const r = ['temp', 'feels', 'meter', 'rain', 'moon', 'icon'].map((k) => [k, D.part(SWv, k, 0, 200, 60)]); D.mode = null; return r; };
+  parts({ dark: true, bits: 4 }).forEach(([k, s]) => ok(/<g filter="url\(#swgl\d+\)" data-sw-glow="4">/.test(s) && /feGaussianBlur stdDeviation/.test(s) && /slope="0.75"/.test(s), k + ': dark 4-bit halo'));
+  parts({ dark: true, bits: 2 }).forEach(([k, s]) => ok(/data-sw-glow="2"/.test(s) && /feMorphology/.test(s) && !/feGaussianBlur/.test(s), k + ': dark 2-bit crisp halo'));
+  [{ dark: false, bits: 4 }, { dark: false, bits: 2 }, { dark: true, bits: 1 }, { dark: false, bits: 1 }].forEach((m) => parts(m).forEach(([k, s]) => ok(!/data-sw-glow|swgl/.test(s), k + ': no glow ' + JSON.stringify(m))));
+  D.mode = { dark: true, bits: 4 }; const r = D.rain([{ h: '14', wet: true }], 120, 40); D.mode = null;
+  ok(r.indexOf('data-sw-glow') < r.lastIndexOf('<rect'), 'halo under the lit cell, not over it');
+  ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 5, 'weather, rain (two sizes) and sun icons marked to glow');
+});
 test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 segments, 5 days', () => {
   ok(/<div class="hidden lg:block h--\[30cqh\]"><div class="grid grid--cols-2/.test(sh), 'dials only on lg');
   ok(/lg:hidden" data-sw-part="meter" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="meter" data-sw-n="10"/.test(sh), 'meter copies per size');
