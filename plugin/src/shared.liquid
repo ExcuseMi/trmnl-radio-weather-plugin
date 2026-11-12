@@ -545,10 +545,10 @@ zoneBands: [[0, 0.25, 'solid'], [0.25, 0.5, 'outline'], [0.5, 0.75, 'solid'], [0
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = bits >= 2 && !darkMode;
-var GLASSD = LCD ? (bits === 2 ? fillOf('gray-60') : paper) : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25') : (bits === 2 ? (darkMode ? paper : fillOf('gray-15')) : paper);
+var GLASSD = LCD ? paper : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25') : (bits === 2 ? (darkMode ? paper : fillOf('gray-15')) : paper);
 var GLOW = LCD || bits === 1 ? ink : (darkMode ? ink : paper);
 var GHOSTD = null;
-var DIMW = bits === 4 ? fillOf(LCD ? 'gray-75' : (darkMode ? 'gray-55' : 'gray-45')) : (bits === 2 ? fillOf(LCD ? 'gray-35' : 'gray-60') : null);
+var DIMW = bits === 4 ? fillOf(LCD ? 'gray-75' : (darkMode ? 'gray-55' : 'gray-45')) : (bits === 2 ? fillOf('gray-60') : null);
 var lightPanel = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !m || (+m[1] + +m[2] + +m[3]) > 384; })();
 var GREYGLOW = bits === 4 && !color && lightPanel, GLOWD = bits === 4 && !color && darkMode;
 var DIGIT = AMBER ? AMBER : GLOW;
@@ -1015,11 +1015,11 @@ var cy = top + (i + 0.5) * rh;
 var dnT = text(g, dayName(d), x + u(10), cy + D.L.size * 0.36, D.L, { fill: fg, ls: R(D.L.size * 0.08) });
 if (d === M.days[0]) mk('rect', { x: x + u(10), y: R(cy + D.L.size * 0.5), width: R(width(dnT)), height: Mx(1, u(1)), fill: fg, 'data-sw-today': 1 }, g);
 ICON_INK = fg; iconFit(g, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz); ICON_INK = null;
-mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: glass ? DIMW : fillOf('gray-60') }, g);
+if (glass && !LCD) mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: DIMW }, g);
 if (d.hi === null || d.lo === null) return;
-var xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = Mx(3, u(5));
-mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': i }, g);
-var knock = (str, xt, endA, fnt) => { var kw = D.mW(str, fnt); mk('rect', { x: R((endA ? xt - kw : xt) - u(3)), y: R(cy - fnt.size * 0.8 - u(1)), width: R(kw + 2 * u(3)), height: R(fnt.size * 1.2 + u(2)), fill: bg }, g); };
+var PILL = !glass || LCD, xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = PILL ? Mx(6, R(rh * 0.5)) : Mx(3, u(5));
+mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, rx: PILL ? R(th / 2) : 0, fill: PILL ? (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-40')) : fg, 'data-sw-band': i }, g);
+var knock = (str, xt, endA, fnt) => { var kw = D.mW(str, fnt); mk('rect', { x: R((endA ? xt - kw : xt) - u(3)), y: R(Mx(top + 1, cy - fnt.size * 0.8 - u(1))), width: R(kw + 2 * u(3)), height: R(fnt.size * 1.2 + u(2) - Mx(0, top + 1 - (cy - fnt.size * 0.8 - u(1)))), fill: bg }, g); };
 var nwLo = D.mW(tStr(d.lo), D.t2), roomLo = xa - x0 - u(8), tLo = nwLo > roomLo ? F(Mx(8, D.t2.size * Mx(0.55, roomLo / nwLo)), D.t2.weight, 1) : D.t2;
 var pxv = M.now.temp !== null ? R(xOf(M.now.temp)) : null, xLo = xa - u(8), xHi = xb + u(8), nwHi = D.mW(tStr(d.hi), D.t2), nwLo2 = D.mW(tStr(d.lo), tLo);
 if (pxv !== null && pxv >= xLo - nwLo2 - u(6) && pxv <= xLo + u(6)) xLo = pxv - u(6);
