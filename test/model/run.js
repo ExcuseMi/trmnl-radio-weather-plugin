@@ -259,7 +259,7 @@ test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 s
   D.mode = { bits: 1 }; ok(/<\/g><g><rect/.test(D.meter(0, 200, 30, 5)), '1-bit: unlit cells drawn in full colour'); D.mode = null;
   const cells = (n) => (D.meter(0, 200, 30, n).match(/<rect/g) || []).length;
   eq([cells(5), cells(10)], [5, 10]);
-  D.mode = { bits: 2 }; ok(/text--gray-45/.test(D.meter(0, 200, 30, 5)), '2-bit: unlit cells dark enough to show'); D.mode = null;
+  D.mode = { bits: 2 }; ok(/text--gray-30/.test(D.meter(0, 200, 30, 5)), '2-bit: unlit cells dark enough to show (native dark grey)'); D.mode = null;
 });
 test('rain unit: icon left of the grid on every size (owner 2026-11-12, later decision)', () => {
   const u = sh.indexOf('data-sw-unit="rain"'), end = sh.indexOf('data-sw-part="rain"', u);
