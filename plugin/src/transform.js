@@ -328,6 +328,12 @@ var WI_MAP = { clear: ['wi-day-sunny', 'wi-night-clear'], partly: ['wi-day-cloud
 fog: ['wi-day-fog', 'wi-night-fog'], drizzle: ['wi-day-sprinkle', 'wi-night-alt-sprinkle'], rain: ['wi-day-rain', 'wi-night-alt-rain'], heavy: ['wi-rain', 'wi-rain'],
 sleet: ['wi-day-sleet', 'wi-night-alt-sleet'], snow: ['wi-day-snow', 'wi-night-alt-snow'], storm: ['wi-day-thunderstorm', 'wi-night-alt-thunderstorm'], hail: ['wi-day-hail', 'wi-night-alt-hail'] };
 var WI_BASE = 'https://trmnl.com/images/plugins/weather/';
+// Drawn ink of each icon in its 30x30 box (top, height), measured with getBBox (2026-11-12): the condition icon is sized by its ink.
+var WI_INK = { 'wi-cloudy': [7.3, 14.55], 'wi-day-cloudy': [0.91, 20.94], 'wi-day-fog': [0.91, 24.08], 'wi-day-hail': [0.81, 26.72], 'wi-day-rain': [0.86, 26.83],
+'wi-day-sleet': [0.86, 27.13], 'wi-day-snow': [0.94, 26.44], 'wi-day-sprinkle': [0.94, 23.11], 'wi-day-sunny': [4, 21.26], 'wi-day-thunderstorm': [0.87, 26.63],
+'wi-night-alt-cloudy': [5.36, 16.49], 'wi-night-alt-hail': [5.34, 22.18], 'wi-night-alt-rain': [5.3, 22.32], 'wi-night-alt-sleet': [5.4, 22.62], 'wi-night-alt-snow': [5.33, 22.12],
+'wi-night-alt-sprinkle': [5.35, 18.74], 'wi-night-alt-thunderstorm': [5.29, 22.2], 'wi-night-clear': [7.38, 14.2], 'wi-night-fog': [5.27, 19.56], 'wi-rain': [7.44, 20.06] };
+function wiInk(kind, isDay) { var n = WI_MAP[kind], k = n && WI_INK[n[isDay === false ? 1 : 0]]; return k ? (k[0] / 30).toFixed(3) + ',' + (k[1] / 30).toFixed(3) : '0,1'; }
 function wiUrl(kind, isDay) { var n = WI_MAP[kind]; return n ? WI_BASE + n[isDay === false ? 1 : 0] + '.svg' : null; }
 function dayNames(dates, loc) {
 return dates.map((iso) => {
@@ -374,7 +380,7 @@ var ps = (M.hours || []).slice(0, 24).map((q) => q.pr).filter((q) => q !== null 
 var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg', phase: phase == null ? null : phase };
 return {
 ok: M.ok, flags: flags, meters: meters,
-cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day),
+cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
 temp: tStr, unit: deg + M.unit, feels: feelsOn ? fmt(n.feels) : null,
 rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)) } : null,
 sun: sun, dry: wetIn12 ? null : sun,

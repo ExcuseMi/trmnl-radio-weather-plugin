@@ -63,7 +63,7 @@
 {%- capture c_temp %}
   <div class="flex flex--col flex--center gap--medium grow">
    <div class="flex flex--row flex--center-y gap--medium h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]">
-    {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-icon></span>{% endif %}
+    {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
     <span class="title title--base text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
@@ -83,7 +83,7 @@
   {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.75 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}
   {%- assign ib_m = cal_m %}{% if stk %}{% assign ib_m = rc_m | times: 0.7 | round %}{% endif %}
   {%- capture ib_cls %}aspect--1/1 h--[{{ ib_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[3cqh] shrink-0{% endcapture %}
-  <div class="flex flex--col flex--center gap--xsmall lg:gap--small {{ rc_w }}">
+  <div class="flex flex--col flex--center gap--xsmall lg:gap--small shrink-0 {{ rc_w }}">
    {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small">
    <div class="flex {{ ru_cls }} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full pr--1" data-sw-unit="rain">
     <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
@@ -434,8 +434,8 @@ return API;
   // the person, as tall as the drawn digits and centred on them. Measured on the ink, so it needs the page.
   function ink(svgEl) { var r = svgEl.getBoundingClientRect(), vb = svgEl.viewBox.baseVal, b = svgEl.getBBox(), kx = r.width / (vb.width || r.width), ky = r.height / (vb.height || r.height);
     return { l: r.left + (b.x - vb.x) * kx, r: r.left + (b.x - vb.x + b.width) * kx, t: r.top + (b.y - vb.y) * ky, h: b.height * ky }; }
-  // Weather icon next to the condition (owner 2026-11-12): one line: as tall as the capitals, centred on them; two lines:
-  // as tall as the text block, centred on it. Measured on the real font, so it needs the page.
+  // Weather icon next to the condition (owner 2026-11-12, revised): its drawn ink about twice the cap height (the label's
+  // line), centred on the capitals; two lines: the block (first cap top to last baseline, plus one cap), centred on it. Measured on the real font, so it needs the page.
   function swCond(cx) {
     document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
       var ic = sp.parentElement.firstElementChild; if (!ic || ic === sp) return;
@@ -443,13 +443,19 @@ return API;
       var k = (sp.offsetWidth && sb.width / sp.offsetWidth) || 1, cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
       function size(v) { ic.style.setProperty('height', v.toFixed(1) + 'px', 'important'); ic.style.setProperty('width', v.toFixed(1) + 'px', 'important'); }
       size(cx.measureText('H').actualBoundingBoxAscent); ic.style.transform = '';   // the smallest icon first: does the label fit on one line?
+      var n0 = 0, h, mid;
+      for (var pass = 0; pass < 3; pass++) {   // a bigger icon can wrap the label: size again for the new line count
       var rg = document.createRange(); rg.selectNodeContents(sp); var lr = [].filter.call(rg.getClientRects(), function (q) { return q.width > 0; }), tops = [];
       lr.forEach(function (q) { if (!tops.some(function (t) { return Math.abs(t - q.top) < 2; })) tops.push(q.top); });
       var m = cx.measureText('H'), cap = m.actualBoundingBoxAscent, fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent, lh = parseFloat(cs.lineHeight) || (fa + fd);
-      var first = lr[0] || sb, base = first.top / k + (first.height / k - (fa + fd)) / 2 + fa, h, mid;
-      if (tops.length <= 1) { h = cap; mid = base - cap / 2; }
-      else { var last = lr[lr.length - 1], lb = last.top / k + (last.height / k - (fa + fd)) / 2 + fa; h = lb - (base - cap); mid = (lb + base - cap) / 2; }
+      var first = lr[0] || sb, base = first.top / k + (first.height / k - (fa + fd)) / 2 + fa;
+      if (tops.length <= 1) { h = 2 * cap; mid = base - cap / 2; }
+      else { var last = lr[lr.length - 1], lb = last.top / k + (last.height / k - (fa + fd)) / 2 + fa; h = lb - (base - cap) + cap; mid = (lb + base - cap) / 2; }
+      var ik = (ic.querySelector('[data-sw-ink]') || ic).getAttribute('data-sw-ink') || '0,1', iy = +ik.split(',')[0], ih = +ik.split(',')[1] || 1, ink = h;
+      h = ink / ih; mid += (0.5 - iy - ih / 2) * h;   // the box so its ink is the target height, moved so the ink centre sits on mid
       size(h);
+      if (tops.length === n0) break; n0 = tops.length;
+      }
       var sv = ic.querySelector('svg'); if (sv) { sv.setAttribute('width', h.toFixed(1)); sv.setAttribute('height', h.toFixed(1)); }
       var ib = ic.getBoundingClientRect(); ic.style.transform = 'translateY(' + (mid - (ib.top + ib.height / 2) / k).toFixed(1) + 'px)';
       ic.setAttribute('data-sw-condicon', tops.length + ',' + h.toFixed(1) + ',' + mid.toFixed(1));
@@ -501,7 +507,7 @@ return API;
     if (scr.contains('screen--dark-mode') && !scr.contains('screen--1bit')) document.querySelectorAll('img[data-sw-icon]').forEach(function (im) {
       function swap() { var r = im.getBoundingClientRect(), k = (im.offsetWidth && r.width / im.offsetWidth) || 1; if (!r.width || !r.height) return;
         SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: im.parentElement }); }; SWDraw.mode = { dark: true, bits: scr.contains('screen--2bit') ? 2 : 4 }; SWDraw.src = im.src;
-        var w = document.createElement('span'); w.setAttribute('data-sw-part', 'icon'); w.className = 'block shrink-0'; w.innerHTML = SWDraw.part(SW, 'icon', 0, Math.round(r.width / k), Math.round(r.height / k));
+        var w = document.createElement('span'); w.setAttribute('data-sw-part', 'icon'); if (im.getAttribute('data-sw-ink')) w.setAttribute('data-sw-ink', im.getAttribute('data-sw-ink')); w.className = 'block shrink-0'; w.innerHTML = SWDraw.part(SW, 'icon', 0, Math.round(r.width / k), Math.round(r.height / k));
         var sv = w.firstChild; sv.setAttribute('class', 'block'); sv.setAttribute('width', Math.round(r.width / k)); sv.setAttribute('height', Math.round(r.height / k)); im.replaceWith(w); }
       if (im.complete) swap(); else im.addEventListener('load', swap);
     });
