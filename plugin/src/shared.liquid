@@ -659,7 +659,13 @@ var BIG = F(fh * (o.captioned ? 0.15 : 0.11), '700');
 var ly1 = fy + fh * 0.92;
 var clearHub = cx - fx - pad - Mx(u(16), fh * 0.14);
 var cRoom = Mx(u(30), Mn(freeW(ly1 - BIG.size * 0.8), clearHub));
-var nt = cornerTxt ? fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) }) : null;
+var nt = null;
+if (o.unitValue) {
+var vf = BIG, uf, tw2 = (s0, sp) => { var tq = text(g, s0, 0, 0, sp); var ww = width(tq); g.removeChild(tq); return ww; };
+for (var vi = 0; vi < 30; vi++) { uf = F(vf.size * 0.55, '700'); if (tw2(o.unitValue, vf) + tw2(o.unitName, uf) + vf.size * 0.3 <= cRoom || vf.size <= 8) break; vf = F(vf.size * 0.92, '700'); }
+nt = text(g, o.unitValue, fx + pad, ly1, vf, { ls: R(vf.size * 0.04) });
+text(g, o.unitName, fx + pad + width(nt) + vf.size * 0.3, ly1, uf, {});
+} else if (cornerTxt) nt = fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) });
 debug.cornerPrint = debug.cornerPrint || [];
 if (nt) debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - Mx(u(5), fh * 0.035)), gap: R(2 * Mx(u(5), fh * 0.035)) });
 (debug.names = debug.names || []).push((o.captioned ? o.name + ' ' + o.unitName : (nt ? nt.textContent : '')).trim());
@@ -746,7 +752,7 @@ if (pn !== null) ps.push(pn);
 var lo = ps.length ? Mn.apply(null, ps) : null, hi = ps.length ? Mx.apply(null, ps) : null;
 return meter(g, x, y, w, h, { chan: 'R', badge: badge, captioned: captioned, ticks: ticks, needle: pn === null ? null : f(pn), band: lo === null ? null : [f(lo), f(hi)], small: small,
 marks: lo === null ? [] : [{ f: f(lo), label: I18N.lo, lo: true }, { f: f(hi), label: I18N.hi }],
-zoneBands: [[0, 0.25, 'solid'], [0.25, 0.5, 'outline'], [0.5, 0.75, 'solid'], [0.75, 1, 'outline']], icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'], name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: 'hPa', });
+zoneBands: [[0, 0.25, 'solid'], [0.25, 0.5, 'outline'], [0.5, 0.75, 'solid'], [0.75, 1, 'outline']], icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'], name: I18N.ours('baro'), shortName: I18N.ours('m_press'), unitName: M.unit === 'F' ? 'inHg' : 'hPa', unitValue: pn === null ? '--' : (M.unit === 'F' ? (pn * 0.02953).toFixed(2) : String(Math.round(pn))) });
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = bits >= 2 && !darkMode;
@@ -954,11 +960,13 @@ var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') |
 [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
 [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, (M.now.wind !== null && M.now.wind >= (M.unit === 'F' ? 31 : 50)) || (nz(M.today.gustMax) !== null && M.today.gustMax >= (M.unit === 'F' ? 47 : 75))],
 [I18N.ours('uv'), M.now.uv !== null && M.now.uv >= 8], ['SMOG', M.now.aqi !== null && M.now.aqi > 60]];
-var innerD = u(6), sy = Mx(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
+var innerD = u(6), sy = (h / w > 0.42 && !compact && !part) ? y + innerD + u(3) + ST.size * 1.1 : Mx(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx = ix;
 if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
 flags = flags.filter((f) => f[1]);
 var noRow = false, lampBottom = sy + ST.size * 0.45;
 if (part === 'main') lampBottom = y + u(4);
+var tallBox = !compact && !part && h / w > 0.42, noLampBox = !compact && view !== 1 && !part && flags.length === 0;
+if (noLampBox) lampBottom = y + u(8);
 if (!compact && part !== 'main') {
 var room = iw - u(20);
 var rowW = (fl, sp) => { return fl.reduce((a, f) => { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 || !color ? 2.6 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
@@ -985,18 +993,21 @@ var lw = iw * 0.4, rx = ix + iw * 0.78, rw = iw * 0.22, WL = { ls: R(WD.size * 0
 var blk = null, cells = null;
 function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.removeChild(tt); return ww; }
 if (!compact && M.ok && ROS.length >= 3) {
-var ROW = { top: Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * 0.9 }, LF = F(RD(hb * 0.075, 10), '700'), lmax = 0;
+var ROW = { top: tallBox || noLampBox ? lampBottom + u(8) : Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * (tallBox ? 0.92 : 0.9) }, LF = F(RD(hb * 0.075, 10), '700'), lmax = 0;
 ['m_hum', 'uv'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF), mW(I18N.ours('pollen'), LF));
 cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), left: ROS };
 blk = { divX: ix + lw + u(14), cL: ix + lw + u(22), cR: rx - u(22) };
+if (cells) { var rhA = (cells.ROW.lab - cells.ROW.top + LF.size) / cells.nM, rhB = Mn(rhA, LF.size * 2.2); cells.ROW.rh = rhB; cells.ROW.off = (rhA - rhB) * cells.nM / 2; }
 if (part === 'meters') { lw = iw; blk = null; }
 else if (part === 'main') { rx = ix + iw * 0.64; rw = iw * 0.36; blk = { divX: rx - u(14), cL: ix, cR: ix + iw * 0.6 - u(10) }; cells.ROW = { top: y + h * 0.2, lab: y + h * 0.9 }; }
 else if (blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
 }
+var rainROW = cells ? cells.ROW : null;
+if (tallBox && cells) { var yc = y + h / 2, Rh = Mn(cells.ROW.lab - cells.ROW.top, WD.size * 9); rainROW = { top: yc - Rh / 2, lab: yc + Rh / 2 }; }
 function meterRowH(i, r, which) {
 var ZC = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-35', '#666'), fillOf('gray-35', '#666'), ink] : [fillOf('gray-35', '#bbb'), GLOW, GLOW])
 : LCD ? [fillOf('gray-50', '#777'), fillOf('gray-20', '#333'), ink] : [fillOf('gray-80', '#ddd'), GLOW, GLOW];
-var C = cells, LF = C.LF, rh = (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - u(4);
+var C = cells, LF = C.LF, rh = C.ROW.rh || (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (C.ROW.off || 0) + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - u(4);
 var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segH = Mx(2, R(rh * 0.42)), nodata = r.bar === null || r.bar === undefined, lit = nodata ? 0 : Math.round(r.bar * 10);
 if (nodata) { text(cg, '--', x1, cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW }).setAttribute('data-sw-nodata', 1); x1 -= mW('--', LF) + u(6); }
 var segW = (x1 - x0 - 9 * sg) / 10;
@@ -1017,20 +1028,22 @@ if (part === 'meters') {
 if (cells) { debug.readouts = []; debug.readoutKinds = ROK; cells.left.forEach((r, i) => { meterRowH(i, r, 'readouts'); }); }
 return;
 }
+var yb = y + h * 0.9;
 var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
-var dh = R(h * (compact ? 0.46 : (noRow || part === 'main' ? 0.66 : 0.56)));
+var dh = R(h * (compact ? 0.46 : (tallBox ? 0.5 : (noRow || part === 'main' ? 0.66 : 0.56))));
 function need(d) { var dw0 = R(d * 0.5); return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.25); }
 var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
 var feelsOn = !compact && blk && M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2;
-var dyTop = compact ? y + h * 0.27 : Mx(y + h * (noRow || part === 'main' ? 0.14 : 0.25), lampBottom + u(4)), dyEnd = y + h * 0.9 - WD.size - u(2) - (feelsOn ? WD.size * 1.2 : 0);
+var dyTop = compact ? y + h * 0.27 : (tallBox ? lampBottom + u(8) : Mx(y + h * (noRow || part === 'main' ? 0.14 : 0.25), lampBottom + u(4))), dyEnd = yb - WD.size - u(2) - (feelsOn ? WD.size * 1.2 : 0);
 while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh * (feelsOn ? 1.38 : 1) + (feelsOn ? u(6) : 0) > dyEnd))) dh -= 2;
 var dw = R(dh * 0.5), dy = dyTop;
+if (tallBox) { var kk2 = feelsOn ? 1.38 : 1, totH = dh * kk2 + (feelsOn ? u(6) + WD.size * 1.2 : 0) + WD.size * 1.6 + u(2); yb = y + h / 2 + totH / 2; dy = yb - (WD.size + u(2) + (feelsOn ? WD.size * 1.2 : 0)) - dh * kk2 - (feelsOn ? u(6) : 0) - WD.size * 0.6; }
 var str = tempDigits();
 debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(lx + iconW) };
 var dwid = seg7W(dw, str), iconW = compact ? 0 : dh * 1.25;
 var lx = (blk ? blk.cL : ix) + (avail - need(dh)) / 2;
 var ibox = compact ? { l: crMoved ? ix + pillW + u(16) : x + w - u(16) - hb * 0.24, t: y + innerD + u(6), r: x + w - u(16), b: y + h * 0.27 - u(crMoved ? 10 : 6) }
-: { l: (blk ? blk.cL : ix) + u(4), t: lampBottom + u(4), r: 0, b: y + h * 0.9 - WD.size - u(5) };
+: { l: (blk ? blk.cL : ix) + u(4), t: lampBottom + u(4), r: 0, b: yb - WD.size - u(5) };
 var hWant = compact ? hb * (crMoved ? 0.3 : 0.24) : dh * 1.15;
 if (blk) {      // centre what is seen (icon to the unit's end), not the blank cells
 var tg = mk('g', {}, g);
@@ -1054,10 +1067,10 @@ var sw = R(dw * 0.45);
 if (R(dh * 0.45) < u(28)) text(g, deg + M.unit, dx + dwid + R(dw * 0.25), dy + dh * 0.42, F(R(dh * 0.4), '700'), { fill: DIGIT }).setAttribute('data-sw-unit', 1);
 else { seg7(g, dx + dwid + R(dw * 0.25), dy, sw, R(dh * 0.45), 'o', DIGIT, null);
 seg7(g, dx + dwid + R(dw * 0.25) + sw + R(dw * 0.12), dy, sw, R(dh * 0.45), M.unit, DIGIT, null); }
-if (blk) wt = fitText(g, condS, blk.cL + avail / 2, y + h * 0.9, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
-else if (!compact) wt = fitText(g, condS, lx, y + h * 0.9, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
+if (blk) wt = fitText(g, condS, blk.cL + avail / 2, yb, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
+else if (!compact) wt = fitText(g, condS, lx, yb, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
 if (feelsOn) {
-var fl = I18N.ours('feels'), fs = fv(M.now.feels), fh2 = R(dh * 0.38), fcw = R(fh2 / 2), fy2 = y + h * 0.9 - WD.size * 1.6, flw = mW(fl, WD) * 1.15, fg = u(14), segs2 = false;
+var fl = I18N.ours('feels'), fs = fv(M.now.feels), fh2 = R(dh * 0.38), fcw = R(fh2 / 2), fy2 = yb - WD.size * 1.6, flw = mW(fl, WD) * 1.15, fg = u(14), segs2 = false;
 var fdw = segs2 ? seg7W(fcw, fs) + u(5) + R(fcw * 0.6) : mW(fs + deg, WD) * 1.1, fx0 = blk.cL + avail / 2 - (flw + fg + fdw) / 2;
 text(g, fl, fx0, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.15) }).setAttribute('data-sw-feels', 1);
 if (segs2) { glowDigits((hg) => { seg7(hg || g, fx0 + flw + fg, fy2 - fh2, fcw, fh2, fs, DIGIT, null); seg7(hg || g, fx0 + flw + fg + seg7W(fcw, fs) + u(5), fy2 - fh2, R(fcw * 0.6), R(fh2 * 0.45), 'o', DIGIT, null); });}
@@ -1081,7 +1094,7 @@ return;
 }
 mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
 if (M.ok && !M.rain) {
-var dTop = cells ? cells.ROW.top : y + h * 0.3, dBot = cells ? cells.ROW.lab : y + h * 0.9, dM = (dTop + dBot) / 2, DB = F(WD.size * 1.45, '800');
+var dTop = cells ? rainROW.top : y + h * 0.3, dBot = cells ? rainROW.lab : y + h * 0.9, dM = (dTop + dBot) / 2, DB = F(WD.size * 1.45, '800');
 var DB2 = F(WD.size * 1.15, '800'), dcx = rx + rw / 2, sz2 = WD.size, S2 = M.sunT;
 fitText(g, I18N.ours('no_rain'), dcx, dM - WD.size * 0.5, DB2, rw - u(4), { anchor: 'middle', ls: R(DB2.size * 0.08), fill: GLOW });
 if (S2) {
@@ -1095,7 +1108,7 @@ debug.clock = { str: '', boxes: [] };
 return;
 }
 if (cells) {
-var RW = cells.ROW, hdS = !M.rain ? I18N.ours('no_rain') : I18N.ours(wetKey(M.rain.now ? 'until' : 'from'));
+var RW = rainROW, hdS = !M.rain ? I18N.ours('no_rain') : I18N.ours(wetKey(M.rain.now ? 'until' : 'from'));
 fitText(g, hdS, rx, RW.top + WD.size * 0.8, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
 var amtP = M.rain ? [((v) => (M.unit === 'F' ? (v < 0.01 ? null : (v < 0.1 ? v.toFixed(2) : v.toFixed(1))) : (v < 0.05 ? null : (v < 1 ? v.toFixed(1) : String(Math.round(v))))))(M.rain.mm), M.rain.maxP === null ? null : Math.round(M.rain.maxP) + ' %'] : [];
 amtP[0] = amtP[0] === null || amtP[0] === undefined ? null : amtP[0] + (M.unit === 'F' ? ' IN' : ' MM');
