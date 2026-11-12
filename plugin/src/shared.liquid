@@ -144,7 +144,7 @@ return out;
 function rainWindow(hours, chance) {
 var from = -1, to = -1;
 for (var i = 0; i < hours.length; i++) {
-var wet = (hours[i].p !== null && hours[i].p >= chance) || (hours[i].wet && (hours[i].p === null || hours[i].p >= 30 || (hours[i].mm || 0) >= 0.3));
+var wet = hours[i].p !== null ? hours[i].p >= (hours[i].wet ? Mn(30, chance) : chance) : hours[i].wet;
 if (wet) { if (from < 0) from = i; to = i; } else if (from >= 0) break;
 }
 if (from < 0) return null;
@@ -311,8 +311,12 @@ orange: r > 200 && gg > 70 && gg < 190 && b < 90 }[token];
 return okHue ? f.color : null;
 }
 var RED = hue('red') || ink, YEL = hue('yellow');
+function near(a, b) { var A = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(a)), B = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(b)); return !!A && !!B && Math.abs(A[1] - B[1]) + Math.abs(A[2] - B[2]) + Math.abs(A[3] - B[3]) < 150; }
+if (RED !== ink && near(RED, paper)) RED = ink;
+if (YEL && near(YEL, paper)) YEL = null;
 var FULL = /screen--color-full/.test(cls);
 var BLUE = hue('blue');
+if (BLUE && near(BLUE, paper)) BLUE = null;
 var SEVEN = /screen--color-7a/.test(cls);
 var ORANGE = SEVEN ? fillOf('orange', null) : null;
 var FACE_OR = ORANGE;
@@ -436,9 +440,9 @@ var deg = '°';
 var TS = Mx(1, (spec('label', 16).size / z) / 16);
 debug.palette = { color: color, red: RED !== ink, yel: !!YEL, blue: !!BLUE };
 function RD(px, minCss) { return Mx(px, u(minCss)) * TS; }
-var FAM = LG.family;
+var FAM = LG.family, FB = UW / z <= 900 ? 1.18 : 1;
 function F(px, w) {
-var q = { family: FAM, size: Mx(8, R(px)), weight: w || '700' };
+var q = { family: FAM, size: Mx(8 * FB, R(px * FB)), weight: w || '700' };
 return PIXFONT ? pixel(q, q.weight) : q;
 }
 function tStr(v) { return v === null || v === undefined ? '--' : SWModel.fmt(v) + deg; }
@@ -506,7 +510,7 @@ topBox = { l: badge.x, r: badge.x + badge.w, t: badge.y, b: badge.y + badge.h };
 }
 if (o.captioned && o.name) {
 var CP = o.captioned.family ? o.captioned : F(Mx(HS.size, badge ? badge.sp.size * 1.1 : RD(fh * 0.075, 12)), '700'), cg = CP.size * 0.5;
-var capRoom = fw / 2 - fh * 0.22 - u(14), capY = fy0 + fh * 0.92, capX = fx0 + fw - fh * 0.06;
+var capRoom = fw / 2 - fh * (fh < fw * 0.5 ? 0.22 : 0.12) - u(14), capY = fy0 + fh * 0.92, capX = fx0 + fw - fh * 0.06;
 var ct = fitText(g, o.name, capX, capY, CP, capRoom, { anchor: 'end', ls: R(CP.size * 0.08), noShrink: !!o.captioned.family });
 ct.setAttribute('data-sw-caption', MN);
 if (o.chan === 'R') debug.rainCaption = ct.textContent;
@@ -528,10 +532,10 @@ rArc -= 2;
 }
 var MK = F(RD(fh * (o.small ? 0.07 : 0.05), o.small ? 11 : 10), '700'), bm = R(fh * 0.045) + lw * 2, fm = u(10), AM = A * 1.06;
 function wOf(str) { var t0 = text(g, str, 0, 0, MK), tw = width(t0); g.removeChild(t0); return tw; }
-var mkW = Mx(wOf(I18N.lo), wOf(I18N.hi), wOf(I18N.ours('now')));
+var mkW = 0;
 function kOf(an, tw) { return bm + fh * 0.05 + u(3) + tw / 2 * Math.abs(Math.sin(an)) + MK.size * 0.63 * Math.cos(an); }
-var nolab = vu;
-if (!nolab) for (var ai = 0; ai <= 8; ai++) rArc = Mn(rArc, (py - fy0 - fm - MK.size * 0.63) / Math.cos(AM * ai / 8) - kOf(AM * ai / 8, mkW));
+var nolab = true;
+if (!vu) for (var ai = 0; ai <= 8; ai++) rArc = Mn(rArc, (py - fy0 - fm - MK.size * 0.63) / Math.cos(AM * ai / 8) - kOf(AM * ai / 8, mkW));
 rArc = Mx(rArc, fh * 0.3);
 var AL = AM;
 while (AL > 0 && (rArc + kOf(AL, mkW)) * Math.sin(AL) + mkW / 2 > fw / 2 - fm) AL -= 0.01;
@@ -596,7 +600,8 @@ var z0 = zi2 / 4 + zg, z1 = (zi2 + 1) / 4 - zg;
 mk('path', { d: 'M' + zpt(z0, zro) + ' A' + zro + ' ' + zro + ' 0 0 1 ' + zpt(z1, zro) + ' L' + zpt(z1, zri) + ' A' + zri + ' ' + zri + ' 0 0 0 ' + zpt(z0, zri) + ' Z',
 fill: zi2 % 2 ? 'none' : ZS, stroke: ink, 'stroke-width': Mx(1, R(lw * 0.5)), 'shape-rendering': GPX, 'data-sw-zone4': zi2 }, g);
 }
-var isz = rArc * 0.26, irad = zri - isz * 0.75;
+var isz = rArc * 0.26, irad = zri - isz * 0.63;
+isz = Mn(isz, irad * A / 2 * 0.7); irad = zri - isz * 0.63;
 o.icons.forEach((nm, i) => { var ip = at((2 * i + 1) / 8, irad); icon(g, nm, ip[0], ip[1], isz, null); });
 }
 mks.forEach((q) => {
@@ -724,7 +729,7 @@ icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'], name: I1
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = bits >= 2 && !darkMode;
-var GLASSD = LCD ? paper : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25', '#333') : (bits === 2 ? fillOf(darkMode ? 'gray-75' : 'gray-15', '#333') : paper);
+var GLASSD = LCD ? paper : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25', '#333') : (bits === 2 ? (darkMode ? paper : fillOf('gray-15', '#333')) : paper);
 var GLOW = LCD || bits === 1 ? ink : (darkMode ? ink : paper);
 var GHOSTD = null;
 var DIMW = bits === 4 ? fillOf(LCD ? 'gray-75' : (darkMode ? 'gray-55' : 'gray-45'), '#777') : (bits === 2 ? fillOf('gray-60', '#bbb') : null);
@@ -865,17 +870,17 @@ function status(g, str, x, y, sp, on) {
 var col = on ? GLOW : (DIMW || null);
 if (!col && bits !== 1) return 0;
 if (bits === 1) {
-var tf = on ? (LAMP && LAMP !== RED ? ink : paper) : ink, lh0 = R(sp.size * 1.4), ly0 = R(y - sp.size * 1.05);
+var tf = on ? (LAMP && LAMP !== RED ? ink : (LAMP ? '#fff' : paper)) : ink, lh0 = R(sp.size * 1.4), ly0 = R(y - sp.size * 1.05);
 var tm = text(g, str, 0, 0, sp, { ls: R(sp.size * 0.15) }), tw0 = width(tm); g.removeChild(tm);
 var lw0 = Math.ceil(tw0 + sp.size), bx = R(x), cr = { 'shape-rendering': 'crispEdges', 'data-sw-status': 1 };
-if (on && LAMP) mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP }, cr), g);
-text(g, str, x + sp.size * 0.5, y, sp, { ls: R(sp.size * 0.15), fill: on && !LAMP ? ink : tf });
-if (on && !LAMP) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, rx: R(sp.size * 0.3), fill: 'none', stroke: ink, 'stroke-width': Mx(1, R(sp.size * 0.1)) }, cr), g);
+if (on && (LAMP || color)) mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP || ink }, cr), g);
+text(g, str, x + sp.size * 0.5, y, sp, { ls: R(sp.size * 0.15), fill: on && !LAMP && !color ? ink : tf });
+if (on && !LAMP && !color) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, rx: R(sp.size * 0.3), fill: 'none', stroke: ink, 'stroke-width': Mx(1, R(sp.size * 0.1)) }, cr), g);
 if (!on) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, fill: 'none', stroke: ink, 'stroke-width': 1 }, cr), g);
 return lw0;
 }
-var tw2 = 0, lit = on && (FULL || GREYGLOW || GLOWD), bpad = on && !color ? sp.size * 0.5 : 0;
-function word(hg) { var tt = text(hg || g, str, x + bpad, y, sp, { ls: R(sp.size * 0.15), fill: lit ? (FULL ? AMBER : GLOW) : col }); tw2 = width(tt); if (!hg) tt.setAttribute('data-sw-status', 1); }
+var tw2 = 0, lit = false, bpad = on && !color ? sp.size * 0.5 : 0;
+function word(hg) { var tt = text(hg || g, str, x + bpad, y, sp, { ls: R(sp.size * 0.15), fill: on && FULL ? AMBER : col }); tw2 = width(tt); if (!hg) tt.setAttribute('data-sw-status', 1); }
 if (lit) glowDigits(word); else word(null);
 if (bpad) { var lb = rrect(g, R(x), R(y - sp.size * 1.05), R(tw2 + 2 * bpad), R(sp.size * 1.4), R(sp.size * 0.3), 'none', col, Mx(1, R(sp.size * 0.1))); lb.setAttribute('data-sw-lampbox', 1); }
 return tw2 + 2 * bpad;
@@ -895,13 +900,24 @@ return { lab: I18N.ours('m_hum'), bar: bar(n.hum, 0, 100), txt: I18N.ours('hum')
 
 var ROK = [], ROS = [], TSC = (() => { var v = [day24.lo, day24.hi, M.today.lo, M.today.hi].filter((q) => q !== null); return niceScale(v.length ? Mn.apply(null, v) : 0, v.length ? Mx.apply(null, v) : 10, false); })();
 function vfd(g, x, y, w, h, compact) {
+if (!compact && w / z < 700) {
+vfdBox(g, x, y, w, h);
+var h1 = R(h * 0.5);
+vfdPart(g, x, y, w, h1, false, 'meters');
+vfdPart(g, x, y + h1, w, h - h1, false, 'main');
+debug.glassBox = [R(x), R(y), R(w), R(h)];
+return;
+}
+vfdPart(g, x, y, w, h, compact);
+}
+function vfdPart(g, x, y, w, h, compact, part) {
 debug.glassBox = [R(x), R(y), R(w), R(h)]; debug.origin = [R(rect.left * z), R(rect.top * z)];
 debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
-vfdBox(g, x, y, w, h);
+if (!part) vfdBox(g, x, y, w, h);
 var ix = x + u(compact ? 16 : 30), iw = w - 2 * (ix - x);
 var hb = Mn(h, w * (compact ? 0.7 : 0.28));
 var ST = F(RD(hb * (compact ? 0.085 : 0.075), 10), '700');
-var has = (k) => { return X1.some((hh) => hh.icon === k && !(hh.p !== null && hh.p < 30 && (hh.mm || 0) < 0.3)); };
+var has = (k) => { return X1.some((hh) => hh.icon === k && !(hh.p !== null && hh.p < 30)); };
 var flags = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') || has('sleet') || (!!M.rain && M.rain.type === 'rain')], [I18N.snow, has('snow')],
 [I18N.hail, has('hail')], [I18N.thunder, has('storm') || has('hail')],
 [I18N.ours('frost'), day24.lo !== null && day24.lo <= (M.unit === 'F' ? 32 : 0)], [I18N.wind, (M.now.wind !== null && M.now.wind >= (M.unit === 'F' ? 31 : 50)) || (nz(M.today.gustMax) !== null && M.today.gustMax >= (M.unit === 'F' ? 47 : 75))],
@@ -910,18 +926,19 @@ var innerD = u(6), sy = Mx(y + h * 0.17, y + innerD + u(3) + ST.size * 1.1), sx 
 if (!M.ok) flags = [[I18N.ours('no_signal'), true]];
 flags = flags.filter((f) => f[1]);
 var noRow = false, lampBottom = sy + ST.size * 0.45;
-if (!compact) {
+if (part === 'main') lampBottom = y + u(4);
+if (!compact && part !== 'main') {
 var room = iw - u(20) - (() => { var tc = text(g, 'OPEN-METEO', 0, 0, ST, { ls: R(ST.size * 0.3) }); var tw = width(tc); g.removeChild(tc); return tw + ST.size * 2.9 + u(14); })();
 var rowW = (fl, sp) => { return fl.reduce((a, f) => { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 || !color ? 2.3 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
 debug.lampFit = { need: R(rowW(flags, ST)), room: R(room) };
 while (rowW(flags, ST) > room && flags.some((f) => !f[1])) {
 for (var fi = flags.length - 1; fi >= 0; fi--) if (!flags[fi][1]) { flags.splice(fi, 1); break; }
 }
-while (rowW(flags, ST) > room && ST.size > u(8)) ST = F(ST.size * 0.9, ST.weight);
+while (rowW(flags, ST) > room && ST.size > u(8)) { var stPrev = ST.size; ST = F(ST.size * 0.9, ST.weight); if (ST.size >= stPrev) break; }
 debug.lamps = flags.map((f) => (f[1] ? '+' : '-') + f[0]);
 flags.forEach((fl) => { sx += status(g, fl[0], sx, sy, ST, fl[1]) + ST.size * 1.4; });
 }
-if (!compact) {
+if (!compact && part !== 'main') {
 var plC = bits === 1 || LCD ? ink : (DIMW || GLOW), plH = R(ST.size * 1.6), plM = u(5);
 var plT = text(g, 'OPEN-METEO', 0, 0, ST, { anchor: 'middle', ls: R(ST.size * 0.3), fill: bits === 1 ? ink : (LCD ? ink : GLASSD) }), plW = width(plT) + plH * 1.8;
 var plX = R(x + w - plM - plW), plY = R(y + plM), sr = Mx(2, R(plH * 0.17)), bvl = Mx(1, R(u(1)));
@@ -975,7 +992,9 @@ var ROW = { top: Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * 0.9 }, LF = F(
 ['m_hum', 'uv'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF));
 cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), left: ROS };
 blk = { divX: ix + lw + u(14), cL: ix + lw + u(22), cR: rx - u(22) };
-if (blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
+if (part === 'meters') { lw = iw; blk = null; }
+else if (part === 'main') { rx = ix + iw * 0.62; rw = iw * 0.38; blk = { divX: rx - u(14), cL: ix, cR: ix + iw * 0.58 - u(10) }; cells.ROW = { top: y + h * 0.2, lab: y + h * 0.9 }; }
+else if (blk.cR - blk.cL < u(120)) { blk = null; cells = null; }
 }
 function meterRowH(i, r, which) {
 var ZC = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-35', '#666'), fillOf('gray-35', '#666'), ink] : [fillOf('gray-35', '#bbb'), GLOW, GLOW])
@@ -992,9 +1011,14 @@ if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), heigh
 if (on && zi === 2 && bits === 4 && !LCD) glowDigits((hg) => { if (hg) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc }, hg); });
 else if (bits <= 2) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
 else if (DIMW && !on) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
+if (LCD) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': Mx(1, u(1)) }, cg);
 }
 (r.ticks || []).forEach((f) => { mk('rect', { x: R(x0 + f * (10 * segW + 9 * sg)), y: R(cy + segH / 2 + u(2)), width: Mx(1, u(1.5)), height: u(4), fill: GLOW, 'data-sw-rtick': 1 }, cg); });
 (debug[which] = debug[which] || []).push(r.lab);
+}
+if (part === 'meters') {
+if (cells) { debug.readouts = []; debug.readoutKinds = ROK; cells.left.forEach((r, i) => { meterRowH(i, r, 'readouts'); }); }
+return;
 }
 var avail = compact ? iw - h * 0.05 : (blk ? blk.cR - blk.cL : iw * 0.62);
 var dh = R(h * (compact ? 0.46 : (noRow ? 0.66 : 0.56)));
@@ -1045,7 +1069,7 @@ else text(g, fs + deg, fx0 + flw + fg, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.
 if (blk) {
 mk('rect', { x: R(blk.divX), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
 debug.readouts = []; debug.readoutKinds = ROK;
-cells.left.forEach((r, i) => { meterRowH(i, r, 'readouts'); });
+if (part !== 'main') cells.left.forEach((r, i) => { meterRowH(i, r, 'readouts'); });
 }
 if (!compact && !blk && M.ok) {
 var rdB = y + h * 0.9 - WD.size * 1.7, rdTop = rdB - WD.size * 2.7;
@@ -1136,7 +1160,7 @@ var room = Mx(u(20), dx - ix - u(8));
 cw.setAttribute('x', R(ix)); cw.setAttribute('y', R(Mx(iy + isz, ib.b) + SM2.size * 1.1));
 if (width(cw) > room) cw.textContent = 'OPEN-METEO';
 }
-var line = M.ok ? I18N.hi + ' ' + SWModel.fmt(hi) + '  ' + I18N.lo + ' ' + SWModel.fmt(lo) + '  \u00b7  ' +
+var line = M.ok ? SWModel.fmt(hi) + deg + ' / ' + SWModel.fmt(lo) + deg + '  \u00b7  ' +
 (M.rain ? wetWord() + ' ' + (M.rain.now ? I18N.ours('now') : rainFrom) : I18N.ours('dry_h', SPAN)) : String(M.reason || '').toUpperCase();
 var lt = fitText(g, line, ix, ly, LN, iw, { fill: GLOW, ls: R(LN.size * 0.1) });
 if (M.ok) [ROS[0].txt + '  ' + ROS[1].txt, ROS[0].txt].some((rd) => {
@@ -1186,20 +1210,13 @@ text(root, I18N.ours('next_days'), x + w / 2, y + h / 2 - P.size * 0.2, P, { anc
 text(root, I18N.ours(M.ok ? 'no_forecast' : 'no_signal'), x + w / 2, y + h / 2 + P.size * 1.3, F(P.size * 0.8, '600'), { anchor: 'middle', ls: R(P.size * 0.2) });
 return;
 }
-if (h > w * 0.6) {
-var DD = M.days.slice(1), rg = u(10), n = Mx(1, Mn(DD.length || 1, 7, Fl((h + rg) / (u(52) * TS + rg))));
-var rh = (h - rg * (n - 1)) / n;
-if (rh > u(90) * TS) { rh = u(90) * TS; }
-debug.days = n; debug.rows = true;
-for (var j = 0; j < n; j++) dayRow(root, x, y + j * (rh + rg), w - u(3), rh - u(3), DD[j], false);
-return;
-}
+if (h > w * 0.6) nd = Mx(2, Mn(M.days.length - 1 || 1, 7, Fl((h - u(44)) / u(52))));
 debug.days = nd; debug.rows = false;
 daysDial(x, y, w, h, nd);
 }
 function dayFonts(w, h, nd) {
-var cw = w / nd, hb = Mn(h, cw * 1.6);
-return { cw: cw, L: F(RD(Mn(hb * 0.11, cw * 0.16), 11), '700'), T: F(RD(Mn(hb * 0.15, cw * 0.24), 13), '800'), t2: F(RD(Mn(hb * 0.12, cw * 0.2), 12), '700'),
+var rh = h / (nd + 0.9);
+return { L: F(RD(Mn(rh * 0.6, w * 0.075), 11), '700'), T: F(RD(Mn(rh * 0.8, w * 0.09), 13), '800'), t2: F(RD(Mn(rh * 0.66, w * 0.06), 12), '700'),
 mW: (str, sp) => { var tt = text(root, str, 0, 0, sp); var ww = width(tt); root.removeChild(tt); return ww; } };
 }
 // A: preset keys, one per day; today pressed in
@@ -1214,11 +1231,12 @@ var fb = frame(g, x, y, w - u(3), h - u(3), bg, glass && !LCD); x = fb.fx + u(4)
 var dnW = days.reduce((m2, d) => Mx(m2, D.mW(dayName(d), D.L)), 0), labW = dnW + D.L.size * 2.6 + u(16), x0 = x + labW, x1 = x + w - u(14) - D.mW('-88°', D.t2), xOf = (v) => x0 + (v - a0) / (b0 - a0) * (x1 - x0);
 var SC2 = F(Mx(9, D.t2.size * 0.85), '600'), top = y + u(8) + SC2.size, rows = days.length, rh = (y + h - u(8) - top) / rows;
 for (var v = a0; v <= b0 + 1e-9; v += st) { mk('rect', { x: R(xOf(v)), y: R(top - u(4)), width: 1, height: u(4), fill: fg }, g); var nT = text(g, SWModel.fmt(v), 0, 0, SC2), nW = width(nT); g.removeChild(nT); text(g, SWModel.fmt(v) + deg, xOf(v) - nW / 2, top - u(6), SC2, { fill: fg }); }
-var dsz = Mn.apply(null, days.map((d) => iconFit(g, d.icon, null, { l: 0, r: 1e5, t: -1e5, b: 1e5 }, rh * 0.8, 0, true).sz).concat([1e5]));
+var iBox = (cy0) => ({ l: x + u(10) + dnW + D.L.size * 0.7, r: x + u(10) + dnW + D.L.size * 2.6, t: cy0 - rh * 0.4, b: cy0 + rh * 0.4 });
+var dsz = Mn.apply(null, days.map((d) => iconFit(g, d.icon, null, iBox(0), rh * 0.8, 0, true).sz).concat([1e5]));
 days.forEach((d, i) => {
 var cy = top + (i + 0.5) * rh;
 text(g, dayName(d), x + u(10), cy + D.L.size * 0.36, D.L, { fill: fg, ls: R(D.L.size * 0.08) });
-ICON_INK = fg; iconFit(g, d.icon, null, { l: x + u(10) + dnW + D.L.size * 0.2, r: x + u(10) + dnW + D.L.size * 2.1, t: cy - rh * 0.4, b: cy + rh * 0.4 }, rh * 0.8, cy, false, dsz); ICON_INK = null;
+ICON_INK = fg; iconFit(g, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz); ICON_INK = null;
 mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: glass ? DIMW : fillOf('gray-60', '#bbb') }, g);
 if (d.hi === null || d.lo === null) return;
 var xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = Mx(3, u(5));
@@ -1288,7 +1306,7 @@ var size0 = size, floor = Mx(HS.size, size * 0.6);
 for (size = size0; size >= (pass ? u(9) : floor) * 0.99; size *= 0.9) {
 capSp = F(size, '700');
 if (kinds.every((k, i) => {
-var nm = dialName(k), room = fw / 2 - fh * 0.22 - u(14);
+var nm = dialName(k), room = fw / 2 - fh * (fh < fw * 0.5 ? 0.22 : 0.12) - u(14);
 return [nm, allowShort ? SHORTER[nm] : null].filter(Boolean).some((wd) => { var t0 = text(root, wd, 0, 0, capSp, { ls: R(capSp.size * 0.08) }); var ww = width(t0); root.removeChild(t0); return ww <= room; });
 })) return true;
 }
@@ -1304,38 +1322,25 @@ if (view === 4) {
 if (H0 / z >= 260) {
 var qg = R(H0 * 0.42);
 vfd(root, X0, Y0, W0, qg, true);
-baroMeter(root, X0, Y0 + qg + GP, W0, H0 - qg - GP, true);
+baroMeter(root, X0, Y0 + qg + GP, W0, H0 - qg - GP, true, null, F(RD(H0 * 0.04, 10), '700'));
 } else {
 vfdQuad(root, X0, Y0, W0, H0);
 }
-} else if (view === 2 && W0 < H0 * 2.4) {
-var vh2 = R(H0 * 0.34);
-vfd(root, X0, Y0, W0, vh2, true);
-meterRow(X0, Y0 + vh2 + GP, W0, H0 - vh2 - GP, false);
 } else if (view === 2) {
-var mw3 = R(Mn(W0 * 0.33, H0 * 1.15)), gw = W0 - 2 * mw3 - 2 * GP;
-tempMeter(root, X0, Y0, mw3, H0, smallFace(H0, mw3), 'L');
-vfd(root, X0 + mw3 + GP, Y0, gw, H0, true);
-baroMeter(root, X0 + W0 - mw3, Y0, mw3, H0, smallFace(H0, mw3), 'R');
-} else if (view === 3 && H0 > W0 * 1.25) {
-var vh5 = R(H0 * 0.22), mh5 = R(Mn(H0 * 0.25, W0 * 0.62));
-vfd(root, X0, Y0, W0, vh5, true);
-tempMeter(root, X0, Y0 + vh5 + GP, W0, mh5, smallFace(mh5, W0), 'L');
-baroMeter(root, X0, Y0 + vh5 + mh5 + 2 * GP, W0, mh5, smallFace(mh5, W0), 'R');
-var ky5 = Y0 + vh5 + 2 * mh5 + 3 * GP;
-keysRow(X0, ky5, W0, Y0 + H0 - ky5, daysFit(W0, 110));
+vfd(root, X0, Y0, W0, H0, false);
 } else if (view === 3) {
-var vh3 = R(H0 * 0.27), kh3 = R(H0 * 0.24);
-var mp3 = H0 - vh3 - kh3 - 2 * GP, cap3 = R((W0 - GP) / 2 * 0.85);
-if (mp3 > cap3) { var ex3 = mp3 - cap3; vh3 += R(ex3 * 0.5); kh3 += ex3 - R(ex3 * 0.5); }
-vfd(root, X0, Y0, W0, vh3, true);
-meterRow(X0, Y0 + vh3 + GP, W0, H0 - vh3 - kh3 - 2 * GP, false);
-keysRow(X0, Y0 + H0 - kh3, W0, kh3, daysFit(W0, 110));
+var full3 = W0 / z >= 700, tall3 = !full3 && H0 >= W0 * 1.1, ch3 = R(H0 * (full3 ? 0.34 : tall3 ? 0.5 : 0.27)), rest3 = H0 - ch3 - GP, rowP = u(52), dayH = (n) => u(44) + n * rowP;
+vfd(root, X0, Y0, W0, ch3, !full3 && !tall3);
+var left3 = rest3 - GP - dayH(3), dialH = R(Mn(left3, W0 * 0.5));
+var wantD = left3 >= W0 * 0.42;
+var dyTop = Y0 + ch3 + GP, daysH3 = wantD ? rest3 - dialH - GP : rest3;
+if (wantD) meterRow(X0, Y0 + H0 - dialH, W0, dialH, true);
+daysDial(X0, dyTop, W0, daysH3, Mx(2, Mn(5, Fl((daysH3 - u(44)) / rowP))));
 } else {
 var top = Y0;
 var portrait = UW / UH < 1.15;
 var big = UW / z >= 1040;
-var mh = R(H0 * (portrait ? 0.3 : 0.32)), vh = R(H0 * (portrait ? 0.3 : 0.34)), keyH = H0 - mh - vh - 2 * GP;
+var stk = portrait && W0 / z < 700, mh = R(H0 * (stk ? 0.27 : portrait ? 0.3 : 0.32)), vh = R(H0 * (stk ? 0.45 : portrait ? 0.3 : 0.34)), keyH = H0 - mh - vh - 2 * GP;
 if (!portrait) { var mhCap = R((W0 - GP) / 2 * 0.5); if (mh > mhCap) { vh += mh - mhCap; mh = mhCap; } }
 meterRow(X0, top, W0, mh, true);
 vfd(root, X0, top + mh + GP, W0, vh, false);
