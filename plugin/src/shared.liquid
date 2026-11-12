@@ -150,7 +150,6 @@
   {%- if j >= 0 and j < nd_lg %}{% assign on_lg = true %}{% endif %}
   {%- if on_md or on_lg %}
   <div class="w--full{% if on_md and on_lg %}{% elsif on_md %} lg:hidden{% else %} hidden lg:block{% endif %}{% if j == nd_last %}{{ last_p }}{% endif %}" data-sw-row="day">
-  <div class="w--full border--h-60" data-sw-hair="row"></div>{% comment %} owner 2026-11-12: a faint hairline over every day row (the first one is the line under the header) {% endcomment %}
   <div class="grid grid--cols-12 gap--small h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
    <div class="{{ name_cls }} flex flex--center-y"><div class="flex flex--col gap--xsmall"><span class="title title--base{{ name_t }} text--bold">{{ d.name }}</span>{%- if d.today %}<div class="w--full border--h-black lg:hidden" data-sw-today></div>{% endif %}</div></div>
    <div class="{{ icon_cls }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
@@ -268,7 +267,6 @@ function day(d, sc, W, H, hi) {   // hi: the highlighted row (today, or tomorrow
 var X = xmap(sc, W), body = '';
 var E = API.extD || 0;
 for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) body += rect(X(v) - 1, 0, 2, H + E, 0, ' data-sw-tick="' + tick(v) + '"');
-body += rect(0, 0, 1.5, H + E, 0, ' data-sw-hair="v"');   // hairline between the high column and the graph (owner 2026-11-12)
 body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.8, y = (H - bh) / 2, cells = '', sh = '';
@@ -287,7 +285,6 @@ var p = X(v), s = tick(v), tw = fs * 0.62 * s.length, l = p - tw / 2;
 body += text(p, ty, s, fs, 'middle', ' dominant-baseline="middle" data-sw-tick="' + s + '"') + text(p + tw / 2, ty, sc.deg, fs, 'start', ' dominant-baseline="middle"');
 if (H + E > lb + 2) rules += rect(p - 1, lb + 2, 2, H + E - lb - 2);
 }
-if (H + E > lb + 2) rules += rect(0, lb + 2, 1.5, H + E - lb - 2, 0, ' data-sw-hair="v"');
 var pw = (API.paint && (API.paint('white') || {}).color) || '#fff';
 body = g('text--gray-70', rules) + '<g data-sw-axis stroke="' + pw + '" stroke-width="' + n1(fs * 0.22) + '" paint-order="stroke" stroke-linejoin="round">' + body + '</g>';   // labels in full ink (owner 2026-11-12)
 if (xn !== null) {

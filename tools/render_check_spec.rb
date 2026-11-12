@@ -102,8 +102,8 @@ return n+(bad.length?' '+bad.slice(0,4).join('; '):'');})()})
       puts "HUE #{c['name']}: #{hu}"
       expect(hu).to match(/\A\d+\z/)
       expect(hu.to_i.positive?).to eq(colour)
-      # Days strip structure (owner 2026-11-12): a hairline over every shown day row and one between the high column and the graph.
-      hr = s.evaluate(%q{(function(){var bad=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(r){if(!r.getBoundingClientRect().height)return;var h=r.querySelector('[data-sw-hair="row"]');if(!h||!h.getBoundingClientRect().width)bad.push('row line');var v=r.querySelector('[data-sw-part="day"] [data-sw-hair="v"]');if(!v||!v.getBoundingClientRect().height)bad.push('v line');});return bad.join('; ');})()})
+      # Days strip (owner 2026-11-12, later): no hairlines between the day rows and no edge line left of the graph.
+      hr = s.evaluate(%q{(function(){var n=document.querySelectorAll('[data-sw-hair="row"],[data-sw-hair="v"]').length;return n?(n+' days-strip hairlines'):'';})()})
       puts "HAIR #{c['name']}: #{hr}" unless hr.empty?
       expect(hr).to eq('')
       # Pollen (owner 2026-11-12): a pollen meter row is shown only when it lights at least one cell.
