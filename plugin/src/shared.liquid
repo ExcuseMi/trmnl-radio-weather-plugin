@@ -1001,7 +1001,7 @@ var dh = R(h * (compact ? 0.46 : (tallBox ? 0.5 : (noRow || part === 'main' ? 0.
 var dual = !compact && blk && M.inn.temp !== null, inV = M.inn.temp === null ? null : (M.unit === 'F' ? M.inn.temp * 1.8 + 32 : M.inn.temp);
 function need(d) { var dw0 = R(d * 0.5); if (dual) return 2 * (seg7W(dw0, CELLS) + dw0 * 1.3) + d * 1.3 + dw0 * 0.9; return seg7W(dw0, CELLS) + dw0 * 1.2 + (compact ? 0 : d * 1.25); }
 var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
-var feelsOn = !compact && blk && M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2;
+var feelsOn = !compact && blk && M.now.feels !== null && M.now.temp !== null && (Math.abs(M.now.feels - M.now.temp) >= 2 || dual);
 var dyTop = compact ? y + h * 0.27 : (tallBox ? lampBottom + u(8) : Mx(y + h * (noRow || part === 'main' ? 0.14 : 0.25), lampBottom + u(4))), dyEnd = yb - WD.size - u(2) - (feelsOn ? WD.size * 1.2 : 0);
 while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh * (feelsOn ? 1.38 : 1) + (feelsOn ? u(6) : 0) > dyEnd))) dh -= 2;
 if (dual) dyTop += WD.size * 1.6;
@@ -1048,11 +1048,16 @@ text(g, I18N.ours('indoor'), x2 + dwid2 / 2, dy - WD.size * 0.5, WD, { anchor: '
 if (blk) wt = fitText(g, condS, blk.cL + avail / 2, yb, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
 else if (!compact) wt = fitText(g, condS, lx, yb, WD, iw * 0.62, { fill: GLOW, ls: R(WD.size * 0.15) });
 if (feelsOn) {
-var fl = I18N.ours('feels'), fs = fv(M.now.feels), fh2 = R(dh * 0.38), fcw = R(fh2 / 2), fy2 = yb - WD.size * 1.6, flw = mW(fl, WD) * 1.15, fg = u(14), segs2 = false;
-var fdw = segs2 ? seg7W(fcw, fs) + u(5) + R(fcw * 0.6) : mW(fs + deg, WD) * 1.1, fx0 = blk.cL + avail / 2 - (flw + fg + fdw) / 2;
+var fl = I18N.ours('feels'), fs = fv(M.now.feels), fy2 = yb - WD.size * 1.6;
+if (dual) {
+var SW2 = F(WD.size * 0.85, '700', 1);
+text(g, fl + ' ' + fs + deg, dx, fy2, SW2, { fill: GLOW, ls: R(WD.size * 0.08) }).setAttribute('data-sw-feels', 1);
+if (M.inn.hum !== null) text(g, I18N.ours('hum') + ' ' + Math.round(M.inn.hum) + ' %', x2, fy2, SW2, { fill: GLOW, ls: R(WD.size * 0.08) });
+} else {
+var flw = mW(fl, WD) * 1.15, fg = u(14), fdw = mW(fs + deg, WD) * 1.1, fx0 = blk.cL + avail / 2 - (flw + fg + fdw) / 2;
 text(g, fl, fx0, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.15) }).setAttribute('data-sw-feels', 1);
-if (segs2) { glowDigits((hg) => { seg7(hg || g, fx0 + flw + fg, fy2 - fh2, fcw, fh2, fs, DIGIT, null); seg7(hg || g, fx0 + flw + fg + seg7W(fcw, fs) + u(5), fy2 - fh2, R(fcw * 0.6), R(fh2 * 0.45), 'o', DIGIT, null); });}
-else text(g, fs + deg, fx0 + flw + fg, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.1) }).setAttribute('data-sw-feels-value', 1);
+text(g, fs + deg, fx0 + flw + fg, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.1) }).setAttribute('data-sw-feels-value', 1);
+}
 }
 if (blk) {
 mk('rect', { x: R(blk.divX), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
@@ -1215,7 +1220,7 @@ for (var di = 0; di < 40; di++) { dw = R(dh * 0.5); iconW = dh * 1.1; if (iconW 
 var feelsOn = M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2;
 var condS = M.ok ? (I18N.cond(M.now.code, M.now.day)) : String(M.reason || 'NO DATA').toUpperCase();
 var rainH = (M.ok && !M.rain) ? base * 4.2 : base * 3.6 + dh * 0.5;
-var n5 = ROS.length, tempH = dh + u(4) + (feelsOn ? base * 1.6 : 0) + base * 1.6, meterH = n5 * lh;
+var n5 = ROS.length, inR = M.inn.temp !== null, tempH = dh + u(4) + (feelsOn ? base * 1.6 : 0) + base * 1.6 + (inR ? dh + u(4) + (M.inn.hum !== null ? base * 1.6 : 0) : 0), meterH = n5 * lh;
 var need = u(10) + lampH + tempH + u(8) + rainH + u(8) + meterH + u(8);
 var dayMin = u(44) + 2 * u(52), boxH = Mn(h, need), daysH = h - boxH - GP;
 if (daysH < dayMin) { boxH = h; daysH = 0; }
@@ -1230,6 +1235,14 @@ seg7(g, ux, cy, sw3, R(dh * 0.45), 'o', DIGIT, null); seg7(g, ux + sw3 + R(dw * 
 ICON_INK = GLOW; ICON_NOW = true; glowIcon(g, (gg) => iconFit(gg, M.now.icon, M.now.day, { l: tx0, r: tx0 + iconW, t: cy, b: cy + dh }, dh * 1.1, cy + dh / 2)); ICON_INK = null; ICON_NOW = false;
 cy += dh + u(4);
 if (feelsOn) { fitText(g, I18N.ours('feels') + ' ' + fv(M.now.feels) + deg, cx, cy + base, BF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.1) }); cy += base * 1.6; }
+if (inR) {
+var s4 = tempDigits(M.unit === 'F' ? M.inn.temp * 1.8 + 32 : M.inn.temp), tx4 = cx - (seg7W(dw, s4) + dw * 1.3) / 2 + iconW / 2;
+text(g, I18N.ours('indoor'), lx0, cy + dh * 0.7, SF, { fill: GLOW, ls: R(base * 0.08) });
+glowDigits((hg) => { seg7(hg || g, tx4 + dw * 0.3, cy, dw, dh, s4, DIGIT, null); });
+glowDigits((hg) => { text(hg || g, deg + M.unit, tx4 + dw * 0.3 + seg7W(dw, s4) + R(dw * 0.25), cy + dh * 0.42, F(R(dh * 0.4), '700', 1), { fill: DIGIT }); });
+cy += dh + u(4);
+if (M.inn.hum !== null) { fitText(g, I18N.ours('hum') + ' ' + Math.round(M.inn.hum) + ' %', cx, cy + base, BF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.1) }); cy += base * 1.6; }
+}
 fitText(g, condS, cx, cy + base, BF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.1) }); cy += base * 1.6 + u(8);
 if (M.ok && !M.rain) {
 fitText(g, I18N.ours('no_rain'), cx, cy + base, BF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.1) });
