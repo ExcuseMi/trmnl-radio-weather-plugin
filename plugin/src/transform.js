@@ -335,8 +335,21 @@ var WI_INK = { 'wi-cloudy': [7.3, 14.55], 'wi-day-cloudy': [0.91, 20.94], 'wi-da
 'wi-night-alt-sprinkle': [5.35, 18.74], 'wi-night-alt-thunderstorm': [5.29, 22.2], 'wi-night-clear': [7.38, 14.2], 'wi-night-fog': [5.27, 19.56], 'wi-rain': [7.44, 20.06] };
 function wiInk(kind, isDay) { var n = WI_MAP[kind], k = n && WI_INK[n[isDay === false ? 1 : 0]]; return k ? (k[0] / 30).toFixed(3) + ',' + (k[1] / 30).toFixed(3) : '0,1'; }
 function wiUrl(kind, isDay) { var n = WI_MAP[kind]; return n ? WI_BASE + n[isDay === false ? 1 : 0] + '.svg' : null; }
+// Short weekday names, Sunday first, per supported language. TRMNL's serverless Node has no full ICU, so Intl falls back to
+// English there (item 22: Dutch labels with FRI, SAT); Intl only for a language missing here.
+var WEEKDAYS = {
+en: 'SUN MON TUE WED THU FRI SAT', nl: 'ZO MA DI WO DO VR ZA', de: 'SO MO DI MI DO FR SA', fr: 'DIM LUN MAR MER JEU VEN SAM',
+es: 'DOM LUN MAR MIÉ JUE VIE SÁB', it: 'DOM LUN MAR MER GIO VEN SAB', pt: 'DOM SEG TER QUA QUI SEX SÁB', da: 'SØN MAN TIR ONS TOR FRE LØR',
+no: 'SØN MAN TIR ONS TOR FRE LØR', sv: 'SÖN MÅN TIS ONS TOR FRE LÖR', is: 'SUN MÁN ÞRI MIÐ FIM FÖS LAU', cs: 'NE PO ÚT ST ČT PÁ SO',
+sk: 'NE PO UT ST ŠT PI SO', sl: 'NED PON TOR SRE ČET PET SOB', pl: 'NIE PON WT ŚR CZW PT SOB', hu: 'V H K SZE CS P SZO',
+ro: 'DUM LUN MAR MIE JOI VIN SÂM', lt: 'SK PR AN TR KT PN ŠT', ru: 'ВС ПН ВТ СР ЧТ ПТ СБ', uk: 'НД ПН ВТ СР ЧТ ПТ СБ',
+id: 'MIN SEN SEL RAB KAM JUM SAB', he: 'א׳ ב׳ ג׳ ד׳ ה׳ ו׳ ש׳', hi: 'रवि सोम मंगल बुध गुरु शुक्र शनि', gu: 'રવિ સોમ મંગળ બુધ ગુરુ શુક્ર શનિ',
+ja: '日 月 火 水 木 金 土', ko: '일 월 화 수 목 금 토', zh: '周日 周一 周二 周三 周四 周五 周六', 'zh-HK': '週日 週一 週二 週三 週四 週五 週六'
+};
 function dayNames(dates, loc) {
+var l = String(loc || 'en'), tab = WEEKDAYS[l] || WEEKDAYS[l.split('-')[0]];
 return dates.map((iso) => {
+if (tab) return tab.split(' ')[new Date(iso + 'T12:00:00Z').getUTCDay()];
 try { return new Intl.DateTimeFormat(loc, { weekday: 'short', timeZone: 'UTC' }).format(new Date(iso + 'T12:00:00Z')).replace(/\.$/, '').toLocaleUpperCase(loc); } catch (e) { return null; }
 });
 }
@@ -422,4 +435,4 @@ async function run(input) {
   return { ui: buildView(model, i18n, w.daily, moon, phase), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
+if (typeof module !== 'undefined') module.exports = { run: run, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };

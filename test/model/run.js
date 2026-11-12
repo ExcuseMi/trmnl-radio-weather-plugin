@@ -333,6 +333,15 @@ function pathArea(d) {
   let A = 0, X = 0; pts.forEach((q, i) => { const r = pts[(i + 1) % pts.length]; A += q[0] * r[1] - r[0] * q[1]; X += q[0]; });
   return { area: Math.abs(A) / 2, mx: X / pts.length };
 }
+test('day names without full ICU (item 22): own weekday table, not Intl', () => {
+  const real = Intl.DateTimeFormat;
+  Intl.DateTimeFormat = function () { return new real('en', arguments[1]); };   // TRMNL's serverless Node: English only
+  try {
+    eq(T.dayNames(['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-15'], 'nl'), ['MA', 'DI', 'WO', 'ZO'], 'nl');
+    eq(T.dayNames(['2026-11-13'], 'de-AT'), ['FR'], 'de-AT by its base language');
+    eq(T.dayNames(['2026-11-13'], 'en-GB'), ['FRI'], 'en');
+  } finally { Intl.DateTimeFormat = real; }
+});
 test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter, gibbous and full, light and dark, lit side right while waxing', () => {
   const H = 100, r = H * 0.44, disk = Math.PI * r * r;
   [0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9].forEach((p) => {
