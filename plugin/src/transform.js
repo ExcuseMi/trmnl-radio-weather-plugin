@@ -357,7 +357,8 @@ var relevant = { uv: n.day !== false && t.uvMax !== null && t.uvMax >= 3, baro: 
 var keys = RO_ORDER.filter((k) => RO[k][2] && relevant[k] !== false);
 RO_ORDER.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k !== 'uv') keys.push(k); });
 keys = RO_ORDER.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
-var meters = keys.map((k) => ({ key: k, label: RO[k][0], frac: RO[k][1] }));
+var PRI = ['wind', 'uv', 'aqi', 'pollen', 'humidity', 'baro', 'co2'];   // stacked views fill their meter rows in this order (owner 2026-11-12)
+var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
 var tv = n.temp, tStr = tv === null ? '--.-' : (Math.round(tv * 10) / 10).toFixed(1);
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
 var feelsOn = n.feels !== null && tv !== null && Math.abs(n.feels - tv) >= 2;

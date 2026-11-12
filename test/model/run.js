@@ -201,7 +201,8 @@ test('the X view: no data gives no crash and empty parts', () => {
   eq(v.ok, false); eq(v.days.length, 0);
 });
 // Page drawings (DRAW block of shared.liquid), cut out like the model so the test runs the page's own bytes.
-const sh = fs.readFileSync(path.join(__dirname, '../../plugin/src/shared.liquid'), 'utf-8');
+const shRaw = fs.readFileSync(path.join(__dirname, '../../plugin/src/shared.liquid'), 'utf-8');
+const sh = shRaw.replace(/\{\{ (\d+) \| times: \w+ \| round \| at_most: 100 \}\}/g, '$1');   // per-view size factors read as the full view's values
 const da = sh.indexOf('// ==== DRAW_BEGIN ===='), db = sh.indexOf('// ==== DRAW_END ====');
 if (da < 0 || db < 0) throw new Error('DRAW markers missing in shared.liquid');
 const D = new Function(sh.slice(da, db) + '\nreturn SWDraw;')();
