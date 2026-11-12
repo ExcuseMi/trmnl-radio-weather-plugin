@@ -450,8 +450,8 @@ var TS = Mx(1, (spec('label', 16).size / z) / 16);
 debug.palette = { color: color, red: RED !== ink, yel: !!YEL, blue: !!BLUE };
 function RD(px, minCss) { return Mx(px, u(minCss)) * TS; }
 var FAM = LG.family, FB = UW / z <= 900 ? 1.18 : 1, EI = FB > 1 ? 2 : u(4);
-function F(px, w) {
-var q = { family: FAM, size: Mx(8 * FB, R(px * FB)), weight: w || '700' };
+function F(px, w, raw) {
+var k = raw ? 1 : FB, q = { family: FAM, size: Mx(8 * k, R(px * k)), weight: w || '700' };
 return PIXFONT ? pixel(q, q.weight) : q;
 }
 function tStr(v) { return v === null || v === undefined ? '--' : SWModel.fmt(v) + deg; }
@@ -499,6 +499,7 @@ return ib;
 }
 var clipK = 0, meterK = 0;
 function meter(g, x, y, w, h, o) {
+var gi0 = g.childNodes.length;
 var lw = Mx(2, u(2.5)), MN = meterK++;
 rrect(g, x, y, w, h, u(8), ink);
 var fx = x + EI, fy = y + EI, fw = w - 2 * EI, fh = h - 2 * EI;
@@ -567,7 +568,7 @@ var p0 = at(tk.f, rArc), p1 = at(tk.f, rArc - (tk.major ? fh * 0.07 : fh * 0.035
 mk('line', { x1: p0[0], y1: p0[1], x2: p1[0], y2: p1[1], stroke: DIMC || ink, 'stroke-width': tk.major ? lw : Mx(1, R(lw * 0.6)), 'shape-rendering': GPX }, g);
 });
 var labs = o.ticks.filter((tk) => tk.label !== undefined), compact = o.small || fw / z < 420;
-if (compact) SC = F(SC.size * 1.12, SC.weight);
+if (compact) SC = F(SC.size * 1.12, SC.weight, 1);
 var placed = [];
 var nv = o.needle === null ? -0.03 : Mx(-0.03, Mn(1.03, o.needle));
 var ang = -A + 2 * A * nv, ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux;
@@ -662,7 +663,7 @@ var cRoom = Mx(u(30), Mn(freeW(ly1 - BIG.size * 0.8), clearHub));
 var nt = null;
 if (o.unitValue) {
 var vf = BIG, uf, tw2 = (s0, sp) => { var tq = text(g, s0, 0, 0, sp); var ww = width(tq); g.removeChild(tq); return ww; };
-for (var vi = 0; vi < 30; vi++) { uf = F(vf.size * 0.55, '700'); if (tw2(o.unitValue, vf) + tw2(o.unitName, uf) + vf.size * 0.5 <= cRoom || vf.size <= 8) break; vf = F(vf.size * 0.92, '700'); }
+for (var vi = 0; vi < 30; vi++) { uf = F(vf.size * 0.55, '700', 1); if (tw2(o.unitValue, vf) + tw2(o.unitName, uf) + vf.size * 0.5 <= cRoom || vf.size <= 8) break; vf = F(vf.size * 0.92, '700', 1); }
 nt = text(g, o.unitValue, fx + pad, ly1, vf, { ls: R(vf.size * 0.04) });
 text(g, o.unitName, fx + pad + width(nt) + vf.size * 0.5, ly1, uf, {});
 } else if (cornerTxt) nt = fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) });
@@ -714,6 +715,7 @@ var br = rrect(g, badge.x, badge.y, badge.w, badge.h, R(badge.h * 0.3), ink); br
 text(g, o.badge, badge.x + badge.w / 2, badge.y + badge.h * 0.5 + badge.sp.size * 0.36, badge.sp, { anchor: 'middle', fill: paper });
 (debug.badges = debug.badges || []).push(o.badge);
 }
+[].slice.call(g.childNodes, gi0).forEach((e) => { [].slice.call(e.tagName === 'text' ? [e] : (e.querySelectorAll ? e.querySelectorAll('text') : [])).forEach((te) => { var bb; try { bb = te.getBBox(); } catch (er) { return; } if (bb.x < x - 1 || bb.y < y - 1 || bb.x + bb.width > x + w + 1 || bb.y + bb.height > y + h + 1) (debug.outside = debug.outside || []).push({ face: o.chan, text: te.textContent, box: [R(bb.x), R(bb.y), R(bb.width), R(bb.height)] }); }); });
 return { fx: fx, fy: fy, fw: fw, fh: fh };
 }
 function niceScale(lo, hi, even) {
@@ -974,7 +976,7 @@ debug.lampFit = { need: R(rowW(flags, ST)), room: R(room) };
 while (rowW(flags, ST) > room && flags.some((f) => !f[1])) {
 for (var fi = flags.length - 1; fi >= 0; fi--) if (!flags[fi][1]) { flags.splice(fi, 1); break; }
 }
-while (rowW(flags, ST) > room && ST.size > u(8)) { var stPrev = ST.size; ST = F(ST.size * 0.9, ST.weight); if (ST.size >= stPrev) break; }
+while (rowW(flags, ST) > room && ST.size > u(8)) { var stPrev = ST.size; ST = F(ST.size * 0.9, ST.weight, 1); if (ST.size >= stPrev) break; }
 debug.lamps = flags.map((f) => (f[1] ? '+' : '-') + f[0]);
 flags.forEach((fl) => { sx += status(g, fl[0], sx, sy, ST, fl[1]) + ST.size * 1.4; });
 }
@@ -1094,8 +1096,8 @@ return;
 }
 mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
 if (M.ok && !M.rain) {
-var dTop = cells ? rainROW.top : y + h * 0.3, dBot = cells ? rainROW.lab : y + h * 0.9, dM = (dTop + dBot) / 2, DB = F(WD.size * 1.45, '800');
-var DB2 = F(WD.size * 1.15, '800'), dcx = rx + rw / 2, sz2 = WD.size, S2 = M.sunT;
+var dTop = cells ? rainROW.top : y + h * 0.3, dBot = cells ? rainROW.lab : y + h * 0.9, dM = (dTop + dBot) / 2, DB = F(WD.size * 1.45, '800', 1);
+var DB2 = F(WD.size * 1.15, '800', 1), dcx = rx + rw / 2, sz2 = WD.size, S2 = M.sunT;
 fitText(g, I18N.ours('no_rain'), dcx, dM - WD.size * 0.5, DB2, rw - u(4), { anchor: 'middle', ls: R(DB2.size * 0.08), fill: GLOW });
 if (S2) {
 var s3 = WD.size, tws = (q) => Mx(mW(S2.riseL, F(q, '700')), mW(S2.setL, F(q, '700'))), tot = (q) => q * 1.6 + q * 0.4 + tws(q) + q * 0.8 + q * 2.4;
@@ -1216,7 +1218,7 @@ if (!M.days.length) {
 var lw = Mx(2, u(2)), P = F(RD(Mn(h, w * 0.2) * 0.16, 12), '700');
 rrect(root, x + lw / 2, y + lw / 2, w - lw - u(3), h - lw - u(3), u(6), paper, ink, lw);
 text(root, I18N.ours('next_days'), x + w / 2, y + h / 2 - P.size * 0.2, P, { anchor: 'middle', ls: R(P.size * 0.25) });
-text(root, I18N.ours(M.ok ? 'no_forecast' : 'no_signal'), x + w / 2, y + h / 2 + P.size * 1.3, F(P.size * 0.8, '600'), { anchor: 'middle', ls: R(P.size * 0.2) });
+text(root, I18N.ours(M.ok ? 'no_forecast' : 'no_signal'), x + w / 2, y + h / 2 + P.size * 1.3, F(P.size * 0.8, '600', 1), { anchor: 'middle', ls: R(P.size * 0.2) });
 return;
 }
 if (h > w * 0.6) nd = Mx(2, Mn(M.days.length - 1 || 1, 7, Fl((h - u(44)) / u(52))));
@@ -1256,7 +1258,7 @@ if (d.hi === null || d.lo === null) return;
 var xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = Mx(3, u(5));
 mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': i }, g);
 var knock = (str, xt, endA, fnt) => { var kw = D.mW(str, fnt); mk('rect', { x: R((endA ? xt - kw : xt) - u(3)), y: R(cy - fnt.size * 0.8 - u(1)), width: R(kw + 2 * u(3)), height: R(fnt.size * 1.2 + u(2)), fill: bg }, g); };
-var nwLo = D.mW(tStr(d.lo), D.t2), roomLo = xa - x0 - u(8), tLo = nwLo > roomLo ? F(Mx(8, D.t2.size * Mx(0.55, roomLo / nwLo)), D.t2.weight) : D.t2;
+var nwLo = D.mW(tStr(d.lo), D.t2), roomLo = xa - x0 - u(8), tLo = nwLo > roomLo ? F(Mx(8, D.t2.size * Mx(0.55, roomLo / nwLo)), D.t2.weight, 1) : D.t2;
 var pxv = M.now.temp !== null ? R(xOf(M.now.temp)) : null, xLo = xa - u(8), xHi = xb + u(8), nwHi = D.mW(tStr(d.hi), D.t2), nwLo2 = D.mW(tStr(d.lo), tLo);
 if (pxv !== null && pxv >= xLo - nwLo2 - u(3) && pxv <= xLo + u(3)) xLo = pxv - u(4);
 if (pxv !== null && pxv >= xHi - u(3) && pxv <= xHi + nwHi + u(3)) xHi = pxv + u(4);
@@ -1324,7 +1326,7 @@ var bwd = (() => { var t0 = text(root, 'L', 0, 0, BG); var ww = width(t0); root.
 var size0 = size, floor = Mx(HS.size, size * 0.6);
 [false, false, true].some((allowShort, pass) => {
 for (size = size0; size >= (pass ? u(9) : floor) * 0.99; size *= 0.9) {
-capSp = F(size, '700');
+capSp = F(size, '700', 1);
 if (kinds.every((k, i) => {
 var nm = dialName(k), room = fw / 2 - fh * (fh < fw * 0.5 ? 0.22 : 0.12) - u(14);
 return [nm, allowShort ? SHORTER[nm] : null].filter(Boolean).some((wd) => { var t0 = text(root, wd, 0, 0, capSp, { ls: R(capSp.size * 0.08) }); var ww = width(t0); root.removeChild(t0); return ww <= room; });
@@ -1339,10 +1341,14 @@ tempMeter(root, x + mw + GP, y, w - mw - GP, h, smallFace(h, mw), 'R', captions 
 ROK = RO_ORDER.filter((k) => k !== 'pollen' || M.now.pollen !== null); ROS = ROK.map(readout);
 debug.readoutKinds = ROK;
 if (view === 4) {
-if (H0 / z >= 260) {
+if (W0 / z >= 330 && H0 / z >= 170) {
+var ch4 = H0 / W0 >= 1.1 ? R(H0 * 0.58) : H0, rem4 = H0 - ch4 - GP;
+vfd(root, X0, Y0, W0, ch4, false);
+if (rem4 >= W0 * 0.38) baroMeter(root, X0, Y0 + ch4 + GP, W0, rem4, true, null, true);
+} else if (H0 / z >= 260) {
 var qg = R(H0 * 0.42);
 vfd(root, X0, Y0, W0, qg, true);
-baroMeter(root, X0, Y0 + qg + GP, W0, H0 - qg - GP, true, null, F(RD(H0 * 0.04, 10), '700'));
+baroMeter(root, X0, Y0 + qg + GP, W0, H0 - qg - GP, true, null, true);
 } else {
 vfdQuad(root, X0, Y0, W0, H0);
 }
