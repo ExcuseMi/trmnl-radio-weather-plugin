@@ -814,7 +814,7 @@ function meterRowH(i, r, which) {
 var ZC = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-30'), fillOf('gray-30'), ink] : [fillOf('gray-35'), GLOW, GLOW])
 : LCD ? [fillOf('gray-40'), fillOf('gray-15'), ink] : [fillOf('gray-15'), GLOW, GLOW];
 var C = cells, LF = C.LF, rh = C.ROW.rh || (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (C.ROW.off || 0) + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - u(4);
-var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)), segH = Mx(2, R(rh * 0.42)), nodata = r.bar === null || r.bar === undefined, NS = OGD ? 5 : 10, lit = nodata ? 0 : Math.round(r.bar * NS);
+var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)) + (SHD ? SO : 0), segH = Mx(2, R(rh * 0.42)), nodata = r.bar === null || r.bar === undefined, NS = OGD ? 5 : 10, lit = nodata ? 0 : Math.round(r.bar * NS);
 if (nodata) { text(cg, '--', x1, cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW }).setAttribute('data-sw-nodata', 1); x1 -= mW('--', LF) + u(6); }
 var segW = (x1 - x0 - (NS - 1) * sg) / NS;
 text(cg, r.lab, x0 - u(8), cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW, ls: R(LF.size * 0.1) }).setAttribute('data-sw-cell', which);
@@ -1025,7 +1025,7 @@ if (d.hi === null || d.lo === null) return;
 var PILL = !glass || LCD, xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = PILL ? Mx(6, R(rh * 0.5)) : Mx(3, u(5));
 var SHL = SHL || (SHD ? (bits === 2 ? dith(paper, SHD, 0.5) : fillOf('gray-75')) : null), BF = PILL ? (d === M.days[0] ? (bits === 1 ? ink : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))) : fg, bs = st / 5, bgap = Mx(1, u(2));
 while (bs < st && xOf(a0 + bs) - xOf(a0) < u(6)) bs *= 2;
-if (PILL) { var bpx = xOf(a0 + bs) - xOf(a0), k0 = Math.round((d.lo - a0) / bs), k1 = Mx(k0 + 1, Math.round((d.hi - a0) / bs)); xa = xOf(a0 + k0 * bs); xb = xOf(a0 + k1 * bs); for (var bk = k0; bk < k1; bk++) { if (SHD) mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2) + SO, y: R(cy - th / 2) + SO, width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: d === M.days[0] ? SHD : SHL, 'data-sw-shadow': 1 }, g); mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2), y: R(cy - th / 2), width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: BF, 'data-sw-band': i }, g); } }
+if (PILL) { var bpx = xOf(a0 + bs) - xOf(a0), k0 = Math.round((d.lo - a0) / bs), k1 = Mx(k0 + 1, Math.round((d.hi - a0) / bs)); xa = xOf(a0 + k0 * bs); xb = xOf(a0 + k1 * bs); for (var bk = k0; bk < k1; bk++) { if (SHD) mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap + (SHD ? SO : 0), bpx * 0.18) / 2) + SO, y: R(cy - th / 2) + SO, width: R(bpx - Mx(bgap + (SHD ? SO : 0), bpx * 0.18)), height: th, fill: d === M.days[0] ? SHD : SHL, 'data-sw-shadow': 1 }, g); mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap + (SHD ? SO : 0), bpx * 0.18) / 2), y: R(cy - th / 2), width: R(bpx - Mx(bgap + (SHD ? SO : 0), bpx * 0.18)), height: th, fill: BF, 'data-sw-band': i }, g); } }
 else mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': i }, g);
 text(g, tStr(d.lo), cLo, cy + D.t2.size * 0.36, D.t2, { anchor: 'end', fill: fg, 'data-sw-lo': i });
 text(g, tStr(d.hi), cHi, cy + D.t2.size * 0.36, D.t2, { anchor: 'end', fill: fg, 'data-sw-hi': i });
