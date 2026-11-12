@@ -273,15 +273,43 @@ test('sun/moon unit like the rain unit: moon left at the rows\' height on lg, ce
   const u = sh.indexOf('data-sw-unit="sun"'), rows = sh.indexOf('ui.sun.rise', u);
   ok(u > 0 && /flex--col lg:flex--row flex--center/.test(sh.slice(sh.lastIndexOf('<div', u), u)), 'column on md, row on lg, centred');
   const m = sh.indexOf('data-sw-part="moon"', u); ok(m > u && m < rows, 'moon before the sun rows');
-  ok(!/<img[^>]*ui.sun.moon/.test(sh), 'no black moon image');
-  const v = D.moon('m.svg', 60); ok(/mask-type="alpha"/.test(v) && /text--gray-45/.test(v), 'moon masked, grey ink'); eq(D.moon(null, 60), '');
+  ok(!/<img[^>]*ui.sun.moon/.test(sh), 'no moon icon image');
+  eq(D.moon(null, 60), '');
 });
-test('moon in dark mode keeps the phase: lit part in light ink, shadow as panel, limb outline (owner 2026-11-12)', () => {
-  D.mode = { dark: false, bits: 4 }; const l = D.moon('wi-moon-alt-waning-crescent-2.svg', 60);
-  D.mode = { dark: true, bits: 4 }; const d = D.moon('wi-moon-alt-waning-crescent-2.svg', 60); D.mode = null;
-  ok(/data-sw-moon="shadow"/.test(l) && /mask-type="alpha"/.test(l), 'light: the icon ink (shadow) drawn');
-  ok(/data-sw-moon="lit"/.test(d) && /<mask[^>]*><circle[^>]*fill="#fff"\/><image /.test(d), 'dark: disc minus the icon ink, so the lit part is light ink');
-  ok(/fill="none" stroke="currentColor"/.test(d), 'dark: limb outline');
+// Lit area of a moon path: SVG arcs to polylines by the spec's endpoint-to-centre conversion, then the shoelace area.
+function pathArea(d) {
+  const n = d.match(/-?[\d.]+/g).map(Number), pts = [[n[0], n[1]]];
+  for (let i = 2; i + 7 <= n.length; i += 7) {
+    const [x1, y1] = pts[pts.length - 1], [rx, ry, , fa, fs, x2, y2] = n.slice(i, i + 7);
+    if (rx < 1e-6) { pts.push([x2, y2]); continue; }
+    const xp = (x1 - x2) / 2, yp = (y1 - y2) / 2, lam = (xp * xp) / (rx * rx) + (yp * yp) / (ry * ry), s2 = lam > 1 ? Math.sqrt(lam) : 1, Rx = rx * s2, Ry = ry * s2;
+    let k = Math.sqrt(Math.max(0, (Rx * Rx * Ry * Ry - Rx * Rx * yp * yp - Ry * Ry * xp * xp) / (Rx * Rx * yp * yp + Ry * Ry * xp * xp))); if (fa === fs) k = -k;
+    const cxp = k * Rx * yp / Ry, cyp = -k * Ry * xp / Rx, cx = cxp + (x1 + x2) / 2, cy = cyp + (y1 + y2) / 2;
+    const ang = (ux, uy, vx, vy) => Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+    const t1 = ang(1, 0, (xp - cxp) / Rx, (yp - cyp) / Ry); let dt = ang((xp - cxp) / Rx, (yp - cyp) / Ry, (-xp - cxp) / Rx, (-yp - cyp) / Ry);
+    if (!fs && dt > 0) dt -= 2 * Math.PI; if (fs && dt < 0) dt += 2 * Math.PI;
+    for (let j = 1; j <= 200; j++) { const t = t1 + dt * j / 200; pts.push([cx + Rx * Math.cos(t), cy + Ry * Math.sin(t)]); }
+  }
+  let A = 0, X = 0; pts.forEach((q, i) => { const r = pts[(i + 1) % pts.length]; A += q[0] * r[1] - r[0] * q[1]; X += q[0]; });
+  return { area: Math.abs(A) / 2, mx: X / pts.length };
+}
+test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter, gibbous and full, light and dark, lit side right while waxing', () => {
+  const H = 100, r = H * 0.44, disk = Math.PI * r * r;
+  [0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9].forEach((p) => {
+    const want = (1 - Math.cos(2 * Math.PI * p)) / 2;
+    [false, true].forEach((dark) => {
+      D.mode = { dark, bits: 4 }; const s = D.moon(p, H); D.mode = null;
+      const d = /<path d="([^"]+)" data-sw-moon="lit"/.exec(s)[1], a = pathArea(d);
+      ok(Math.abs(a.area / disk - want) <= 0.1, 'p ' + p + (dark ? ' dark' : ' light') + ': lit ' + (a.area / disk).toFixed(3) + ' want ' + want.toFixed(3));
+      if (want < 0.99) ok(p < 0.5 ? a.mx > H / 2 : a.mx < H / 2, 'p ' + p + ': lit on the ' + (p < 0.5 ? 'right' : 'left'));
+      ok(/text--gray-45"><circle[^>]*fill="none"/.test(s), 'grey limb outline');
+      ok(dark ? !/text--gray-45"><path/.test(s) : /text--gray-45"><path/.test(s), dark ? 'dark: lit part in full (light) ink' : 'light: lit part in grey ink');
+    });
+  });
+  ok(!/<path/.test(D.moon(0, H)) && /<circle/.test(D.moon(0, H)), 'new moon: outline only');
+  for (let d = 1; d <= 30; d++) { const t = '2026-11-' + String(d).padStart(2, '0') + 'T12:00', ic = T.moonIcon(t), p = T.moonPhase(t);
+    if (ic === 'wi-moon-alt-full') ok(Math.abs(p - 0.5) < 0.03, t + ' full at ' + p); if (ic === 'wi-moon-alt-new') ok(p < 0.03 || p > 0.97, t + ' new at ' + p); }
+  eq(T.moonPhase(null), null);
 });
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

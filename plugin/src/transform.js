@@ -95,6 +95,14 @@ function buildI18n(rawLocale) {
   };
 }
 
+// Moon phase as a fraction of the cycle (0 new, 0.25 first quarter, 0.5 full, 0.75 last quarter), from the date.
+function moonPhase(timeStr) {
+  var m = /(\d{4})-(\d{2})-(\d{2})/.exec(String(timeStr || ''));
+  if (!m) return null;
+  var jd = Date.UTC(+m[1], +m[2] - 1, +m[3], 12) / 86400000 + 2440587.5, P = 29.530588853;
+  return Math.round(((((jd - 2451550.1) % P) + P) % P) / P * 1000) / 1000;
+}
+
 // Moon phase icon (wi-moon-alt-*) from the date, about 29.53 days from a known new moon.
 function moonIcon(timeStr) {
   var m = /(\d{4})-(\d{2})-(\d{2})/.exec(String(timeStr || ''));
@@ -347,7 +355,7 @@ function rainHours(hours, R) {
 var s = Math.max(0, Math.min(R.from - 2, hours.length - 12));
 return hours.slice(s, s + 12).map((q, i) => ({ h: q.hl || q.h, wet: s + i >= R.from && s + i <= R.to }));
 }
-function buildView(M, i18n, daily, moon) {
+function buildView(M, i18n, daily, moon, phase) {
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 var RO = { wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
@@ -375,7 +383,7 @@ var tl = t.lo, th = t.hi, tvals = [tl, th, tv].filter((v) => v !== null), tst = 
 var tsc = tvals.length ? { a: Math.floor(Math.min.apply(null, tvals) / tst) * tst, b: Math.ceil(Math.max.apply(null, tvals) / tst) * tst } : null;
 if (tsc && tsc.b - tsc.a < 3 * tst) tsc.b = tsc.a + 3 * tst;
 var ps = (M.hours || []).slice(0, 24).map((q) => q.pr).filter((q) => q !== null && q !== undefined); if (pr !== null) ps.push(pr);
-var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg' };
+var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg', phase: phase == null ? null : phase };
 return {
 ok: M.ok, flags: flags, meters: meters,
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day),
@@ -414,8 +422,8 @@ async function run(input) {
   var raw = { current: w.current || null, hourly: w.hourly || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
-  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time);
-  return { ui: buildView(model, i18n, w.daily, moon), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
+  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
+  return { ui: buildView(model, i18n, w.daily, moon, phase), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, buildView: buildView, rainHours: rainHours, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon };
+if (typeof module !== 'undefined') module.exports = { run: run, buildView: buildView, rainHours: rainHours, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
