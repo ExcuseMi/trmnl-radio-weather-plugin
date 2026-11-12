@@ -545,7 +545,7 @@ zoneBands: [[0, 0.25, 'solid'], [0.25, 0.5, 'outline'], [0.5, 0.75, 'solid'], [0
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = bits >= 2 && !darkMode;
-var SHD = bits === 2 && !darkMode && !color ? fillOf('gray-30') : null, SO = Mx(3, u(3));   // owner 2026-11-12: drop shadows on the OG 2-bit light
+var SHD = bits === 2 && !darkMode && !color ? fillOf('gray-50') : null, SO = Mx(3, u(3));   // owner 2026-11-12: drop shadows on the OG 2-bit light
 var GLASSD = LCD ? paper : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25') : (bits === 2 ? (darkMode ? paper : fillOf('gray-15')) : paper);
 var GLOW = LCD || bits === 1 ? ink : (darkMode ? ink : paper);
 var GHOSTD = null;
@@ -1021,9 +1021,9 @@ ICON_INK = fg; iconFit(g, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz); ICO
 if (glass && !LCD) mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: DIMW }, g);
 if (d.hi === null || d.lo === null) return;
 var PILL = !glass || LCD, xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = PILL ? Mx(6, R(rh * 0.5)) : Mx(3, u(5));
-var BF = PILL ? (d === M.days[0] ? (bits === 1 ? ink : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))) : fg, bs = st / 5, bgap = Mx(1, u(2));
+var SHL = SHL || (SHD ? dith(paper, SHD, 0.5) : null), BF = PILL ? (d === M.days[0] ? (bits === 1 ? ink : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))) : fg, bs = st / 5, bgap = Mx(1, u(2));
 while (bs < st && xOf(a0 + bs) - xOf(a0) < u(6)) bs *= 2;
-if (PILL) { var bpx = xOf(a0 + bs) - xOf(a0), k0 = Math.round((d.lo - a0) / bs), k1 = Mx(k0 + 1, Math.round((d.hi - a0) / bs)); xa = xOf(a0 + k0 * bs); xb = xOf(a0 + k1 * bs); for (var bk = k0; bk < k1; bk++) { if (SHD) mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2) + SO, y: R(cy - th / 2) + SO, width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: SHD, 'data-sw-shadow': 1 }, g); mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2), y: R(cy - th / 2), width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: BF, 'data-sw-band': i }, g); } }
+if (PILL) { var bpx = xOf(a0 + bs) - xOf(a0), k0 = Math.round((d.lo - a0) / bs), k1 = Mx(k0 + 1, Math.round((d.hi - a0) / bs)); xa = xOf(a0 + k0 * bs); xb = xOf(a0 + k1 * bs); for (var bk = k0; bk < k1; bk++) { if (SHD) mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2) + SO, y: R(cy - th / 2) + SO, width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: d === M.days[0] ? SHD : SHL, 'data-sw-shadow': 1 }, g); mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2), y: R(cy - th / 2), width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: BF, 'data-sw-band': i }, g); } }
 else mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': i }, g);
 text(g, tStr(d.lo), cLo, cy + D.t2.size * 0.36, D.t2, { anchor: 'end', fill: fg, 'data-sw-lo': i });
 text(g, tStr(d.hi), cHi, cy + D.t2.size * 0.36, D.t2, { anchor: 'end', fill: fg, 'data-sw-hi': i });
