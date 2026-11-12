@@ -360,7 +360,7 @@ if (h) { var mid = 'swmk' + (K++); h = '<defs><mask id="' + mid + '" maskUnits="
 // 2-bit: limb and lit part in the native dark grey (nat2), at least 2 px; 1-bit: the limb in full ink (owner 2026-11-12)
 if (API.calm) {   // Calm (owner): the moon a dark disk with its lit part light, so the phase reads at a glance; new moon all dark
 var disk = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" data-sw-moon="disk"/>';
-return svg(H, H, h + g(bits <= 1 ? '' : (dk ? 'text--gray-30' : 'text--gray-30'), disk) + g('text--white', lit) + (dk || bits <= 1 ? limb : g('text--gray-30', limb)));
+return svg(H, H, h + g(bits <= 1 ? '' : (dk ? 'text--gray-70' : 'text--gray-30'), disk) + g('text--white', lit) + (dk || bits <= 1 ? limb : g('text--gray-30', limb)));
 }
 return svg(H, H, h + (dk ? lit : g('text--gray-45', lit)) + (dk || bits <= 1 ? limb : g('text--gray-45', limb)));
 }
