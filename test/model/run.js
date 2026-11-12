@@ -187,6 +187,17 @@ test('segment digits: the minus is narrow, no digit-wide gap before the 2', () =
   const w = (s) => +/viewBox="0 0 ([\d.]+)/.exec(D.digits(s, 100))[1];
   ok(w('-2') < w('22') * 0.9, 'minus width ' + w('-2') + ' vs ' + w('22'));
 });
+test('meters (owner 2026-11-12): order wind, uv, aqi, humidity, pollen, baro, co2; pollen only above zero', () => {
+  const raw = fx('mixed'), M0 = SWModel.build(raw, {});
+  const keys = (pol, extra) => { const M = SWModel.build(raw, {}); M.now.pollen = pol; Object.assign(M.now, extra || {}); return T.buildView(M, T.buildI18n('nl'), raw.daily).meters.map((m) => m.key); };
+  eq([keys(0).includes('pollen'), keys(null).includes('pollen'), keys(undefined).includes('pollen'), keys(0.05).includes('pollen')], [false, false, false, true], 'zero, null, missing hide pollen; low pollen shows');
+  const k = keys(0.4, { aqi: 30 }); ok(k.indexOf('humidity') >= 0 && k.indexOf('pollen') > k.indexOf('humidity'), 'humidity before pollen: ' + k);
+  ok(M0 && keys(0.4, { aqi: 30 }).slice(0, 3).join() === 'wind,aqi,humidity', 'priority: humidity kept before pollen when rows run short: ' + k);
+});
+test('block meter: any reading above zero lights one cell', () => {
+  const lit = (s) => ((s.split('text--gray-40')[1] || '').match(/<rect/g) || []).length;
+  eq([lit(D.meter(0.01, 300, 40)), lit(D.meter(0, 300, 40))], [1, 0]);
+});
 test('block meter: half lit lights five of ten, no data lights none', () => {
   const lit = (s) => ((s.split('text--gray-40')[1] || '').match(/<rect/g) || []).length;
   eq([lit(D.meter(0.5, 300, 40)), lit(D.meter(null, 300, 40)), lit(D.meter(2, 300, 40))], [5, 0, 10]);

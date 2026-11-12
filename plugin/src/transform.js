@@ -334,7 +334,7 @@ return dates.map((iso) => {
 try { return new Intl.DateTimeFormat(loc, { weekday: 'short', timeZone: 'UTC' }).format(new Date(iso + 'T12:00:00Z')).replace(/\.$/, '').toLocaleUpperCase(loc); } catch (e) { return null; }
 });
 }
-var RO_ORDER = ['wind', 'uv', 'aqi', 'pollen', 'humidity', 'baro', 'co2'];   // owner 2026-11-12: wind before humidity
+var RO_ORDER = ['wind', 'uv', 'aqi', 'humidity', 'pollen', 'baro', 'co2'];   // owner 2026-11-12: wind before humidity, humidity before pollen
 // Rain calendar (owner 2026-11-12): 12 hours from two hours before the rain starts, never before the first forecast hour.
 function rainHours(hours, R) {
 var s = Math.max(0, Math.min(R.from - 2, hours.length - 12));
@@ -346,13 +346,13 @@ function buildView(M, i18n, daily, moon, phase) {
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 var RO = { wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
-aqi: ['AQI', bar(n.aqi, 0, 100), n.aqi !== null], pollen: [O.pollen, n.pollen, n.pollen !== null], humidity: [O.m_hum, bar(n.hum, 0, 100), n.hum !== null],
+aqi: ['AQI', bar(n.aqi, 0, 100), n.aqi !== null], pollen: [O.pollen, n.pollen, n.pollen !== null && n.pollen > 0], humidity: [O.m_hum, bar(n.hum, 0, 100), n.hum !== null],
 baro: ['BARO', bar(n.press, 970, 1050), n.press !== null], co2: ['CO2', bar(M.inn.co2, 400, 2000), M.inn.co2 !== null] };
 var relevant = { uv: n.day !== false && t.uvMax !== null && t.uvMax >= 3, baro: false };
 var keys = RO_ORDER.filter((k) => RO[k][2] && relevant[k] !== false);
 RO_ORDER.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k !== 'uv') keys.push(k); });
 keys = RO_ORDER.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
-var PRI = ['wind', 'uv', 'aqi', 'pollen', 'humidity', 'baro', 'co2'];   // stacked views fill their meter rows in this order (owner 2026-11-12)
+var PRI = RO_ORDER;   // stacked views fill their meter rows in this order (owner 2026-11-12)
 var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
 var tv = n.temp, tStr = tv === null ? '--.-' : (Math.round(tv * 10) / 10).toFixed(1);
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
