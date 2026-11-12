@@ -680,11 +680,10 @@ return cx - x - gap;
 }
 // owner 2026-11-12: an RDS-style station-name strip: the text in 5x7 dots inside a thin window; false when it does not fit
 // the feels-like pictogram: a person beside a thermometer, q = one unit (owner 2026-11-12)
-function feelsIcon(g, ix0, iy0, q) { var sw = Mx(2, R(q * 0.9)), fg9 = mk('g', { stroke: GLOW, 'stroke-width': sw, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none', 'data-sw-feels': 1 }, g), P = (a, b) => R(ix0 + a * q) + ' ' + R(iy0 + b * q);
-mk('circle', { cx: R(ix0 + 2.2 * q), cy: R(iy0 + 1 * q), r: R(1 * q), fill: GLOW, stroke: 'none' }, fg9);
-mk('path', { d: 'M' + P(2.2, 2.6) + ' L' + P(2.2, 5) + ' M' + P(0.4, 3.4) + ' L' + P(2.2, 2.9) + ' L' + P(4, 3.4) + ' M' + P(0.9, 7.6) + ' L' + P(2.2, 5) + ' L' + P(3.5, 7.6) }, fg9);
-mk('path', { d: 'M' + P(6.6, 4.9) + ' L' + P(6.6, 1) + ' A' + R(0.9 * q) + ' ' + R(0.9 * q) + ' 0 0 1 ' + P(8.4, 1) + ' L' + P(8.4, 4.9) }, fg9);
-mk('circle', { cx: R(ix0 + 7.5 * q), cy: R(iy0 + 6.3 * q), r: R(1.5 * q), fill: GLOW }, fg9); }
+// owner 2026-11-12: a standing person in front of the felt temperature; q = a tenth of its height
+function feelsIcon(g, ix0, iy0, q) { var fg9 = mk('g', { fill: GLOW, 'data-sw-feels': 1 }, g), rr = (a, b, c, d, r) => mk('rect', { x: R(ix0 + a * q * 1.3), y: R(iy0 + b * q), width: R((c - a) * q * 1.3), height: R((d - b) * q), rx: R(r * q) }, fg9);
+mk('circle', { cx: R(ix0 + 3.25 * q), cy: R(iy0 + 1.2 * q), r: R(1.25 * q) }, fg9);
+rr(1.2, 2.5, 3.8, 6.1, 0.7); rr(0.1, 2.7, 0.95, 5.7, 0.42); rr(4.05, 2.7, 4.9, 5.7, 0.42); rr(1.3, 5.6, 2.35, 10, 0.5); rr(2.65, 5.6, 3.7, 10, 0.5); }
 function seg7W(dw, str) {
 var t = Mx(3, dw * 0.18), gap = Mx(2, R(dw * 0.22)), w = 0;
 str.split('').forEach((ch) => { w += (ch === '.' ? R(t * 1.2) : ch === ':' ? R(t * 1.1) : dw) + gap; });
@@ -853,17 +852,20 @@ var dh = R(h * (compact ? 0.46 : (tallBox ? 0.5 : (noRow || part === 'main' ? 0.
 var dual = !compact && blk && M.inn.temp !== null, inV = M.inn.temp === null ? null : (M.unit === 'F' ? M.inn.temp * 1.8 + 32 : M.inn.temp);
 var CELLSX = EV ? CELLS.replace('.8', '') : CELLS, evLoStr = EV ? String(Math.round(EV.lo)) : null;
 function evLoW(d) { return EV && !compact ? R(d * 0.3) + seg7W(R(d * 0.3), evLoStr) + R(d * 0.3) : 0; }
-function need(d) { var dw0 = R(d * 0.5); if (dual) return 2 * (seg7W(dw0, CELLSX) + dw0 * 1.3) + d * 1.3 + dw0 * 0.9 + evLoW(d); return seg7W(dw0, CELLSX) + dw0 * 1.2 + (compact ? 0 : d * 1.25) + evLoW(d); }
+var GRP = blk && !compact && !dual && !EV && part !== 'meters', FV = (d) => R(d * 0.62), FS = String(Math.round(M.now.feels === null ? 0 : M.now.feels)), FW = GRP && feelsOn0() ? 1 : 0;   // owner 2026-11-12: temps together, icon + description together
+function feelsOn0() { return M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2; }
+function fwOf(d) { return FW ? FV(d) * 0.65 + u(12) + seg7W(R(FV(d) * 0.5), FS) + FV(d) * 0.45 + u(24) : 0; }
+function need(d) { var dw0 = R(d * 0.5); if (GRP) return d * 0.6 + seg7W(dw0, CELLSX) + dw0 * 1.2 + fwOf(d); if (dual) return 2 * (seg7W(dw0, CELLSX) + dw0 * 1.3) + d * 1.3 + dw0 * 0.9 + evLoW(d); return seg7W(dw0, CELLSX) + dw0 * 1.2 + (compact ? 0 : d * 1.25) + evLoW(d); }
 var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
 var feelsOn = EV ? !compact && blk && dual && M.inn.hum !== null : !compact && blk && M.now.feels !== null && M.now.temp !== null && (Math.abs(M.now.feels - M.now.temp) >= 2 || dual);
-var dyTop = compact ? y + h * 0.27 : (tallBox ? lampBottom + u(8) : Mx(y + h * (noRow || part === 'main' ? 0.14 : 0.25), lampBottom + u(4))), dyEnd = yb - WD.size - u(2) - (feelsOn ? WD.size * 1.2 : 0);
-while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh * (feelsOn ? 1.38 : 1) + (feelsOn ? u(6) : 0) > dyEnd))) dh -= 2;
+var dyTop = compact ? y + h * 0.27 : (tallBox ? lampBottom + u(8) : Mx(y + h * (noRow || part === 'main' ? 0.14 : 0.25), lampBottom + u(4))), dyEnd = yb - WD.size - u(2) - (GRP ? WD.size * 1.2 : feelsOn ? WD.size * 1.2 : 0), fo = feelsOn && !GRP;
+while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh * (fo ? 1.38 : 1) + (fo ? u(6) : 0) > dyEnd))) dh -= 2;
 if (dual) dyTop += WD.size * 1.6;
 var dw = R(dh * 0.5), dy = dyTop;
-if (tallBox) { var kk2 = feelsOn ? 1.38 : 1, totH = dh * kk2 + (feelsOn ? u(6) + WD.size * 1.2 : 0) + WD.size * 1.6 + u(2) + (dual ? WD.size * 1.6 : 0); yb = y + h / 2 + totH / 2; dy = yb - (WD.size + u(2) + (feelsOn ? WD.size * 1.2 : 0)) - dh * kk2 - (feelsOn ? u(6) : 0) - WD.size * 0.6; if (yb - totH < lampBottom + u(4)) { dy += lampBottom + u(4) - (yb - totH); yb += lampBottom + u(4) - (yb - totH); } }
+if (tallBox) { var kk2 = fo ? 1.38 : 1, totH = dh * kk2 + (feelsOn ? u(6) + WD.size * 1.2 : 0) + WD.size * 1.6 + u(2) + (dual ? WD.size * 1.6 : 0); yb = y + h / 2 + totH / 2; dy = yb - (WD.size + u(2) + (feelsOn ? WD.size * 1.2 : 0)) - dh * kk2 - (feelsOn ? u(6) : 0) - WD.size * 0.6; if (yb - totH < lampBottom + u(4)) { dy += lampBottom + u(4) - (yb - totH); yb += lampBottom + u(4) - (yb - totH); } }
 var str = EV ? intDigits(EV.hi) : tempDigits();
 debug.digits = { str: cellsText(str), cells: str, dh: dh, x: R(lx + iconW) };
-var dwid = seg7W(dw, str), iconW = compact ? 0 : dh * 1.25;
+var dwid = seg7W(dw, str), iconW = compact || GRP ? 0 : dh * 1.25;
 var lx = (blk ? blk.cL : ix) + (avail - need(dh)) / 2;
 var ibox = compact ? { l: crMoved ? ix + pillW + u(16) : x + w - u(16) - hb * 0.24, t: y + innerD + u(6), r: x + w - u(16), b: y + h * 0.27 - u(crMoved ? 10 : 6) }
 : { l: (blk ? blk.cL : ix) + u(4), t: lampBottom + u(4), r: 0, b: yb - WD.size - u(5) };
@@ -877,6 +879,7 @@ g.removeChild(tg);
 ibox.r = ibox.l + dh * 0.85 + Mx(0, avail - need(dh));
 var ib0 = iconFit(g, CI, CD, ibox, hWant, dy + dh * 0.5, true);
 lx = blk.cL + avail / 2 - ((fl.l - dh * 0.4 - ib0.w) + (dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12)) + w2) / 2 - iconW;
+if (GRP) lx = blk.cL + avail / 2 - (dh * 0.55 + dwid - fl.l + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + fwOf(dh)) / 2 - fl.l + dh * 0.6;
 }
 var dx = lx + iconW;
 glowDigits((hg) => { seg7(hg || g, dx, dy, dw, dh, str, DIGIT, hg ? null : GHOSTD); });
@@ -884,9 +887,9 @@ debug.digits.boxes = seg7.boxes;
 var firstLit = seg7.boxes.filter((b) => b.l !== null)[0];
 ICON_INK = GLOW; ICON_NOW = true;
 if (!compact) ibox.r = (firstLit ? firstLit.l : dx) - dh * 0.4;
-var ib = glowIcon(g, (gg) => iconFit(gg, CI, CD, ibox, hWant, compact ? y + h * 0.16 : dy + dh * 0.5));
+var ib = GRP ? null : glowIcon(g, (gg) => iconFit(gg, CI, CD, ibox, hWant, compact ? y + h * 0.16 : dy + dh * 0.5));
 ICON_INK = null; ICON_NOW = false;
-debug.digits.iconRight = ib.r;
+debug.digits.iconRight = ib ? ib.r : null;
 var sw = R(dw * 0.45);
 if (EV) {
 // tomorrow: the high in big digits, a small degree sign, then "/ low" in smaller digits (owner 2026-11-12)
@@ -910,13 +913,13 @@ text(g, I18N.ours('indoor'), x2 + dwid2 / 2, dy - WD.size * 0.5, WD, { anchor: '
 }
 }
 var presetDone = false, stripOK = false;
-// owner 2026-11-12: the condition under its weather icon, the feels-like (person + thermometer, then the value) under the temperature
-if (blk && !compact && !dual && !EV && ib && ib.r > ib.l) { var cxI = (ib.l + ib.r) / 2, splitX = (ib.r + (firstLit ? firstLit.l : dx)) / 2, cwI = 2 * Mn(cxI - blk.cL, splitX - cxI);
-var roomC = splitX - blk.cL - u(8), cw0 = condS.split(' '), cl = mW(condS, WD) <= roomC ? [condS] : (cw0.length > 1 ? [cw0.slice(0, Math.ceil(cw0.length / 2)).join(' '), cw0.slice(Math.ceil(cw0.length / 2)).join(' ')] : [condS]);
-if (cl.every((t) => mW(t, WD) <= roomC) && (cl.length < 2 || yb - WD.size * 2.6 > ib.b)) { stripOK = true; cl.forEach((t, li) => { var tw9 = mW(t, WD); text(g, t, Mn(Mx(blk.cL + u(8) + tw9 / 2, cxI), splitX - tw9 / 2), yb - (cl.length - 1 - li) * WD.size * 1.35, WD, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) }).setAttribute('data-sw-cond', li); });
-if (feelsOn) { var fsT = fv(M.now.feels) + deg, q = WD.size / 5.5, fvw = mW(fsT, WD), totF = 11 * q + fvw, litB = (debug.digits.boxes || []).filter((b) => b.l !== null), dC = litB.length ? (litB[0].l + litB[litB.length - 1].r) / 2 : dx + dwid / 2, fxs = Mx(splitX + u(8), dC - totF / 2), ix0 = fxs, iy0 = yb - WD.size * 1.1;
-if (fxs + totF <= blk.cR) { presetDone = true; feelsIcon(g, ix0, iy0, q);
-text(g, fsT, ix0 + 11 * q, yb, WD, { fill: GLOW, ls: R(WD.size * 0.1) }).setAttribute('data-sw-feels-value', 1); } } } }
+if (GRP) { stripOK = true;
+ICON_INK = GLOW; glowIcon(g, (gg) => iconFit(gg, 'thermo', null, { l: dx + (firstLit ? firstLit.l - dx : 0) - dh * 0.6, r: dx + (firstLit ? firstLit.l - dx : 0) - u(16), t: dy - dh * 0.05, b: dy + dh * 1.05 }, dh * 1.1, dy + dh / 2)); ICON_INK = null;   // owner 2026-11-12: the thermometer in front of the temperature
+if (FW) { presetDone = true; var fh9 = FV(dh), q = fh9 * 0.1, fx9 = dx + dwid + R(dw * 0.25) + 2 * R(dw * 0.45) + R(dw * 0.12) + u(24), fb9 = dy + dh;
+feelsIcon(g, fx9, fb9 - fh9, q); glowDigits((hg) => { seg7(hg || g, fx9 + 6.5 * q + u(12), fb9 - fh9, R(fh9 * 0.5), fh9, FS, DIGIT, null); text(hg || g, deg, fx9 + 6.5 * q + u(12) + seg7W(R(fh9 * 0.5), FS) + R(fh9 * 0.08), fb9 - fh9 * 0.45, F(R(fh9 * 0.55), '700'), { fill: DIGIT }); }); if (0) text(g, '', 0, 0, WD, { fill: GLOW, ls: R(WD.size * 0.1) }).setAttribute('data-sw-feels-value', 1); }
+var s9 = WD.size * 1.9, av9 = Mn(avail, blk.cR - blk.cL) - u(16), tw9 = Mn(mW(condS, WD), av9 - s9 - u(10)), x9 = blk.cL + Mn(avail, blk.cR - blk.cL) / 2 - (s9 + u(10) + tw9) / 2;
+ICON_INK = GLOW; ICON_NOW = true; glowIcon(g, (gg) => iconFit(gg, CI, CD, { l: x9, r: x9 + s9, t: yb - WD.size * 0.35 - s9 / 2, b: yb - WD.size * 0.35 + s9 / 2 }, s9, yb - WD.size * 0.35)); ICON_INK = null; ICON_NOW = false;
+fitText(g, condS, x9 + s9 + u(10), yb, WD, av9 - s9 - u(10), { fill: GLOW, ls: R(WD.size * 0.15) }).setAttribute('data-sw-cond', 0); }
 var ybC = feelsOn && !presetDone && !(dual && EV) ? yb - WD.size * 1.6 : yb;   // owner 2026-11-12: the condition first, the feels-like under it
 if (stripOK) wt = null;
 else if (blk) wt = fitText(g, condS, blk.cL + avail / 2, ybC, WD, avail, { anchor: 'middle', fill: GLOW, ls: R(WD.size * 0.15) });
@@ -979,8 +982,17 @@ while (ch2 > 8 && seg7W(R(ch2 * 0.5), '88:88') > rw - u(8)) { ch2 -= 2; cw2 = R(
 var ct2 = M.rain ? (M.rain.now ? rainTo : rainFrom) : '--:--', cy2 = R(((RW.top + WD.size * 1.3) + botL) / 2 - ch2 / 2), cx2 = R(rx + (rw - seg7W(cw2, ct2)) / 2);
 glowDigits((hg) => { seg7(hg || g, cx2, cy2, cw2, ch2, ct2, M.rain ? RAINDIG : GLOW, hg ? null : GHOSTD); });
 debug.clock = { str: ct2, boxes: seg7.boxes };
-if (amtS) { fitText(g, amtS, rx, RW.lab - WD.size * 1.5, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW }); debug.rainAmt = amtS; }
-fitText(g, !M.rain ? I18N.ours('next_h', SPAN) : (M.rain.now ? I18N.ours(wetKey('now')) : I18N.ours('until') + ' ' + rainTo), rx, RW.lab, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
+// owner 2026-11-12: a receiver timer: the chance as signal-strength bars, the end time in segment digits after TOT
+var by9 = RW.lab - (M.rain && !M.rain.now ? R(WD.size * 1.5) + WD.size * 0.55 : WD.size * 1.5), bx9 = rx;
+if (amtS) { if (M.rain.maxP !== null) { var bh9 = WD.size * 1.05, bw9 = R(WD.size * 0.32), nb9 = Math.round(M.rain.maxP / 20);
+for (var k9 = 0; k9 < 5; k9++) { var hh9 = R(bh9 * (k9 + 1) / 5); mk('rect', { x: R(bx9 + k9 * (bw9 + Mx(1, R(bw9 * 0.4)))), y: R(by9 - hh9), width: bw9, height: hh9, fill: k9 < nb9 ? GLOW : 'none', stroke: GLOW, 'stroke-width': Mx(1, u(1)), 'data-sw-chance': k9 < nb9 ? 1 : 0 }, g); }
+bx9 += 5 * (bw9 + Mx(1, R(bw9 * 0.4))) + u(8); }
+fitText(g, amtS, bx9, by9, WD, rx + rw - u(4) - bx9, { ls: R(WD.size * 0.12), fill: GLOW }); debug.rainAmt = amtS; }
+if (M.rain && !M.rain.now) { var tl9 = I18N.ours('until'), tlw = mW(tl9, WD) + u(16), th9 = R(WD.size * 1.5), tw9b = R(th9 * 0.5);
+while (th9 > 8 && tlw + seg7W(tw9b, rainTo) > rw - u(4)) { th9 -= 1; tw9b = R(th9 * 0.5); }
+text(g, tl9, rx, RW.lab, WD, { ls: R(WD.size * 0.15), fill: GLOW });
+glowDigits((hg) => { seg7(hg || g, rx + tlw, RW.lab - th9, tw9b, th9, rainTo, M.rain ? RAINDIG : GLOW, null); }); }
+else fitText(g, !M.rain ? I18N.ours('next_h', SPAN) : I18N.ours(wetKey('now')), rx, RW.lab, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
 return;
 }
 fitText(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? I18N.ours(wetKey(M.rain.now ? 'until' : 'from')) : I18N.ours('no_rain')), rx, y + h * 0.36, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
@@ -1221,7 +1233,7 @@ stage.setAttribute('data-sw-debug', JSON.stringify(debug));
 }
 var WI_BASE = 'https://trmnl.com/images/plugins/weather/';
 var MOON_N = SW_MOON || 'wi-night-clear';
-var WI_MAP = { moon: [MOON_N, MOON_N, MOON_N], sunrise: ['wi-sunrise', 'wi-sunrise', 'wi-sunrise'], sunset: ['wi-sunset', 'wi-sunset', 'wi-sunset'], clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
+var WI_MAP = { moon: [MOON_N, MOON_N, MOON_N], thermo: ['wi-thermometer', 'wi-thermometer', 'wi-thermometer'], sunrise: ['wi-sunrise', 'wi-sunrise', 'wi-sunrise'], sunset: ['wi-sunset', 'wi-sunset', 'wi-sunset'], clear: ['wi-day-sunny', 'wi-night-clear', 'wi-day-sunny'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy', 'wi-day-cloudy'],
 cloud: ['wi-cloudy', 'wi-cloudy', 'wi-cloudy'], fog: ['wi-day-fog', 'wi-night-fog', 'wi-fog'],
 drizzle: ['wi-day-sprinkle', 'wi-night-alt-sprinkle', 'wi-sprinkle'], rain: ['wi-day-rain', 'wi-night-alt-rain', 'wi-rain'],
 heavy: ['wi-rain', 'wi-rain', 'wi-rain'], sleet: ['wi-day-sleet', 'wi-night-alt-sleet', 'wi-sleet'],
