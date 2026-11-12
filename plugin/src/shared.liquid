@@ -21,6 +21,7 @@ var SW_RAW = {
 current: {% if current %}{{ current | json }}{% else %}null{% endif %},
 hourly: {% if hourly %}{{ hourly | json }}{% else %}null{% endif %},
 daily: {% if daily %}{{ daily | json }}{% else %}null{% endif %},
+sens: {% assign sens = sensors | default: sensor_readings %}{% if sens %}{{ sens | json }}{% else %}null{% endif %},
 aq: {% if aq.current %}{ current: {{ aq.current | json }}, hourly: {{ aq.hourly | json }} }{% else %}null{% endif %},
 error: {% if error %}true{% else %}false{% endif %},
 reason: {% if reason %}{{ reason | json }}{% else %}null{% endif %},
@@ -205,6 +206,17 @@ var cv = num(aq.current[k + '_pollen']), hv = maxOf(list(aq.hourly || {}, k + '_
 if (val !== null) pol = pol === null ? psc(val) : Mx(pol, psc(val));
 });
 model.now.pollen = pol;
+model.inn = { temp: null, hum: null, co2: null, press: null };
+var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;
+var dk = sd ? Object.keys(sd).sort().filter((k) => sd[k] && typeof sd[k] === 'object' && Object.keys(sd[k]).some((q) => Array.isArray(sd[k][q]) && sd[k][q].length))[0] : null;
+if (dk) {
+var latest = (arr) => { var best = null, bt = ''; (arr || []).forEach((e) => { var ts = Object.keys(e || {})[0]; if (ts && ts > bt) { bt = ts; best = num(e[ts]); } });
+var m3 = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(bt);
+if (best !== null && raw.renderedAt && m3 && raw.renderedAt - Date.UTC(+m3[1], +m3[2] - 1, +m3[3], +m3[4], +m3[5], +m3[6]) / 1000 > 10800) best = null;
+return best; };
+model.inn = { temp: latest(sd[dk].temperature), hum: latest(sd[dk].humidity), co2: latest(sd[dk].carbon_dioxide), press: latest(sd[dk].pressure) };
+if (model.now.press === null) model.now.press = model.inn.press;
+}
 model.age = ageMinutes(c.time, raw.offset, raw.renderedAt);
 var any = false;
 for (var i = 0; i < model.slots.length; i++) if (!model.slots[i].missing) any = true;
@@ -642,6 +654,9 @@ return [[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[
 }
 var NEEDLE = bits === 4 ? fillOf('gray-15') : ink;
 if (bits === 4 && !o.noNeedle) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55'), 'shape-rendering': GPX }, ng);
+if (o.twin !== null && o.twin !== undefined) { var ta = -A + 2 * A * Mx(-0.03, Mn(1.03, o.twin)), tux = Math.sin(ta), tuy = -Math.cos(ta), tnx = -tuy, tny = tux, tr = rArc * 0.92;
+mk('polygon', { points: [[cx + tux * tr, py + tuy * tr], [cx + tnx * u(2), py + tny * u(2)], [cx - tnx * u(2), py - tny * u(2)]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: 'none', stroke: NEEDLE, 'stroke-width': Mx(1, u(1.2)), 'stroke-dasharray': u(3) + ' ' + u(2), 'data-sw-twin': 1 }, ng);
+text(g, 'IN', cx + tux * (tr + u(6)), py + tuy * (tr + u(6)) + SC.size * 0.3, SC, { anchor: 'middle' }); }
 if (!o.noNeedle) glowDigits((hg) => { mk('polygon', { points: needlePts(0, 0), fill: NEEDLE, 'shape-rendering': bits === 1 ? 'crispEdges' : 'geometricPrecision', 'data-sw-needle': hg ? null : o.chan, 'data-sw-meter': hg ? null : MN }, hg || ng); }, true, ng);
 scaleLabels.forEach((bx) => {
 var tl2 = text(g, bx.tk.label, bx.x, bx.y + SC.size * 0.36, SC, { anchor: 'middle' });
@@ -724,7 +739,7 @@ return { a: Fl(lo / 50) * 50, b: Math.ceil(hi / 50) * 50, major: 50, minor: 10 }
 }
 function tempMeter(g, x, y, w, h, small, badge, captioned) {
 var tl = M.today.lo, th = M.today.hi, nv = M.now.temp;
-var vals = [day24.lo, day24.hi, tl, th].filter((v) => v !== null);
+var inT = M.inn.temp === null ? null : (M.unit === 'F' ? M.inn.temp * 1.8 + 32 : M.inn.temp), vals = [day24.lo, day24.hi, tl, th, inT].filter((v) => v !== null);
 var lo = vals.length ? Math.min.apply(null, vals) : 0, hi = vals.length ? Math.max.apply(null, vals) : 10;
 var sc = niceScale(lo, hi, small || (w - u(14)) / z < 420), a = sc.a, b = sc.b;
 debug.scale = { a: a, b: b, major: sc.major, lo: lo, hi: hi };
@@ -737,7 +752,7 @@ ticks.push({ f: f(vv), major: major, label: major ? String(vv) : undefined, skip
 return meter(g, x, y, w, h, { chan: 'T', badge: badge, captioned: captioned, ticks: ticks, needle: nv === null ? null : f(nv), small: small,
 band: tl !== null && th !== null ? [f(tl), f(th)] : null,
 marks: [tl !== null ? { f: f(tl), label: I18N.lo, lo: true } : null, th !== null ? { f: f(th), label: I18N.hi } : null].filter(Boolean),
-name: I18N.temperature, shortName: I18N.ours('temp_s'), unitName: deg + M.unit, });
+twin: M.inn.temp === null ? null : f(M.unit === 'F' ? M.inn.temp * 1.8 + 32 : M.inn.temp), name: I18N.temperature, shortName: I18N.ours('temp_s'), unitName: deg + M.unit, });
 }
 function nz(v) { return typeof v === 'number' && isFinite(v) ? v : null; }
 var WUNIT = M.unit === 'F' ? 'MPH' : 'KM/H', WTHR = M.unit === 'F' ? 20 : 30;
@@ -922,15 +937,16 @@ return tw2 + 2 * bpad;
 function fv(v, sfx) { return v === null ? '--' : SWModel.fmt(v) + (sfx || ''); }
 function fv1(v) { return v === null ? '--' : (v < 10 ? (Math.round(v * 10) / 10).toFixed(1) : SWModel.fmt(v)); }
 function compass(d) { if (d === null) return ''; var pts = I18N.ours('compass').split(','); return pts.length === 8 ? pts[Math.round(d / 45) % 8] : ''; }
-var RO_ORDER = ['humidity', 'uv', 'wind', 'aqi', 'pollen'];
+var RO_ORDER = ['humidity', 'uv', 'wind', 'aqi', 'pollen', 'co2'];
 function readout(k) {
 var n = M.now, t = M.today, c = compass(n.dir), F_ = M.unit === 'F';
 var bar = (v, lo, hi) => v === null ? null : Mx(0, Mn(1, (v - lo) / (hi - lo)));
 if (k === 'wind') return { lab: I18N.wind, bar: bar(n.wind, 0, F_ ? 40 : 60), zones: [0.5, F_ ? 0.75 : 0.83], txt: I18N.wind + ' ' + fv(n.wind) + (c ? ' ' + c : '') };
+if (k === 'co2') return { lab: 'CO2', bar: bar(M.inn.co2, 400, 2000), zones: [0.375, 0.625], txt: 'CO2 ' + fv(M.inn.co2) };
 if (k === 'pollen') return { lab: I18N.ours('pollen'), bar: n.pollen, zones: [0.3, 0.6], txt: I18N.ours('pollen') + ' ' + fv(n.pollen === null ? null : Math.round(n.pollen * 100)) };
 if (k === 'aqi') return { lab: 'AQI', bar: bar(nz(n.aqi), 0, 100), ticks: [0.6], zones: [0.4, 0.6], txt: 'AQI ' + fv(nz(n.aqi)) };
 if (k === 'uv') return { lab: I18N.ours('uv'), bar: bar(n.uv, 0, 11), ticks: [3 / 11, 8 / 11], zones: [3 / 11, 8 / 11], txt: I18N.ours('uv') + ' ' + fv(n.uv) };
-return { lab: I18N.ours('m_hum'), bar: bar(n.hum, 0, 100), txt: I18N.ours('hum') + ' ' + fv(n.hum, '%') };
+return { lab: I18N.ours('m_hum'), mark: M.inn.hum === null ? null : bar(M.inn.hum, 0, 100), bar: bar(n.hum, 0, 100), txt: I18N.ours('hum') + ' ' + fv(n.hum, '%') };
 }
 
 var ROK = [], ROS = [], TSC = (() => { var v = [day24.lo, day24.hi, M.today.lo, M.today.hi].filter((q) => q !== null); return niceScale(v.length ? Mn.apply(null, v) : 0, v.length ? Mx.apply(null, v) : 10, false); })();
@@ -991,7 +1007,7 @@ var blk = null, cells = null;
 function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.removeChild(tt); return ww; }
 if (!compact && M.ok && ROS.length >= 3) {
 var ROW = { top: tallBox || noLampBox ? lampBottom + u(8) : Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * (tallBox ? 0.92 : 0.9) }, LF = F(RD(hb * 0.075, 10), '700'), lmax = 0;
-['m_hum', 'uv'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF), mW(I18N.ours('pollen'), LF));
+['m_hum', 'uv'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF), mW(I18N.ours('pollen'), LF), mW('CO2', LF));
 cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), left: ROS };
 blk = { divX: ix + lw + u(14), cL: ix + lw + u(22), cR: rx - u(22) };
 if (cells) { var rhA = (cells.ROW.lab - cells.ROW.top + LF.size) / cells.nM, rhB = Mn(rhA, LF.size * 2.2); cells.ROW.rh = rhB; cells.ROW.off = (rhA - rhB) * cells.nM / 2; }
@@ -1018,6 +1034,7 @@ else if (bits <= 2) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1
 else if (DIMW && !on) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
 if (LCD) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: BMUT, 'stroke-width': Mx(1, u(1)) }, cg);
 }
+if (r.mark !== null && r.mark !== undefined) { var mx5 = x0 + r.mark * (10 * segW + 9 * sg), my5 = cy + segH / 2 + u(1); mk('polygon', { points: [[mx5, my5], [mx5 - u(3), my5 + u(6)], [mx5 + u(3), my5 + u(6)]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: 'none', stroke: GLOW, 'stroke-width': Mx(1, u(1)), 'data-sw-inmark': 1 }, cg); }
 (r.ticks || []).forEach((f) => { mk('rect', { x: R(x0 + f * (10 * segW + 9 * sg)), y: R(cy + segH / 2 + u(2)), width: Mx(1, u(1.5)), height: u(4), fill: GLOW, 'data-sw-rtick': 1 }, cg); });
 (debug[which] = debug[which] || []).push(r.lab);
 }
@@ -1321,7 +1338,7 @@ if (on) mk('rect', { x: R(sx2), y: R(ry - sh / 2), width: R(segW2), height: sh, 
 if (daysH > 0) keysRow(x, y + boxH + GP, w, daysH, daysFit(w, 110));
 debug.col = { boxH: R(boxH), days: R(daysH), need: R(need) };
 }
-ROK = RO_ORDER.filter((k) => k !== 'pollen' || M.now.pollen !== null); ROS = ROK.map(readout);
+ROK = RO_ORDER.filter((k) => (k !== 'pollen' || M.now.pollen !== null) && (k !== 'co2' || M.inn.co2 !== null)); ROS = ROK.map(readout);
 debug.readoutKinds = ROK;
 if (W0 / z < 320) {
 colLayout(root, X0, Y0, W0, H0);

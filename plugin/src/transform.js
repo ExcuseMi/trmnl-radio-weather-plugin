@@ -123,7 +123,8 @@ async function run(input) {
   var got = await Promise.allSettled([getJson(forecast), getJson(air)]);
   var weather = got[0].status === 'fulfilled' ? got[0].value : { error: true, reason: String(got[0].reason && got[0].reason.message || got[0].reason).slice(0, 160) };
   var aq = got[1].status === 'fulfilled' && got[1].value && got[1].value.current ? got[1].value : null;
-  return { weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius' };
+  var sensors = (input && (input.sensor_readings || (input.trmnl && input.trmnl.sensor_readings))) || null;
+  return { sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius' };
 }
 
 if (typeof module !== 'undefined') module.exports = { run: run, buildI18n: buildI18n, normaliseLocale: normaliseLocale };
