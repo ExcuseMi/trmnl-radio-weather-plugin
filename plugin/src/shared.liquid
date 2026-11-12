@@ -53,12 +53,12 @@
    <div class="flex flex--row {% if stk %}{% else %}grow{% endif %} gap--small w--full">
     <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %} shrink-0">
     {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
-     <div class="{% if forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--right flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
+     <div class="{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--right flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
     {%- endfor %}
     </div>
     <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %} grow">
     {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
-     <div class="{% if forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]">
+     <div class="{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]">
       <div class="w--full h--[{{ mb_m | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
       <div class="hidden lg:block w--full h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
      </div>

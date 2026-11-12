@@ -155,6 +155,10 @@ P.forEach(function(a){var Q=(document.querySelector('.screen')||document.body).g
 var mn=Math.min.apply(null,g),mx=Math.max.apply(null,g);return mx-mn>2?'gaps '+mn.toFixed(1)+'..'+mx.toFixed(1)+' ['+g.map(function(v){return v.toFixed(0)}).join(',')+']':'';})()})
       puts "GAPS #{c['name']}: #{pg}" unless pg.empty?
       expect(pg).to eq('')
+      # Barometer once (owner 2026-11-12): never the dial and the BARO meter both on screen.
+      bb = s.evaluate(%q{(function(){var v=function(q){return [].some.call(document.querySelectorAll(q),function(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0})};return v('[data-sw-part="baro"]')&&v('[data-sw-part="meter"][data-sw-key="baro"]')?'dial and meter':'';})()})
+      puts "BARO #{c['name']}: #{bb}" unless bb.empty?
+      expect(bb).to eq('')
       # No warning lamps in any view (owner 2026-11-12); the rain unit's icon carries rain, snow or hail.
       lp = s.evaluate("document.querySelectorAll('[data-sw-lamp]').length")
       puts "LAMP #{c['name']}: #{lp}" unless lp.zero?
