@@ -1020,8 +1020,8 @@ mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: f
 var knock = (str, xt, endA, fnt) => { var kw = D.mW(str, fnt); mk('rect', { x: R((endA ? xt - kw : xt) - u(3)), y: R(cy - fnt.size * 0.8 - u(1)), width: R(kw + 2 * u(3)), height: R(fnt.size * 1.2 + u(2)), fill: bg }, g); };
 var nwLo = D.mW(tStr(d.lo), D.t2), roomLo = xa - x0 - u(8), tLo = nwLo > roomLo ? F(Mx(8, D.t2.size * Mx(0.55, roomLo / nwLo)), D.t2.weight, 1) : D.t2;
 var pxv = M.now.temp !== null ? R(xOf(M.now.temp)) : null, xLo = xa - u(8), xHi = xb + u(8), nwHi = D.mW(tStr(d.hi), D.t2), nwLo2 = D.mW(tStr(d.lo), tLo);
-if (pxv !== null && pxv >= xLo - nwLo2 - u(3) && pxv <= xLo + u(3)) xLo = pxv - u(4);
-if (pxv !== null && pxv >= xHi - u(3) && pxv <= xHi + nwHi + u(3)) xHi = pxv + u(4);
+if (pxv !== null && pxv >= xLo - nwLo2 - u(6) && pxv <= xLo + u(6)) xLo = pxv - u(6);
+if (pxv !== null && pxv >= xHi - u(6) && pxv <= xHi + nwHi + u(6)) xHi = pxv + u(6);
 knock(tStr(d.lo), xLo, true, tLo);
 text(g, tStr(d.lo), xLo, cy + tLo.size * 0.36, tLo, { anchor: 'end', fill: fg });
 knock(tStr(d.hi), xHi, false, D.t2);
