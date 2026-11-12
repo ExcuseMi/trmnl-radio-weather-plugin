@@ -955,8 +955,9 @@ if (compact) {
 return;
 }
 if (!stackDual) mk('rect', { x: R(rx - u(14)), y: R(y + h * (part ? 0.3 : 0.12)), width: Mx(1, u(1.5)), height: R(h * (part ? 0.58 : 0.76)), fill: DIMW || ink }, g);
-if (M.ok && !M.rain) {
-var dTop = cells ? rainROW.top : y + h * 0.3, dBot = cells ? rainROW.lab : y + h * 0.9, dM = (dTop + dBot) / 2, DB = F(WD.size * 1.45, '800', 1);
+// sunrise, sunset and the moon in [dTop, dBot]: the whole column on a dry day, the room under the rain calendar otherwise
+var sunBox = function (dTop, dBot) {
+var dM = (dTop + dBot) / 2;
 var dcx = rx + rw / 2, S2 = M.sunT;
 var tomT = (k) => S2 && S2[k] ? ' ' + I18N.ours('tomorrow') : '', tws = (q) => Mx(mW(S2 ? S2.riseL : '', F(q, '700')), mW(S2 ? S2.setL : '', F(q, '700'))) + (tomT('riseTom') + tomT('setTom') ? q * 1.1 : 0), s3 = WD.size * 1.3, tot = (q) => q * 1.6 + q * 0.4 + tws(q) + q * 0.8 + q * 2.4;
 // owner 2026-11-12: on a dry day the block shows only the sun times and the moon, centred (no GEEN REGEN label)
@@ -968,6 +969,9 @@ var rf = F(s3, '700'), lw3 = s3 * 2 + tws(s3), x03 = dcx - tot(s3) / 2, yA = dM 
 [['sunrise', S2.riseL, yA, 'riseTom'], ['sunset', S2.setL, yB, 'setTom']].forEach((it) => { glowIcon(g, (gg) => icon(gg, it[0], x03 + s3 * 0.8, it[2] - s3 * 0.3, s3 * 1.4, null)); text(g, it[1], x03 + s3 * 1.8, it[2], rf, { fill: GLOW }); if (S2[it[3]]) skipIcon(g, x03 + s3 * 1.8 + mW(it[1], rf) + s3 * 0.25, it[2] - s3 * 0.62, s3 * 0.6).setAttribute('data-sw-suntom', it[0]); });
 ICON_INK = bits >= 2 ? BMUT : null; glowIcon(g, (gg) => icon(gg, 'moon', mUnder ? dcx : x03 + lw3 + s3 * 1.4, mUnder ? yB + s3 * 1.9 : (yA + yB) / 2 - s3 * 0.3, mUnder ? s3 * 2 : s3 * 2.4, null)); ICON_INK = null;
 }
+};
+if (M.ok && !M.rain) {
+sunBox(cells ? rainROW.top : y + h * 0.3, cells ? rainROW.lab : y + h * 0.9);
 debug.clock = { str: '', boxes: [] };
 return;
 }
@@ -982,11 +986,12 @@ else { var rf0 = iconFit(g, rK, null, { l: 0, r: 1e5, t: -1e5, b: 1e5 }, icH, 0,
 var dTop2 = iTop, ch2 = icH;
 debug.clock = { str: M.rain ? (M.rain.now ? rainTo : rainFrom) : '--:--' };
 // owner 2026-11-12: CD-style calendar, 12 h from 2 h before the rain, rain hours lit
-if (M.rain) { var h0 = Mx(0, Mn(M.rain.from - 2, M.hours.length - 12)), hs = M.hours.slice(h0, h0 + 12), cwB = (rw - u(4)) / 6, sy0 = dTop2 + ch2 + gp2;
+if (M.rain) { var h0 = Mx(0, Mn(M.rain.from - 2, M.hours.length - 12)), hs = M.hours.slice(h0, h0 + 12), cwB = (rw - u(4)) / 6, sy0 = dTop2 + ch2 + u(10);   // owner 2026-11-12: calendar close to the rain icon, room for the sun and moon
 for (var k = 0; k < 12 && hs[k]; k++) { var mp = hs[k].p === null ? 0 : hs[k].p, hk = h0 + k, x8 = R(rx + (k % 6) * cwB), y8 = R(sy0 + Fl(k / 6) * (chB + u(3))), on8 = hk >= M.rain.from && hk <= M.rain.to;
 if (on8) mk('rect', { x: x8, y: y8, width: R(cwB - u(3)), height: chB, rx: R(chB * 0.2), fill: RAINDIG, 'data-sw-rainblk': 1 }, g);
 text(g, hs[k].hl || hs[k].h, x8 + R(cwB - u(3)) / 2, y8 + chB * 0.5 + SL.size * 0.36, SL, { anchor: 'middle', fill: on8 ? GLASSD : GLOW }); } }
 if (amtS || !M.rain) fitText(g, amtS || I18N.ours('next_h', SPAN), rx, RW.lab, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW }); if (amtS) debug.rainAmt = amtS;
+if (M.rain && !amtS && RW.lab - (sy0 + 2 * chB + u(14)) >= WD.size * 2.6) sunBox(sy0 + 2 * chB + u(14), RW.lab + WD.size * 0.3);
 return;
 }
 fitText(g, !M.ok ? I18N.ours('no_signal') : (M.rain ? I18N.ours(wetKey(M.rain.now ? 'until' : 'from')) : I18N.ours('no_rain')), rx, y + h * 0.36, WD, rw - u(4), { ls: R(WD.size * 0.15), fill: GLOW });
