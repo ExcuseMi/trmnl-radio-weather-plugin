@@ -130,7 +130,8 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
   ok(/- keyname: time_format\n  field_type: select\n[\s\S]*- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n- keyname: style\n/.test(y), 'time_format, 24 by default, followed only by the later style field');
-  ok(/- keyname: style\n  field_type: select\n[\s\S]*- Receiver: receiver\n  - Calm: calm\n  default: calm\n(name:|$)/.test(y), 'style is the last custom field, Calm by default (owner 2026-11-12)');
+  ok(/- keyname: style\n  field_type: select\n[\s\S]*- Receiver: receiver\n  - Calm: calm\n  default: calm\n- keyname: bottom\n/.test(y), 'style, Calm by default (owner 2026-11-12), followed by bottom');
+  ok(/- keyname: bottom\n  field_type: select\n[\s\S]*- Days: days\n  - Hours: hours\n  default: days\n(name:|$)/.test(y), 'bottom is the last custom field, Days by default (owner)');
 });
 
 test('air quality: the current index at any hour (no evening mode)', () => {
@@ -388,6 +389,20 @@ test('past_hours=3: the past hours are cut so every hourly list starts at the cu
   eq(b.rain, a.rain, 'rain window unchanged');
   eq(T.dropPast(f).ago, null, 'no past hours: no trend');
   eq(T.dropPast(null).weather, null);
+});
+test('hours strip: 12 hours from now, stamps per time format, rain only on wet hours, one scale holding every hour', () => {
+  const f = fx('mixed'), M = SWModel.build(f, {}), i = T.buildI18n('nl');
+  const v = T.buildView(M, i, f.daily, null, 0.3, { hours: true }), d = T.buildView(M, i, f.daily, null, 0.3);
+  ok(!('hours' in d) && !('hscale' in d), 'Days (default): no hours keys, the page stays as it was');
+  eq(v.hours.length, 12);
+  eq(v.hours.map((q) => q.hl), M.hours.slice(0, 12).map((q) => q.hl), 'stamps from the model hours');
+  eq(v.hours.map((q) => q.now), [true].concat(Array(11).fill(false)), 'only the current hour is now');
+  eq(v.hours.map((q) => q.wet), M.hours.slice(0, 12).map((q) => q.p !== null ? q.p >= (q.wet ? 30 : 50) : q.wet), 'wet as the rain window counts it');
+  ok(v.hours.some((q) => q.wet) && v.hours.some((q) => !q.wet), 'mixed has wet and dry hours');
+  ok(v.hours.every((q) => q.tV === null || (q.tV > v.hscale.a && q.tV <= v.hscale.b)), 'every hour above the floor, inside the scale');
+  const dry = JSON.parse(JSON.stringify(f)); dry.hourly.precipitation_probability = dry.hourly.precipitation_probability.map(() => 0); dry.hourly.weather_code = dry.hourly.weather_code.map(() => 1);
+  ok(T.buildView(SWModel.build(dry, {}), i, f.daily, null, 0.3, { hours: true }).hours.every((q) => !q.wet), 'dry: no rain stamps');
+  eq(T.hourStrip([], String, '°'), null);
 });
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

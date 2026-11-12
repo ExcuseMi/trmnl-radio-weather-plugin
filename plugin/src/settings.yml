@@ -63,6 +63,14 @@ custom_fields:
   - Receiver: receiver
   - Calm: calm
   default: calm
+- keyname: bottom
+  field_type: select
+  name: Bottom strip
+  description: The coming days, or the coming hours with their temperature.
+  options:
+  - Days: days
+  - Hours: hours
+  default: days
 name: Radio Weather
 description: Weather as a vintage radio receiver
 refresh_interval: 60

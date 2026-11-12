@@ -159,6 +159,21 @@
 {%- if days_h %}
  <div class="w--full px--4 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: no divider between filled panels (light 4-bit); the gap is enough {% endcomment %}
  <div class="{{ days_h }} grow">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4">
+{%- if ui.hours %}{% comment %} Hours strip (owner): replaces the day rows; columns 8 / 12 (full), 6 / 8 (half vertical) on md / lg {% endcomment %}
+  {%- assign nh_md = 8 %}{% assign nh_lg = 12 %}{% if view == 3 %}{% assign nh_md = 6 %}{% assign nh_lg = 8 %}{% endif %}
+  <div class="relative z--2 flex flex--row w--full h--full gap--xsmall" data-sw-hours="{{ nh_md }},{{ nh_lg }}">
+  {%- for q in ui.hours %}{% assign i = forloop.index0 %}
+  {%- if i < nh_md or i < nh_lg %}
+   <div class="grow basis--0 flex flex--col flex--center-x h--full gap--xsmall{% if i >= nh_md %} hidden lg:flex{% elsif i >= nh_lg %} lg:hidden{% endif %}" data-sw-hcol="{{ i }}">
+    <div class="shrink-0 flex flex--center">{%- if q.now or q.wet %}<span class="label label--inverted label--large{% if q.now %} text--bold{% endif %}" data-sw-hstamp="{% if q.now %}now{% else %}wet{% endif %}">{{ q.hl }}</span>{% else %}<span class="label label--large" data-sw-hstamp="">{{ q.hl }}</span>{% endif %}</div>
+    <div class="shrink-0 w--full flex flex--center h--[{{ 8 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 6 | times: hl | round | at_most: 100 }}cqh]">{% if q.icon %}<img class="image image--adaptive h--full" src="{{ q.icon }}" alt="">{% endif %}</div>
+    <span class="title title--base{{ name_t }} text--bold shrink-0" data-sw-htemp>{{ q.t }}</span>
+    <div class="grow w--full" data-sw-part="hbar" data-sw-i="{{ i }}"></div>
+   </div>
+  {%- endif %}
+  {%- endfor %}
+  </div>
+{%- else %}
   <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
    <div class="shrink-0 {{ name_w }}"></div><div class="shrink-0 {{ icon_w }}"></div>
    <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
@@ -183,6 +198,7 @@
   </div></div>
   {%- endif %}
   {%- endfor %}
+{%- endif %}
  </div>{{ p_close }}</div>
 {%- endif %}
 </div>
@@ -321,6 +337,14 @@ if (sc.now !== null && sc.now !== undefined) { var nl = rect(X(sc.now) - 1.5, 0,
 if (hi && API.calm && nowV !== null && nowV !== undefined) { var pxn = X(nowV), pr2 = ptH / 1.4, ptr = poly([[pxn - pr2, 0], [pxn + pr2, 0], [pxn, ptH]], ' data-sw-nowmark'); body += hue('red') ? hg('red', ptr) : ptr; }
 if (hi) body += '<g data-sw-hl="1"></g>';
 return svg(W, H, body);
+}
+// Hours strip column (owner): the temperature as stacked blocks from the bottom, one shared scale (SW.hscale), so the
+// columns side by side read as a stepped curve; blocks and shadow as the day bars, the current hour in the today ink.
+function hbar(q, hs, W, H, hi) {
+if (!q || q.tV === null || q.tV === undefined || !hs) return svg(W, H, '');
+var C = Math.min(H, API.hbarH || H), L = Math.max(3, Math.min(10, Math.floor(C / 12))), n = Math.max(1, Math.min(L, Math.round((q.tV - hs.a) / (hs.b - hs.a) * L))), Hh = H - SO, lh = (C - SO) / L, gp = Math.max(2, lh * 0.2), bw = W - SO, cells = '', sh = '';
+for (var k = 0; k < n; k++) { var y = Hh - (k + 1) * lh + gp / 2; cells += rect(0, y, bw, lh - gp, 2); sh += rect(SO, y + SO, bw, lh - gp, 2); }
+return svg(W, H, g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells="' + n + '">' + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells) + '</g>');
 }
 // Days strip header: degree labels (dark grey) and the now pointer; its line starts here unless it would cross a label.
 function scale(sc, W, H) {
@@ -490,6 +514,7 @@ case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
 case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10, SW.meters[i] && SW.meters[i].zones, SW.meters[i] && SW.meters[i].gust);
 case 'day': return day(SW.days[i], SW.scale, W, H, !!(SW.days[i] || {}).today);   // today always highlighted (owner 2026-11-12)
 case 'scale': return scale(scN, W, H);
+case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now);
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
 case 'tri': return tri(i === 0, W, H);
 case 'rule': return rule(W, H);
@@ -507,7 +532,7 @@ return svg(W, H, '<defs><clipPath id="' + cp + '">' + rect(0, 0, W, H, rx) + '</
 }
 return '';
 }
-Object.assign(API, { gustCell: gustCell, part: part, glow: glow, icon: icon, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit, hue: hue });
+Object.assign(API, { gustCell: gustCell, part: part, hbar: hbar, glow: glow, icon: icon, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit, hue: hue });
 return API;
 })();
 // ==== DRAW_END ====
@@ -576,6 +601,7 @@ return API;
         var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;   // rows the md / lg box was sized for
         var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
         SWDraw.scaleH = rows.length && rows[0].getAttribute('data-sw-part') === 'scale' ? Math.round(rows[0].getBoundingClientRect().height) : null;
+        var hb = [].map.call(document.querySelectorAll('[data-sw-part="hbar"]'), function (q) { return q.getBoundingClientRect().height; }).filter(function (h) { return h > 0; }); SWDraw.hbarH = hb.length ? Math.floor(Math.min.apply(null, hb)) : null;   // hours strip: one block height for every column
         SWDraw.extD = k >= 0 && k + 1 < rows.length ? Math.max(0, rows[k + 1].getBoundingClientRect().top - r.bottom + 1) : 0;   // scale and day rows: rules and the now line run on to the next row
         el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.floor(r.width), Math.floor(r.height));   // floor: a drawn part never pokes a pixel past its box
         el.querySelectorAll('text[data-sw-tick]').forEach(function (t) { var d = t.nextElementSibling; if (d) d.setAttribute('x', (+t.getAttribute('x') + t.getComputedTextLength() / 2 + 1).toFixed(1)); });   // the degree sign right after the drawn digits

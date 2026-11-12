@@ -248,10 +248,12 @@ out.push({ h: hourOf(ht[i]), hl: hr(hourOf(ht[i])), t: num(tt[i]), p: num(tp[i])
 }
 return out;
 }
+// One hour counts as rain at this chance (a wet weather code needs less); the rain window and the hours strip share it.
+function hourWet(q, chance) { return q.p !== null ? q.p >= (q.wet ? Mn(30, chance) : chance) : q.wet; }
 function rainWindow(hours, chance) {
 var from = -1, to = -1;
 for (var i = 0; i < hours.length; i++) {
-var wet = hours[i].p !== null ? hours[i].p >= (hours[i].wet ? Mn(30, chance) : chance) : hours[i].wet;
+var wet = hourWet(hours[i], chance);
 if (wet) { if (from < 0) from = i; to = i; } else if (from >= 0) break;
 }
 if (from < 0) return null;
@@ -318,7 +320,7 @@ if (v === null || v === undefined) return '--';
 var r = Math.round(v);
 return String(r === 0 ? 0 : r);
 }
-return { build: build, severity: severity, kind: kind, worstKind: worstKind, rainWindow: rainWindow,
+return { build: build, hourWet: hourWet, severity: severity, kind: kind, worstKind: worstKind, rainWindow: rainWindow,
 fmt: fmt };
 })();
 // ==== MODEL_END ====
@@ -380,6 +382,15 @@ return { weather: Object.assign({}, w, { hourly: nh }), ago: ago };
 // when the felt temperature is under 3 C (37 F); at most one.
 function calmCue(wet, feels, F_) { return wet ? 'umbrella' : (feels !== null && feels !== undefined && feels < (F_ ? 37 : 3) ? 'coat' : null); }
 function rainRows(c) { return c.slice(6, 9).some((q) => q.wet) ? 3 : 2; }
+// Hours strip (owner): 12 hours from the current one, hour stamp per time format, icon, temperature, rain as in the
+// calendar (hourWet at 50 %), one shared scale with a degree of room under the coldest hour so it still shows a block.
+function hourStrip(hours, fmt, deg) {
+var hs = hours.slice(0, 12), ts = hs.map((q) => q.t).filter((v) => v !== null);
+if (!hs.length) return null;
+var a = Math.floor(ts.length ? Math.min.apply(null, ts) : 0) - 1, b = Math.ceil(ts.length ? Math.max.apply(null, ts) : 10);
+if (b - a < 4) b = a + 4;
+return { hours: hs.map((q, i) => ({ hl: q.hl, icon: wiUrl(q.icon, q.day), t: fmt(q.t) + deg, tV: q.t, wet: !!SWModel.hourWet(q, 50), now: i === 0 })), scale: { a: a, b: b } };
+}
 function buildView(M, i18n, daily, moon, phase, opt) {
 var calm = !!(opt && opt.calm);
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
@@ -411,7 +422,8 @@ if (tsc && tsc.b - tsc.a < 3 * tst) tsc.b = tsc.a + 3 * tst;
 var ps = (M.hours || []).slice(0, 24).map((q) => q.pr).filter((q) => q !== null && q !== undefined); if (pr !== null) ps.push(pr);
 var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg', phase: phase == null ? null : phase };
 var trend = calm ? pressTrend(n.press, opt.pressAgo) : null;
-return {
+var hrs = opt && opt.hours ? hourStrip(M.hours || [], fmt, deg) : null;   // owner: bottom strip Hours instead of the days
+var out = {
 ok: M.ok, meters: meters, calm: calm, cue: calm ? calmCue(wetIn12, n.feels === null ? tv : n.feels, F_) : null,
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
 temp: tStr, unit: deg + M.unit, feels: feelsOn && inT === null ? fmt(n.feels) : null,
@@ -425,6 +437,8 @@ value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro, t
 icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'].map((k) => WI_BASE + k + '.svg') },
 tdial: { now: tv, twin: inT, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b : 15, step: tst, name: O.temperature, unit: deg + M.unit, value: tStr }
 };
+if (hrs) { out.hours = hrs.hours; out.hscale = hrs.scale; }
+return out;
 }
 
 function timeIs12(over, set) { return String(over === null || over === undefined ? set : over) === '12'; }
@@ -454,7 +468,7 @@ async function run(input) {
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
   var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
-  return { ui: buildView(model, i18n, w.daily, moon, phase, { calm: String(field(input, 'style', 'calm')) === 'calm', pressAgo: past.ago }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
+  return { ui: buildView(model, i18n, w.daily, moon, phase, { calm: String(field(input, 'style', 'calm')) === 'calm', pressAgo: past.ago, hours: String(field(input, 'bottom', 'days')) === 'hours' }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, calmCue: calmCue, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
+if (typeof module !== 'undefined') module.exports = { run: run, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, calmCue: calmCue, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
