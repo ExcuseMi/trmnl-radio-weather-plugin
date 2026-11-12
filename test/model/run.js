@@ -147,6 +147,19 @@ test('indoor sensor: latest reading, dropped when older than 3 hours', () => {
   eq([old.inn.temp, old.inn.hum], [null, null]);
 });
 
+test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 meter and high CO2 first (as live)', () => {
+  const raw = fx('mixed'), view = (inn) => { const M = SWModel.build(raw, {}); M.inn = Object.assign({ temp: null, hum: null, co2: null, press: null }, inn); return T.buildView(M, T.buildI18n('nl'), raw.daily); };
+  const none = view({});
+  eq([none.inn, none.tdial.twin, none.meters.some((m) => m.key === 'co2')], [null, null, false], 'no sensor: nothing changes');
+  const v = view({ temp: 21.6, hum: 48, co2: 900 });
+  eq([v.inn.temp, v.inn.out, v.inn.in, v.inn.hum, v.tdial.twin, v.feels], ['21.6', 'BUITEN', 'BINNEN', 'VOCHT 48 %', 21.6, null]);
+  ok(v.inn.felt.indexOf('°') > 0, 'felt temperature under the outdoor readout');
+  ok(v.tdial.b >= 21.6, 'dial scale holds the indoor needle');
+  const hi = view({ temp: 21.6, co2: 1500 }).meters.map((m) => m.key), lo = view({ temp: 21.6, co2: 900 }).meters.map((m) => m.key);
+  eq(hi.slice(0, 2), ['wind', 'co2'], 'CO2 above 1400 ppm moves up');
+  ok(lo.indexOf('co2') < 0 || lo.indexOf('co2') === lo.length - 1, 'normal CO2 stays last');
+});
+
 test('sun: the next sunrise and sunset, tomorrow flagged (owner 2026-11-12)', () => {
   const at = (hm) => { const d = JSON.parse(JSON.stringify(fx('mixed'))); d.current.time = '2026-11-08T' + hm; return T.sunTimes(d); };
   const m = at('06:00'), a = at('15:00'), e = at('17:00');

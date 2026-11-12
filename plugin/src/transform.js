@@ -355,10 +355,11 @@ var RO = { wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv:
 aqi: ['AQI', bar(n.aqi, 0, 100), n.aqi !== null], pollen: [O.pollen, n.pollen, n.pollen !== null && n.pollen > 0], humidity: [O.m_hum, bar(n.hum, 0, 100), n.hum !== null],
 baro: ['BARO', bar(n.press, 970, 1050), n.press !== null], co2: ['CO2', bar(M.inn.co2, 400, 2000), M.inn.co2 !== null] };
 var relevant = { uv: n.day !== false && t.uvMax !== null && t.uvMax >= 3, baro: false };
-var keys = RO_ORDER.filter((k) => RO[k][2] && relevant[k] !== false);
-RO_ORDER.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k !== 'uv') keys.push(k); });
-keys = RO_ORDER.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
-var PRI = RO_ORDER;   // stacked views fill their meter rows in this order (owner 2026-11-12)
+var ORD = M.inn.co2 !== null && M.inn.co2 > 1400 ? ['wind', 'co2'].concat(RO_ORDER.filter((k) => k !== 'wind' && k !== 'co2')) : RO_ORDER;   // as live: high indoor CO2 moves up
+var keys = ORD.filter((k) => RO[k][2] && relevant[k] !== false);
+ORD.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k !== 'uv') keys.push(k); });
+keys = ORD.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
+var PRI = ORD;   // stacked views fill their meter rows in this order (owner 2026-11-12)
 var ZONES = { wind: [0.5, F_ ? 0.75 : 0.83], co2: [0.375, 0.625], pollen: [0.3, 0.6], aqi: [0.4, 0.6], uv: [3 / 11, 8 / 11] };   // warning zones, as live
 var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], zones: ZONES[k] || null, idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
 var tv = n.temp, tStr = tv === null ? '--.-' : (Math.round(tv * 10) / 10).toFixed(1);
@@ -373,7 +374,8 @@ var pr = n.press, flags = [];
 if (wetIn12) flags.push(R.type === 'snow' ? i18n.snow : (R.type === 'hail' ? i18n.hail : O.rain));
 if (t.lo !== null && t.lo <= (F_ ? 32 : 0)) flags.push(O.frost);
 if ((n.wind !== null && n.wind >= (F_ ? 31 : 50)) || (t.gustMax !== null && t.gustMax >= (F_ ? 47 : 75))) flags.push(i18n.wind);
-var tl = t.lo, th = t.hi, tvals = [tl, th, tv].filter((v) => v !== null), tst = F_ ? 10 : 5;
+var inT = M.inn.temp === null ? null : (F_ ? M.inn.temp * 1.8 + 32 : M.inn.temp);   // sensors report Celsius
+var tl = t.lo, th = t.hi, tvals = [tl, th, tv, inT].filter((v) => v !== null), tst = F_ ? 10 : 5;
 var tsc = tvals.length ? { a: Math.floor(Math.min.apply(null, tvals) / tst) * tst, b: Math.ceil(Math.max.apply(null, tvals) / tst) * tst } : null;
 if (tsc && tsc.b - tsc.a < 3 * tst) tsc.b = tsc.a + 3 * tst;
 var ps = (M.hours || []).slice(0, 24).map((q) => q.pr).filter((q) => q !== null && q !== undefined); if (pr !== null) ps.push(pr);
@@ -381,7 +383,8 @@ var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--'
 return {
 ok: M.ok, flags: flags, meters: meters,
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
-temp: tStr, unit: deg + M.unit, feels: feelsOn ? fmt(n.feels) : null,
+temp: tStr, unit: deg + M.unit, feels: feelsOn && inT === null ? fmt(n.feels) : null,
+inn: inT === null ? null : { temp: (Math.round(inT * 10) / 10).toFixed(1), out: O.outdoor, in: O.indoor, felt: n.feels === null ? '' : O.feels + ' ' + fmt(n.feels) + deg, hum: M.inn.hum === null ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
 rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)) } : null,
 sun: sun, dry: wetIn12 ? null : sun,
 days: days.map((d, i) => ({ name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
@@ -389,7 +392,7 @@ scale: sc,
 baro: { now: pr, lo: ps.length ? Math.min.apply(null, ps) : null, hi: ps.length ? Math.max.apply(null, ps) : null, a: 970, b: 1050,
 value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro,
 icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'].map((k) => WI_BASE + k + '.svg') },
-tdial: { now: tv, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b : 15, step: tst, name: O.temperature, unit: deg + M.unit }
+tdial: { now: tv, twin: inT, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b : 15, step: tst, name: O.temperature, unit: deg + M.unit }
 };
 }
 
