@@ -425,7 +425,8 @@ keys = ORD.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
 var PRI = ORD;   // stacked views fill their meter rows in this order (owner 2026-11-12)
 var ZONES = { wind: [0.5, F_ ? 0.75 : 0.83], co2: [0.375, 0.625], pollen: [0.3, 0.6], aqi: [0.4, 0.6], uv: [3 / 11, 8 / 11] };   // warning zones, as live
 var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], gust: k === 'wind' ? bar(n.gust, 0, F_ ? 40 : 60) : null, zones: ZONES[k] || null, idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
-var tv = n.temp, tStr = tv === null ? '--.-' : (Math.round(tv * 10) / 10).toFixed(1);
+var t1 = (v) => { var s = (Math.round(v * 10) / 10).toFixed(1), r = Math.round(v); return s.split('.')[0].length >= 3 ? String(r === 0 ? 0 : r) : s; };   // owner (step 12): no decimal once the whole part has 3+ characters (104°, -12°)
+var tv = n.temp, tStr = tv === null ? '--.-' : t1(tv);
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
 var feelsOn = n.feels !== null && tv !== null && Math.abs(n.feels - tv) >= 2;
 var R = M.rain, wetIn12 = !!R && R.from < 12;
@@ -450,7 +451,7 @@ var out = {
 ok: M.ok, meters: meters, cue: cueFor({ rain: wetIn12, lo: n.feels === null ? tv : n.feels, hi: n.feels === null ? tv : n.feels, uv: t.uvMax, day: n.day !== false }, F_),
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
 temp: tStr, unit: deg + M.unit, feels: feelsOn && inT === null ? fmt(n.feels) : null,
-inn: inT === null ? null : { temp: (Math.round(inT * 10) / 10).toFixed(1), out: O.outdoor, in: O.indoor, felt: n.feels === null ? '' : O.feels + ' ' + fmt(n.feels) + deg, hum: M.inn.hum === null ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
+inn: inT === null ? null : { temp: t1(inT), out: O.outdoor, in: O.indoor, felt: n.feels === null ? '' : O.feels + ' ' + fmt(n.feels) + deg, hum: M.inn.hum === null ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
 rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)) } : null,
 sun: sun, dry: wetIn12 ? null : sun,
 days: days.map((d, i) => ({ cue: cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3), name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),

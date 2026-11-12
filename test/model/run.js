@@ -161,6 +161,11 @@ test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 me
   ok(lo.indexOf('co2') < 0 || lo.indexOf('co2') === lo.length - 1, 'normal CO2 stays last');
 });
 
+test('temperature readout: no decimal once the whole part has 3+ characters (owner, step 12: 104.6 F touched the divider)', () => {
+  const raw = fx('mixed'), at = (t) => { const M = SWModel.build(raw, {}); M.now.temp = t; return T.buildView(M, T.buildI18n('nl'), raw.daily); };
+  eq([104.6, -13.2, -12, 38.3, -2.5, 99.96, -0.04].map((t) => at(t).tdial.value), ['105', '-13', '-12', '38.3', '-2.5', '100', '0.0']);
+});
+
 test('sun: the next sunrise and sunset, tomorrow flagged (owner 2026-11-12)', () => {
   const at = (hm) => { const d = JSON.parse(JSON.stringify(fx('mixed'))); d.current.time = '2026-11-08T' + hm; return T.sunTimes(d); };
   const m = at('06:00'), a = at('15:00'), e = at('17:00');
