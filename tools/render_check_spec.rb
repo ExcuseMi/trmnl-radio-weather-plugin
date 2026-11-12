@@ -148,6 +148,13 @@ return bad.join('; ');})()})
 var v=[].filter.call(document.querySelectorAll('[data-sw-between]'),function(e){return getComputedStyle(e).display!=='none'&&e.getClientRects().length>0&&(!e.closest('.hidden')||getComputedStyle(e.closest('.hidden')).display!=='none')}).length;return (filled?'filled ':'open ')+v;})()})
       puts "BETWEEN #{c['name']}: #{bt}" if bt.start_with?('filled') && bt != 'filled 0'
       expect(bt).to eq('filled 0') if bt.start_with?('filled')
+      # Panel spacing (owner 2026-11-12): with filled panels, every gap (between panels, to the screen edges and the title
+      # bar) the same within 2 px.
+      pg = s.evaluate(%q{(function(){if(!document.querySelector('[data-sw-fill]'))return '';var sc=document.querySelector('[data-sw-debug]').closest('.view')||document.querySelector('.screen')||document.body,S=sc.getBoundingClientRect(),P=[].map.call(document.querySelectorAll('[data-sw-panel]'),function(e){return e.getBoundingClientRect()}).filter(function(b){return b.width>0&&b.height>0}),tb=document.querySelector('.title_bar'),T=tb&&tb.getBoundingClientRect().height?tb.getBoundingClientRect():null,g=[];
+P.forEach(function(a){var Q=(document.querySelector('.screen')||document.body).getBoundingClientRect(),e=function(v,w){return v<1?w:v},L=e(a.left-S.left,a.left-Q.left),R=e(S.right-a.right,Q.right-a.right),U=e(a.top-S.top,a.top-Q.top),D=T?T.top-a.bottom:e(S.bottom-a.bottom,Q.bottom-a.bottom);P.forEach(function(b){if(b===a)return;if(b.right<=a.left+1&&b.bottom>a.top+1&&b.top<a.bottom-1)L=Math.min(L,a.left-b.right);if(b.left>=a.right-1&&b.bottom>a.top+1&&b.top<a.bottom-1)R=Math.min(R,b.left-a.right);if(b.bottom<=a.top+1&&b.right>a.left+1&&b.left<a.right-1)U=Math.min(U,a.top-b.bottom);if(b.top>=a.bottom-1&&b.right>a.left+1&&b.left<a.right-1)D=Math.min(D,b.top-a.bottom);});g.push(L,R,U,D);});
+var mn=Math.min.apply(null,g),mx=Math.max.apply(null,g);return mx-mn>2?'gaps '+mn.toFixed(1)+'..'+mx.toFixed(1)+' ['+g.map(function(v){return v.toFixed(0)}).join(',')+']':'';})()})
+      puts "GAPS #{c['name']}: #{pg}" unless pg.empty?
+      expect(pg).to eq('')
       # Panels (owner 2026-11-12): a plain fill, no backlight lamps (radial grey circles) behind dials, console or days.
       bl = s.evaluate(%q{document.querySelectorAll('[data-sw-backlight], [data-sw-part="face"] ellipse, [data-sw-part="face"] pattern').length})
       puts "BACKLIGHT #{c['name']}: #{bl}" unless bl.zero?

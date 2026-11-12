@@ -27,9 +27,9 @@
 {%- if rh_l == nil %}{% assign rh_l = 4 | times: hl | round | at_most: 100 %}{% endif %}
 {%- if tf == nil %}{% assign tf = 1 %}{% endif %}{% assign tm = tf %}{% if view == 3 %}{% assign tm = 1 %}{% endif %}
 {%- if stk %}{% assign ms = ui.meters | sort: 'rank' %}{% else %}{% assign ms = ui.meters %}{% endif %}
-<div class="layout layout--col layout--stretch-x gap--small" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
+<div class="layout layout--col layout--stretch-x gap--base" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
 {%- if view == 1 %}
- <div class="hidden lg:block h--[30cqh]"><div class="flex flex--row flex--stretch-y gap--small h--full">
+ <div class="hidden lg:block h--[30cqh]"><div class="flex flex--row flex--stretch-y gap--base h--full">
   {%- for k in (1..2) %}
   {%- if k == 2 %}<div class="py--4 shrink-0 4bit:hidden dark:4bit:block" data-sw-between><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner 2026-11-12: hairlines in the gaps between blocks {% endcomment %}
   {{ p_open }}<div class="relative h--full w--full">
@@ -43,7 +43,7 @@
   </div>{{ p_close }}
   {%- endfor %}
  </div></div>
- <div class="hidden lg:block w--full px--4"><div class="4bit:hidden dark:4bit:block" data-sw-between><div class="border--h-60"></div></div></div>
+ <div class="hidden lg:block lg:4bit:hidden dark:lg:4bit:block w--full px--4" data-sw-between><div class="border--h-60"></div></div>
 {%- endif %}
 {%- capture c_meters %}
   <div class="flex flex--col {% if view == 3 %}gap--medium lg:gap--small{% else %}gap--small{% endif %} {% if stk %}w--full{% else %}w--[{{ 35 | times: wm | round | at_most: 100 }}cqw]{% endif %}">
@@ -146,7 +146,7 @@
  </div>{{ p_close }}</div>
 {%- if days_h %}
  <div class="w--full px--4 4bit:hidden dark:4bit:block" data-sw-between><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: no divider between filled panels (light 4-bit); the gap is enough {% endcomment %}
- <div class="{{ days_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4">
+ <div class="{{ days_h }} grow">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4">
   <div class="flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
    <div class="shrink-0 {{ name_w }}"></div><div class="shrink-0 {{ icon_w }}"></div>
    <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
