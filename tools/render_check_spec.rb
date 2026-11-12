@@ -274,6 +274,12 @@ if(e.getAttribute&&e.tagName!=='IMG'){var cs=getComputedStyle(e);if((cs.fill==='
 if(b.bottom<=R.top||b.top>=R.bottom)return;var d=b.left>x?b.left-x:(b.right<x?x-b.right:-1);
 if(d<g){var p=e.t||((e.closest('[data-sw-part]')||{getAttribute:function(){return e.tagName}}).getAttribute('data-sw-part')+'/'+e.tagName);bad.push(p+' '+d.toFixed(1)+'<'+g.toFixed(1)+' @'+x.toFixed(0));}});});
 var u=[];bad.forEach(function(s){if(u.indexOf(s)<0)u.push(s)});return u.slice(0,8).join('; ');})()})
+      # Mittens (owner 2026-11-13): the two mittens never touch, at least 1 px of paper between the thumbs at every size.
+      mt = s.evaluate(%q{(function(){var bad=[];function ext(g){var bb=g.getBBox(),t=g.transform.baseVal.consolidate(),M=t?t.matrix:{a:1,e:0},x1=M.a*bb.x+M.e,x2=M.a*(bb.x+bb.width)+M.e;return[Math.min(x1,x2),Math.max(x1,x2)]}
+document.querySelectorAll('g[data-sw-cloth="mittens"]').forEach(function(m){var g=m.querySelectorAll(':scope > g');if(g.length<2||!m.getBoundingClientRect().width)return;var A=ext(g[0]),B=ext(g[1]),k=m.getScreenCTM().a,sw=parseFloat(m.getAttribute('stroke-width')),gap=(B[0]-A[1]-sw)*k;
+if(gap<1)bad.push('paper '+gap.toFixed(2)+' px at '+(28*k).toFixed(0)+' px');});return bad.slice(0,3).join('; ');})()})
+      puts "MITTENS #{c['name']}: #{mt}" unless mt.empty?
+      expect(mt).to eq('')
       # Sun times (owner 2026-11-12, step 12): one line each, 12 h too (the AM/PM smaller, on the same line).
       st = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-suntime]').forEach(function(e){var rg=document.createRange();rg.selectNodeContents(e);var r=[].filter.call(rg.getClientRects(),function(q){return q.width>0&&q.height>0});if(r.length>1&&r.some(function(q){return q.left<r[0].right-1&&q.top>r[0].top+2}))bad.push(e.textContent.replace(/\s+/g,' ').trim());});return bad.join('; ');})()})
       puts "SUNTIME #{c['name']}: #{st}" unless st.empty?
