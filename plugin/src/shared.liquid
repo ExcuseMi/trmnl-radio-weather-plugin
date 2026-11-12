@@ -18,7 +18,7 @@
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 1.7 %}{% assign n_md = 1 %}{% assign n_lg = 3 %}{% assign con_h = 'h--full' %}{% endif %}
 {%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
 {%- comment -%} Right column: rain unit and sun unit side by side on lg; stacked views keep the icon above the grid and the moon beside the sun times. {%- endcomment -%}
-{%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3 = 26 | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--col lg:flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign ri_lg = 'hidden lg:block lg:portrait:hidden' %}{% assign su_cls = 'flex--row lg:portrait:flex--col' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
+{%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3 = 26 | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign ri_lg = 'hidden lg:block lg:portrait:hidden' %}{% assign su_cls = 'flex--row lg:portrait:flex--col' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6 = 16 | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
 {%- if stk %}{% assign ri_md = 'w--[8cqw] lg:hidden' %}{% assign rgw_l = 12 %}{% assign rg_p = '' %}{% assign su_cls = 'flex--row' %}{% assign rc_w = 'w--[40cqw] lg:w--[38cqw] shrink-0' %}{% assign rule_w = 'w--full' %}{% assign tf = 0.7 %}{% assign mh_l = 0.45 %}{% if ui.rain %}{% assign su_cls = 'hidden lg:flex flex--row' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}{% endif %}
 {%- if rh_l == nil %}{% assign rh_l = 4 | times: hl | round | at_most: 100 %}{% endif %}
 {%- if tf == nil %}{% assign tf = 1 %}{% endif %}
@@ -79,7 +79,7 @@
    <div class="flex {{ ru_cls }} flex--center gap--xsmall lg:gap--small w--full shrink-0" data-sw-unit="rain">
     <img class="image image--adaptive {{ ri_md }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
     <img class="image image--adaptive {{ ri_lg }} h--[{{ 8 | times: hl | round | at_most: 100 }}cqh] shrink-0" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
-    <div class="w--full lg:w--[{{ rgw_l | times: wl | round | at_most: 100 }}cqw]{{ rg_p }} lg:portrait:h--[6cqh] h--[{{ 12 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | round | at_most: 100 }}cqh] shrink-0" data-sw-part="rain"></div>
+    <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | round | at_most: 100 }}cqw]{{ rg_p }} lg:portrait:h--[6cqh] h--[{{ 12 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | round | at_most: 100 }}cqh] shrink-0" data-sw-part="rain"></div>
    </div>
    {%- endif %}
    {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% endif %}
@@ -241,8 +241,8 @@ return svg(W, H, body);
 }
 // 12-hour rain calendar: two rows of six, rain hours lit (inverted), the others in full text colour.
 function rain(hours, W, H) {
-var C = 6, cw = W / C, rh = H / 2, fs = Math.min(rh * 0.62, cw * 0.48), body = '';
-hours.slice(0, 12).forEach((q, i) => {
+var C = 4, cw = W / C, rh = H / 2, fs = Math.min(rh * 0.62, cw * 0.48), body = '';   // owner 2026-11-12: fewer columns, 8 hours
+hours.slice(0, 8).forEach((q, i) => {
 var x = (i % C) * cw, y = Math.floor(i / C) * rh;
 if (q.wet) body += glow(rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22), GPX);
 var tx = text(x + cw / 2, y + rh / 2, q.h, fs, 'middle', ' dominant-baseline="central"'); body += q.wet ? g('text--white', tx) : tx;

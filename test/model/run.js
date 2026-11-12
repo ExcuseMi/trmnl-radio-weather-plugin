@@ -280,9 +280,9 @@ test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 s
   eq([cells(5), cells(10)], [5, 10]);
   D.mode = { bits: 2 }; ok(/text--gray-45/.test(D.meter(0, 200, 30, 5)), '2-bit: unlit cells dark enough to show'); D.mode = null;
 });
-test('rain unit: icon left of the grid at its height on lg, above it on md', () => {
+test('rain unit: icon left of the grid on every size (owner 2026-11-12, later decision)', () => {
   const u = sh.indexOf('data-sw-unit="rain"'), end = sh.indexOf('data-sw-part="rain"', u);
-  ok(u > 0 && /\{\{ ru_cls \}\}/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign ru_cls = 'flex--col lg:flex--row lg:portrait:flex--col'/.test(sh), 'column on md, row on lg');
+  ok(u > 0 && /\{\{ ru_cls \}\}/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign ru_cls = 'flex--row lg:portrait:flex--col'/.test(sh), 'row on md and lg');
   ok(/\{\{ ri_lg \}\} h--\[8cqh\][^>]*ui.rain.icon/.test(sh.slice(u, end)) && /assign ri_lg = 'hidden lg:block lg:portrait:hidden'/.test(sh) && /lg:h--\[8cqh\][^"]*" data-sw-part="rain"/.test(sh), 'lg icon as tall as the grid');
 });
 test('sun/moon unit: moon left of the sun rows on every size, grey ink (owner 2026-11-12, later decision)', () => {
