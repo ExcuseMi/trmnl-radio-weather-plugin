@@ -290,26 +290,11 @@ model.slots = slotsFor(raw);
 model.hours = hoursAhead(raw, 25);
 model.days = model.slots;
 model.rain = rainWindow(model.hours, 50);
-// EVENING MODE (owner 2026-11-12): from 18:00 local the console shows tomorrow (MORGEN); the dial needle stays on the current temperature
-model.ev = null;
-var syncH = model.now.sync ? parseInt(model.now.sync, 10) : null, d1 = list(d, 'time')[1];
-if (syncH !== null && syncH >= 18 && d1) {
-var tomH = hoursOn(raw, d1);
-if (tomH.length >= 12) {
-var tm1 = minMax([list(d, 'temperature_2m_min')[1], list(d, 'temperature_2m_max')[1]]), tcode = num(list(d, 'weather_code')[1]);
-if (tm1.hi !== null) {
-model.ev = { hi: tm1.hi, lo: tm1.lo, code: tcode, icon: kind(tcode) };
-model.hours = tomH; model.rain = rainWindow(tomH, 50); if (model.rain) model.rain.now = false;
-model.today = { lo: tm1.lo, hi: tm1.hi, uvMax: num(list(d, 'uv_index_max')[1]), gustMax: num(list(d, 'wind_gusts_10m_max')[1]), rainMm: num(list(d, 'precipitation_sum')[1]) };
-if (raw.sun) model.sunT = Object.assign({}, raw.sun, { riseL: raw.sun.rise1L, setL: raw.sun.set1L, riseTom: true, setTom: true });
-}
-}
-}
+// No evening mode (owner 2026-11-12, later decision): the console always shows now, the strip never skips tomorrow.
 var aq = raw.aq && typeof raw.aq === 'object' ? raw.aq : null;
 model.now.aqi = aq && aq.current ? num(aq.current.european_aqi) : null;
 var aqD = aq && aq.current ? String(aq.current.time || '').slice(0, 10) : '', aqH = (day) => aq ? maxOf(list(aq.hourly || {}, 'european_aqi').filter((v, i) => String(list(aq.hourly, 'time')[i]).slice(0, 10) === day)) : null;
 model.today.aqiMax = aqH(aqD);
-if (model.ev) model.now.aqi = aqH(d1);   // evening: tomorrow's highest index; null (row hidden) when the air-quality answer does not reach tomorrow
 model.now.pollen = num(raw.pollen);
 model.inn = { temp: null, hum: null, co2: null, press: null };
 var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;
@@ -355,6 +340,8 @@ function rainHours(hours, R) {
 var s = Math.max(0, Math.min(R.from - 2, hours.length - 12));
 return hours.slice(s, s + 12).map((q, i) => ({ h: q.hl || q.h, wet: s + i >= R.from && s + i <= R.to }));
 }
+// Owner 2026-11-12: 2 x 3 hours; 3 x 3 when the rain runs on past the sixth shown hour.
+function rainRows(c) { return c.slice(6, 9).some((q) => q.wet) ? 3 : 2; }
 function buildView(M, i18n, daily, moon, phase) {
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
@@ -371,7 +358,7 @@ var tv = n.temp, tStr = tv === null ? '--.-' : (Math.round(tv * 10) / 10).toFixe
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
 var feelsOn = n.feels !== null && tv !== null && Math.abs(n.feels - tv) >= 2;
 var R = M.rain, wetIn12 = !!R && R.from < 12;
-var d0 = M.ev ? 2 : 0, days = (M.days || []).slice(d0, d0 + 7), dates = ((daily || {}).time || []).slice(d0, d0 + 7), names = dayNames(dates, i18n.loc);   // from today (evening: the day after tomorrow); views with the temperature dial hide today (owner 2026-11-12)
+var d0 = 0, days = (M.days || []).slice(d0, d0 + 7), dates = ((daily || {}).time || []).slice(d0, d0 + 7), names = dayNames(dates, i18n.loc);   // from today at any hour; views with the temperature dial hide today (owner 2026-11-12)
 var vals = []; days.forEach((d) => { if (d.lo !== null) vals.push(d.lo); if (d.hi !== null) vals.push(d.hi); }); if (tv !== null) vals.push(tv);
 var st = F_ ? 10 : 5, sc = { a: Math.floor(Math.min.apply(null, vals.length ? vals : [0]) / st) * st, b: Math.ceil(Math.max.apply(null, vals.length ? vals : [10]) / st) * st, major: st, now: tv, deg: deg };
 if (sc.b - sc.a < 2 * st) sc.b = sc.a + 2 * st;
@@ -388,7 +375,7 @@ return {
 ok: M.ok, flags: flags, meters: meters,
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day),
 temp: tStr, unit: deg + M.unit, feels: feelsOn ? fmt(n.feels) : null,
-rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R) } : null,
+rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)) } : null,
 sun: sun, dry: wetIn12 ? null : sun,
 days: days.map((d, i) => ({ name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
 scale: sc,
@@ -426,4 +413,4 @@ async function run(input) {
   return { ui: buildView(model, i18n, w.daily, moon, phase), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, buildView: buildView, rainHours: rainHours, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
+if (typeof module !== 'undefined') module.exports = { run: run, buildView: buildView, rainHours: rainHours, rainRows: rainRows, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };

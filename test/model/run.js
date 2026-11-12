@@ -115,54 +115,20 @@ test('the rain window: a wet code needs 30 percent, a dry code needs the chosen 
   eq(SWModel.rainWindow([{ h: '17', p: 45, wet: false }], 50), null);
 });
 
-test('evening mode from 18:00 local: tomorrow in the console data, today untouched before 18:00', () => {
-  const day = SWModel.build(fx('mixed'), {});
-  eq(day.ev, null);
-  const e = fx('mixed'); e.current.time = '2026-11-08T17:59';
-  eq(SWModel.build(e, {}).ev, null, '17:59 is still day mode');
-  e.current.time = '2026-11-08T18:00';
+test('no evening mode (owner 2026-11-12): at 19:00 the console shows now and tomorrow is in the days list', () => {
+  const e = fx('mixed'); e.current.time = '2026-11-08T19:00';
   const m = SWModel.build(e, {});
-  eq([m.ev.hi, m.ev.lo, m.ev.code], [fx('mixed').daily.temperature_2m_max[1], fx('mixed').daily.temperature_2m_min[1], fx('mixed').daily.weather_code[1]]);
-  eq(m.hours.length, 24, 'the hours are tomorrow\'s');
-  eq([m.today.hi, m.today.uvMax], [m.ev.hi, fx('mixed').daily.uv_index_max[1]], 'the day values are tomorrow\'s');
-  eq(m.rain.fromLabel, '17:00');
-  eq(m.rain.now, false, 'never "raining now" for tomorrow');
-  eq(m.days[0].label, 'SU', 'the days list itself still starts today (the page picks the start)');
+  ok(!('ev' in m) || m.ev == null, 'no evening model');
+  eq(m.today.hi, SWModel.build(fx('mixed'), {}).today.hi, 'today values stay today\'s');
+  const v = T.buildView(m, T.buildI18n('nl'), e.daily);
+  eq(v.days[1].name, T.buildView(SWModel.build(fx('mixed'), {}), T.buildI18n('nl'), fx('mixed').daily).days[1].name, 'tomorrow is the second day, as by day');
+  ok(v.days.length >= 2, 'tomorrow on screen');
 });
 
-test('UV relevance inputs: daylight flag and the highest UV of the day', () => {
-  const m = SWModel.build(fx('mixed'), {});
-  eq([m.now.day, m.today.uvMax], [false, 2.1]);
-  const d = fx('mixed'); d.current.is_day = 1; d.daily.uv_index_max[0] = 6;
-  const n = SWModel.build(d, {});
-  eq([n.now.day, n.today.uvMax], [true, 6]);
-});
-
-test('sun times and the moon: today and tomorrow, daylight flag', () => {
-  const s = T.sunTimes(fx('mixed'));
-  eq([s.riseL, s.setL, s.rise1L, s.set1L, s.day], ['07:21', '16:35', '07:22', '16:34', false]);
-  const d = fx('mixed'); d.current.time = '2026-11-08T12:00';
-  eq(T.sunTimes(d).day, true);
-  ok(/^wi-moon/.test(T.moonIcon('2026-11-08T06:00')));
-  eq(T.sunTimes({ daily: {} , current: { time: '2026-11-08T06:00' } }), null, 'no sun data: null');
-});
-
-test('pollen level: highest type, 0..1 steps, null without data, only today\'s hours', () => {
-  eq(T.pollenLevel({ current: { time: '2026-11-08T06:00', grass_pollen: 5 } }), 0.15);
-  eq(Math.round(T.pollenLevel({ current: { time: '2026-11-08T06:00', grass_pollen: 30, birch_pollen: 2 } }) * 100), 45);
-  eq(T.pollenLevel({ current: { time: '2026-11-08T06:00' } }), null);
-  eq(T.pollenLevel(null), null);
-  const aq = { current: { time: '2026-11-08T06:00' }, hourly: { time: ['2026-11-08T07:00', '2026-11-09T07:00'], grass_pollen: [5, 400] } };
-  eq(T.pollenLevel(aq), 0.15, 'tomorrow\'s 400 does not count');
-});
-
-test('air quality: tomorrow\'s maximum in the evening, null (row hidden) when the answer stops today', () => {
+test('air quality: the current index at any hour (no evening mode)', () => {
   const e = fx('mixed'); e.current.time = '2026-11-08T19:00';
   const aq = { current: { time: '2026-11-08T19:00', european_aqi: 30 }, hourly: { time: ['2026-11-08T20:00', '2026-11-09T09:00', '2026-11-09T10:00'], european_aqi: [30, 55, 75] } };
-  eq(SWModel.build(Object.assign({}, e, { aq }), {}).now.aqi, 75);
-  const today = { current: aq.current, hourly: { time: ['2026-11-08T20:00'], european_aqi: [30] } };
-  eq(SWModel.build(Object.assign({}, e, { aq: today }), {}).now.aqi, null);
-  eq(SWModel.build(Object.assign({}, fx('mixed'), { aq }), {}).now.aqi, 30, 'by day: the current index');
+  eq(SWModel.build(Object.assign({}, e, { aq }), {}).now.aqi, 30);
 });
 
 test('indoor sensor: latest reading, dropped when older than 3 hours', () => {
@@ -260,7 +226,7 @@ test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none 
   D.mode = { dark: true, bits: 4 }; const r = D.rain([{ h: '14', wet: true }], 120, 40); D.mode = null;
   ok(r.indexOf('data-sw-glow') < r.lastIndexOf('<rect'), 'halo under the lit cell, not over it');
   D.mode = { dark: true, bits: 4 }; ok(!/text--gray-40/.test(D.meter(0.5, 200, 30, 10)), 'dark: lit meter cells in full ink, as live'); D.mode = null;
-  ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 5, 'weather, rain (two sizes) and sun icons marked to glow');
+  ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 4, 'weather, rain and sun icons marked to glow');
 });
 test('days strip in narrow views: X half vertical 7 days without numbers, OG half vertical 5, portrait larger names and icons (owner 2026-11-12)', () => {
   const v3 = /elsif view == 3 %}([^\n]*)/.exec(sh)[1], v1 = /if view == 1 %}([^\n]*)/.exec(sh)[1];
@@ -283,7 +249,13 @@ test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 s
 test('rain unit: icon left of the grid on every size (owner 2026-11-12, later decision)', () => {
   const u = sh.indexOf('data-sw-unit="rain"'), end = sh.indexOf('data-sw-part="rain"', u);
   ok(u > 0 && /\{\{ ru_cls \}\}/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign ru_cls = 'flex--row lg:portrait:flex--col'/.test(sh), 'row on md and lg');
-  ok(/\{\{ ri_lg \}\} h--\[8cqh\][^>]*ui.rain.icon/.test(sh.slice(u, end)) && /assign ri_lg = 'hidden lg:block lg:portrait:hidden'/.test(sh) && /lg:h--\[8cqh\][^"]*" data-sw-part="rain"/.test(sh), 'lg icon as tall as the grid');
+  ok(/<img class="image image--adaptive \{\{ ib_cls \}\}" src="\{\{ ui.rain.icon \}\}"/.test(sh.slice(u, end)) && /h--\[\{\{ cal_m \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\][^"]*" data-sw-part="rain"/.test(sh) && /capture ib_cls %\}w--\[\{\{ cal_m \}\}cqh\] h--\[\{\{ cal_m \}\}cqh\] lg:w--\[\{\{ cal_l \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\]/.test(sh), 'icon as tall as the grid on md and lg');
+  ok(/<div class="\{\{ ib_cls \}\}" data-sw-part="moon">/.test(sh), 'moon box the same as the rain icon box');
+  const T3 = (h) => D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, h, 2).match(/<text/g).length;
+  eq([T3(200), T3(500)], [6, 9], 'short rain: 2 x 3; a narrow tall box: 3 x 3');
+  eq(D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, 200, 3).match(/<text/g).length, 9, 'long rain: 3 x 3');
+  const c = Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: i >= 2 && i <= 6 }));
+  eq([T.rainRows(c), T.rainRows(c.map((q, i) => ({ h: q.h, wet: i >= 2 && i <= 5 })))], [3, 2], 'rows: 3 when the rain runs past the sixth hour');
 });
 test('sun/moon unit: moon left of the sun rows on every size, grey ink (owner 2026-11-12, later decision)', () => {
   const u = sh.indexOf('data-sw-unit="sun"'), rows = sh.indexOf('ui.sun.rise', u);

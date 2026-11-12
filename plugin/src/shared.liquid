@@ -30,11 +30,11 @@
   {{ p_open }}<div class="relative h--full w--full rounded--small outline">
    <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
    <span class="absolute top--3 {% if k == 1 %}left--3{% else %}right--3{% endif %} label label--inverted text--bold">{% if k == 1 %}L{% else %}R{% endif %}</span>
-   <div class="absolute bottom--3 left--4 flex flex--row flex--bottom gap--small">
+   <div class="absolute bottom--3 left--4 flex flex--row flex--bottom gap--small" data-sw-cap>
     {%- if k == 1 %}<span class="value value--small value--tnums">{{ ui.baro.value }}</span><span class="title title--small text--bold">{{ ui.baro.unit }}</span>
     {%- else %}<span class="value value--small">{{ ui.tdial.unit }}</span>{% endif -%}
    </div>
-   <span class="absolute bottom--4 right--5 title title--base text--bold">{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>
+   <span class="absolute bottom--4 right--5 title title--base text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>
   </div>{{ p_close }}
   {%- endfor %}
  </div></div>
@@ -48,7 +48,7 @@
    {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
     <div class="w--full{% if forloop.index > n_md %} hidden lg:block{% endif %}">
     <div class="flex flex--row flex--center-y gap--small h--[{{ 9 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]">
-     <div class="w--[{{ 13 | times: wm | round | at_most: 100 }}cqw] lg:w--[{{ 11 | times: wl | round | at_most: 100 }}cqw] text--right"><span class="title title--base lg:title--small text--bold">{{ m.label }}</span></div>
+     <div class="w--[{{ 13 | times: wm | round | at_most: 100 }}cqw] lg:w--[{{ 11 | times: wl | round | at_most: 100 }}cqw] text--right"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
      <div class="w--[{{ 18 | times: wm | round | at_most: 100 }}cqw] h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}"></div>
      <div class="hidden lg:block w--[{{ 22 | times: wl | round | at_most: 100 }}cqw] h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ m.idx }}"></div>
     </div></div>
@@ -74,19 +74,23 @@
   </div>
 {%- endcapture %}
 {%- capture c_right %}
+  {%- comment -%} Rain unit (owner 2026-11-12): calendar rows of one size per view (rc_m/rc_l cqh), 2 or 3 rows; rain icon and moon as tall as the calendar, the same size, on one left edge; a gap of one calendar row before the sun unit. Portrait: icon above. {%- endcomment -%}
+  {%- assign rr = 2 %}{% if ui.rain.rows == 3 %}{% assign rr = 3 %}{% endif %}
+  {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr == 3 %}{% assign k_m = 6 %}{% assign k_l = 3 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr | at_most: 100 %}{% assign cal_l = rc_l | times: rr | at_most: 100 %}{% assign cal_p = 3 | times: rr %}
+  {%- capture ib_cls %}w--[{{ cal_m }}cqh] h--[{{ cal_m }}cqh] lg:w--[{{ cal_l }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:w--[4cqh] lg:portrait:h--[4cqh] shrink-0{% endcapture %}
   <div class="flex flex--col flex--center gap--xsmall lg:gap--small {{ rc_w }}">
-   {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center lg:portrait:w--full gap--medium lg:gap--large">{% endif %}
-   {%- if ui.rain %}
-   <div class="flex {{ ru_cls }} flex--center gap--xsmall lg:gap--small shrink-0" data-sw-unit="rain">
-    <img class="image image--adaptive {{ ri_md }}{% unless stk %} h--[{{ 9 | times: hm | round }}cqh] lg:portrait:h--[4cqh]{% endunless %}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
-    <img class="image image--adaptive {{ ri_lg }} h--[{{ 8 | times: hl | round | at_most: 100 }}cqh] shrink-0" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
-    <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | round | at_most: 100 }}cqw]{{ rg_p }} lg:portrait:h--[6cqh] h--[{{ 12 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | round | at_most: 100 }}cqh] shrink-0" data-sw-part="rain"></div>
+   {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center lg:portrait:w--full gap--xsmall lg:gap--small">
+   <div class="flex {{ ru_cls }} flex--center gap--xsmall lg:gap--small shrink-0 lg:portrait:w--full" data-sw-unit="rain">
+    <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
+    <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | round | at_most: 100 }}cqw] lg:portrait:w--[18cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh] shrink-0" data-sw-part="rain"></div>
    </div>
+   <div class="h--[{{ rc_m }}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[3cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
    {%- endif %}
    {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% endif %}
    <div class="flex {{ su_cls }} flex--center gap--xsmall lg:gap--medium shrink-0" data-sw-unit="sun">
-    <div class="{% if ui.rain %}w--[{{ 9 | times: hm | round }}cqh] h--[{{ 9 | times: hm | round }}cqh]{% else %}w--[{{ 11 | times: hm | round }}cqh] h--[{{ 11 | times: hm | round | at_most: 100 }}cqh]{% endif %} lg:hidden" data-sw-part="moon"></div>
-    <div class="hidden lg:block {% if ui.rain %}w--[{{ 8 | times: hl | round | at_most: 100 }}cqh] h--[{{ 8 | times: hl | round | at_most: 100 }}cqh]{% else %}h--[{{ 13 | times: mh_l | round | at_most: 100 }}cqh]{% endif %} lg:portrait:h--[4cqh]" data-sw-part="moon"></div>
+    {%- if ui.rain %}<div class="{{ ib_cls }}" data-sw-part="moon"></div>
+    {%- else %}<div class="w--[{{ 11 | times: hm | round }}cqh] h--[{{ 11 | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="moon"></div>
+    <div class="hidden lg:block h--[{{ 13 | times: mh_l | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="moon"></div>{% endif %}
     <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
      <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.riseIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.rise }}</span></div>
      <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.setIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.set }}</span></div>
@@ -242,9 +246,11 @@ if (!cross) body += rect(xn - 1.5, tr, 3, H - tr + (API.ext || 0)); else body +=
 return svg(W, H, body);
 }
 // 12-hour rain calendar: two rows of six, rain hours lit (inverted), the others in full text colour.
-function rain(hours, W, H) {
-var C = 3, cw = W / C, rh = H / 2, fs = Math.min(rh * 0.62, cw * 0.48), body = '';   // owner 2026-11-12: 3 columns, 6 hours
-hours.slice(0, 6).forEach((q, i) => {
+// Rain calendar: 3 columns, 2 rows (6 hours) or 3 rows (9 hours) when the rain runs on or a narrow box fits 3 rows
+// better (owner 2026-11-12); rain hours lit (inverted), the others in full text colour.
+function rain(hours, W, H, rows) {
+var C = 3, R = rows === 3 || (W / C) / (H / 2) < 0.9 ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.8, cw * 0.5), body = '';
+hours.slice(0, C * R).forEach((q, i) => {
 var x = (i % C) * cw, y = Math.floor(i / C) * rh;
 if (q.wet) body += glow(rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22), GPX);
 var tx = text(x + cw / 2, y + rh / 2, q.h, fs, 'middle', ' dominant-baseline="central"'); body += q.wet ? g('text--white', tx) : tx;
@@ -343,7 +349,7 @@ var np = (ox, oy) => { var b = [cx + ox, py + oy], t = [b[0] + ux * tipR, b[1] +
 return [[t[0] + nx * wt / 2, t[1] + ny * wt / 2], [b[0] + nx * wb / 2, b[1] + ny * wb / 2], [k[0] + nx * wb * 1.6, k[1] + ny * wb * 1.6], [k[0] - nx * wb * 1.6, k[1] - ny * wb * 1.6], [b[0] - nx * wb / 2, b[1] - ny * wb / 2], [t[0] - nx * wt / 2, t[1] - ny * wt / 2]]; };
 var hr = Math.max(6, H * 0.035);
 body += g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
-body += glow(poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>');
+body += glow(poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '" data-sw-hub="' + n1(Math.max(hr, tailR + wb * 1.6)) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>');
 }
 return svg(W, H, body);
 }
@@ -358,7 +364,7 @@ case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
 case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10);
 case 'day': return day(SW.days[i], SW.scale, W, H);
 case 'scale': return scale(SW.scale, W, H);
-case 'rain': return SW.rain ? rain(SW.rain.hours, W, H) : '';
+case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, SW.rain.rows) : '';
 case 'tri': return tri(i === 0, W, H);
 case 'rule': return rule(W, H);
 case 'person': return person(W, H);
