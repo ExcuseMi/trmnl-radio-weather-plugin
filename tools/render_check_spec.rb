@@ -12,6 +12,10 @@ RSpec.describe 'renders' do
       (c['current'] || {}).each { |k, v| answer['current'][k] = v }
       (c['hourly'] || {}).each { |k, v| answer['hourly'][k] = v }
       (c['daily'] || {}).each { |k, v| answer['daily'][k] = v }
+      if c['past_press']   # 3 past hours before the current one (past_hours=3), the first with this pressure
+        h = answer['hourly']; h['pressure_msl'] ||= h['time'].map { answer.dig('current', 'pressure_msl') }; t0 = Time.utc(*h['time'][0].split(/[-T:]/).map(&:to_i))
+        h.each_key { |k| next unless h[k].is_a?(Array); 3.times { |j| h[k].unshift(k == 'time' ? (t0 - 3600 * (j + 1)).strftime('%Y-%m-%dT%H:%M') : (k == 'pressure_msl' ? c['past_press'] : h[k][0])) } }
+      end
       t = answer.dig('current', 'time')
       now = (Time.utc(*t.split(/[-T:]/).map(&:to_i)) - answer['utc_offset_seconds'].to_i + 600).iso8601
       mocks = { 'https://api.open-meteo.com/*' => { json: answer } }
@@ -197,7 +201,8 @@ var dial=n('[data-sw-part="baro"]');return [SW.calm?1:0,dial,n('[data-sw-part="b
         expect(q[3]).to eq(q[1])
         expect(q[4]).to eq(q[1] * 2)
         expect(q[5..7]).to eq([0, 0, 0])
-        expect(q[8].positive?).to eq(q[9] == 1)
+        expect(q[8].positive?).to eq(q[9] == 1) unless c['device'] == 'v2' && c['view'] == 'half_vertical'   # X half_vertical: no room beside the felt temperature, the cue is left out there
+        expect(q[8]).to eq(0) if c['device'] == 'v2' && c['view'] == 'half_vertical'
       else
         expect(q[0]).to eq(0)
         expect(q[2]).to eq(q[1] * 2)
@@ -213,6 +218,10 @@ return (f?'fill '+f+' ':'')+bad.join('; ');})()})
         puts "CALMFIX #{c['name']}: #{cf}" unless cf.empty?
         expect(cf).to eq('')
       end
+      pad = s.evaluate(%q{(function(){var out=[];document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=p.getBoundingClientRect();if(!q.width||!q.height)return;var L=1e9,R=-1e9,T=1e9,B=-1e9;
+p.querySelectorAll('span,img,[data-sw-part]:not([data-sw-part="face"]) svg *').forEach(function(e){if(e.closest('[data-sw-part="face"]')||e.tagName==='g'||e.tagName==='defs'||e.closest('defs,mask,clipPath,filter'))return;var b=e.getBoundingClientRect();if(!b.width||!b.height||!e.textContent&&e.tagName==='SPAN')return;L=Math.min(L,b.left);R=Math.max(R,b.right);T=Math.min(T,b.top);B=Math.max(B,b.bottom);});
+if(L<1e9)out.push([L-q.left,q.right-R,T-q.top,q.bottom-B].map(function(v){return v.toFixed(0)}).join(','));});return out.join(' ');})()})
+      puts "PAD #{c['name']}: L,R,T,B #{pad}"
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"

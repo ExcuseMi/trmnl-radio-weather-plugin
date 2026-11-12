@@ -371,6 +371,7 @@ function dropPast(w) {
 var h = w && w.hourly, t = h && h.time, cur = w && w.current && w.current.time;
 if (!t || !cur) return { weather: w, ago: null };
 var k = 0; while (k < t.length && String(t[k]) < String(cur).slice(0, 13) + ':00') k++;
+if (k !== 3) return { weather: w, ago: null };   // only the 3 past hours past_hours=3 gives; anything else is left as it came
 var pq = h.pressure_msl || [], ago = k >= 3 && typeof pq[k - 3] === 'number' ? pq[k - 3] : null, nh = {};
 Object.keys(h).forEach((key) => { nh[key] = Array.isArray(h[key]) ? h[key].slice(k) : h[key]; });
 return { weather: Object.assign({}, w, { hourly: nh }), ago: ago };
