@@ -368,13 +368,21 @@ test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter,
 });
 test('calm style: barometer trend over 3 h with +/-1 hPa thresholds; cue umbrella beats coat, coat under 3 C / 37 F', () => {
   eq([T.pressTrend(1011, 1010), T.pressTrend(1010.9, 1010), T.pressTrend(1009, 1010), T.pressTrend(1009.1, 1010), T.pressTrend(1010, null), T.pressTrend(null, 1010)], ['rising', 'steady', 'falling', 'steady', null, null]);
-  eq([T.calmCue(true, -5, false), T.calmCue(false, 2.9, false), T.calmCue(false, 3, false), T.calmCue(false, 36, true), T.calmCue(false, 37, true), T.calmCue(false, null, false)], ['umbrella', 'coat', null, 'coat', null, null]);
+  const C = (o, F) => T.cueFor(Object.assign({ rain: false, wind: null, gust: null, lo: null, hi: null, uv: null, day: true }, o), F).join('+');
+  eq([C({ rain: true, lo: 15 }), C({ rain: true, lo: 15, wind: 29.9 }), C({ rain: true, lo: 15, wind: 30 }), C({ rain: true, lo: 15, gust: 49.9 }), C({ rain: true, lo: 15, gust: 50 })], ['sweater+umbrella', 'sweater+umbrella', 'raincoat', 'sweater+umbrella', 'raincoat'], 'raincoat from 30 km/h wind or 50 km/h gusts replaces the top; else the umbrella is an extra');
+  eq([C({ rain: true, wind: 18.6, lo: 60 }, true), C({ rain: true, wind: 18.7 }, true), C({ rain: true, gust: 31, lo: 60 }, true), C({ rain: true, gust: 31.1 }, true)], ['sweater+umbrella', 'raincoat', 'sweater+umbrella', 'raincoat'], 'mph: 30 km/h = 18.64, 50 km/h = 31.07');
+  eq([C({ lo: -2.1, hi: 25 }), C({ lo: -2, hi: 25 }), C({ lo: 2.9, hi: 25 }), C({ lo: 3, hi: 25 })], ['parka+mittens', 'parka', 'parka', 'tshirt'], 'parka under 3 from the coldest, mittens under -2 as an extra');
+  eq([C({ lo: 28.3 }, true), C({ lo: 28.4 }, true), C({ lo: 37.3 }, true), C({ lo: 37.4 }, true)], ['parka+mittens', 'parka', 'parka', 'jacket'], 'Fahrenheit: -2 C = 28.4 F, 3 C = 37.4 F');
+  eq([C({ lo: 5, hi: 15, uv: 6 }), C({ lo: 5, hi: 15, uv: 5.9 }), C({ lo: 5, hi: 15, uv: 8, day: false }), C({ lo: 1, uv: 9 })], ['sweater+sunglasses', 'sweater', 'sweater', 'parka+sunglasses'], 'sunglasses by day from UV 6, as an extra');
+  eq([C({ hi: 11.9 }), C({ hi: 12 }), C({ hi: 17.9 }), C({ hi: 18 }), C({ hi: 53.5 }, true), C({ hi: 53.6 }, true), C({ hi: 64.3 }, true), C({ hi: 64.4 }, true)], ['jacket', 'sweater', 'sweater', 'tshirt', 'jacket', 'sweater', 'sweater', 'tshirt'], 'tops from the warmest: jacket under 12, sweater under 18, t-shirt; F 53.6 and 64.4');
+  eq([C({ rain: true, lo: -5, uv: 7 }), C({ rain: true, wind: 40, lo: -5, uv: 7 })], ['parka+umbrella+mittens+sunglasses', 'raincoat+mittens+sunglasses'], 'every extra in order: umbrella, mittens, sunglasses');
+  eq([C({}), C({ uv: 8 }), C({ rain: true })], ['', 'sunglasses', 'umbrella'], 'no temperature: no top layer, extras still apply');
   const i = T.buildI18n('nl');
   eq([i.ours.p_steady, i.ours.p_rising, i.ours.p_falling], ['STABIEL', 'STIJGEND', 'DALEND']);
   eq(T.buildI18n('ja').ours.p_rising, 'RISING', 'missing language falls back to English');
   const f = fx('mixed');
   const M = SWModel.build(f, {}), calm = T.buildView(M, i, f.daily, null, 0.3, { calm: true, pressAgo: 1015 }), rec = T.buildView(M, i, f.daily, null, 0.3);
-  eq([calm.calm, calm.cue, calm.baro.trend], [true, 'umbrella', 'DALEND'], 'mixed has rain in the window, 1013.2 now against 1015');
+  eq([calm.calm, calm.cue, calm.baro.trend], [true, ['parka', 'umbrella'], 'DALEND'], 'mixed has rain in the window, 1013.2 now against 1015');
   eq([rec.calm, rec.cue, rec.baro.trend], [false, null, null], 'receiver: no cue, no trend');
 });
 test('past_hours=3: the past hours are cut so every hourly list starts at the current hour; the pressure 3 h ago is kept', () => {
@@ -403,6 +411,26 @@ test('hours strip: 12 hours from now, stamps per time format, rain only on wet h
   const dry = JSON.parse(JSON.stringify(f)); dry.hourly.precipitation_probability = dry.hourly.precipitation_probability.map(() => 0); dry.hourly.weather_code = dry.hourly.weather_code.map(() => 1);
   ok(T.buildView(SWModel.build(dry, {}), i, f.daily, null, 0.3, { hours: true }).hours.every((q) => !q.wet), 'dry: no rain stamps');
   eq(T.hourStrip([], String, '°'), null);
+});
+test('per-day clothing cue: daytime hours 07:00 to 19:00 from the hourly data, daily values where the hours are missing', () => {
+  const d = { time: ['2026-11-08', '2026-11-09'], temperature_2m_min: [0, 8], temperature_2m_max: [10, 15], apparent_temperature_min: [-5, 6], apparent_temperature_max: [8, 14], precipitation_probability_max: [90, 10], wind_speed_10m_max: [40, 5], wind_gusts_10m_max: [70, 10], uv_index_max: [1, 7] };
+  const ht = [], at = [], pp = [], ws = [], wg = [];
+  for (let h = 0; h < 24; h++) { ht.push('2026-11-08T' + String(h).padStart(2, '0') + ':00'); at.push(h < 7 || h > 19 ? -9 : (h === 7 ? 4 : 13)); pp.push(h === 20 ? 99 : 20); ws.push(h === 3 ? 50 : 10); wg.push(20); }
+  const H = { time: ht, apparent_temperature: at, precipitation_probability: pp, wind_speed_10m: ws, wind_gusts_10m: wg };
+  const a = T.dayCueInput(H, d, 0);
+  eq([a.lo, a.hi, a.rain, a.wind, a.gust, a.uv], [4, 13, false, 10, 20, 1], 'only 07..19: the night cold, the 20:00 rain and the 03:00 wind do not count');
+  eq(T.cueFor(a, false), ['sweater']);
+  const at7 = at.slice(); at7[19] = 2.5; eq(T.dayCueInput(Object.assign({}, H, { apparent_temperature: at7 }), d, 0).lo, 2.5, '19:00 is in the window');
+  const b = T.dayCueInput(H, d, 1);
+  eq([b.lo, b.hi, b.rain, b.wind, b.gust, b.uv], [6, 14, false, 5, 10, 7], 'no hours for the day: daily fields');
+  eq(T.cueFor(b, false), ['sweater', 'sunglasses']);
+  const c = T.dayCueInput(null, { time: ['2026-11-08'], temperature_2m_min: [1], temperature_2m_max: [9], precipitation_probability_max: [60], wind_gusts_10m_max: [55] }, 0);
+  eq([c.lo, c.hi, c.rain, T.cueFor(c, false)], [1, 9, true, ['raincoat']], 'no felt fields: air temperature; rain and gusts from the daily values');
+  const f = fx('mixed'), M = SWModel.build(f, {}), i = T.buildI18n('nl');
+  const v = T.buildView(M, i, f.daily, null, 0.3, { calm: true, hourly: f.hourly }), r = T.buildView(M, i, f.daily, null, 0.3, { hourly: f.hourly });
+  ok(v.days.every((q) => Array.isArray(q.cue) && q.cue.length >= 1 && q.cue.length <= 2), 'calm: one or two cues on every day (top and the first extra)');
+  eq(v.days.map((q) => q.cue), v.days.map((q, k) => T.cueFor(T.dayCueInput(f.hourly, f.daily, k), false).slice(0, 2)), 'days: the list capped at 2');
+  ok(r.days.every((q) => q.cue === null), 'receiver: no day cues');
 });
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

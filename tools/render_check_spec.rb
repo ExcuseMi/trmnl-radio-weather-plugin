@@ -192,7 +192,7 @@ return bad.join('; ');})()})
       # Calm style (owner): no L/R badges, the barometer shows a trend word, the temperature dial carries the low/high numbers,
       # no now line, no grid or row lines in the days strip; the cue (umbrella or coat) only in Calm. Receiver: the opposite.
       cm = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},n=function(q){return [].filter.call(document.querySelectorAll(q),vis).length};
-var dial=n('[data-sw-part="baro"]');return [SW.calm?1:0,dial,n('[data-sw-part="baro"] ~ .label--inverted, [data-sw-part="tdial"] ~ .label--inverted'),n('[data-sw-trend]'),n('[data-sw-mark]'),document.querySelectorAll('[data-sw-now]').length,document.querySelectorAll('[data-sw-part="day"] rect[data-sw-tick]').length,n('[data-sw-hair="row"]'),n('[data-sw-part="cue"] svg'),SW.cue?1:0].join(',');})()})
+var dial=n('[data-sw-part="baro"]');return [SW.calm?1:0,dial,n('[data-sw-part="baro"] ~ .label--inverted, [data-sw-part="tdial"] ~ .label--inverted'),n('[data-sw-trend]'),n('[data-sw-mark]'),document.querySelectorAll('[data-sw-now]').length,document.querySelectorAll('[data-sw-part="day"] rect[data-sw-tick]').length,n('[data-sw-hair="row"]'),n('[data-sw-part="cue"] svg'),SW.cue&&SW.cue.length?1:0].join(',');})()})
       puts "CALM #{c['name']}: calm,dial,badges,trend,marks,now,grid,hair,cue,wantcue #{cm}"
       q = cm.split(',').map(&:to_i)
       if (c['fields'] || {})['style'] == 'calm'
@@ -273,6 +273,18 @@ for(var a=0;a<cols.length;a++)for(var b=0;b<cols.length;b++)if(T[a]!==null&&T[b]
 return cols.length+'|'+bad.join('; ');})()})
       puts "HOURS #{c['name']}: cols|bad #{hs}" if c['hcols'] || hs != '0|'
       expect(hs).to eq("#{c['hcols'] || 0}|")
+      # Clothing cues (owner): the drawn icons are the model's list in order, after the view's cap (console 3, half
+      # vertical 2, quadrant 1; day rows 2), stroke-only outline icons.
+      co = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},key=function(e){var g=e.querySelector('g[data-sw-cloth]');return g?(g.getAttribute('fill')==='none'?g.getAttribute('data-sw-cloth'):'solid'):'none'},bad=[];
+var cs=[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).map(key),w=(SW.cue||[]).slice(0,cs.length);if(cs.join('+')!==w.join('+'))bad.push('console '+cs.join('+')+'/'+(SW.cue||[]).join('+'));
+var rows=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis),n=0;rows.forEach(function(r){var ds=[].filter.call(r.querySelectorAll('[data-sw-part="dcue"]'),vis);if(!ds.length)return;n++;var i=+ds[0].getAttribute('data-sw-i'),got=ds.map(key).join('+'),want=(SW.days[i].cue||[]).slice(0,2).join('+');if(got!==want)bad.push('day '+i+' '+got+'/'+want);});
+if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);return cs.length+','+n+'|'+bad.join('; ');})()})
+      puts "CLOTH #{c['name']}: console,dayrows|bad #{co}"
+      expect(co.split('|', 2)[1]).to eq('')
+      calm = (c['fields'] || {})['style'] != 'receiver'
+      cap = { 'full' => 3, 'half_horizontal' => 3, 'half_vertical' => 2, 'quadrant' => 1 }[c['view'] || 'full']
+      expect(co.to_i).to eq([s.evaluate('(SW.cue||[]).length'), cap].min) if calm && !(c['device'] == 'v2' && c['view'] == 'half_vertical')
+      expect(co.split(',')[1].to_i).to be_positive if calm && (c['view'] || 'full') == 'full' && (c['fields'] || {})['bottom'] != 'hours'
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"

@@ -378,9 +378,29 @@ var pq = h.pressure_msl || [], ago = k >= 3 && typeof pq[k - 3] === 'number' ? p
 Object.keys(h).forEach((key) => { nh[key] = Array.isArray(h[key]) ? h[key].slice(k) : h[key]; });
 return { weather: Object.assign({}, w, { hourly: nh }), ago: ago };
 }
-// Calm style cue next to the felt temperature (owner): umbrella when rain is in the rain calendar window, else a coat
-// when the felt temperature is under 3 C (37 F); at most one.
-function calmCue(wet, feels, F_) { return wet ? 'umbrella' : (feels !== null && feels !== undefined && feels < (F_ ? 37 : 3) ? 'coat' : null); }
+// Calm clothing cues (owner): a list, the top layer first, then the extras. Top: raincoat in rain with wind (>= 30 km/h
+// or gusts >= 50); else parka when the coldest felt temperature is under 3 C; else from the warmest: jacket under 12 C,
+// sweater under 18 C (owner, after WhetherWear's guides), t-shirt. Extras in order: umbrella (rain, no raincoat), mittens
+// (coldest under -2 C), sunglasses (daytime, UV 6 or more). Fahrenheit and mph converted. No temperature: no top layer.
+function cueFor(o, F_) {
+var T = (c) => F_ ? c * 1.8 + 32 : c, W = (k) => F_ ? k / 1.609344 : k, has = (v) => v !== null && v !== undefined;
+var lo = has(o.lo) ? o.lo : o.hi, hi = has(o.hi) ? o.hi : o.lo, coat = !!o.rain && ((has(o.wind) && o.wind >= W(30)) || (has(o.gust) && o.gust >= W(50)));
+var top = coat ? 'raincoat' : (!has(lo) ? null : (lo < T(3) ? 'parka' : (hi < T(12) ? 'jacket' : (hi < T(18) ? 'sweater' : 'tshirt'))));
+return [top, o.rain && !coat ? 'umbrella' : null, has(lo) && lo < T(-2) ? 'mittens' : null, o.day !== false && has(o.uv) && o.uv >= 6 ? 'sunglasses' : null].filter((k) => k);
+}
+// Per-day cue input (owner): the daytime hours 07:00 to 19:00 of that day from the hourly data (coldest and warmest felt
+// temperature, highest rain chance, wind and gusts); a field the hours lack comes from the daily values; UV from the daily max.
+function dayCueInput(hourly, daily, i) {
+var list = (o, k) => o && Array.isArray(o[k]) ? o[k] : [], num = (v) => typeof v === 'number' && isFinite(v) ? v : null, hourOf = (t) => { var m = /T(\d{2})/.exec(String(t || '')); return m ? +m[1] : -1; };
+var h = hourly || {}, d = daily || {}, date = String(list(d, 'time')[i] || ''), ht = list(h, 'time'), idx = [];
+ht.forEach((t, k) => { var hh = hourOf(t); if (String(t).slice(0, 10) === date && hh >= 7 && hh <= 19) idx.push(k); });
+var pick = (key, fn) => { var v = idx.map((k) => num(list(h, key)[k])).filter((x) => x !== null); return v.length ? fn.apply(null, v) : null; };
+var dv = (key) => num(list(d, key)[i]), or = (a, b) => a !== null ? a : b;
+var lo = or(pick('apparent_temperature', Math.min), or(dv('apparent_temperature_min'), or(pick('temperature_2m', Math.min), dv('temperature_2m_min'))));
+var hi = or(pick('apparent_temperature', Math.max), or(dv('apparent_temperature_max'), or(pick('temperature_2m', Math.max), dv('temperature_2m_max'))));
+var p = or(pick('precipitation_probability', Math.max), dv('precipitation_probability_max'));
+return { rain: p !== null && p >= 50, wind: or(pick('wind_speed_10m', Math.max), dv('wind_speed_10m_max')), gust: or(pick('wind_gusts_10m', Math.max), dv('wind_gusts_10m_max')), lo: lo, hi: hi, uv: dv('uv_index_max'), day: true };
+}
 function rainRows(c) { return c.slice(6, 9).some((q) => q.wet) ? 3 : 2; }
 // Hours strip (owner): 12 hours from the current one, hour stamp per time format, icon, temperature, rain as in the
 // calendar (hourWet at 50 %), one shared scale with a degree of room under the coldest hour so it still shows a block.
@@ -424,13 +444,13 @@ var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--'
 var trend = calm ? pressTrend(n.press, opt.pressAgo) : null;
 var hrs = opt && opt.hours ? hourStrip(M.hours || [], fmt, deg) : null;   // owner: bottom strip Hours instead of the days
 var out = {
-ok: M.ok, meters: meters, calm: calm, cue: calm ? calmCue(wetIn12, n.feels === null ? tv : n.feels, F_) : null,
+ok: M.ok, meters: meters, calm: calm, cue: calm ? cueFor({ rain: wetIn12, wind: n.wind, gust: n.gust, lo: n.feels === null ? tv : n.feels, hi: n.feels === null ? tv : n.feels, uv: t.uvMax, day: n.day !== false }, F_) : null,
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
 temp: tStr, unit: deg + M.unit, feels: feelsOn && inT === null ? fmt(n.feels) : null,
 inn: inT === null ? null : { temp: (Math.round(inT * 10) / 10).toFixed(1), out: O.outdoor, in: O.indoor, felt: n.feels === null ? '' : O.feels + ' ' + fmt(n.feels) + deg, hum: M.inn.hum === null ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
 rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)) } : null,
 sun: sun, dry: wetIn12 ? null : sun,
-days: days.map((d, i) => ({ name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
+days: days.map((d, i) => ({ cue: calm ? cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 2) : null, name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
 scale: sc,
 baro: { now: pr, lo: ps.length ? Math.min.apply(null, ps) : null, hi: ps.length ? Math.max.apply(null, ps) : null, a: 970, b: 1050,
 value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro, trend: trend ? O['p_' + trend] : null,
@@ -452,9 +472,9 @@ async function run(input) {
   var fahrenheit = String(UNIT || field(input, 'unit', 'celsius')) === 'fahrenheit';
   var forecast = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
     '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index' +
-    '&hourly=temperature_2m,precipitation_probability,precipitation,pressure_msl,weather_code,is_day' +
-    '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,uv_index_max,wind_gusts_10m_max,precipitation_sum,sunrise,sunset' +
-    '&timezone=auto&past_hours=3&forecast_hours=48&forecast_days=14&temperature_unit=' + (fahrenheit ? 'fahrenheit' : 'celsius') +
+    '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,pressure_msl,weather_code,is_day,wind_speed_10m,wind_gusts_10m' +
+    '&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,precipitation_sum,sunrise,sunset' +
+    '&timezone=auto&past_hours=3&forecast_days=14&temperature_unit=' + (fahrenheit ? 'fahrenheit' : 'celsius') +
     '&precipitation_unit=' + (fahrenheit ? 'inch' : 'mm') + '&wind_speed_unit=' + (fahrenheit ? 'mph' : 'kmh');
   var air = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon +
     '&current=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&hourly=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto&forecast_days=2';
@@ -468,7 +488,7 @@ async function run(input) {
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
   var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
-  return { ui: buildView(model, i18n, w.daily, moon, phase, { calm: String(field(input, 'style', 'calm')) === 'calm', pressAgo: past.ago, hours: String(field(input, 'bottom', 'days')) === 'hours' }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
+  return { ui: buildView(model, i18n, w.daily, moon, phase, { calm: String(field(input, 'style', 'calm')) === 'calm', pressAgo: past.ago, hourly: w.hourly, hours: String(field(input, 'bottom', 'days')) === 'hours' }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, calmCue: calmCue, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
+if (typeof module !== 'undefined') module.exports = { run: run, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
