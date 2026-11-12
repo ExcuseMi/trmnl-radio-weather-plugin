@@ -186,9 +186,9 @@ test('sun: the next sunrise and sunset, tomorrow flagged (owner 2026-11-12)', ()
 test('the X view: meters in owner order, rain calendar on a wet day, five days from tomorrow', () => {
   const raw = fx('mixed'), M = SWModel.build(raw, {}), v = T.buildView(M, T.buildI18n('nl'), raw.daily, 'wi-moon-full');
   eq(v.meters.map((m) => m.key), ['wind', 'humidity', 'baro']);
-  ok(v.rain && !v.dry && /<svg/.test(v.rain.cal), 'rain calendar on a wet day');
+  ok(v.rain && !v.dry && v.rain.hours.length === 12, 'rain calendar on a wet day');
   eq(v.days.map((d) => d.name), ['MA', 'DI', 'WO', 'DO', 'VR'], 'days start tomorrow');
-  ok((v.rain.cal.match(/<rect/g) || []).length === M.rain.to - M.rain.from + 1 || M.rain.to >= 12, 'one lit cell per rain hour');
+  ok(!JSON.stringify(v).includes('<svg'), 'the transform builds no SVG (owner 2026-11-12)');
 });
 test('the X view: a dry day shows sun times and the moon, no calendar', () => {
   const raw = fx('mixed'), n = raw.hourly.time.length;
@@ -200,15 +200,38 @@ test('the X view: no data gives no crash and empty parts', () => {
   const M = SWModel.build(fx('error'), {}), v = T.buildView(M, T.buildI18n('en'), null, null);
   eq(v.ok, false); eq(v.days.length, 0);
 });
-test('segment digits: one lit polygon per segment', () => {
-  const s = T.SWSvg.digits('8.8', { ghost: false });
-  eq((s.match(/<polygon/g) || []).length, 14); ok(/<rect/.test(s), 'decimal point');
+// Page drawings (DRAW block of shared.liquid), cut out like the model so the test runs the page's own bytes.
+const sh = fs.readFileSync(path.join(__dirname, '../../plugin/src/shared.liquid'), 'utf-8');
+const da = sh.indexOf('// ==== DRAW_BEGIN ===='), db = sh.indexOf('// ==== DRAW_END ====');
+if (da < 0 || db < 0) throw new Error('DRAW markers missing in shared.liquid');
+const D = new Function(sh.slice(da, db) + '\nreturn SWDraw;')();
+test('segment digits: lit segments only, no ghost segments (owner 2026-11-12)', () => {
+  eq((D.digits('1', 100).match(/<polygon/g) || []).length, 2, 'a 1 is two segments');
+  eq((D.digits('8.8', 100).match(/<polygon/g) || []).length, 14); ok(/<rect/.test(D.digits('8.8', 100)), 'decimal point');
 });
-
+test('segment digits: the minus is narrow, no digit-wide gap before the 2', () => {
+  const w = (s) => +/viewBox="0 0 ([\d.]+)/.exec(D.digits(s, 100))[1];
+  ok(w('-2') < w('22') * 0.9, 'minus width ' + w('-2') + ' vs ' + w('22'));
+});
 test('block meter: half lit lights five of ten, no data lights none', () => {
-  const lit = (s) => ((s.split('text--gray-30')[1] || '').match(/<rect/g) || []).length;
-  eq([lit(T.SWSvg.meter(0.5, 10)), lit(T.SWSvg.meter(null, 10)), lit(T.SWSvg.meter(2, 10))], [5, 0, 10]);
+  const lit = (s) => ((s.split('text--gray-40')[1] || '').match(/<rect/g) || []).length;
+  eq([lit(D.meter(0.5, 300, 40)), lit(D.meter(null, 300, 40)), lit(D.meter(2, 300, 40))], [5, 0, 10]);
 });
-
+test('rain calendar: 12 hours from two hours before the rain, rain hours lit', () => {
+  const hrs = Array.from({ length: 25 }, (_, i) => ({ h: String(i).padStart(2, '0') }));
+  const c = T.rainHours(hrs, { from: 5, to: 7 });
+  eq(c.length, 12); eq(c[0].h, '03', 'starts two hours before'); eq(c.filter((q) => q.wet).map((q) => q.h), ['05', '06', '07']);
+  eq(T.rainHours(hrs, { from: 1, to: 2 })[0].h, '00', 'never before the first hour');
+  const svg = D.rain(c, 600, 120);
+  eq((svg.match(/<rect/g) || []).length, 3, 'one lit cell per rain hour'); ok(!/gray/.test(svg), 'dry hours in full text colour');
+});
+test('dials: needle drawn last, low mark hollow, high mark solid, baro zone icons', () => {
+  const t = D.dial({ now: 1.6, lo: 1.4, hi: 13.1, a: 0, b: 15, step: 5 }, 900, 380, false);
+  ok(/<circle[^>]*\/><\/g><\/svg>$/.test(t), 'hub (needle group) is the last thing drawn');
+  ok(/fill="none" stroke="currentColor"[^>]*stroke-linejoin/.test(t), 'hollow low mark');
+  const b = D.dial({ now: 1013, lo: 1008, hi: 1016, a: 970, b: 1050, icons: ['a.svg', 'b.svg', 'c.svg', 'd.svg'] }, 900, 380, true);
+  eq((b.match(/<image /g) || []).length, 4, 'four zone icons');
+  ok(D.dial({ now: null, lo: null, hi: null, a: 0, b: 15, step: 5 }, 900, 380, false).indexOf('<polygon') < 0, 'no data: no needle, no marks');
+});
 console.log(passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

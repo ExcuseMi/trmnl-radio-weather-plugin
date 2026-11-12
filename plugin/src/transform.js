@@ -330,108 +330,7 @@ fmt: fmt };
 })();
 // ==== MODEL_END ====
 
-// ==== SVG_BEGIN ====
-// Receiver parts as small inline SVG strings, placed by Liquid ({{ svg.x }}). Ink is currentColor, so the framework's
-// text classes (text--gray-N on a <g>, or on the parent) colour them and dark mode flips them with the page.
-var SWSvg = (() => {
-var GLYPH = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg',
-'7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '' };
-function n1(v) { return String(Math.round(v * 10) / 10); }
-function poly(p) { return '<polygon points="' + p.map((q) => n1(q[0]) + ',' + n1(q[1])).join(' ') + '"/>'; }
-function hseg(x0, x1, y, t) { var h = t / 2; return [[x0, y], [x0 + h, y - h], [x1 - h, y - h], [x1, y], [x1 - h, y + h], [x0 + h, y + h]]; }
-function vseg(x, y0, y1, t) { var h = t / 2; return [[x, y0], [x + h, y0 + h], [x + h, y1 - h], [x, y1], [x - h, y1 - h], [x - h, y0 + h]]; }
-function shapes(x, y, w, h, t) {
-var g = Math.max(1, t * 0.16), xl = x + t / 2, xr = x + w - t / 2, yt = y + t / 2, ym = y + h / 2, yb = y + h - t / 2;
-return { a: hseg(xl + g, xr - g, yt, t), g: hseg(xl + g, xr - g, ym, t), d: hseg(xl + g, xr - g, yb, t),
-f: vseg(xl, yt + g, ym - g, t), b: vseg(xr, yt + g, ym - g, t), e: vseg(xl, ym + g, yb - g, t), c: vseg(xr, ym + g, yb - g, t) };
-}
-function svg(vw, vh, body, cls, par) {
-return '<svg xmlns="http://www.w3.org/2000/svg"' + (vw ? ' viewBox="0 0 ' + vw + ' ' + vh + '"' : '') + ' class="' + (cls || 'w--full h--full') + '"' +
-(par ? ' preserveAspectRatio="' + par + '"' : '') + ' fill="currentColor">' + body + '</svg>';
-}
-// Seven-segment digits: '9.2', '-12', ' 5'. Unlit segments faint (the glass of a real display).
-function digits(str, o) {
-o = o || {};
-var W = 56, H = 100, T = 13, G = 14, DP = 20, x = 0, lit = '', dim = '';
-for (var i = 0; i < str.length; i++) {
-var ch = str.charAt(i);
-if (ch === '.') { lit += '<rect x="' + (x - G + 3) + '" y="' + (H - T) + '" width="' + T + '" height="' + T + '"/>'; x += DP - G; continue; }
-var on = GLYPH[ch] || '', sh = shapes(x, 0, W, H, T);
-'abcdefg'.split('').forEach((s) => { if (on.indexOf(s) >= 0) lit += poly(sh[s]); else dim += poly(sh[s]); });
-x += W + G;
-}
-var vw = Math.max(1, x - G);
-return svg(vw, H, (o.ghost === false ? '' : '<g class="text--gray-75">' + dim + '</g>') + lit, o.cls || 'h--full w--auto', 'xMinYMid meet');
-}
-// Block meter (tuner SIGNAL): n cells, frac lit. Percent geometry, no viewBox, so it fills any box.
-function meter(frac, n) {
-n = n || 10;
-var lit = frac === null || frac === undefined ? 0 : Math.round(Math.max(0, Math.min(1, frac)) * n), cw = 100 / n, on = '', off = '';
-for (var i = 0; i < n; i++) {
-var r = '<rect x="' + n1(i * cw + cw * 0.08) + '%" y="18%" width="' + n1(cw * 0.84) + '%" height="64%" rx="2"/>';
-if (i < lit) on += r; else off += r;
-}
-return svg(0, 0, '<g class="text--gray-70">' + off + '</g><g class="text--gray-30">' + on + '</g>');
-}
-// Days strip, one row: the low to high blocks (one per degree) on the shared scale, rules every major step, the now line.
-function dayBlocks(lo, hi, sc, now) {
-var X = (t) => (t - sc.a) / (sc.b - sc.a) * 100, body = '<g class="text--gray-55">';
-for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) body += '<rect x="' + n1(Math.min(99.8, X(v))) + '%" y="0" width="0.2%" height="100%"/>';
-body += '</g>';
-if (lo !== null && hi !== null) {
-var a = Math.round(lo), b = Math.max(a + 1, Math.round(hi)), cw = 100 / (sc.b - sc.a), cells = '';
-for (var t = a; t < b; t++) cells += '<rect x="' + n1(X(t) + cw * 0.08) + '%" y="22%" width="' + n1(cw * 0.84) + '%" height="56%"/>';
-body += '<g class="text--gray-35">' + cells + '</g>';
-}
-if (now !== null && now !== undefined) body += '<rect x="' + n1(X(now)) + '%" y="0" width="0.3%" height="100%"/>';
-return svg(0, 0, body);
-}
-// Days strip header: degree labels every major step, and the now pointer.
-function dayScale(sc, now, unitDeg) {
-var X = (t) => (t - sc.a) / (sc.b - sc.a) * 100, body = '';
-for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) {
-var p = X(v), anc = p < 3 ? 'start' : (p > 97 ? 'end' : 'middle');
-body += '<text x="' + n1(p) + '%" y="62%" text-anchor="' + anc + '" dominant-baseline="middle" font-weight="700">' + (v === 0 ? 0 : v) + unitDeg + '</text>';
-}
-if (now !== null && now !== undefined) body += '<svg x="' + n1(X(now)) + '%" y="78%" width="1" height="22%" overflow="visible" viewBox="0 0 1 1" preserveAspectRatio="xMidYMax meet"><polygon points="-0.45,0 0.45,0 0,1"/></svg>';
-return svg(0, 0, body);
-}
-// 12-hour rain calendar: two rows of six hours, rain hours lit (inverted), dry hours dim.
-function rainCal(hours, isWet) {
-var body = '', C = 6, cw = 100 / C;
-for (var i = 0; i < Math.min(12, hours.length); i++) {
-var col = i % C, row = Math.floor(i / C), x = col * cw, y = row * 50, wet = isWet(i), lab = hours[i].hl || hours[i].h;
-if (wet) body += '<rect x="' + n1(x + cw * 0.06) + '%" y="' + (y + 4) + '%" width="' + n1(cw * 0.88) + '%" height="42%" rx="5"/>';
-body += '<text x="' + n1(x + cw / 2) + '%" y="' + (y + 26) + '%" text-anchor="middle" dominant-baseline="middle" font-weight="700"' +
-(wet ? ' class="text--white"' : ' class="text--gray-60"') + '>' + lab + '</text>';
-}
-return svg(0, 0, body);
-}
-// Placeholder dial (step 1): a needle meter face with ticks, the needle at frac, and two end labels.
-function dial(frac, loLab, hiLab) {
-var cx = 200, cy = 190, r = 160, A0 = Math.PI * 1.1, A1 = -Math.PI * 0.1, at = (f) => A0 + (A1 - A0) * f, P = (a, rr) => [cx + rr * Math.cos(a), cy - rr * Math.sin(a)];
-var s = P(A0, r), e = P(A1, r), body = '<path d="M' + n1(s[0]) + ' ' + n1(s[1]) + ' A' + r + ' ' + r + ' 0 1 1 ' + n1(e[0]) + ' ' + n1(e[1]) + '" fill="none" stroke="currentColor" stroke-width="8"/>';
-for (var i = 0; i <= 20; i++) { var a = at(i / 20), p0 = P(a, r - 6), p1 = P(a, r - (i % 5 === 0 ? 32 : 18)); body += '<line x1="' + n1(p0[0]) + '" y1="' + n1(p0[1]) + '" x2="' + n1(p1[0]) + '" y2="' + n1(p1[1]) + '" stroke="currentColor" stroke-width="' + (i % 5 === 0 ? 6 : 3) + '"/>'; }
-if (frac !== null && frac !== undefined) { var q = P(at(Math.max(0, Math.min(1, frac))), r - 10); body += '<line x1="' + cx + '" y1="' + cy + '" x2="' + n1(q[0]) + '" y2="' + n1(q[1]) + '" stroke="currentColor" stroke-width="5"/>'; }
-body += '<circle cx="' + cx + '" cy="' + cy + '" r="12"/>';
-var l0 = P(A0, r - 40), l1 = P(A1, r - 40);
-body += '<text x="' + n1(l0[0]) + '" y="' + n1(l0[1]) + '" font-size="30" font-weight="700" text-anchor="middle">' + loLab + '</text><text x="' + n1(l1[0]) + '" y="' + n1(l1[1]) + '" font-size="30" font-weight="700" text-anchor="middle">' + hiLab + '</text>';
-return svg(400, 250, body, 'w--full h--full', 'xMidYMax meet');
-}
-function thermo() {
-return svg(40, 100, '<path d="M14 8 a6 6 0 0 1 12 0 v54 a16 16 0 1 1 -12 0 z" fill="none" stroke="currentColor" stroke-width="5"/><circle cx="20" cy="76" r="9"/><rect x="17.5" y="34" width="5" height="40"/>', 'h--full w--auto', 'xMidYMid meet');
-}
-function person() {
-return svg(40, 100, '<circle cx="20" cy="12" r="9"/><rect x="9" y="25" width="22" height="38" rx="4"/><rect x="2" y="27" width="6" height="32" rx="3"/><rect x="32" y="27" width="6" height="32" rx="3"/><rect x="10" y="60" width="8" height="38" rx="3"/><rect x="22" y="60" width="8" height="38" rx="3"/>', 'h--full w--auto', 'xMidYMid meet');
-}
-function triangle(down) {
-return svg(20, 20, '<polygon points="' + (down ? '2,3 18,3 10,18' : '2,18 18,18 10,3') + '"' + (down ? ' fill="none" stroke="currentColor" stroke-width="2.5"' : '') + '/>', null, 'xMidYMid meet');
-}
-return { digits: digits, meter: meter, dayBlocks: dayBlocks, dayScale: dayScale, rainCal: rainCal, dial: dial, thermo: thermo, person: person, triangle: triangle };
-})();
-// ==== SVG_END ====
-
-// The X full view (step 1 of v2): every text and SVG part the layout places. Pure: model + i18n in, strings out.
+// The X full view: data only (numbers, labels, icon links). The page scripts in shared.liquid draw every part from it.
 var WI_MAP = { clear: ['wi-day-sunny', 'wi-night-clear'], partly: ['wi-day-cloudy', 'wi-night-alt-cloudy'], cloud: ['wi-cloudy', 'wi-cloudy'],
 fog: ['wi-day-fog', 'wi-night-fog'], drizzle: ['wi-day-sprinkle', 'wi-night-alt-sprinkle'], rain: ['wi-day-rain', 'wi-night-alt-rain'], heavy: ['wi-rain', 'wi-rain'],
 sleet: ['wi-day-sleet', 'wi-night-alt-sleet'], snow: ['wi-day-snow', 'wi-night-alt-snow'], storm: ['wi-day-thunderstorm', 'wi-night-alt-thunderstorm'], hail: ['wi-day-hail', 'wi-night-alt-hail'] };
@@ -443,6 +342,11 @@ try { return new Intl.DateTimeFormat(loc, { weekday: 'short', timeZone: 'UTC' })
 });
 }
 var RO_ORDER = ['wind', 'uv', 'aqi', 'pollen', 'humidity', 'baro', 'co2'];   // owner 2026-11-12: wind before humidity
+// Rain calendar (owner 2026-11-12): 12 hours from two hours before the rain starts, never before the first forecast hour.
+function rainHours(hours, R) {
+var s = Math.max(0, Math.min(R.from - 2, hours.length - 12));
+return hours.slice(s, s + 12).map((q, i) => ({ h: q.hl || q.h, wet: s + i >= R.from && s + i <= R.to }));
+}
 function buildView(M, i18n, daily, moon) {
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
@@ -453,32 +357,36 @@ var relevant = { uv: n.day !== false && t.uvMax !== null && t.uvMax >= 3, baro: 
 var keys = RO_ORDER.filter((k) => RO[k][2] && relevant[k] !== false);
 RO_ORDER.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k !== 'uv') keys.push(k); });
 keys = RO_ORDER.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
-var meters = keys.map((k) => ({ key: k, label: RO[k][0], svg: SWSvg.meter(RO[k][1], 10) }));
+var meters = keys.map((k) => ({ key: k, label: RO[k][0], frac: RO[k][1] }));
 var tv = n.temp, tStr = tv === null ? '--.-' : (Math.round(tv * 10) / 10).toFixed(1);
+var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
 var feelsOn = n.feels !== null && tv !== null && Math.abs(n.feels - tv) >= 2;
-var hours12 = (M.hours || []).slice(0, 12), R = M.rain, wetIn12 = !!R && R.from < 12;
+var R = M.rain, wetIn12 = !!R && R.from < 12;
 var days = (M.days || []).slice(1, 6), dates = ((daily || {}).time || []).slice(1, 6), names = dayNames(dates, i18n.loc);
 var vals = []; days.forEach((d) => { if (d.lo !== null) vals.push(d.lo); if (d.hi !== null) vals.push(d.hi); }); if (tv !== null) vals.push(tv);
-var st = F_ ? 10 : 5, sc = { a: Math.floor(Math.min.apply(null, vals.length ? vals : [0]) / st) * st, b: Math.ceil(Math.max.apply(null, vals.length ? vals : [10]) / st) * st, major: st };
+var st = F_ ? 10 : 5, sc = { a: Math.floor(Math.min.apply(null, vals.length ? vals : [0]) / st) * st, b: Math.ceil(Math.max.apply(null, vals.length ? vals : [10]) / st) * st, major: st, now: tv, deg: deg };
 if (sc.b - sc.a < 2 * st) sc.b = sc.a + 2 * st;
-var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
 var pr = n.press, flags = [];
-if (R && R.from < 12) flags.push(R.type === 'snow' ? i18n.snow : (R.type === 'hail' ? i18n.hail : O.rain));
+if (wetIn12) flags.push(R.type === 'snow' ? i18n.snow : (R.type === 'hail' ? i18n.hail : O.rain));
 if (t.lo !== null && t.lo <= (F_ ? 32 : 0)) flags.push(O.frost);
 if ((n.wind !== null && n.wind >= (F_ ? 31 : 50)) || (t.gustMax !== null && t.gustMax >= (F_ ? 47 : 75))) flags.push(i18n.wind);
-var tl = t.lo, th = t.hi, tsc = tl !== null && th !== null ? { a: Math.floor(Math.min(tl, tv === null ? tl : tv) / 5) * 5, b: Math.ceil(Math.max(th, tv === null ? th : tv) / 5) * 5 } : null;
-if (tsc && tsc.b - tsc.a < 10) tsc.b = tsc.a + 10;
+var tl = t.lo, th = t.hi, tvals = [tl, th, tv].filter((v) => v !== null), tst = F_ ? 10 : 5;
+var tsc = tvals.length ? { a: Math.floor(Math.min.apply(null, tvals) / tst) * tst, b: Math.ceil(Math.max.apply(null, tvals) / tst) * tst } : null;
+if (tsc && tsc.b - tsc.a < 3 * tst) tsc.b = tsc.a + 3 * tst;
+var ps = (M.hours || []).slice(0, 24).map((q) => q.pr).filter((q) => q !== null && q !== undefined); if (pr !== null) ps.push(pr);
+var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg' };
 return {
 ok: M.ok, flags: flags, meters: meters,
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day),
-temp: SWSvg.digits(tStr), unit: deg + M.unit, feels: feelsOn ? SWSvg.digits(fmt(n.feels)) : null, thermo: SWSvg.thermo(), person: SWSvg.person(),
-rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), cal: SWSvg.rainCal(hours12, (i) => i >= R.from && i <= R.to) } : null,
-dry: wetIn12 ? null : { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseL: O.sunrise, setL: O.sunset,
-riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg' },
-days: days.map((d, i) => ({ name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, blocks: SWSvg.dayBlocks(d.lo, d.hi, sc, tv) })),
-scale: SWSvg.dayScale(sc, tv, deg), lo: SWSvg.triangle(true), hi: SWSvg.triangle(false),
-baro: { svg: SWSvg.dial(bar(pr, 970, 1050), '970', '1050'), value: pr === null ? '--' : String(Math.round(pr)), name: O.baro },
-tdial: { svg: SWSvg.dial(tsc && tv !== null ? (tv - tsc.a) / (tsc.b - tsc.a) : null, tsc ? String(tsc.a) : '', tsc ? String(tsc.b) : ''), name: O.temperature, unit: deg + M.unit }
+temp: tStr, unit: deg + M.unit, feels: feelsOn ? fmt(n.feels) : null,
+rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R) } : null,
+sun: sun, dry: wetIn12 ? null : sun,
+days: days.map((d, i) => ({ name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: false })),
+scale: sc,
+baro: { now: pr, lo: ps.length ? Math.min.apply(null, ps) : null, hi: ps.length ? Math.max.apply(null, ps) : null, a: 970, b: 1050,
+value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro,
+icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'].map((k) => WI_BASE + k + '.svg') },
+tdial: { now: tv, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b : 15, step: tst, name: O.temperature, unit: deg + M.unit }
 };
 }
 
@@ -509,4 +417,4 @@ async function run(input) {
   return { ui: buildView(model, i18n, w.daily, moon), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, buildView: buildView, SWSvg: SWSvg, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon };
+if (typeof module !== 'undefined') module.exports = { run: run, buildView: buildView, rainHours: rainHours, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon };

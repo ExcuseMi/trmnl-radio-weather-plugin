@@ -1,94 +1,98 @@
 {% template main %}
 {%- assign cf = trmnl.plugin_settings.custom_fields_values -%}
 {%- capture sw_icon -%}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="2" y="13" width="4" height="9" fill="#000"/><rect x="2" y="9" width="4" height="2" fill="#000"/><rect x="8" y="6" width="4" height="16" fill="#000"/><rect x="8" y="2" width="4" height="2" fill="#000"/><rect x="14" y="10" width="4" height="12" fill="#000"/><rect x="14" y="6" width="4" height="2" fill="#000"/><rect x="20" y="16" width="2" height="6" fill="#000"/></svg>{%- endcapture -%}
+{%- comment -%} Receiver panel: shadow (light, 2-bit and up), heavy dark frame, thin inner line. {%- endcomment -%}
+{%- capture p_open -%}<div class="relative h--full w--full"><div class="absolute top--1.5 left--1.5 w--full h--full rounded--large bg--gray-55 dark:hidden 1bit:hidden"></div><div class="relative z--1 h--full w--full rounded--large bg--black p--2"><div class="h--full w--full rounded bg--white p--1">{%- endcapture -%}
+{%- capture p_close -%}</div></div></div>{%- endcapture -%}
 {%- if ui == nil or ui.ok != true -%}
 <div class="layout layout--col layout--center" data-sw-error="{{ model.reason | default: 'NO SIGNAL' | escape }}">
  <span class="title title--xlarge">{{ i18n.ours.no_signal | default: 'NO SIGNAL' }}</span>
  <span class="description">{{ model.reason | escape }}</span>
 </div>
 {%- elsif view == 1 -%}
-<div class="layout layout--col layout--stretch-x gap--small" data-sw-debug="v2 full meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
- {%- comment -%} 1. dials (placeholder faces for step 1) {%- endcomment -%}
- <div class="grid grid--cols-2 gap--small h--[27cqh]">
-  <div class="outline flex flex--col p--2 h--full">
-   <div class="grow w--full value">{{ ui.baro.svg }}</div>
-   <div class="flex flex--row flex--between flex--bottom w--full">
-    <span class="value value--large value--tnums">{{ ui.baro.value }} <span class="label">hPa</span></span>
-    <span class="title text--bold">{{ ui.baro.name }}</span>
+<div class="layout layout--col layout--stretch-x gap--medium" data-sw-debug="v2 full meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
+ <div class="grid grid--cols-2 gap--medium h--[30cqh]">
+  {%- for k in (1..2) %}
+  {{ p_open }}<div class="relative h--full w--full rounded--small outline">
+   <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
+   <span class="absolute top--3 {% if k == 1 %}left--3{% else %}right--3{% endif %} label label--inverted text--bold">{% if k == 1 %}L{% else %}R{% endif %}</span>
+   <div class="absolute bottom--3 left--4 flex flex--row flex--bottom gap--small">
+    {%- if k == 1 %}<span class="value value--small value--tnums">{{ ui.baro.value }}</span><span class="title title--small text--bold">{{ ui.baro.unit }}</span>
+    {%- else %}<span class="value value--small">{{ ui.tdial.unit }}</span>{% endif -%}
    </div>
-  </div>
-  <div class="outline flex flex--col p--2 h--full">
-   <div class="grow w--full value">{{ ui.tdial.svg }}</div>
-   <div class="flex flex--row flex--between flex--bottom w--full">
-    <span class="value value--large">{{ ui.tdial.unit }}</span>
-    <span class="title text--bold">{{ ui.tdial.name }}</span>
-   </div>
-  </div>
+   <span class="absolute bottom--4 right--5 title title--base text--bold">{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>
+  </div>{{ p_close }}
+  {%- endfor %}
  </div>
- {%- comment -%} 2. console: meters, temperature, rain {%- endcomment -%}
- <div class="outline flex flex--row flex--stretch-y gap--large p--4 h--[37cqh]">
-  <div class="flex flex--col gap--xsmall w--[34cqw]">
-   <div class="flex flex--row flex--left gap--small h--[4cqh]">
-    {%- for f in ui.flags %}<span class="label label--inverted">{{ f }}</span>{% endfor -%}
+ <div class="h--[33cqh]">{{ p_open }}<div class="flex flex--row flex--stretch-y gap--large p--4 h--full rounded--small outline">
+  <div class="flex flex--col gap--small w--[35cqw]">
+   <div class="flex flex--row flex--left gap--small h--[4cqh] w--full">
+    {%- for f in ui.flags %}<span class="label label--inverted label--large text--bold">{{ f }}</span>{% endfor -%}
    </div>
-   <div class="flex flex--col flex--between grow">
+   <div class="flex flex--col flex--between grow w--full">
    {%- for m in ui.meters %}
     <div class="flex flex--row flex--center-y gap--small h--[5cqh]">
-     <div class="w--[10cqw] text--right"><span class="title title--small text--bold">{{ m.label }}</span></div>
-     <div class="grow h--full">{{ m.svg }}</div>
+     <div class="w--[11cqw] text--right"><span class="title title--small text--bold">{{ m.label }}</span></div>
+     <div class="w--[22cqw] h--[4cqh]" data-sw-part="meter" data-sw-i="{{ forloop.index0 }}"></div>
     </div>
    {%- endfor %}
    </div>
   </div>
+  <div class="border--v-60"></div>
   <div class="flex flex--col flex--center gap--medium grow">
-   <div class="flex flex--row flex--center-y gap--medium h--[9cqh]">
+   <div class="flex flex--row flex--center-y gap--medium h--[8cqh]">
     {%- if ui.icon %}<img class="image image--adaptive h--full" src="{{ ui.icon }}" alt="">{% endif %}
-    <span class="title title--large text--bold" data-clamp="1">{{ ui.cond }}</span>
+    <span class="title title--base text--bold" data-clamp="1">{{ ui.cond }}</span>
    </div>
-   <div class="flex flex--row flex--center-y gap--small h--[13cqh]">
-    <div class="h--[10cqh]">{{ ui.thermo }}</div>
-    <div class="h--full">{{ ui.temp }}</div>
+   <div class="w--[30cqw] h--[1cqh]" data-sw-part="rule"></div>
+   <div class="flex flex--row flex--center-y gap--medium h--[13cqh]">
+    <div class="h--full" data-sw-part="temp"></div>
     <span class="value value--small flex--top">{{ ui.unit }}</span>
     {%- if ui.feels %}
-    <div class="h--[8cqh] flex flex--row gap--xsmall">{{ ui.person }}<div class="h--[6cqh]">{{ ui.feels }}</div></div>
+    <div class="border--v-60 h--[9cqh]"></div>
+    <div class="h--[8cqh]" data-sw-part="person"></div>
+    <div class="h--[7cqh]" data-sw-part="feels"></div>
     {%- endif %}
    </div>
   </div>
-  <div class="flex flex--col flex--center gap--small w--[24cqw]">
+  <div class="border--v-60"></div>
+  <div class="flex flex--col flex--center gap--small w--[23cqw]">
    {%- if ui.rain %}
-   <img class="image image--adaptive h--[12cqh]" src="{{ ui.rain.icon }}" alt="">
-   <div class="w--full h--[12cqh] label">{{ ui.rain.cal }}</div>
-   {%- else %}
-   <img class="image image--adaptive h--[10cqh]" src="{{ ui.dry.moon }}" alt="">
-   <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[5cqh]" src="{{ ui.dry.riseIcon }}" alt=""><span class="value value--small value--tnums">{{ ui.dry.rise }}</span></div>
-   <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[5cqh]" src="{{ ui.dry.setIcon }}" alt=""><span class="value value--small value--tnums">{{ ui.dry.set }}</span></div>
+   <img class="image image--adaptive h--[7cqh]" src="{{ ui.rain.icon }}" alt="">
+   <div class="w--full h--[9cqh]" data-sw-part="rain"></div>
    {%- endif %}
+   <div class="flex flex--row flex--center-y gap--medium">
+    <div class="flex flex--col gap--small">
+     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[5cqh]" src="{{ ui.sun.riseIcon }}" alt=""><span class="title title--base text--bold">{{ ui.sun.rise }}</span></div>
+     <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[5cqh]" src="{{ ui.sun.setIcon }}" alt=""><span class="title title--base text--bold">{{ ui.sun.set }}</span></div>
+    </div>
+    <img class="image image--adaptive h--[{% if ui.rain %}8{% else %}12{% endif %}cqh]" src="{{ ui.sun.moon }}" alt="">
+   </div>
   </div>
- </div>
- {%- comment -%} 3. days strip on one shared scale {%- endcomment -%}
- <div class="outline flex flex--col flex--between grow p--4">
-  <div class="grid grid--cols-12 gap--small h--[5cqh]">
+ </div>{{ p_close }}</div>
+ <div class="h--[31cqh]">{{ p_open }}<div class="flex flex--col flex--center h--full p--4 rounded--small outline">
+  <div class="grid grid--cols-12 gap--small h--[4cqh]">
    <div class="col--span-2"></div>
-   <div class="col--span-1 h--[3cqh]">{{ ui.lo }}</div>
-   <div class="col--span-1 h--[3cqh]">{{ ui.hi }}</div>
-   <div class="col--span-8 h--full value value--xsmall">{{ ui.scale }}</div>
+   <div class="col--span-1 flex flex--center h--full"><div class="h--[3cqh] w--[2cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
+   <div class="col--span-1 flex flex--center h--full"><div class="h--[3cqh] w--[2cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
+   <div class="col--span-8 h--full" data-sw-part="scale"></div>
   </div>
   {%- for d in ui.days %}
-  <div class="grid grid--cols-12 gap--small h--[5cqh]">
-   <span class="col--span-1 title title--large text--bold">{{ d.name }}</span>
-   <div class="col--span-1 h--full">{% if d.icon %}<img class="image image--adaptive h--full" src="{{ d.icon }}" alt="">{% endif %}</div>
-   <span class="col--span-1 value value--base value--tnums text--right text--bold">{{ d.lo }}</span>
-   <span class="col--span-1 value value--base value--tnums text--right text--bold">{{ d.hi }}</span>
-   <div class="col--span-8 h--full">{{ d.blocks }}</div>
+  <div class="grid grid--cols-12 gap--small h--[4cqh]">
+   <div class="col--span-1 flex flex--center-y"><span class="title title--base text--bold">{{ d.name }}</span></div>
+   <div class="col--span-1 flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[5cqh]" src="{{ d.icon }}" alt="">{% endif %}</div>
+   <div class="col--span-1 flex flex--center"><span class="title title--base text--bold">{{ d.lo }}</span></div>
+   <div class="col--span-1 flex flex--center"><span class="title title--base text--bold">{{ d.hi }}</span></div>
+   <div class="col--span-8 h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>
   </div>
   {%- endfor %}
- </div>
+ </div>{{ p_close }}</div>
 </div>
 {%- else -%}
 <div class="layout layout--col layout--center gap--small" data-sw-debug="v2 placeholder view={{ view }}">
  <div class="flex flex--row flex--center-y gap--small h--[30cqh]">
   {%- if ui.icon %}<img class="image image--adaptive h--full" src="{{ ui.icon }}" alt="">{% endif %}
-  <div class="h--full">{{ ui.temp }}</div>
+  <div class="h--full" data-sw-part="temp"></div>
  </div>
  <span class="title">{{ ui.cond }}</span>
 </div>
@@ -101,4 +105,196 @@
  {%- if clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}
 </div>
 {%- endunless %}
+{%- if ui and ui.ok %}
+<script type="text/javascript">
+var SW = {{ ui | json }};
+// ==== DRAW_BEGIN ====
+// Section drawings: each [data-sw-part] element gets one SVG, drawn from the view data (SW) at the element's real size.
+// Ink is currentColor; text--white marks paper, so dark mode flips both with the page. Shadows: light mode, 2-bit and up.
+var SWDraw = (() => {
+var API = { paint: null };
+var GLYPH = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '' };
+var SHADOW = 'dark:hidden 1bit:hidden', SO = 3, K = 0;
+function n1(v) { return String(Math.round(v * 10) / 10); }
+function pts(p) { return p.map((q) => n1(q[0]) + ',' + n1(q[1])).join(' '); }
+function poly(p, extra) { return '<polygon points="' + pts(p) + '"' + (extra || '') + '/>'; }
+function rect(x, y, w, h, rx, extra) { return '<rect x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(Math.max(0, w)) + '" height="' + n1(Math.max(0, h)) + '"' + (rx ? ' rx="' + n1(rx) + '"' : '') + (extra || '') + '/>'; }
+// Paint: the page sets SWDraw.paint (TRMNLPaint.bg at the part); a dither Fill becomes an SVG pattern. Without it
+// (tests) the framework text class stands in. color= also feeds currentColor strokes inside the group.
+var DEFS = '';
+function g(cls, body) {
+var keep = [], tok = null;
+cls.split(' ').forEach((c) => { if (c.indexOf('text--') === 0) tok = c.slice(6); else if (c) keep.push(c); });
+var f = tok && API.paint ? API.paint(tok) : null, at = '';
+if (f && f.url && f.size) { var id = 'swp' + (K++); DEFS += '<pattern id="' + id + '" patternUnits="userSpaceOnUse" width="' + f.size + '" height="' + f.size + '">' + (f.color ? '<rect width="' + f.size + '" height="' + f.size + '" fill="' + f.color + '"/>' : '') + '<image href="' + f.url + '" width="' + f.size + '" height="' + f.size + '"/></pattern>'; at = ' fill="url(#' + id + ')"' + (f.color ? ' color="' + f.color + '"' : ''); }
+else if (f && f.color) at = ' fill="' + f.color + '" color="' + f.color + '"';
+else if (tok) keep.push('text--' + tok);
+return '<g' + (keep.length ? ' class="' + keep.join(' ') + '"' : '') + at + '>' + body + '</g>';
+}
+function text(x, y, s, fs, anc, extra) { return '<text x="' + n1(x) + '" y="' + n1(y) + '" font-size="' + n1(fs) + '" font-weight="700" text-anchor="' + (anc || 'middle') + '"' + (extra || '') + '>' + s + '</text>'; }
+function svg(W, H, body, vb) { var d0 = DEFS; DEFS = ''; return svg0(W, H, body, vb, d0); }
+function svg0(W, H, body, vb, DEFS) { return '<svg xmlns="http://www.w3.org/2000/svg" width="' + n1(W) + '" height="' + n1(H) + '" viewBox="' + (vb || '0 0 ' + n1(W) + ' ' + n1(H)) + '" fill="currentColor" overflow="visible"' + (API.font ? ' font-family="' + API.font.replace(/"/g, "'") + '"' : '') + '>' + (DEFS ? '<defs>' + DEFS + '</defs>' : '') + body + '</svg>'; }
+function hseg(x0, x1, y, t) { var h = t / 2; return [[x0, y], [x0 + h, y - h], [x1 - h, y - h], [x1, y], [x1 - h, y + h], [x0 + h, y + h]]; }
+function vseg(x, y0, y1, t) { var h = t / 2; return [[x, y0], [x + h, y0 + h], [x + h, y1 - h], [x, y1], [x - h, y1 - h], [x - h, y0 + h]]; }
+function shapes(x, w, h, t) {
+var gp = Math.max(1, t * 0.16), xl = x + t / 2, xr = x + w - t / 2, yt = t / 2, ym = h / 2, yb = h - t / 2;
+return { a: hseg(xl + gp, xr - gp, yt, t), g: hseg(xl + gp, xr - gp, ym, t), d: hseg(xl + gp, xr - gp, yb, t),
+f: vseg(xl, yt + gp, ym - gp, t), b: vseg(xr, yt + gp, ym - gp, t), e: vseg(xl, ym + gp, yb - gp, t), c: vseg(xr, ym + gp, yb - gp, t) };
+}
+// Seven-segment digits, lit segments only (owner 2026-11-12: no ghost segments). The minus is narrow: no digit-wide gap.
+function digits(str, H) {
+var W = 56, HH = 100, T = 13, G = 14, x = 0, body = '';
+for (var i = 0; i < str.length; i++) {
+var ch = str.charAt(i);
+if (ch === '.') { body += rect(x - G + 3, HH - T, T, T); x += 20 - G; continue; }
+if (ch === '°') { body += '<circle cx="' + (x + 9) + '" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="5"/>'; x += 22 + G; continue; }
+var w = ch === '-' ? 46 : W, on = GLYPH[ch] || '', sh = shapes(x, w, HH, T);
+'abcdefg'.split('').forEach((s) => { if (on.indexOf(s) >= 0) body += poly(sh[s]); });
+x += w + (ch === '-' ? G * 0.3 : G);
+}
+var vw = Math.max(1, x - G);
+return svg(H * vw / HH, H, body, '0 0 ' + vw + ' ' + HH);
+}
+// Block meter (tuner SIGNAL): n cells, frac lit; lit cells drop a lighter shadow.
+function meter(frac, W, H, n) {
+n = n || 10;
+var lit = frac === null || frac === undefined ? 0 : Math.round(Math.max(0, Math.min(1, frac)) * n), cw = (W - SO) / n, gp = cw * 0.12, ch = H - SO, on = '', sh = '', off = '';
+for (var i = 0; i < n; i++) {
+var x = i * cw + gp / 2, w = cw - gp;
+if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
+}
+return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g('text--gray-70', off) + g('text--gray-40', on));
+}
+// Days strip row: rules every major step (dark grey), the low to high blocks (one per degree, shadowed), the now line.
+function day(d, sc, W, H) {
+var X = (t) => (t - sc.a) / (sc.b - sc.a) * (W - 2) + 1, body = '';
+var E = API.ext || 0;   // the row pitch beyond this box: rules and the now line run on through the gap
+for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) body += rect(X(v) - 1, -E, 2, H + 2 * E);
+body = g('text--gray-20', body);
+if (d.loV !== null && d.hiV !== null) {
+var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.5, y = (H - bh) / 2, cells = '', sh = '';
+for (var t = a; t < b; t++) { cells += rect(X(t) + cw * 0.08, y, cw * 0.84, bh); sh += rect(X(t) + cw * 0.08 + SO, y + SO, cw * 0.84, bh); }
+body += g(SHADOW + ' text--gray-65', sh) + g(d.today ? 'text--gray-15' : 'text--gray-40', cells);
+}
+if (sc.now !== null && sc.now !== undefined) body += rect(X(sc.now) - 1.5, -E, 3, H + 2 * E);
+return svg(W, H, body);
+}
+// Days strip header: degree labels (dark grey) and the now pointer; its line starts here unless it would cross a label.
+function scale(sc, W, H) {
+var X = (t) => (t - sc.a) / (sc.b - sc.a) * (W - 2) + 1, fs = H * 0.7, body = '', ty = H * 0.62, cross = false, xn = sc.now === null || sc.now === undefined ? null : X(sc.now);
+for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) {
+var p = X(v), s = (v === 0 ? 0 : v) + sc.deg, tw = fs * 0.62 * s.length, anc = p < tw / 2 ? 'start' : (p > W - tw / 2 ? 'end' : 'middle');
+var l = anc === 'start' ? p : (anc === 'end' ? p - tw : p - tw / 2);
+if (xn !== null && xn > l - 8 && xn < l + tw + 8) cross = true;
+body += text(p, ty, s, fs, anc, ' dominant-baseline="middle"');
+}
+body = g('text--gray-20', body);
+if (xn !== null) {
+var tr = fs * 0.3;
+body += poly([[xn - tr, 0], [xn + tr, 0], [xn, tr * 1.4]]);
+if (!cross) body += rect(xn - 1.5, tr, 3, H - tr + (API.ext || 0)); else body += rect(xn - 1.5, ty + fs * 0.55, 3, H - ty - fs * 0.55 + (API.ext || 0));
+}
+return svg(W, H, body);
+}
+// 12-hour rain calendar: two rows of six, rain hours lit (inverted), the others in full text colour.
+function rain(hours, W, H) {
+var C = 6, cw = W / C, rh = H / 2, fs = Math.min(rh * 0.62, cw * 0.48), body = '';
+hours.slice(0, 12).forEach((q, i) => {
+var x = (i % C) * cw, y = Math.floor(i / C) * rh;
+if (q.wet) body += rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22);
+var tx = text(x + cw / 2, y + rh / 2, q.h, fs, 'middle', ' dominant-baseline="central"'); body += q.wet ? g('text--white', tx) : tx;
+});
+return svg(W, H, body);
+}
+function rule(W, H) { return svg(W, H, g('text--gray-40', '<line x1="0" y1="' + n1(H / 2) + '" x2="' + W + '" y2="' + n1(H / 2) + '" stroke="currentColor" stroke-width="3" stroke-dasharray="3 7"/>')); }
+function person(W, H) {
+return svg(H * 0.4, H, '<circle cx="20" cy="12" r="9"/><rect x="9" y="25" width="22" height="38" rx="4"/><rect x="2" y="27" width="6" height="32" rx="3"/><rect x="32" y="27" width="6" height="32" rx="3"/><rect x="10" y="60" width="8" height="38" rx="3"/><rect x="22" y="60" width="8" height="38" rx="3"/>', '0 0 40 100');
+}
+// Receiver dial: arc, ticks, range band with low (hollow) and high (solid) marks, scale labels; barometer zone bands
+// with their icons; the needle and hub last, on top of everything.
+function dial(D, W, H, baro) {
+var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, py = H * 0.88, bw = H * 0.045, mh = H * 0.05;
+var r = Math.min(W * 0.42 / Math.sin(A), py - H * 0.015 - mh - bw - lw);
+var F = (v) => (v - D.a) / (D.b - D.a), cl = (f) => Math.max(-0.03, Math.min(1.03, f));
+function at(f, rad) { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
+function arc(rad, f0, f1) { var p0 = at(f0, rad), p1 = at(f1, rad); return 'M' + n1(p0[0]) + ' ' + n1(p0[1]) + ' A' + n1(rad) + ' ' + n1(rad) + ' 0 0 1 ' + n1(p1[0]) + ' ' + n1(p1[1]); }
+var id = 'swink' + (K++), body = '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>';
+var path = (d, sw, extra) => '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"' + (extra || '') + '/>';
+if (baro) {
+var zro = r - H * 0.085, zri = zro - H * 0.05, zg = 0.012, isz = r * 0.34;
+[[0, 0.25, 1], [0.25, 0.5, 0], [0.5, 0.75, 1], [0.75, 1, 0]].forEach((z) => {
+var a0 = at(z[0] + zg, zri), a1 = at(z[1] - zg, zri), d = arc(zro, z[0] + zg, z[1] - zg) + ' L' + n1(a1[0]) + ' ' + n1(a1[1]) + ' A' + n1(zri) + ' ' + n1(zri) + ' 0 0 0 ' + n1(a0[0]) + ' ' + n1(a0[1]) + ' Z';
+body += (z[2] ? g('text--gray-45', '<path d="' + d + '"/>') : '') + path(d, Math.max(1, lw * 0.5));
+});
+(D.icons || []).forEach((u, i) => { var q = at((2 * i + 1) / 8, zri - isz * 0.62); body += '<image href="' + u + '" x="' + n1(q[0] - isz / 2) + '" y="' + n1(q[1] - isz / 2) + '" width="' + n1(isz) + '" height="' + n1(isz) + '" filter="url(#' + id + ')"/>'; });
+}
+body += path(arc(r, 0, 1), lw);
+var step = baro ? 5 : 1, major = baro ? 20 : D.step, labs = '';
+for (var v = D.a; v <= D.b + 1e-9; v += step) {
+var mj = Math.abs((v - D.a) / major - Math.round((v - D.a) / major)) < 1e-6, p0 = at(F(v), r), p1 = at(F(v), r - (mj ? H * 0.07 : H * 0.035));
+body += '<line x1="' + n1(p0[0]) + '" y1="' + n1(p0[1]) + '" x2="' + n1(p1[0]) + '" y2="' + n1(p1[1]) + '" stroke="currentColor" stroke-width="' + n1(mj ? lw : Math.max(1, lw * 0.6)) + '"/>';
+if (!baro && mj) { var fs = H * 0.085, pl = at(F(v), r - H * 0.07 - fs * 0.8); labs += text(pl[0], pl[1], String(v), fs, 'middle', ' dominant-baseline="central"'); }
+}
+body += labs;
+var lo = D.lo, hi = D.hi;
+if (lo !== null && hi !== null && lo !== undefined && hi !== undefined) {
+body += path(arc(r + lw / 2 + bw / 2, F(lo), F(hi)), bw);
+var r0 = r + lw + bw + 2, r1 = r0 + mh;
+[[lo, true], [hi, false]].forEach((m) => {
+var f = F(m[0]), t = [at(f, r0), at(f - 0.014, r1), at(f + 0.014, r1)];
+body += poly(t, m[1] ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.5, lw * 0.5)) + '" stroke-linejoin="round"' : '');
+});
+}
+if (D.now !== null && D.now !== undefined) {
+var ang = -A + 2 * A * cl(F(D.now)), ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux, tipR = r + H * 0.025, tailR = H * 0.1, wb = Math.max(4, H * 0.012), wt = 1.5;
+var np = (ox, oy) => { var b = [cx + ox, py + oy], t = [b[0] + ux * tipR, b[1] + uy * tipR], k = [b[0] - ux * tailR, b[1] - uy * tailR];
+return [[t[0] + nx * wt / 2, t[1] + ny * wt / 2], [b[0] + nx * wb / 2, b[1] + ny * wb / 2], [k[0] + nx * wb * 1.6, k[1] + ny * wb * 1.6], [k[0] - nx * wb * 1.6, k[1] - ny * wb * 1.6], [b[0] - nx * wb / 2, b[1] - ny * wb / 2], [t[0] - nx * wt / 2, t[1] - ny * wt / 2]]; };
+var hr = Math.max(6, H * 0.035);
+body += g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
+body += poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '"/>' + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>');
+}
+return svg(W, H, body);
+}
+function tri(down, W, H) {
+var s = Math.min(W, H), x0 = (W - s) / 2, y0 = (H - s) / 2, p = down ? [[x0 + s * 0.1, y0 + s * 0.12], [x0 + s * 0.9, y0 + s * 0.12], [x0 + s / 2, y0 + s * 0.9]] : [[x0 + s * 0.1, y0 + s * 0.9], [x0 + s * 0.9, y0 + s * 0.9], [x0 + s / 2, y0 + s * 0.12]];
+return svg(W, H, poly(p, down ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(2, s * 0.1)) + '" stroke-linejoin="round"' : ''));
+}
+function part(SW, kind, i, W, H) {
+switch (kind) {
+case 'temp': return digits(SW.temp, H);
+case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
+case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, 10);
+case 'day': return day(SW.days[i], SW.scale, W, H);
+case 'scale': return scale(SW.scale, W, H);
+case 'rain': return SW.rain ? rain(SW.rain.hours, W, H) : '';
+case 'tri': return tri(i === 0, W, H);
+case 'rule': return rule(W, H);
+case 'person': return person(W, H);
+case 'baro': return dial(SW.baro, W, H, true);
+case 'tdial': return dial(SW.tdial, W, H, false);
+}
+return '';
+}
+Object.assign(API, { part: part, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial });
+return API;
+})();
+// ==== DRAW_END ====
+(function () {
+  function whenReady(cb) { var tries = 0; (function attempt() { if (window.TRMNLPaint) return cb(); if (++tries > 200) return; setTimeout(attempt, 50); })(); }
+  whenReady(function () {
+    document.querySelectorAll('[data-sw-part]').forEach(function (el) {
+      TRMNLPaint.watch(el, function () {
+        SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: el }); };
+        SWDraw.font = (TRMNLPaint.type('title', { el: el }) || {}).fontFamily || null;
+        var r = el.getBoundingClientRect();
+        var rows = document.querySelectorAll('[data-sw-part="day"]'), pitch = rows.length > 1 ? rows[1].getBoundingClientRect().top - rows[0].getBoundingClientRect().top : r.height;
+        SWDraw.ext = Math.max(0, (pitch - r.height) / 2 + 1);   // day rows: rules and the now line run on through the gap to the next row
+        el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.round(r.width), Math.round(r.height));
+      });
+    });
+    document.body.setAttribute('data-sw-drawn', '1');
+  });
+})();
+</script>
+{%- endif %}
 {% endtemplate %}
