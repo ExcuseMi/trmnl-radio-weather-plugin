@@ -277,16 +277,16 @@ test('moon glow outside the disk in dark mode, none in light or 1-bit (owner 202
 test('days strip in narrow views: X half vertical 7 days without numbers, OG half vertical 5, portrait larger names and icons (owner 2026-11-12)', () => {
   const v3 = /elsif view == 3 %}([^\n]*)/.exec(sh)[1], v1 = /if view == 1 %}([^\n]*)/.exec(sh)[1];
   ok(/nd_md = 5 %}/.test(v3) && /nd_lg = 7 %}/.test(v3), 'half vertical: 5 days on md, 7 on lg');
-  ok(/num_cls = ' hidden' %}/.test(v3), 'half vertical: low/high numbers dropped on both sizes');
-  ok(/bar_cls = 'col--span-9 lg:col--span-8' %}/.test(v3) && /pad_cls = 'col--span-3 lg:col--span-4' %}/.test(v3), 'bars keep at least half the strip, header pad matches name + icon');
+  ok(/num_cls = ' lg:hidden' %}/.test(v3), 'half vertical: low/high numbers on the OG (owner 2026-11-12), dropped on the X');
+  ok(/bar_cls = 'col--span-7 lg:col--span-8' %}/.test(v3) && /name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}/.test(v3), 'bars keep at least half the strip, header pad matches name + icon');
   ok(/name_t = ' lg:portrait:title--xlarge' %}/.test(v1) && /icon_x = ' lg:portrait:h--\[7cqh\]' %}/.test(v1), 'portrait: names and icons at the live size');
-  ok(/<span class="title title--base{{ name_t }} text--bold">{{ d.name }}/.test(sh) && /{{ icon_x }}" src="{{ d.icon }}"/.test(sh), 'row markup uses the per-view sizes');
+  ok(/<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}/.test(sh) && /{{ icon_x }}" src="{{ d.icon }}"/.test(sh), 'row markup uses the per-view sizes');
 });
 test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 segments, 5 days', () => {
   ok(/<div class="hidden lg:block h--\[30cqh\]"><div class="flex flex--row/.test(sh), 'dials only on lg');
   ok(/lg:hidden" data-sw-part="meter" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="meter" data-sw-n="10"/.test(sh), 'meter copies per size');
   ok(/data-sw-row="day"/.test(sh) && !/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'every day row in the same full-width wrapper (no half-width fifth row)');
-  ok(/{%- if d.today %}<div class="[^"]*lg:hidden" data-sw-today>/.test(sh), 'OG: today underlined');
+  ok(/{%- if d.today %}<span class="label label--inverted[^"]*lg:hidden" data-sw-today>/.test(sh), 'OG: today a lit lamp on the day name (owner 2026-11-12)');
   D.mode = { bits: 1 }; ok(/<\/g><g><rect/.test(D.meter(0, 200, 30, 5)), '1-bit: unlit cells drawn in full colour'); D.mode = null;
   const cells = (n) => (D.meter(0, 200, 30, n).match(/<rect/g) || []).length;
   eq([cells(5), cells(10)], [5, 10]);
@@ -297,7 +297,7 @@ test('rain unit: icon left of the grid on every size (owner 2026-11-12, later de
   ok(u > 0 && /\{\{ ru_cls \}\}/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign ru_cls = 'flex--row lg:portrait:flex--col'/.test(sh), 'row on md and lg');
   ok(/{% if stk %}[^\n]*{% assign ru_cls = 'flex--col lg:flex--row' %}/.test(sh), 'narrow stacked md column: icon above the calendar (owner 2026-11-12)');
   ok(/<img class="image image--adaptive \{\{ ib_cls \}\}" src="\{\{ ui.rain.icon \}\}"/.test(sh.slice(u, end)) && /h--\[\{\{ cal_m \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\][^"]*" data-sw-part="rain"/.test(sh) && /capture ib_cls %\}aspect--1\/1 h--\[\{\{ ib_m \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\]/.test(sh), 'icon as tall as the grid on md and lg');
-  ok(/assign ib_m = cal_m %}{% if stk %}{% assign ib_m = rc_m/.test(sh), 'stacked md: icon above, about one calendar row tall');
+  ok(/assign ib_m = cal_m %}{% if stk and view != 3 %}{% assign ib_m = rc_m/.test(sh) && /{% if view == 3 %}[^\n]*{% assign ru_cls = 'flex--row' %}/.test(sh), 'stacked md: icon above, one row tall; OG half vertical: icon left at the calendar height (owner 2026-11-12)');
   ok(/<div class="\{\{ ib_cls \}\}" data-sw-part="moon">/.test(sh), 'moon box the same as the rain icon box');
   const T3 = (h) => D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, h).match(/<text/g).length;
   eq([T3(150), T3(500)], [6, 9], 'short rain: 2 x 3; a narrow tall box: 3 x 3');
@@ -305,7 +305,7 @@ test('rain unit: icon left of the grid on every size (owner 2026-11-12, later de
   const R3 = (w, h, lp) => { D.lp = lp || 0; const n = D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), w, h, 3).match(/<text/g).length; D.lp = 0; return n; };
   eq(R3(300, 160), 9, 'long rain: 3 x 3 in a box that holds it');
   eq([R3(300, 120), R3(300, 160, 50)], [6, 6], 'long rain: 2 x 3 when 3 rows only fit too flat or below the label size (owner 2026-11-12)');
-  ok(/data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"/.test(sh) && /{% if stk or view == 2 %}{% assign rr_m = 2 %}/.test(sh), 'stacked and half-horizontal md boxes sized for 2 rows (OG has no room for 3 at label size)');
+  ok(/data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"/.test(sh) && /{% if view == 4 or view == 2 %}{% assign rr_m = 2 %}/.test(sh), 'quadrant and half-horizontal md boxes sized for 2 rows; OG half vertical 3 when the rain is long (owner 2026-11-12)');
   const c = Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: i >= 2 && i <= 6 }));
   eq([T.rainRows(c), T.rainRows(c.map((q, i) => ({ h: q.h, wet: i >= 2 && i <= 5 })))], [3, 2], 'rows: 3 when the rain runs past the sixth hour');
 });

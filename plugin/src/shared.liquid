@@ -4,6 +4,7 @@
 {%- comment -%} Panel (owner 2026-11-12: borderless): no frame, inner line or panel shadow; a lit face (light mode) defines it. {%- endcomment -%}
 {%- capture p_open -%}<div class="relative h--full w--full"><div class="h--full w--full"><div class="relative h--full w--full p--1" data-sw-panel>{%- endcapture -%}
 {%- capture p_open_g -%}<div class="relative h--full w--full"><div class="h--full w--full"><div class="relative h--full w--full p--1" data-sw-panel><div class="absolute inset--0" data-sw-part="face"></div>{%- endcapture -%}
+{%- capture vr -%}<div class="border--v-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--v-black" data-sw-rule></div>{%- endcapture -%}
 {%- capture p_close -%}</div></div></div>{%- endcapture -%}
 {%- if ui == nil or ui.ok != true -%}
 <div class="layout layout--col layout--center" data-sw-error="{{ model.reason | default: 'NO SIGNAL' | escape }}">
@@ -15,15 +16,15 @@
 {%- assign stk = false %}{% assign hm = 1 %}{% assign hl = 1 %}{% assign wm = 1 %}{% assign wl = 1 %}{% assign n_md = 9 %}{% assign n_lg = 9 %}{% assign nd_md = 4 %}{% assign nd_lg = 5 %}{% assign hide_today_lg = false %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1' %}{% assign pad_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1' %}{% assign name_t = '' %}{% assign icon_x = '' %}{% assign rgw_l = 18 %}
 {%- if view == 1 %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign hide_today_lg = true %}{% assign num_cls = ' lg:portrait:hidden' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign last_p = ' lg:portrait:hidden' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh]' %}
 {%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
-{%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign nd_md = 5 %}{% assign nd_lg = 7 %}{% assign num_cls = ' hidden' %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-9 lg:col--span-8' %}{% assign con_h = 'h--[52cqh] lg:h--[54cqh]' %}{% assign days_h = 'h--[46cqh] lg:h--[44cqh]' %}
+{%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 5 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden' %}{% assign rw_m = 5 %}{% assign hh_m = 6 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[62cqh] lg:h--[54cqh]' %}{% assign days_h = 'h--[36cqh] lg:h--[44cqh]' %}
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 1.7 %}{% assign n_md = 1 %}{% assign n_lg = 3 %}{% assign con_h = 'h--full' %}{% endif %}
 {%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
 {%- comment -%} Right column: rain unit and sun unit side by side on lg; stacked views keep the icon above the grid and the moon beside the sun times. {%- endcomment -%}
 {%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3 = 26 | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign ri_lg = 'hidden lg:block lg:portrait:hidden' %}{% assign su_cls = 'flex--row lg:portrait:flex--col' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6b = 20 %}{% if stk %}{% assign q6b = 15 %}{% assign ru_cls = 'flex--col lg:flex--row' %}{% endif %}{% assign q6 = q6b | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
-{%- if stk %}{% assign ri_md = 'w--[8cqw] lg:hidden' %}{% assign rgw_l = 15 %}{% assign rg_p = '' %}{% assign su_cls = 'flex--row' %}{% assign rc_w = 'w--[40cqw] lg:w--[37cqw] shrink-0' %}{% assign rule_w = 'w--full' %}{% assign tf = 0.7 %}{% assign mh_l = 0.4 %}{% if ui.rain %}{% assign su_cls = 'hidden lg:flex flex--row' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}{% endif %}
+{%- if stk %}{% assign ri_md = 'w--[8cqw] lg:hidden' %}{% assign rgw_l = 15 %}{% assign rg_p = '' %}{% assign su_cls = 'flex--row' %}{% assign rc_w = 'w--[40cqw] lg:w--[37cqw] shrink-0' %}{% assign rule_w = 'w--full' %}{% assign tf = 0.7 %}{% assign mh_l = 0.4 %}{% if ui.rain %}{% assign su_cls = 'hidden lg:flex flex--row' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}{% if view == 3 %}{% assign su_cls = 'flex--row' %}{% assign sep_cls = '' %}{% assign ru_cls = 'flex--row' %}{% assign rc_w = 'w--[44cqw] lg:w--[37cqw] shrink-0' %}{% endif %}{% endif %}
 {%- if hh_m == nil %}{% assign hh_m = 6 %}{% endif %}{% if rw_m == nil %}{% assign rw_m = 6 %}{% endif %}
 {%- if rh_l == nil %}{% assign rh_l = 4 | times: hl | round | at_most: 100 %}{% endif %}
-{%- if tf == nil %}{% assign tf = 1 %}{% endif %}
+{%- if tf == nil %}{% assign tf = 1 %}{% endif %}{% assign tm = tf %}{% if view == 3 %}{% assign tm = 1 %}{% endif %}
 {%- if stk %}{% assign ms = ui.meters | sort: 'rank' %}{% else %}{% assign ms = ui.meters %}{% endif %}
 <div class="layout layout--col layout--stretch-x gap--small" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
 {%- if view == 1 %}
@@ -44,7 +45,7 @@
  <div class="hidden lg:block w--full px--4"><div class="border--h-60"></div></div>
 {%- endif %}
 {%- capture c_meters %}
-  <div class="flex flex--col gap--small {% if stk %}w--full{% else %}w--[{{ 35 | times: wm | round | at_most: 100 }}cqw]{% endif %}">
+  <div class="flex flex--col {% if view == 3 %}gap--medium lg:gap--small{% else %}gap--small{% endif %} {% if stk %}w--full{% else %}w--[{{ 35 | times: wm | round | at_most: 100 }}cqw]{% endif %}">
    <div class="flex flex--row flex--left gap--small h--[{{ 6 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh] w--full">
     {%- for f in ui.flags %}<span class="label label--inverted label--large text--bold" data-sw-lamp>{{ f }}</span>{% endfor -%}
    </div>
@@ -68,38 +69,41 @@
 {%- endcapture %}
 {%- capture c_temp %}
   <div class="flex flex--col flex--center gap--medium grow">
-   <div class="flex flex--row flex--center-y gap--medium h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]">
+   <div class="flex flex--row flex--center-y {% if view == 3 %}gap--small lg:gap--medium{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]">
     {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
-    <span class="title title--base text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
+    <span class="title {% if view == 3 %}title--small lg:title--base{% else %}title--base{% endif %} text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
-   {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}
-   <div class="flex flex--row flex--center-y gap--small lg:gap--medium h--[{{ th_m | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
+   {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y' %}{% assign tg_h = 'h--full' %}{% assign dv_x = '' %}{% assign pf_m = 10 %}{% assign fe_m = 9 %}
+   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line, the felt temperature under it {% endcomment %}{% assign th_m = 24 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y' %}{% assign tg_h = 'h--[15cqh] lg:h--full' %}{% assign dv_x = ' hidden lg:block' %}{% assign pf_m = 6 %}{% assign fe_m = 6 %}{% endif %}
+   <div class="flex {{ tr_cls }} gap--small lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
     {%- if ui.inn %}{% comment %} Indoor sensor (as live): BUITEN and BINNEN twin readouts, the felt temperature under the outdoor one, the indoor humidity under the indoor one. {% endcomment %}
     {%- for tw in (1..2) %}
     {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
     <div class="flex flex--col flex--center gap--xsmall h--full" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
      <span class="label label--small text--bold">{% if tw == 1 %}{{ ui.inn.out }}{% else %}{{ ui.inn.in }}{% endif %}</span>
-     <div class="flex flex--row flex--top gap--xsmall h--[{{ 12 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 10 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]"><div class="h--full" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>
+     <div class="flex flex--row flex--top gap--xsmall h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 10 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]"><div class="h--full" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>
      <span class="label label--small">{% if tw == 1 %}{{ ui.inn.felt }}{% else %}{{ ui.inn.hum }}{% endif %}</span>
     </div>
     {%- endfor %}
     {%- else %}
-    <div class="flex flex--row flex--top gap--xsmall h--full"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
+    <div class="flex flex--row flex--top gap--xsmall {{ tg_h }}"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
     {%- endif %}
     {%- if ui.feels %}
-    <div data-sw-div class="border--v-60 h--[{{ 12 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[6cqh]"></div>
-    <div class="h--[{{ 10 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]" data-sw-part="person"></div>
-    <div class="h--[{{ 9 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 7 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="feels"></div>
+    <div data-sw-div class="border--v-60{{ dv_x }} h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[6cqh]"></div>
+    {%- if view == 3 %}<div class="flex flex--row flex--center-y gap--small lg:gap--medium">{% endif %}
+    <div class="h--[{{ pf_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]" data-sw-part="person"></div>
+    <div class="h--[{{ fe_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 7 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="feels"></div>
+    {%- if view == 3 %}</div>{% endif %}
     {%- endif %}
    </div>
   </div>
 {%- endcapture %}
 {%- capture c_right %}
   {%- comment -%} Rain unit (owner 2026-11-12): calendar rows of one size per view (rc_m/rc_l cqh), 2 or 3 rows; rain icon and moon as tall as the calendar, the same size, on one left edge; a gap of one calendar row before the sun unit. Portrait: icon above. {%- endcomment -%}
-  {%- assign rr = 2 %}{% if ui.rain.rows == 3 %}{% assign rr = 3 %}{% endif %}{% assign rr_m = rr %}{% if stk or view == 2 %}{% assign rr_m = 2 %}{% endif %}
-  {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.75 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}
-  {%- assign ib_m = cal_m %}{% if stk %}{% assign ib_m = rc_m | times: 0.7 | round %}{% endif %}
+  {%- assign rr = 2 %}{% if ui.rain.rows == 3 %}{% assign rr = 3 %}{% endif %}{% assign rr_m = rr %}{% if view == 4 or view == 2 %}{% assign rr_m = 2 %}{% endif %}
+  {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% if view == 3 %}{% assign k_m = 5 %}{% if rr_m == 3 %}{% assign k_m = 4 %}{% endif %}{% endif %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.75 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}
+  {%- assign ib_m = cal_m %}{% if stk and view != 3 %}{% assign ib_m = rc_m | times: 0.7 | round %}{% endif %}
   {%- capture ib_cls %}aspect--1/1 h--[{{ ib_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[3cqh] shrink-0{% endcapture %}
   <div class="flex flex--col flex--center gap--xsmall lg:gap--small shrink-0 {{ rc_w }}">
    {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small">
@@ -107,7 +111,7 @@
     <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
     <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | times: kw | round | at_most: 100 }}cqw] lg:portrait:w--[18cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"></div>
    </div>
-   <div class="h--[{{ rc_m }}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
+   <div class="h--[{% if view == 3 %}2{% else %}{{ rc_m }}{% endif %}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
    {%- endif %}
    {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% if stk %}{% assign si_m = 5 %}{% endif %}{% endif %}
    <div class="flex {{ su_cls }} {% if ui.rain %}flex--left flex--center-y w--full gap--xsmall lg:gap--small{% else %}flex--center gap--xsmall lg:gap--medium{% endif %} shrink-0" data-sw-unit="sun">
@@ -122,27 +126,27 @@
    {%- if ui.rain %}</div>{% endif %}
   </div>
 {%- endcapture %}
- <div class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% else %}flex--row flex--stretch-y gap--medium lg:gap--large{% endif %} p--2 lg:p--4 h--full">
+ <div class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% else %}flex--row flex--stretch-y gap--medium lg:gap--large{% endif %} {% if view == 3 %}px--2 pt--5 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
 {%- if stk %}
   <div class="flex flex--row flex--stretch-y gap--medium w--full">
 {{ c_temp }}
-  <div class="border--v-60"></div>
+  {{ vr }}
 {{ c_right }}
   </div>
-  <div class="w--full px--4"><div class="border--h-60" data-sw-hair="console"></div></div>{% comment %} owner 2026-11-12: block hairline between the top part and the meters {% endcomment %}
+  <div class="w--full px--4"><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-hair="console" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: block hairline between the top part and the meters {% endcomment %}
 {{ c_meters }}
 {%- else %}
 {{ c_meters }}
-  <div class="border--v-60"></div>
+  {{ vr }}
 {{ c_temp }}
-  <div class="border--v-60"></div>
+  {{ vr }}
 {{ c_right }}
 {%- endif %}
  </div>{{ p_close }}</div>
 {%- if days_h %}
- <div class="w--full px--4"><div class="border--h-60"></div></div>
+ <div class="w--full px--4"><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>
  <div class="{{ days_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4">
-  <div class="grid grid--cols-12 gap--small h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
+  <div class="grid grid--cols-12 {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
    <div class="{{ pad_cls }}"></div>
    <div class="col--span-1 flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
    <div class="col--span-1 flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
@@ -156,11 +160,11 @@
   {%- if j >= 0 and j < nd_lg %}{% assign on_lg = true %}{% endif %}
   {%- if on_md or on_lg %}
   <div class="w--full{% if on_md and on_lg %}{% elsif on_md %} lg:hidden{% else %} hidden lg:block{% endif %}{% if j == nd_last %}{{ last_p }}{% endif %}" data-sw-row="day">
-  <div class="grid grid--cols-12 gap--small h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
-   <div class="{{ name_cls }} flex flex--center-y"><div class="flex flex--col gap--xsmall"><span class="title title--base{{ name_t }} text--bold">{{ d.name }}</span>{%- if d.today %}<div class="w--full border--h-black lg:hidden" data-sw-today></div>{% endif %}</div></div>
+  <div class="grid grid--cols-12 {{ dgap | default: 'gap--small' }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
+   <div class="{{ name_cls }} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%- if d.today %}<span class="label label--inverted label--large text--bold lg:hidden" data-sw-today>{{ d.name }}</span><span class="hidden lg:inline title title--base{{ name_t }} text--bold">{{ d.name }}</span>{% else %}<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}</span>{% endif %}</div></div>
    <div class="{{ icon_cls }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
-   <div class="col--span-1 flex flex--center{{ num_cls }}"><span class="title title--base text--bold">{{ d.lo }}</span></div>
-   <div class="col--span-1 flex flex--center{{ num_cls }}"><span class="title title--base text--bold">{{ d.hi }}</span></div>
+   <div class="col--span-1 flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.lo }}</span></div>
+   <div class="col--span-1 flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.hi }}</span></div>
    <div class="{{ bar_cls }} h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>
   </div></div>
   {%- endif %}
@@ -257,7 +261,7 @@ var DK = API.mode && API.mode.dark && API.mode.bits >= 2;   // owner: in dark mo
 var zi = zones ? ((i + 0.5) / n >= zones[1] ? 2 : ((i + 0.5) / n >= zones[0] ? 1 : 0)) : 0;   // warning zone of this cell
 if (i < lit && ZT[zi]) { zc[zi] += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += DK ? rect(x, 0, w, ch, 2) : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
 }
-return svg(W, H, '<g data-sw-lit="' + lit + '"></g>' + g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && API.mode.dark ? '' : 'text--gray-40', glow(on, GPX)) + (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : ''));   // dark: lit cells in full ink, as live
+return svg(W, H, '<g data-sw-lit="' + lit + '"></g>' + g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && (API.mode.dark || API.mode.bits <= 1) ? '' : 'text--gray-40', glow(on, GPX)) + (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : ''));   // dark: lit cells in full ink, as live
 }
 // Days strip x mapping, one for the header and every row (owner 2026-11-12): each grid line runs through the centre of
 // its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.
@@ -276,16 +280,18 @@ for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) body += rect(X(v) - 1, 0, 2,
 body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.8, y = (H - bh) / 2, cells = '', sh = '';
-for (var t = a; t < b; t++) { cells += rect(X(t) + cw * 0.08, y, cw * 0.84, bh); sh += rect(X(t) + cw * 0.08 + SO, y + SO, cw * 0.84, bh); }
-body += g(SHADOW + ' text--gray-65', sh) + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells);
+var gp = Math.max(2, cw * 0.16);   // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner 2026-11-12: never blocks merged into stripes)
+if (cw - gp < 3) { cells = rect(X(a) + 1, y, X(b) - X(a) - 2, bh); sh = rect(X(a) + 1 + SO, y + SO, X(b) - X(a) - 2, bh); }
+else for (var t = a; t < b; t++) { cells += rect(X(t) + gp / 2, y, cw - gp, bh); sh += rect(X(t) + gp / 2 + SO, y + SO, cw - gp, bh); }
+body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells>' + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells) + '</g>';
 }
-if (sc.now !== null && sc.now !== undefined) { var nl = rect(X(sc.now) - 1.5, 0, 3, H + E, 0, ' data-sw-now'); body += hue('red') ? hg('red', nl) : nl; }
+if (sc.now !== null && sc.now !== undefined) { var xn = X(sc.now), cg = Math.max(2, (X(1) - X(0)) * 0.16); if (d.loV !== null && d.hiV !== null) body += g('text--white', rect(xn - 1.5 - cg, 0, 3 + 2 * cg, H, 0, ' data-sw-chan')); var nl = rect(xn - 1.5, 0, 3, H + E, 0, ' data-sw-now'); body += hue('red') ? hg('red', nl) : nl; }   // a paper channel each side: cells never read as merged when the line sits in a gap (owner 2026-11-12)
 if (hi) body += '<g data-sw-hl="1"></g>';
 return svg(W, H, body);
 }
 // Days strip header: degree labels (dark grey) and the now pointer; its line starts here unless it would cross a label.
 function scale(sc, W, H) {
-var X = xmap(sc, W), fs = lfs(sc), body = '', rules = '', ty = H * 0.62, lb = ty + fs * 0.55, E = API.extD || 0, cross = false, xn = sc.now === null || sc.now === undefined ? null : X(sc.now);
+var X = xmap(sc, W), fs = lfs(sc), body = '', rules = '', ty = Math.max(H * 0.62, fs * 0.3 * 1.4 + 2 + fs * 0.4), lb = ty + fs * 0.55, E = API.extD || 0, cross = false, xn = sc.now === null || sc.now === undefined ? null : X(sc.now);
 for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) {
 var p = X(v), s = tick(v), tw = fs * 0.62 * s.length, l = p - tw / 2;
 body += text(p, ty, s, fs, 'middle', ' dominant-baseline="middle" data-sw-tick="' + s + '"') + text(p + tw / 2, ty, sc.deg, fs, 'start', ' dominant-baseline="middle"');
@@ -297,7 +303,7 @@ if (xn !== null) {
 var tr = fs * 0.3;
 var pt = poly([[xn - tr, 0], [xn + tr, 0], [xn, tr * 1.4]]), nl = rect(xn - 1.5, tr, 3, H - tr + E, 0, ' data-sw-now'), RD = hue('red');
 body += RD ? hg('red', pt) : pt;
-body = (RD ? hg('red', nl) : nl) + body;   // one line from the pointer down (owner 2026-11-12); labels sit over it on a paper halo
+body += RD ? hg('red', nl) : nl;   // one continuous line from the pointer down (owner 2026-11-12), over the labels
 }
 return svg(W, H, body);
 }
