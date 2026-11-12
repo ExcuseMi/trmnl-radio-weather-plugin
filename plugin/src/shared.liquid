@@ -30,7 +30,7 @@
 {%- if view == 1 %}
  <div class="hidden lg:block h--[30cqh]"><div class="flex flex--row flex--stretch-y gap--small h--full">
   {%- for k in (1..2) %}
-  {%- if k == 2 %}<div class="py--4 shrink-0"><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner 2026-11-12: hairlines in the gaps between blocks {% endcomment %}
+  {%- if k == 2 %}<div class="py--4 shrink-0 4bit:hidden dark:4bit:block" data-sw-between><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner 2026-11-12: hairlines in the gaps between blocks {% endcomment %}
   {{ p_open }}<div class="relative h--full w--full">
    <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
    <span class="absolute top--3 {% if k == 1 %}left--3{% else %}right--3{% endif %} label label--inverted text--bold">{% if k == 1 %}L{% else %}R{% endif %}</span>
@@ -42,7 +42,7 @@
   </div>{{ p_close }}
   {%- endfor %}
  </div></div>
- <div class="hidden lg:block w--full px--4"><div class="border--h-60"></div></div>
+ <div class="hidden lg:block w--full px--4"><div class="4bit:hidden dark:4bit:block" data-sw-between><div class="border--h-60"></div></div></div>
 {%- endif %}
 {%- capture c_meters %}
   <div class="flex flex--col {% if view == 3 %}gap--medium lg:gap--small{% else %}gap--small{% endif %} {% if stk %}w--full{% else %}w--[{{ 35 | times: wm | round | at_most: 100 }}cqw]{% endif %}">
@@ -144,7 +144,7 @@
 {%- endif %}
  </div>{{ p_close }}</div>
 {%- if days_h %}
- <div class="w--full px--4"><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>
+ <div class="w--full px--4 4bit:hidden dark:4bit:block" data-sw-between><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: no divider between filled panels (light 4-bit); the gap is enough {% endcomment %}
  <div class="{{ days_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4">
   <div class="grid grid--cols-12 {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
    <div class="{{ pad_cls }}"></div>
@@ -354,7 +354,7 @@ return svg(H * 0.4, H, '<circle cx="20" cy="12" r="9"/><rect x="9" y="25" width=
 // Panel fill (owner 2026-11-12): a plain light fill in light mode, 2-bit up; no backlight lamps. Dark and 1-bit: paper.
 function backlight(W, H, cx, cy, rad, ryk, rx) {
 var m = API.mode || {}, pa = API.paint ? API.paint(m.bits === 2 ? 'gray-55' : 'gray-75') : null;
-if (m.dark || (m.bits || 4) < 2) return '';
+if (m.dark || (m.bits || 4) < 3) return '';   // 2-bit: paper, as the console face
 return rect(0, 0, W, H, rx || 0, ' fill="' + ((pa && pa.color) || '#bbb') + '" data-sw-fill="1"');
 }
 // Dark-mode glow (owner 2026-11-12, as live): lit things get a halo drawn UNDER them inside their own SVG, so it never
