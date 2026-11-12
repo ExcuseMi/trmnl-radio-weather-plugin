@@ -91,6 +91,17 @@ var h=n>1?t1-t0:cap,mid=n>1?(t0+t1)/2:t0+cap/2;if(Math.abs(ib.height-h)>2)bad.pu
 var lp=parseFloat(getComputedStyle(lab).fontSize)*(lab.getBoundingClientRect().width/(lab.offsetWidth||1)),k=sc.getBoundingClientRect().height/+sc.getAttribute('height'),t=sc.querySelector('text[data-sw-tick]');if(!t)return 'no axis label';var fs=+t.getAttribute('font-size')*k;return fs<lp-0.5?'axis '+fs.toFixed(1)+' < label '+lp.toFixed(1):'';})()})
       puts "AXIS #{c['name']}: #{ax}" unless ax.empty?
       expect(ax).to eq('')
+      # Colour (owner 2026-11-12, as live): red and yellow only on colour palettes and only on the warning parts
+      # (lit lamps, meter warning zones, the days now line and pointer, lit rain cells); none on gray palettes.
+      hu = s.evaluate(%q{(function(){var bad=[],n=0,ch=function(v){var m=/(\d+)\D+(\d+)\D+(\d+)/.exec(v||'');if(!m)return false;var a=[+m[1],+m[2],+m[3]];return Math.max.apply(0,a)-Math.min.apply(0,a)>60};
+document.querySelectorAll('[data-sw-part] svg *').forEach(function(e){if(!e.getBoundingClientRect().width)return;var cs=getComputedStyle(e);if(!(ch(e.getAttribute('fill'))||ch(cs.fill)&&e.tagName!=='g'))return;n++;
+var h=e.closest('[data-sw-hue]'),pt=e.closest('[data-sw-part]').getAttribute('data-sw-part');if(!h)bad.push('stray '+pt+' '+e.tagName);else if(['meter','day','scale','rain'].indexOf(pt)<0)bad.push('part '+pt);});
+document.querySelectorAll('.view *').forEach(function(e){if(e.closest('svg'))return;var b=getComputedStyle(e).backgroundColor;if(!ch(b)||!e.getBoundingClientRect().width)return;n++;if(!e.matches('[data-sw-lamp][data-sw-hue]'))bad.push('html '+e.tagName+' '+String(e.className).slice(0,30));});
+return n+(bad.length?' '+bad.slice(0,4).join('; '):'');})()})
+      colour = (c['palette'] || '').start_with?('color-')
+      puts "HUE #{c['name']}: #{hu}"
+      expect(hu).to match(/\A\d+\z/)
+      expect(hu.to_i.positive?).to eq(colour)
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"

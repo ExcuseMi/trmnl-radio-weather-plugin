@@ -46,7 +46,7 @@
 {%- capture c_meters %}
   <div class="flex flex--col gap--small {% if stk %}w--full{% else %}w--[{{ 35 | times: wm | round | at_most: 100 }}cqw]{% endif %}">
    <div class="flex flex--row flex--left gap--small h--[{{ 6 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh] w--full">
-    {%- for f in ui.flags %}<span class="label label--inverted label--large text--bold">{{ f }}</span>{% endfor -%}
+    {%- for f in ui.flags %}<span class="label label--inverted label--large text--bold" data-sw-lamp>{{ f }}</span>{% endfor -%}
    </div>
    <div class="flex flex--col {% if stk %}gap--small{% else %}flex--between grow{% endif %} w--full">
    {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
@@ -193,6 +193,16 @@ else if (f && f.color) at = ' fill="' + f.color + '" color="' + f.color + '"';
 else if (tok) keep.push('text--' + tok);
 return '<g' + (keep.length ? ' class="' + keep.join(' ') + '"' : '') + at + '>' + body + '</g>';
 }
+// Colour panels (BWR/BWRY and full colour, owner 2026-11-12, as live): red and yellow only for warnings and the lit
+// marks. hue(t) is the TRMNLPaint colour of token t when it is a solid real hue on a colour screen, else null.
+function hue(tok) {
+if (!(API.mode && API.mode.color) || !API.paint) return null;
+var f = API.paint(tok); if (!f || !f.color || f.url) return null;
+var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(f.color); if (!m) return null;
+var r = +m[1], q = +m[2], b = +m[3], ok = tok === 'red' ? r > 150 && q < 110 && b < 110 : (tok === 'yellow' ? r > 150 && q > 150 && b < 110 : false);
+return ok ? f.color : null;
+}
+function hg(tok, body) { return '<g data-sw-hue="' + tok + '">' + g('text--' + tok, body) + '</g>'; }
 function text(x, y, s, fs, anc, extra) { return '<text x="' + n1(x) + '" y="' + n1(y) + '" font-size="' + n1(fs) + '" font-weight="700" text-anchor="' + (anc || 'middle') + '"' + (extra || '') + '>' + s + '</text>'; }
 function svg(W, H, body, vb) { var d0 = DEFS; DEFS = ''; return svg0(W, H, body, vb, d0); }
 function svg0(W, H, body, vb, DEFS) { return '<svg xmlns="http://www.w3.org/2000/svg" width="' + n1(W) + '" height="' + n1(H) + '" viewBox="' + (vb || '0 0 ' + n1(W) + ' ' + n1(H)) + '" fill="currentColor" overflow="visible"' + (API.font ? ' font-family="' + API.font.replace(/"/g, "'") + '"' : '') + '>' + (DEFS ? '<defs>' + DEFS + '</defs>' : '') + body + '</svg>'; }
@@ -218,16 +228,17 @@ var vw = Math.max(1, x - G);
 return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
 }
 // Block meter (tuner SIGNAL): n cells, frac lit; lit cells drop a lighter shadow.
-function meter(frac, W, H, n) {
+function meter(frac, W, H, n, zones) {
 n = n || 10;
 var lit = frac === null || frac === undefined || !(frac > 0) ? 0 : Math.max(1, Math.round(Math.min(1, frac) * n)),   // any reading above zero lights one cell
- cw = (W - SO) / n, gp = cw * 0.12, ch = H - SO, on = '', sh = '', off = '';
+ cw = (W - SO) / n, gp = cw * 0.12, ch = H - SO, on = '', sh = '', off = '', zc = ['', '', ''], ZT = [null, hue('yellow') && 'yellow', hue('red') && 'red'];
 for (var i = 0; i < n; i++) {
 var x = i * cw + gp / 2, w = cw - gp;
 var DK = API.mode && API.mode.dark && API.mode.bits >= 2;   // owner: in dark mode the empty cells are dark grey blocks, as live
-if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += DK ? rect(x, 0, w, ch, 2) : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
+var zi = zones ? ((i + 0.5) / n >= zones[1] ? 2 : ((i + 0.5) / n >= zones[0] ? 1 : 0)) : 0;   // warning zone of this cell
+if (i < lit && ZT[zi]) { zc[zi] += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += DK ? rect(x, 0, w, ch, 2) : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
 }
-return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && API.mode.dark ? '' : 'text--gray-40', glow(on, GPX)));   // dark: lit cells in full ink, as live
+return svg(W, H, g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && API.mode.dark ? '' : 'text--gray-40', glow(on, GPX)) + (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : ''));   // dark: lit cells in full ink, as live
 }
 // Days strip x mapping, one for the header and every row (owner 2026-11-12): each grid line runs through the centre of
 // its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.
@@ -249,7 +260,7 @@ var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X
 for (var t = a; t < b; t++) { cells += rect(X(t) + cw * 0.08, y, cw * 0.84, bh); sh += rect(X(t) + cw * 0.08 + SO, y + SO, cw * 0.84, bh); }
 body += g(SHADOW + ' text--gray-65', sh) + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells);
 }
-if (sc.now !== null && sc.now !== undefined) body += rect(X(sc.now) - 1.5, 0, 3, H + E, 0, ' data-sw-now');
+if (sc.now !== null && sc.now !== undefined) { var nl = rect(X(sc.now) - 1.5, 0, 3, H + E, 0, ' data-sw-now'); body += hue('red') ? hg('red', nl) : nl; }
 if (hi) body += '<g data-sw-hl="1"></g>';
 return svg(W, H, body);
 }
@@ -265,8 +276,9 @@ var pw = (API.paint && (API.paint('white') || {}).color) || '#fff';
 body = g('text--gray-70', rules) + '<g data-sw-axis stroke="' + pw + '" stroke-width="' + n1(fs * 0.22) + '" paint-order="stroke" stroke-linejoin="round">' + body + '</g>';   // labels in full ink (owner 2026-11-12)
 if (xn !== null) {
 var tr = fs * 0.3;
-body += poly([[xn - tr, 0], [xn + tr, 0], [xn, tr * 1.4]]);
-body = rect(xn - 1.5, tr, 3, H - tr + E, 0, ' data-sw-now') + body;   // one line from the pointer down (owner 2026-11-12); labels sit over it on a paper halo
+var pt = poly([[xn - tr, 0], [xn + tr, 0], [xn, tr * 1.4]]), nl = rect(xn - 1.5, tr, 3, H - tr + E, 0, ' data-sw-now'), RD = hue('red');
+body += RD ? hg('red', pt) : pt;
+body = (RD ? hg('red', nl) : nl) + body;   // one line from the pointer down (owner 2026-11-12); labels sit over it on a paper halo
 }
 return svg(W, H, body);
 }
@@ -277,7 +289,7 @@ function rain(hours, W, H, rows) {
 var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = (rows === 3 || fit(3) < fit(2)) && (W / C) / (H / 3) <= 1.95 && Math.min(H / 3 * 0.9, W / C * 0.7) >= (API.lp || 0) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.7), body = '';
 hours.slice(0, C * R).forEach((q, i) => {
 var x = (i % C) * cw, y = Math.floor(i / C) * rh;
-if (q.wet) body += glow(rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22), GPX);
+if (q.wet) { var wr = rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22); body += hue('red') ? hg('red', wr) : glow(wr, GPX); }
 var tx = text(x + cw / 2, y + rh / 2, q.h, fs, 'middle', ' dominant-baseline="central"'); body += q.wet ? g('text--white', tx) : tx;
 });
 return svg(W, H, body);
@@ -394,7 +406,7 @@ function part(SW, kind, i, W, H) {
 switch (kind) {
 case 'temp': return digits(SW.temp, H);
 case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
-case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10);
+case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10, SW.meters[i] && SW.meters[i].zones);
 case 'day': return day(SW.days[i], SW.scale, W, H, API.hl === undefined ? !!(SW.days[i] || {}).today : API.hl === i);
 case 'scale': return scale(SW.scale, W, H);
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
@@ -412,7 +424,7 @@ return svg(W, H, '<defs><clipPath id="' + cp + '">' + rect(0, 0, W, H, rx) + '</
 }
 return '';
 }
-Object.assign(API, { part: part, glow: glow, icon: icon, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit });
+Object.assign(API, { part: part, glow: glow, icon: icon, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit, hue: hue });
 return API;
 })();
 // ==== DRAW_END ====
@@ -460,11 +472,14 @@ return API;
     });
   }
   whenReady(function () {
+    // Lit lamps (flags) red with white text on colour panels (owner 2026-11-12, as live); framework hue classes, only when red is a real ink.
+    document.querySelectorAll('[data-sw-lamp]').forEach(function (l) { SWDraw.mode = { color: /(^| )screen--color-/.test((l.closest('.screen') || document.body).className) }; SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: l }); }; if (SWDraw.hue('red')) { l.classList.remove('label--inverted'); l.classList.add('bg--red', 'text--white'); l.setAttribute('data-sw-hue', 'red'); } });
     document.querySelectorAll('[data-sw-part]').forEach(function (el) {
       TRMNLPaint.watch(el, function () {
         SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: el }); };
         var sc = (el.closest('.screen') || document.querySelector('.screen') || document.body).classList;
-        SWDraw.mode = { dark: sc.contains('screen--dark-mode'), bits: sc.contains('screen--1bit') ? 1 : (sc.contains('screen--2bit') ? 2 : 4) };
+        var cl = /(^| )screen--color-/.test(sc.value);   // colour panels other than full colour print 1-bit inks plus their hues, as live
+        SWDraw.mode = { color: cl, dark: sc.contains('screen--dark-mode'), bits: sc.contains('screen--1bit') || (cl && !sc.contains('screen--color-full')) ? 1 : (sc.contains('screen--2bit') ? 2 : 4) };
         SWDraw.font = (TRMNLPaint.type('title', { el: el }) || {}).fontFamily || null;
         var r = el.getBoundingClientRect();
         if (!r.width && !r.height) return;   // the other size's copy (lg:hidden / hidden lg:block)

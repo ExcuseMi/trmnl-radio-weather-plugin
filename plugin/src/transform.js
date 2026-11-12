@@ -353,7 +353,8 @@ var keys = RO_ORDER.filter((k) => RO[k][2] && relevant[k] !== false);
 RO_ORDER.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k !== 'uv') keys.push(k); });
 keys = RO_ORDER.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
 var PRI = RO_ORDER;   // stacked views fill their meter rows in this order (owner 2026-11-12)
-var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
+var ZONES = { wind: [0.5, F_ ? 0.75 : 0.83], co2: [0.375, 0.625], pollen: [0.3, 0.6], aqi: [0.4, 0.6], uv: [3 / 11, 8 / 11] };   // warning zones, as live
+var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], zones: ZONES[k] || null, idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
 var tv = n.temp, tStr = tv === null ? '--.-' : (Math.round(tv * 10) / 10).toFixed(1);
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
 var feelsOn = n.feels !== null && tv !== null && Math.abs(n.feels - tv) >= 2;
