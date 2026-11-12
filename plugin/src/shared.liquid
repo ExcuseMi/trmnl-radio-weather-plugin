@@ -801,7 +801,7 @@ return mx(txts) * 1.15 + u(12) <= lw * 0.42 && mW(condS, sp) <= avC && mW(I18N.o
 var cq = Mx(WD.size, hb * 0.1); while (cq > 8 && !fitsQ(cq)) cq -= 0.5;
 WD = F(cq, '700'); LF = WD; cells.LF = LF; lmax = Mx.apply(null, txts.map((t) => mW(t, LF))); cells.labW = lmax * 1.02 + u(12);
 var rhA = (cells.ROW.lab - cells.ROW.top + LF.size) / cells.nM;
-var rhB = Mn(rhA, LF.size * 2.2); cells.ROW.rh = rhB; cells.ROW.off = (rhA - rhB) * cells.nM / 2; }
+var rhB = Mn(rhA, LF.size * (OGD ? 3 : 2.2)); cells.ROW.rh = rhB; cells.ROW.off = (rhA - rhB) * cells.nM / 2; }
 if (part === 'meters') { lw = iw; blk = null; }
 else if (part === 'main') { rx = ix + iw * 0.64; rw = iw * 0.36; blk = { divX: rx - u(14), cL: ix, cR: ix + iw * 0.6 - u(10) }; cells.ROW = { top: y + h * 0.2, lab: y + h * 0.9 };
 if (M.inn.temp !== null && h >= iw * 0.5) { stackDual = true; rx = ix; rw = iw; blk = { divX: -1e5, cL: ix, cR: ix + iw }; cells.ROW = { top: Mn(y + h * 0.66, y + h * 0.95 - WD.size * 7.5), lab: y + h * 0.95 }; } }
@@ -814,7 +814,7 @@ function meterRowH(i, r, which) {
 var ZC = color ? [ink, YEL || ink, RED !== ink ? RED : ink] : bits === 1 ? [ink, ink, ink] : bits === 2 ? (LCD ? [fillOf('gray-30'), fillOf('gray-30'), ink] : [fillOf('gray-35'), GLOW, GLOW])
 : LCD ? [fillOf('gray-40'), fillOf('gray-15'), ink] : [fillOf('gray-15'), GLOW, GLOW];
 var C = cells, LF = C.LF, rh = C.ROW.rh || (C.ROW.lab - C.ROW.top + LF.size) / C.nM, cy = C.ROW.top - LF.size * 0.6 + (C.ROW.off || 0) + (i + 0.5) * rh, x0 = ix + C.labW, x1 = ix + lw - u(4);
-var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)) + (SHD ? SO : 0), segH = Mx(2, R(rh * 0.42)), nodata = r.bar === null || r.bar === undefined, NS = OGD ? 5 : 10, lit = nodata ? 0 : Math.round(r.bar * NS);
+var cg = mk('g', { 'data-sw-rcell': which + ':' + i }, g), sg = Mx(2, u(3)) + (SHD ? SO : 0), segH = Mx(2, R(Mn(rh * 0.42, LF.size * 0.95))), nodata = r.bar === null || r.bar === undefined, NS = OGD ? 5 : 10, lit = nodata ? 0 : Math.round(r.bar * NS);
 if (nodata) { text(cg, '--', x1, cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW }).setAttribute('data-sw-nodata', 1); x1 -= mW('--', LF) + u(6); }
 var segW = (x1 - x0 - (NS - 1) * sg) / NS;
 text(cg, r.lab, x0 - u(8), cy + LF.size * 0.36, LF, { anchor: 'end', fill: GLOW, ls: R(LF.size * 0.1) }).setAttribute('data-sw-cell', which);
