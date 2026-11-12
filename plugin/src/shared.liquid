@@ -1,9 +1,9 @@
 {% template main %}
 {%- assign cf = trmnl.plugin_settings.custom_fields_values -%}
 {%- capture sw_icon -%}<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="2" y="13" width="4" height="9" fill="#000"/><rect x="2" y="9" width="4" height="2" fill="#000"/><rect x="8" y="6" width="4" height="16" fill="#000"/><rect x="8" y="2" width="4" height="2" fill="#000"/><rect x="14" y="10" width="4" height="12" fill="#000"/><rect x="14" y="6" width="4" height="2" fill="#000"/><rect x="20" y="16" width="2" height="6" fill="#000"/></svg>{%- endcapture -%}
-{%- comment -%} Receiver panel: shadow (light, 2-bit and up), heavy dark frame, thin inner line. {%- endcomment -%}
-{%- capture p_open -%}<div class="relative h--full w--full pr--1.5 pb--1.5"><div class="absolute top--1.5 left--1.5 right--0 bottom--0 rounded--large bg--gray-55 dark:hidden 1bit:hidden"></div><div class="relative z--1 h--full w--full rounded--large bg--black p--1 lg:p--2"><div class="h--full w--full rounded bg--white p--1">{%- endcapture -%}
-{%- capture p_open_g -%}<div class="relative h--full w--full pr--1.5 pb--1.5"><div class="absolute top--1.5 left--1.5 right--0 bottom--0 rounded--large bg--gray-55 dark:hidden 1bit:hidden"></div><div class="relative z--1 h--full w--full rounded--large bg--black p--1 lg:p--2"><div class="relative h--full w--full rounded bg--white p--1"><div class="absolute inset--1 rounded" data-sw-part="face"></div>{%- endcapture -%}
+{%- comment -%} Panel (owner 2026-11-12: borderless): no frame, inner line or panel shadow; a lit face (light mode) defines it. {%- endcomment -%}
+{%- capture p_open -%}<div class="relative h--full w--full"><div class="h--full w--full"><div class="relative h--full w--full p--1" data-sw-panel>{%- endcapture -%}
+{%- capture p_open_g -%}<div class="relative h--full w--full"><div class="h--full w--full"><div class="relative h--full w--full p--1" data-sw-panel><div class="absolute inset--0" data-sw-part="face"></div>{%- endcapture -%}
 {%- capture p_close -%}</div></div></div>{%- endcapture -%}
 {%- if ui == nil or ui.ok != true -%}
 <div class="layout layout--col layout--center" data-sw-error="{{ model.reason | default: 'NO SIGNAL' | escape }}">
@@ -25,11 +25,12 @@
 {%- if rh_l == nil %}{% assign rh_l = 4 | times: hl | round | at_most: 100 %}{% endif %}
 {%- if tf == nil %}{% assign tf = 1 %}{% endif %}
 {%- if stk %}{% assign ms = ui.meters | sort: 'rank' %}{% else %}{% assign ms = ui.meters %}{% endif %}
-<div class="layout layout--col layout--stretch-x gap--medium" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
+<div class="layout layout--col layout--stretch-x gap--small" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
 {%- if view == 1 %}
- <div class="hidden lg:block h--[30cqh]"><div class="grid grid--cols-2 gap--medium h--full">
+ <div class="hidden lg:block h--[30cqh]"><div class="flex flex--row flex--stretch-y gap--small h--full">
   {%- for k in (1..2) %}
-  {{ p_open }}<div class="relative h--full w--full rounded--small outline">
+  {%- if k == 2 %}<div class="py--4 shrink-0"><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner 2026-11-12: hairlines in the gaps between blocks {% endcomment %}
+  {{ p_open }}<div class="relative h--full w--full">
    <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
    <span class="absolute top--3 {% if k == 1 %}left--3{% else %}right--3{% endif %} label label--inverted text--bold">{% if k == 1 %}L{% else %}R{% endif %}</span>
    <div class="absolute bottom--3 left--4 flex flex--row flex--bottom gap--small" data-sw-cap>
@@ -40,6 +41,7 @@
   </div>{{ p_close }}
   {%- endfor %}
  </div></div>
+ <div class="hidden lg:block w--full px--4"><div class="border--h-60"></div></div>
 {%- endif %}
 {%- capture c_meters %}
   <div class="flex flex--col gap--small {% if stk %}w--full{% else %}w--[{{ 35 | times: wm | round | at_most: 100 }}cqw]{% endif %}">
@@ -89,10 +91,10 @@
    </div>
    <div class="h--[{{ rc_m }}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
    {%- endif %}
-   {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% endif %}
+   {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% if stk %}{% assign si_m = 5 %}{% endif %}{% endif %}
    <div class="flex {{ su_cls }} {% if ui.rain %}flex--left flex--center-y w--full gap--xsmall lg:gap--small{% else %}flex--center gap--xsmall lg:gap--medium{% endif %} shrink-0" data-sw-unit="sun">
     {%- if ui.rain %}<div class="{{ ib_cls }}" data-sw-part="moon"></div>
-    {%- else %}<div class="w--[{{ 11 | times: hm | round }}cqh] h--[{{ 11 | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="moon"></div>
+    {%- else %}{% assign mo_m = si_m | times: 2 | plus: 1 | times: hm | round | at_most: 100 %}<div class="w--[{{ mo_m }}cqh] h--[{{ mo_m }}cqh] lg:hidden" data-sw-part="moon"></div>
     <div class="hidden lg:block h--[{{ 13 | times: mh_l | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="moon"></div>{% endif %}
     <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
      <div class="flex flex--row flex--center-y gap--small"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" src="{{ ui.sun.riseIcon }}" alt="" data-sw-icon><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %} text--bold">{{ ui.sun.rise }}</span></div>
@@ -102,14 +104,13 @@
    {%- if ui.rain %}</div>{% endif %}
   </div>
 {%- endcapture %}
- <div class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--small{% else %}flex--row flex--stretch-y gap--medium lg:gap--large{% endif %} p--2 lg:p--4 h--full rounded--small outline">
+ <div class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--small{% else %}flex--row flex--stretch-y gap--medium lg:gap--large{% endif %} p--2 lg:p--4 h--full">
 {%- if stk %}
   <div class="flex flex--row flex--stretch-y gap--medium w--full">
 {{ c_temp }}
   <div class="border--v-60"></div>
 {{ c_right }}
   </div>
-  <div class="w--full border--h-60"></div>
 {{ c_meters }}
 {%- else %}
 {{ c_meters }}
@@ -120,7 +121,8 @@
 {%- endif %}
  </div>{{ p_close }}</div>
 {%- if days_h %}
- <div class="{{ days_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4 rounded--small outline">
+ <div class="w--full px--4"><div class="border--h-60"></div></div>
+ <div class="{{ days_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4">
   <div class="grid grid--cols-12 gap--small h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
    <div class="{{ pad_cls }}"></div>
    <div class="col--span-1 flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
@@ -256,15 +258,15 @@ function scale(sc, W, H) {
 var X = xmap(sc, W), fs = lfs(sc), body = '', rules = '', ty = H * 0.62, lb = ty + fs * 0.55, E = API.extD || 0, cross = false, xn = sc.now === null || sc.now === undefined ? null : X(sc.now);
 for (var v = sc.a; v <= sc.b + 1e-9; v += sc.major) {
 var p = X(v), s = tick(v), tw = fs * 0.62 * s.length, l = p - tw / 2;
-if (xn !== null && xn > l - 8 && xn < l + tw + fs * 0.4 + 8) cross = true;
 body += text(p, ty, s, fs, 'middle', ' dominant-baseline="middle" data-sw-tick="' + s + '"') + text(p + tw / 2, ty, sc.deg, fs, 'start', ' dominant-baseline="middle"');
 if (H + E > lb + 2) rules += rect(p - 1, lb + 2, 2, H + E - lb - 2);
 }
-body = g('text--gray-70', rules) + '<g data-sw-axis>' + body + '</g>';   // labels in full ink (owner 2026-11-12)
+var pw = (API.paint && (API.paint('white') || {}).color) || '#fff';
+body = g('text--gray-70', rules) + '<g data-sw-axis stroke="' + pw + '" stroke-width="' + n1(fs * 0.22) + '" paint-order="stroke" stroke-linejoin="round">' + body + '</g>';   // labels in full ink (owner 2026-11-12)
 if (xn !== null) {
 var tr = fs * 0.3;
 body += poly([[xn - tr, 0], [xn + tr, 0], [xn, tr * 1.4]]);
-if (!cross) body += rect(xn - 1.5, tr, 3, H - tr + E, 0, ' data-sw-now'); else body += rect(xn - 1.5, lb, 3, H - lb + E, 0, ' data-sw-now');
+body = rect(xn - 1.5, tr, 3, H - tr + E, 0, ' data-sw-now') + body;   // one line from the pointer down (owner 2026-11-12); labels sit over it on a paper halo
 }
 return svg(W, H, body);
 }
@@ -272,7 +274,7 @@ return svg(W, H, body);
 // Rain calendar: 3 columns, 2 rows (6 hours) or 3 rows (9 hours), 3 when the page sized the box for 3 rows
 // (rain runs on: rain.rows; data-sw-rows per size), else whichever gives squarer cells (a narrow box fits 3 rows better) (owner 2026-11-12); rain hours lit (inverted), the others in full text colour.
 function rain(hours, W, H, rows) {
-var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = (rows === 3 || fit(3) < fit(2)) && (W / C) / (H / 3) <= 2 && Math.min(H / 3 * 0.9, W / C * 0.7) >= (API.lp || 0) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.7), body = '';
+var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = (rows === 3 || fit(3) < fit(2)) && (W / C) / (H / 3) <= 1.95 && Math.min(H / 3 * 0.9, W / C * 0.7) >= (API.lp || 0) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.7), body = '';
 hours.slice(0, C * R).forEach((q, i) => {
 var x = (i % C) * cw, y = Math.floor(i / C) * rh;
 if (q.wet) body += glow(rect(x + cw * 0.05, y + rh * 0.08, cw * 0.9, rh * 0.84, fs * 0.22), GPX);
@@ -308,10 +310,10 @@ return svg(H * 0.4, H, '<circle cx="20" cy="12" r="9"/><rect x="9" y="25" width=
 // and icons (4-bit and up blur, 2-bit a crisp dilated halo, 1-bit nothing).
 // Face backlight: one soft radial lamp per centre in cx (a number or a list), rim grey to paper. Bands are drawn level by
 // level over all lamps so overlapping lamps leave no seams. 2-bit: native light grey rim and paper, no dither (owner 2026-11-12).
-function backlight(W, H, cx, cy, rad, ryk) {
+function backlight(W, H, cx, cy, rad, ryk, rx) {
 var m = API.mode || {}, L = [].concat(cx), b2 = m.bits === 2, pa = API.paint ? API.paint(b2 ? 'gray-55' : 'gray-75') : null, pw = API.paint ? API.paint('white') : null;
 if (m.dark || (m.bits || 4) < 2) return '';
-var c0 = (pw && pw.color) || '#fff', c1 = (pa && pa.color) || '#bbb', BY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], defs = '', out = rect(0, 0, W, H, 0, ' fill="' + c1 + '" data-sw-backlight="1"');
+var c0 = (pw && pw.color) || '#fff', c1 = (pa && pa.color) || '#bbb', BY = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5], defs = '', out = rect(0, 0, W, H, rx || 0, ' fill="' + c1 + '" data-sw-backlight="1"');
 // dithered bands (the panel quantizes a gradient to one hard step): grey at the rim to paper at the centre
 (b2 ? [[1, 0.8]] : [[0.2, 1.0], [0.4, 0.88], [0.6, 0.77], [0.8, 0.67], [1, 0.58]]).forEach((st) => {
 var fill = c0;
@@ -403,8 +405,10 @@ case 'moon': return moon(SW.sun && SW.sun.phase, H);
 case 'baro': return dial(SW.baro, W, H, true);
 case 'tdial': return dial(SW.tdial, W, H, false);
 case 'icon': return icon(API.src, W, H);
-case 'face': { var n = Math.max(1, Math.round(W / H)), w = W / n, two = API.mode && API.mode.bits === 2;   // 2-bit: one band only, so one wide lamp: grey just in the corners
-return svg(W, H, two ? backlight(W, H, W / 2, H / 2, W * 0.6 / 0.8, H * 0.78 / (W * 0.6)) : backlight(W, H, Array.from({ length: n }, (_, j) => w * (j + 0.5)), H / 2, Math.max(w, H) * 0.62)).replace('overflow="visible"', 'overflow="hidden"'); }   // panel lamps, one per square-ish section
+case 'face': { var n = Math.max(1, Math.round(W / H)), w = W / n, two = API.mode && API.mode.bits === 2;
+if (two) return '';   // 2-bit: one native band only leaves grey corner pieces on a borderless panel (owner 2026-11-12); the face stays paper   // 2-bit: one band only, so one wide lamp: grey just in the corners
+var rx = Math.min(24, Math.min(W, H) * 0.08), cp = 'swfc' + (K++);   // the face is the panel: rounded corners, lamps clipped to them
+return svg(W, H, '<defs><clipPath id="' + cp + '">' + rect(0, 0, W, H, rx) + '</clipPath></defs><g clip-path="url(#' + cp + ')">' + (two ? backlight(W, H, W / 2, H / 2, W * 0.6 / 0.8, H * 0.78 / (W * 0.6), rx) : backlight(W, H, Array.from({ length: n }, (_, j) => w * (j + 0.5)), H / 2, Math.max(w, H) * 0.62, 0.8, rx)) + '</g>').replace('overflow="visible"', 'overflow="hidden"'); }   // panel lamps, one per square-ish section
 }
 return '';
 }
@@ -471,7 +475,7 @@ return API;
         var d0 = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; })[0]; SWDraw.hl = d0 ? +(d0.getAttribute('data-sw-i') || 0) : -1;   // one highlighted row: the first shown (today, else tomorrow) (owner 2026-11-12)
         SWDraw.scaleH = rows.length && rows[0].getAttribute('data-sw-part') === 'scale' ? Math.round(rows[0].getBoundingClientRect().height) : null;
         SWDraw.extD = k >= 0 && k + 1 < rows.length ? Math.max(0, rows[k + 1].getBoundingClientRect().top - r.bottom + 1) : 0;   // scale and day rows: rules and the now line run on to the next row
-        el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.round(r.width), Math.round(r.height));
+        el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.floor(r.width), Math.floor(r.height));   // floor: a drawn part never pokes a pixel past its box
         el.querySelectorAll('text[data-sw-tick]').forEach(function (t) { var d = t.nextElementSibling; if (d) d.setAttribute('x', (+t.getAttribute('x') + t.getComputedTextLength() / 2 + 1).toFixed(1)); });   // the degree sign right after the drawn digits
         swAlign();   // every repaint (the Framework may rebuild or refit the page after the first one) realigns the divider
       });

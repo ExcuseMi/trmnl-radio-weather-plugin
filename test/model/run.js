@@ -227,11 +227,11 @@ test('days strip: 5-degree lines faint, blocks at least half the row, now line d
   const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-40')[1])[1];
   ok(h >= 20, 'block height ' + h + ' of 40');
 });
-test('panel lamps (owner 2026-11-12): one per square-ish section on 4-bit light, one wide band on 2-bit without dither, none in dark or 1-bit', () => {
+test('panel lamps (owner 2026-11-12): one per square-ish section on 4-bit light, none on 2-bit, in dark or 1-bit (borderless, owner 2026-11-12)', () => {
   const f = (m, W, H) => { D.mode = m; const s = D.part({}, 'face', 0, W, H); D.mode = null; return s; };
   const lamps = (s) => new Set((s.match(/<ellipse cx="([\d.]+)"/g) || [])).size;
   eq([lamps(f({ dark: false, bits: 4 }, 1200, 400)), lamps(f({ dark: false, bits: 4 }, 400, 400))], [3, 1], 'lamps by width / height');
-  ok(lamps(f({ dark: false, bits: 2 }, 1200, 400)) === 1 && !/<pattern/.test(f({ dark: false, bits: 2 }, 1200, 400)), '2-bit: one lamp, no pattern');
+  ok(!/ellipse|<pattern/.test(f({ dark: false, bits: 2 }, 1200, 400)), '2-bit: no face (borderless: a single native band leaves grey corner pieces)');
   ok(!/ellipse/.test(f({ dark: true, bits: 4 }, 1200, 400)) && !/ellipse/.test(f({ dark: false, bits: 1 }, 1200, 400)), 'dark and 1-bit: none');
 });
 test('dial light: backlight in light mode (2-bit up), glow in dark (blur 4-bit, halo 2-bit, none 1-bit)', () => {
@@ -270,7 +270,7 @@ test('days strip in narrow views: X half vertical 7 days without numbers, OG hal
   ok(/<span class="title title--base{{ name_t }} text--bold">{{ d.name }}/.test(sh) && /{{ icon_x }}" src="{{ d.icon }}"/.test(sh), 'row markup uses the per-view sizes');
 });
 test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 segments, 5 days', () => {
-  ok(/<div class="hidden lg:block h--\[30cqh\]"><div class="grid grid--cols-2/.test(sh), 'dials only on lg');
+  ok(/<div class="hidden lg:block h--\[30cqh\]"><div class="flex flex--row/.test(sh), 'dials only on lg');
   ok(/lg:hidden" data-sw-part="meter" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="meter" data-sw-n="10"/.test(sh), 'meter copies per size');
   ok(/data-sw-row="day"/.test(sh) && !/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'every day row in the same full-width wrapper (no half-width fifth row)');
   ok(/{%- if d.today %}<div class="[^"]*lg:hidden" data-sw-today>/.test(sh), 'OG: today underlined');
