@@ -20,12 +20,15 @@
 {%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 4 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden' %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% assign name_w = 'w--[12cqw] lg:w--[8cqw]' %}{% assign icon_w = 'w--[7cqw]' %}{% assign num_w = 'w--[9cqw]' %}{% assign rw_m = 6 %}{% assign hh_m = 6 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[60cqh] lg:h--[54cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[44cqh]' %}
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 1.7 %}{% assign n_md = 1 %}{% assign n_lg = 3 %}{% assign con_h = 'h--full' %}{% endif %}
 {%- if ui.calm %}{% assign calm_btw = ' 1bit:hidden 2bit:hidden dark:2bit:block' %}{% endif %}{% comment %} Calm: 2-bit panels are filled too, no dividers between them {% endcomment %}
+{%- assign calm_q = false %}{% if ui.calm and view == 4 %}{% assign calm_q = true %}{% assign th_q = 30 %}{% endif %}{% comment %} Calm quadrant (owner): console essentials only, no meters, one unit {% endcomment %}
+{%- if ui.calm and view == 3 %}{% assign rw_m = 9 %}{% assign nd_md = 2 %}{% assign rh_l = 6 %}{% assign nd_lg = 6 %}{% endif %}{% comment %} Calm half view (owner): rows at the full-view height, fewer of them {% endcomment %}
 {%- if ui.calm and view == 1 %}{% assign rw_m = 9 %}{% assign rh_l = 6 %}{% assign nd_md = 3 %}{% assign nd_lg = 4 %}{% endif %}{% comment %} Calm (owner): airier day rows {% endcomment %}
 {%- if mr_m == nil %}{% assign mr_m = 9 %}{% assign mb_m = 7 %}{% endif %}
 {%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
 {%- comment -%} Right column: rain unit and sun unit side by side on lg; stacked views keep the icon above the grid and the moon beside the sun times. {%- endcomment -%}
 {%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3 = 26 | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign ri_lg = 'hidden lg:block lg:portrait:hidden' %}{% assign su_cls = 'flex--row lg:portrait:flex--col' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6b = 20 %}{% if stk %}{% assign q6b = 15 %}{% assign ru_cls = 'flex--col lg:flex--row' %}{% endif %}{% assign q6 = q6b | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
 {%- if stk %}{% assign ri_md = 'w--[8cqw] lg:hidden' %}{% assign rgw_l = 15 %}{% assign rg_p = '' %}{% assign su_cls = 'flex--row' %}{% assign rc_w = 'w--[40cqw] lg:w--[37cqw] shrink-0' %}{% assign rule_w = 'w--full' %}{% assign tf = 0.7 %}{% assign mh_l = 0.4 %}{% if ui.rain %}{% assign su_cls = 'hidden lg:flex flex--row' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}{% if view == 3 %}{% assign su_cls = 'flex--row' %}{% assign sep_cls = '' %}{% assign ru_cls = 'flex--row' %}{% assign rc_w = 'w--[44cqw] lg:w--[37cqw] shrink-0' %}{% endif %}{% endif %}
+{%- if calm_q %}{% assign rc_w = 'w--[33cqw] lg:w--[37cqw] shrink-0' %}{% assign rg_m = 'w--[31cqw]' %}{% endif %}
 {%- if hh_m == nil %}{% assign hh_m = 6 %}{% endif %}{% if rw_m == nil %}{% assign rw_m = 6 %}{% endif %}
 {%- if rh_l == nil %}{% assign rh_l = 4 | times: hl | round | at_most: 100 %}{% endif %}
 {%- if tf == nil %}{% assign tf = 1 %}{% endif %}{% assign tm = tf %}{% if view == 3 %}{% assign tm = 1 %}{% endif %}
@@ -78,6 +81,7 @@
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y' %}{% assign tg_h = 'h--full' %}{% assign dv_x = '' %}{% assign pf_m = 10 %}{% assign fe_m = 9 %}
+   {%- if calm_q and ui.inn == nil %}{% assign th_m = 21 %}{% assign pf_m = 11 %}{% assign fe_m = 10 %}{% endif %}
    {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line, the felt temperature under it {% endcomment %}{% assign th_m = 26 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full' %}{% assign dv_x = ' hidden lg:block' %}{% assign pf_m = 7 %}{% assign fe_m = 7 %}{% endif %}
    {%- capture cue_html %}    {%- if ui.cue %}<div class="h--[{{ pf_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[5cqh]{% if view == 3 %} lg:hidden{% endif %}" data-sw-part="cue" data-sw-cue="{{ ui.cue }}"></div>{% endif %}{% comment %} Calm (owner): umbrella or coat {% endcomment %}
 {%- endcapture %}
@@ -114,11 +118,12 @@
   <div class="flex flex--col flex--center gap--xsmall lg:gap--small shrink-0 {{ rc_w }}">
    {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small">
    <div class="flex {{ ru_cls }} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full pr--1" data-sw-unit="rain">
-    <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
+    <img class="image image--adaptive {{ ib_cls }}{% if calm_q %} hidden{% endif %}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
     <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | times: kw | round | at_most: 100 }}cqw] lg:portrait:w--[18cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"></div>
    </div>
    <div class="h--[{% if view == 3 %}2{% else %}{{ rc_m }}{% endif %}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
    {%- endif %}
+   {%- if calm_q and ui.rain %}{% assign su_cls = 'hidden' %}{% assign sep_cls = ' hidden' %}{% endif %}
    {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% if stk %}{% assign si_m = 5 %}{% endif %}{% endif %}
    <div class="flex {{ su_cls }} {% if ui.rain %}flex--left flex--center-y w--full gap--xsmall lg:gap--small{% else %}flex--center gap--xsmall lg:gap--medium{% endif %} shrink-0" data-sw-unit="sun">
     {%- if ui.rain %}<div class="{{ ib_cls }}" data-sw-part="moon"></div>
@@ -139,8 +144,10 @@
   {{ vr }}
 {{ c_right }}
   </div>
+  {%- unless calm_q %}
   <div class="w--full px--4"><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-hair="console" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: block hairline between the top part and the meters {% endcomment %}
 {{ c_meters }}
+  {%- endunless %}
 {%- else %}
 {{ c_meters }}
   {{ vr }}
@@ -184,7 +191,7 @@
 {%- unless sw_hide == 'true' or sw_hide == 'yes' or view != 1 %}
 <div class="title_bar">
  <img class="image image--adaptive" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
- <span class="{% if ui.calm %}description{% else %}title{% endif %}"{% if ui.calm %} data-sw-calm{% endif %}>{{ trmnl.plugin_settings.instance_name | default: 'Radio Weather' }}</span>
+ <span class="title">{{ trmnl.plugin_settings.instance_name | default: 'Radio Weather' }}</span>
  {%- if clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}
 </div>
 {%- endunless %}
@@ -291,13 +298,14 @@ return (t) => pl + (t - sc.a) / (sc.b - sc.a) * (W - pl - pr);
 }
 // Days strip row: rules every major step, the low to high blocks (one per degree, shadowed), the now line. Rules and the
 // now line run on down through the gap to the next row (API.extD), so they are continuous from the header down.
-function day(d, sc, W, H, hi) {   // hi: the highlighted row (today, or tomorrow when the strip starts tomorrow)
+function day(d, sc, W, H, hi) {
+var nowV = sc.now; if (API.calm) sc = Object.assign({}, sc, { now: null });   // Calm (owner): no now line, a small pointer on today's row   // hi: the highlighted row (today, or tomorrow when the strip starts tomorrow)
 var X = xmap(sc, W), body = '';
 var E = API.extD || 0;
 if (!API.calm) ticks(sc, W).forEach((v) => { body += rect(X(v) - 1, 0, 2, H + E, 0, ' data-sw-tick="' + tick(v) + '"'); });   // Calm (owner): no grid lines
 body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
-var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.8, y = (H - bh) / 2, cells = '', sh = '';
+var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * (API.calm ? 0.62 : 0.8), y = (H - bh) / 2, cells = '', sh = '';
 var gp = Math.max(2, cw * 0.16), pc = [];   // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner 2026-11-12: never blocks merged into stripes)
 if (cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = a; t < b; t++) pc.push([X(t) + gp / 2, X(t + 1) - gp / 2]);
 var hasNow = sc.now !== null && sc.now !== undefined, xn = hasNow ? X(sc.now) : 0, c0 = xn - 1.5 - 1, c1 = xn + 1.5 + 1, mw = Math.max(3, (cw - gp) / 2);
@@ -308,6 +316,7 @@ pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + S
 body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells>' + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells) + '</g>';
 }
 if (sc.now !== null && sc.now !== undefined) { var nl = rect(X(sc.now) - 1.5, 0, 3, H + E, 0, ' data-sw-now'); body += hue('red') ? hg('red', nl) : nl; }
+if (hi && API.calm && nowV !== null && nowV !== undefined) { var pxn = X(nowV), ph = Math.max(4, H * 0.19 - 1), pw = ph * 0.75, ptr = poly([[pxn - pw, 0], [pxn + pw, 0], [pxn, ph]], ' data-sw-nowmark'); body += hue('red') ? hg('red', ptr) : ptr; }
 if (hi) body += '<g data-sw-hl="1"></g>';
 return svg(W, H, body);
 }
@@ -358,10 +367,9 @@ var dk = API.mode && API.mode.dark, bits = API.mode ? API.mode.bits : 4, sw = Ma
 var h = dk ? halo('<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '"/>', GPX) : '';
 if (h) { var mid = 'swmk' + (K++); h = '<defs><mask id="' + mid + '" maskUnits="userSpaceOnUse" x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '"><rect x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '" fill="#fff"/><circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r + sw / 2) + '" fill="#000"/></mask></defs><g mask="url(#' + mid + ')" data-sw-moonhalo>' + h + '</g>'; }
 // 2-bit: limb and lit part in the native dark grey (nat2), at least 2 px; 1-bit: the limb in full ink (owner 2026-11-12)
-if (API.calm) {   // Calm (owner): the moon a dark disk with its lit part light, so the phase reads at a glance; new moon all dark
-var disk = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" data-sw-moon="disk"/>';
-var ring = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r - sw * 1.6) + '" fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1, sw * 0.6)) + '" data-sw-moon="ring"/>';   // a thin light ring inside the limb: a new moon still reads as a moon (owner)
-return svg(H, H, h + g(bits <= 1 ? '' : (dk ? 'text--gray-70' : 'text--gray-30'), disk) + g('text--white', lit + (dk ? '' : ring)) + (dk ? g('text--gray-45', ring) : '') + limb);
+if (API.calm) {   // Calm (owner): a faint inner disk inside a full outline, the lit part in grey ink; a new moon reads as a ring
+var disk = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" data-sw-moon="disk"/>', fd = !dk && bits >= 3 ? g('text--gray-75', disk) : '';
+return svg(H, H, h + fd + (dk || bits <= 1 ? lit : g('text--gray-45', lit)) + limb);
 }
 return svg(H, H, h + (dk ? lit : g('text--gray-45', lit)) + (dk || bits <= 1 ? limb : g('text--gray-45', limb)));
 }
@@ -468,7 +476,7 @@ case 'temp': return digits(SW.temp, H);
 case 'itemp': return SW.inn ? digits(SW.inn.temp, H) : '';
 case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
 case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10, SW.meters[i] && SW.meters[i].zones, SW.meters[i] && SW.meters[i].gust);
-case 'day': return day(SW.days[i], scN, W, H, !!(SW.days[i] || {}).today);   // today always highlighted (owner 2026-11-12)
+case 'day': return day(SW.days[i], SW.scale, W, H, !!(SW.days[i] || {}).today);   // today always highlighted (owner 2026-11-12)
 case 'scale': return scale(scN, W, H);
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
 case 'tri': return tri(i === 0, W, H);

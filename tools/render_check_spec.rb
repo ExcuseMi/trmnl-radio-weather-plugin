@@ -222,6 +222,20 @@ return (f?'fill '+f+' ':'')+bad.join('; ');})()})
 p.querySelectorAll('span,img,[data-sw-part]:not([data-sw-part="face"]) svg *').forEach(function(e){if(e.closest('[data-sw-part="face"]')||e.tagName==='g'||e.tagName==='defs'||e.closest('defs,mask,clipPath,filter'))return;var b=e.getBoundingClientRect();if(!b.width||!b.height||!e.textContent&&e.tagName==='SPAN')return;L=Math.min(L,b.left);R=Math.max(R,b.right);T=Math.min(T,b.top);B=Math.max(B,b.bottom);});
 if(L<1e9)out.push([L-q.left,q.right-R,T-q.top,q.bottom-B].map(function(v){return v.toFixed(0)}).join(','));});return out.join(' ');})()})
       puts "PAD #{c['name']}: L,R,T,B #{pad}"
+      # Small views (owner, Calm round 3): no days strip in a quadrant; Calm day rows at least the floor height (the Calm
+      # full view's light row, 34 px on the OG and 63 px on the X, less 15 % for dark mode's divider); Calm: one now pointer, on today's row.
+      dr = s.evaluate(%q{(function(){var r=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),function(e){return e.getBoundingClientRect().height>0}).map(function(e){return e.getBoundingClientRect().height});
+var nm=[].filter.call(document.querySelectorAll('[data-sw-nowmark]'),function(e){return e.getBoundingClientRect().width>0}),tod=nm.filter(function(e){var d=e.closest('[data-sw-part="day"]');return d&&SW.days[+d.getAttribute('data-sw-i')].today}).length;
+return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.length,tod].join(',');})()})
+      puts "DAYROW #{c['name']}: rows,minH,screenH,ptr,ptrToday #{dr}"
+      d = dr.split(',').map(&:to_f)
+      expect(d[0]).to eq(0) if c['view'] == 'quadrant'
+      if (c['fields'] || {})['style'] == 'calm'
+        expect(d[1]).to be >= (c['device'] == 'v2' ? 53 : 28) if d[0].positive?
+        expect([d[3], d[4]]).to eq(d[0].positive? ? [1, 1] : [0, 0])
+      else
+        expect(d[3]).to eq(0)
+      end
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"
