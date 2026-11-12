@@ -178,6 +178,7 @@ t.setAttribute('x', R(opts.anchor === 'middle' ? x - tw / 2 : x - tw));
 return t;
 }
 function width(t) { try { return t.getComputedTextLength(); } catch (e) { return 0; } }
+function tW(p, str, sp, o) { var t = text(p, str, 0, 0, sp, o), w = width(t); p.removeChild(t); return w; }
 var SHORTER = { 'PARTLY CLOUDY': 'SOME CLOUD', 'MOSTLY CLEAR': 'CLEAR', 'THUNDERSTORM': 'STORM', 'HAIL STORM': 'HAIL',
 'FREEZING RAIN': 'ICY RAIN', 'HEAVY SHOWERS': 'SHOWERS', 'SNOW SHOWERS': 'SNOW', 'LIGHT SNOW': 'SNOW', 'HEAVY SNOW': 'SNOW',
 'SNOW GRAINS': 'SNOW', 'LIGHT RAIN': 'RAIN', 'HEAVY RAIN': 'RAIN', 'ICY DRIZZLE': 'DRIZZLE', 'RIME FOG': 'FOG', 'TODAY': 'NOW' };
@@ -297,8 +298,7 @@ var fx0 = fx, fy0 = fy;
 var badge = null, topBox = null, capBox = null, bm = u(10);
 if (o.badge) {
 var BG = F(RD(Mn(fh, fw) * 0.055, 10), '800'), bp = BG.size * 0.45;
-var bt0 = text(g, o.badge, 0, 0, BG); var btw = width(bt0); g.removeChild(bt0);
-var bwd = btw + 2 * bp, bht = BG.size * 1.3;
+var bwd = tW(g, o.badge, BG) + 2 * bp, bht = BG.size * 1.3;
 badge = { x: o.badge === 'R' ? fx0 + fw - bm - bwd : fx0 + bm, y: fy0 + bm, w: bwd, h: bht, sp: BG };
 topBox = { l: badge.x, r: badge.x + badge.w, t: badge.y, b: badge.y + badge.h };
 }
@@ -324,7 +324,7 @@ rArc -= 2;
 }
 }
 var MK = F(RD(fh * (o.small ? 0.07 : 0.05), o.small ? 11 : 10), '700'), bm = R(fh * 0.045) + lw * 2, fm = u(10), AM = A * 1.06;
-function wOf(str) { var t0 = text(g, str, 0, 0, MK), tw = width(t0); g.removeChild(t0); return tw; }
+var wOf = (str) => tW(g, str, MK);
 var mkW = 0;
 function kOf(an, tw) { return bm + fh * 0.05 + u(3) + tw / 2 * Math.abs(Math.sin(an)) + MK.size * 0.63 * Math.cos(an); }
 var nolab = true;
@@ -412,7 +412,7 @@ return icon(gg, nm, q.x - (s.ink.x + s.ink.width / 2 - s.vb[0] - s.vb[2] / 2) * 
 }
 mks.forEach((q) => {
 var m = q.m, r0 = rArc + bm + u(2), r1 = rArc + bm + fh * 0.05, t0 = at(m.f, r0), t1 = at(m.f - 0.012, r1), t2 = at(m.f + 0.012, r1);
-mk('polygon', { points: [t0, t1, t2].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: m.lo ? 'none' : ink, stroke: m.lo ? ink : null, 'stroke-width': m.lo ? Mx(1, R(lw * 0.4)) : null, 'shape-rendering': GPX }, g);
+mk('polygon', { points: pts([t0, t1, t2]), fill: m.lo ? 'none' : ink, stroke: m.lo ? ink : null, 'stroke-width': m.lo ? Mx(1, R(lw * 0.4)) : null, 'shape-rendering': GPX }, g);
 if (nolab) return;
 var bx = mkBox(q);
 text(g, m.label, bx.x, bx.y + MK.size * 0.37, MK, { anchor: 'middle' }).setAttribute('data-sw-mark', MN);
@@ -424,10 +424,9 @@ var ng = mk('g', { 'clip-path': 'url(#' + id + ')' }, g);
 (debug.needles = debug.needles || []).push({ chan: o.chan, v: o.needle, shown: nv });
 function needlePts(ox, oy) {
 var b = [cx + ox, py + oy], t = [cx + ox + ux * tipR, py + oy + uy * tipR], k = [cx + ox - ux * tailR, py + oy - uy * tailR];
-return [[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[1] + ny * wBase / 2],
+return pts([[t[0] + nx * wTip / 2, t[1] + ny * wTip / 2], [b[0] + nx * wBase / 2, b[1] + ny * wBase / 2],
 [k[0] + nx * wBase * 1.6, k[1] + ny * wBase * 1.6], [k[0] - nx * wBase * 1.6, k[1] - ny * wBase * 1.6],
-[b[0] - nx * wBase / 2, b[1] - ny * wBase / 2], [t[0] - nx * wTip / 2, t[1] - ny * wTip / 2]]
-.map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' ');
+[b[0] - nx * wBase / 2, b[1] - ny * wBase / 2], [t[0] - nx * wTip / 2, t[1] - ny * wTip / 2]]);
 }
 var NEEDLE = bits === 4 ? fillOf('gray-15') : ink;
 if (bits === 4 && !o.noNeedle) mk('polygon', { points: needlePts(u(3), u(3)), fill: fillOf('gray-55'), 'shape-rendering': GPX }, ng);
@@ -455,7 +454,7 @@ var clearHub = cx - fx - pad - Mx(u(16), fh * 0.14);
 var cRoom = Mx(u(30), Mn(freeW(ly1 - BIG.size * 0.8), clearHub));
 var nt = null;
 if (o.unitValue) {
-var vf = BIG, uf, tw2 = (s0, sp) => { var tq = text(g, s0, 0, 0, sp); var ww = width(tq); g.removeChild(tq); return ww; };
+var vf = BIG, uf, tw2 = (s0, sp) => tW(g, s0, sp);
 for (var vi = 0; vi < 30; vi++) { uf = F(vf.size * 0.55, '700', 1); if (tw2(o.unitValue, vf) + tw2(o.unitName, uf) + vf.size * 0.5 <= cRoom || vf.size <= 8) break; vf = F(vf.size * 0.92, '700', 1); }
 nt = text(g, o.unitValue, fx + pad, ly1, vf, { ls: R(vf.size * 0.04) });
 text(g, o.unitName, fx + pad + width(nt) + vf.size * 0.5, ly1, uf, {});
@@ -710,16 +709,15 @@ var col = on ? GLOW : (DIMW || null);
 if (!col && bits !== 1) return 0;
 if (bits === 1) {
 var tf = on ? (LAMP && LAMP !== RED ? ink : (LAMP ? '#fff' : paper)) : ink, lh0 = R(sp.size * 1.4), ly0 = R(y - sp.size * 1.05);
-var tm = text(g, str, 0, 0, sp, { ls: R(sp.size * 0.15) }), tw0 = width(tm); g.removeChild(tm);
+var tw0 = tW(g, str, sp, { ls: R(sp.size * 0.15) });
 var lw0 = Math.ceil(tw0 + sp.size), bx = R(x), cr = { 'shape-rendering': 'crispEdges', 'data-sw-status': 1 };
 if (on) mk('rect', Object.assign({ x: bx, y: ly0, width: lw0, height: lh0, fill: LAMP || ink }, cr), g);
 text(g, str, x + sp.size * 0.5, y, sp, { ls: R(sp.size * 0.15), fill: on && !LAMP && !color ? paper : tf });
-if (false) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, rx: R(sp.size * 0.3), fill: 'none', stroke: ink, 'stroke-width': Mx(1, R(sp.size * 0.1)) }, cr), g);
 if (!on) mk('rect', Object.assign({ x: bx + 0.5, y: ly0 + 0.5, width: lw0 - 1, height: lh0 - 1, fill: 'none', stroke: ink, 'stroke-width': 1 }, cr), g);
 return lw0;
 }
 var tw2 = 0, lit = false, bpad = on && !color ? sp.size * 0.5 : 0;
-if (bpad) { var tm2 = text(g, str, 0, 0, sp, { ls: R(sp.size * 0.15) }), tw0b = width(tm2); g.removeChild(tm2); var lb0 = rrect(g, R(x), R(y - sp.size * 1.05), R(tw0b + 2 * bpad), R(sp.size * 1.4), R(sp.size * 0.3), col); lb0.setAttribute('data-sw-lampbox', 1); var tt3 = text(g, str, x + bpad, y, sp, { ls: R(sp.size * 0.15), fill: GLASSD }); tt3.setAttribute('data-sw-status', 1); return tw0b + 2 * bpad; }   // owner 2026-11-12: lit lamps inverted
+if (bpad) { var tw0b = tW(g, str, sp, { ls: R(sp.size * 0.15) }); var lb0 = rrect(g, R(x), R(y - sp.size * 1.05), R(tw0b + 2 * bpad), R(sp.size * 1.4), R(sp.size * 0.3), col); lb0.setAttribute('data-sw-lampbox', 1); var tt3 = text(g, str, x + bpad, y, sp, { ls: R(sp.size * 0.15), fill: GLASSD }); tt3.setAttribute('data-sw-status', 1); return tw0b + 2 * bpad; }   // owner 2026-11-12: lit lamps inverted
 function word(hg) { var tt = text(hg || g, str, x + bpad, y, sp, { ls: R(sp.size * 0.15), fill: on && FULL ? AMBER : col }); tw2 = width(tt); if (!hg) tt.setAttribute('data-sw-status', 1); }
 if (lit) glowDigits(word); else word(null);
 if (bpad) { var lb = rrect(g, R(x), R(y - sp.size * 1.05), R(tw2 + 2 * bpad), R(sp.size * 1.4), R(sp.size * 0.3), 'none', col, Mx(1, R(sp.size * 0.1))); lb.setAttribute('data-sw-lampbox', 1); }
@@ -772,7 +770,7 @@ var tallBox = !compact && !part && (h / w > 0.42 || OGD), noLampBox = !compact &
 if (noLampBox) lampBottom = y + u(8);
 if (!compact && part !== 'meters') {
 var room = iw - u(20);
-var rowW = (fl, sp) => { return fl.reduce((a, f) => { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 || !color ? 2.6 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
+var rowW = (fl, sp) => fl.reduce((a, f) => a + tW(g, f[0], sp, { ls: R(sp.size * 0.15) }) + sp.size * (bits === 1 || !color ? 2.6 : 1.4), 0);
 while (rowW(flags, ST) > room && flags.some((f) => !f[1])) {
 for (var fi = flags.length - 1; fi >= 0; fi--) if (!flags[fi][1]) { flags.splice(fi, 1); break; }
 }
@@ -794,7 +792,7 @@ crMoved.setAttribute('y', R(y + h * 0.88 - WD.size * 1.6));
 }
 var lw = iw * (OGD ? 0.3 : 0.4), rx = ix + iw * (OGD ? 0.74 : 0.78), rw = iw * (OGD ? 0.26 : 0.22), WL = { ls: R(WD.size * 0.15), fill: GLOW };
 var blk = null, cells = null, stackDual = false;
-function mW(str, sp) { var tt = text(g, str, 0, 0, sp); var ww = width(tt); g.removeChild(tt); return ww; }
+var mW = (str, sp) => tW(g, str, sp);
 if (!compact && M.ok && ROS.length >= 2) {
 var ROW = { top: tallBox || noLampBox ? lampBottom + u(8) : Mx(y + h * 0.3, lampBottom + u(8)), lab: y + h * (tallBox ? 0.92 : 0.9) }, LF = F(RD(hb * 0.075, 10), '700'), lmax = 0;
 ['m_hum', 'uv'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF), mW('BARO', LF), mW(I18N.ours('pollen'), LF), mW('CO2', LF));
@@ -839,7 +837,7 @@ else if (bits <= 2) { if (SHD && !on) mk('rect', { x: R(sx) + SO, y: sy + SO, wi
 else if (DIMW && !on) { if (SHD) mk('rect', { x: R(sx) + SO, y: sy + SO, width: R(segW), height: segH, fill: SHOFF || (SHOFF = dith(paper, SHD, 0.5)), 'data-sw-shadow': 1 }, cg); mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg); }
 if (LCD) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: BMUT, 'stroke-width': Mx(1, u(1)) }, cg);
 }
-if (r.mark !== null && r.mark !== undefined) { var mx5 = x0 + r.mark * (NS * segW + (NS - 1) * sg), my5 = cy + segH / 2 + u(1); mk('polygon', { points: [[mx5, my5], [mx5 - u(3), my5 + u(6)], [mx5 + u(3), my5 + u(6)]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: 'none', stroke: GLOW, 'stroke-width': Mx(1, u(1)), 'data-sw-inmark': 1 }, cg); }
+if (r.mark !== null && r.mark !== undefined) { var mx5 = x0 + r.mark * (NS * segW + (NS - 1) * sg), my5 = cy + segH / 2 + u(1); mk('polygon', { points: pts([[mx5, my5], [mx5 - u(3), my5 + u(6)], [mx5 + u(3), my5 + u(6)]]), fill: 'none', stroke: GLOW, 'stroke-width': Mx(1, u(1)), 'data-sw-inmark': 1 }, cg); }
 (r.ticks || []).forEach((f) => { mk('rect', { x: R(x0 + f * (NS * segW + (NS - 1) * sg)), y: R(cy + segH / 2 + u(2)), width: Mx(1, u(1.5)), height: u(4), fill: GLOW, 'data-sw-rtick': 1 }, cg); });
 (debug[which] = debug[which] || []).push(r.lab);
 }
@@ -1014,7 +1012,7 @@ daysDial(x, y, w, h, nd);
 function dayFonts(w, h, nd) {
 var rh = h / (nd + 0.9);
 return { L: F(RD(Mn(rh * 0.6, w * 0.045), 11), '700'), T: F(RD(Mn(rh * 0.8, w * 0.09), 13), '800'), t2: F(RD(Mn(rh * 0.66, w * 0.04), 12), '700'),
-mW: (str, sp) => { var tt = text(root, str, 0, 0, sp); var ww = width(tt); root.removeChild(tt); return ww; } };
+mW: (str, sp) => tW(root, str, sp) };
 }
 // A: preset keys, one per day; today pressed in
 function daysDial(x, y, w, h, nd) {
@@ -1031,9 +1029,9 @@ var x0 = x + labW, x1 = x + w - u(10) - D.mW('-88°', F(Mx(9, D.t2.size * 0.85),
 var SC2 = F(Mx(9, D.t2.size * 0.85), '700'), top = y + u(14) + SC2.size, rows = days.length, rh = (y + h - u(8) - top) / rows;
 var labX = [], AXC = !glass || LCD ? (bits === 1 ? ink : fillOf('gray-20')) : fg, wLab = D.mW('-88\u00b0', SC2), kSc = 1, bw = Mx(2, u(2)), GRID = glass && !LCD ? DIMW : fillOf('gray-60');
 while (kSc < 6 && xOf(a0 + kSc * st) - xOf(a0) < wLab * 1.5) kSc++;
-for (var v = a0, vi = 0; v <= b0 + 1e-9; v += st, vi++) { mk('rect', { x: R(xOf(v)), y: R(top - u(2)), width: 1, height: R(y + h - u(4) - top), fill: GRID, 'data-sw-grid': 1 }, g); if (vi % kSc) continue; var nT = text(g, SWModel.fmt(v), 0, 0, SC2), nW = width(nT); g.removeChild(nT); var lT = text(g, SWModel.fmt(v) + deg, xOf(v) - nW / 2, top - u(12), SC2, { fill: AXC }); labX.push([xOf(v) - nW / 2 - u(6), xOf(v) - nW / 2 + width(lT) + u(6)]); }
+for (var v = a0, vi = 0; v <= b0 + 1e-9; v += st, vi++) { mk('rect', { x: R(xOf(v)), y: R(top - u(2)), width: 1, height: R(y + h - u(4) - top), fill: GRID, 'data-sw-grid': 1 }, g); if (vi % kSc) continue; var nW = tW(g, SWModel.fmt(v), SC2); var lT = text(g, SWModel.fmt(v) + deg, xOf(v) - nW / 2, top - u(12), SC2, { fill: AXC }); labX.push([xOf(v) - nW / 2 - u(6), xOf(v) - nW / 2 + width(lT) + u(6)]); }
 var colW = (k) => days.reduce((m3, d) => d[k] === null ? m3 : Mx(m3, D.mW(tStr(d[k]), D.t2)), 0);
-if (NUMS) [[cLo, 0, colW('lo')], [cHi, 1, colW('hi')]].forEach((c) => { var ts = SC2.size * 0.7, tx = c[0] - (c[2] || nwC) / 2, ty = top - u(12) - SC2.size * 0.3; mk('polygon', { points: (c[1] ? [[tx, ty - ts * 0.75], [tx - ts / 2, ty + ts * 0.25], [tx + ts / 2, ty + ts * 0.25]] : [[tx, ty + ts * 0.25], [tx - ts / 2, ty - ts * 0.75], [tx + ts / 2, ty - ts * 0.75]]).map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: c[1] ? AXC : 'none', stroke: AXC, 'stroke-width': Mx(1, u(1.5)), 'stroke-linejoin': 'round', 'data-sw-lohi': c[1] ? 'hi' : 'lo' }, g); });
+if (NUMS) [[cLo, 0, colW('lo')], [cHi, 1, colW('hi')]].forEach((c) => { var ts = SC2.size * 0.7, tx = c[0] - (c[2] || nwC) / 2, ty = top - u(12) - SC2.size * 0.3; mk('polygon', { points: pts(c[1] ? [[tx, ty - ts * 0.75], [tx - ts / 2, ty + ts * 0.25], [tx + ts / 2, ty + ts * 0.25]] : [[tx, ty + ts * 0.25], [tx - ts / 2, ty - ts * 0.75], [tx + ts / 2, ty - ts * 0.75]]), fill: c[1] ? AXC : 'none', stroke: AXC, 'stroke-width': Mx(1, u(1.5)), 'stroke-linejoin': 'round', 'data-sw-lohi': c[1] ? 'hi' : 'lo' }, g); });
 var iBox = (cy0) => ({ l: x + u(10) + dnW + D.L.size * 0.7, r: x + u(10) + dnW + D.L.size * 2.6, t: cy0 - rh * 0.4, b: cy0 + rh * 0.4 });
 var dsz = Mn.apply(null, days.map((d) => iconFit(g, d.icon, null, iBox(0), rh * 0.8, 0, true).sz).concat([1e5]));
 days.forEach((d, i) => {
@@ -1057,7 +1055,7 @@ if (M.now.temp !== null) { var px2 = R(xOf(M.now.temp)), PC2 = RED !== ink ? RED
 // owner 2026-11-12: the now line starts up in the label row, unless it would cross a scale label
 var pTop = labX.some((b) => px2 >= b[0] && px2 <= b[1]) ? top - u(2) : top - u(12) - SC2.size * 0.85;
 mk('rect', { x: px2 - Mx(1, u(1)) / 2, y: R(pTop), width: Mx(1, u(1)), height: R(y + h - u(8) - pTop), fill: PC2, 'data-sw-pointer': 1 }, g);
-mk('polygon', { points: [[px2, pTop + u(8)], [px2 - u(5), pTop], [px2 + u(5), pTop]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: PC2 }, g); }
+mk('polygon', { points: pts([[px2, pTop + u(8)], [px2 - u(5), pTop], [px2 + u(5), pTop]]), fill: PC2 }, g); }
 }
 // C: tape counters: per day a small window with the high over the low in segment digits
 function daysFit(w, minCss, autoCap) {
@@ -1070,14 +1068,14 @@ function meterRow(x, y, w, h, captions) {
 var kinds = ['baro', 'temp'], n = 2, mw = Fl((w - GP) / 2), capSp = null;
 if (captions) {
 var fh = h - u(14), fw = mw - u(14), BG = F(RD(Mn(fh, fw) * 0.055, 10), '800'), size = Mx(HS.size, BG.size * 1.1);
-var bwd = (() => { var t0 = text(root, 'L', 0, 0, BG); var ww = width(t0); root.removeChild(t0); return ww + 2 * BG.size * 0.45; })();
+var bwd = tW(root, 'L', BG) + 2 * BG.size * 0.45;
 var size0 = size, floor = Mx(HS.size, size * 0.6);
 [false, false, true].some((allowShort, pass) => {
 for (size = size0; size >= (pass ? u(9) : floor) * 0.99; size *= 0.9) {
 capSp = F(size, '700', 1);
 if (kinds.every((k, i) => {
 var nm = dialName(k), room = fw / 2 - fh * (fh < fw * 0.5 ? 0.22 : 0.12) - u(14);
-return [nm, allowShort ? SHORTER[nm] : null].filter(Boolean).some((wd) => { var t0 = text(root, wd, 0, 0, capSp, { ls: R(capSp.size * 0.08) }); var ww = width(t0); root.removeChild(t0); return ww <= room; });
+return [nm, allowShort ? SHORTER[nm] : null].filter(Boolean).some((wd) => tW(root, wd, capSp, { ls: R(capSp.size * 0.08) }) <= room);
 })) return true;
 }
 return false;
@@ -1094,7 +1092,7 @@ var lamps = [[I18N.ours('rain'), has('rain') || has('heavy') || has('drizzle') |
 [I18N.ours('uv'), M.ev ? M.today.uvMax !== null && M.today.uvMax >= 8 : M.now.uv !== null && M.now.uv >= 8], ['SMOG', M.now.aqi !== null && M.now.aqi > 60]].filter((f) => f[1]);
 if (M.ev) lamps.unshift([I18N.ours('tomorrow'), true]);
 var LS = F(base * 0.8, '700', 1);
-function mw(s0, sp) { var tq = text(g, s0, 0, 0, sp); var ww = width(tq); g.removeChild(tq); return ww; }
+var mw = (s0, sp) => tW(g, s0, sp);
 var lrows = [[]], cw0 = 0;
 lamps.forEach((f) => { var wd = mw(f[0], LS) + LS.size * 1.2 + LS.size * 0.6; if (cw0 + wd > iw && lrows[lrows.length - 1].length) { lrows.push([]); cw0 = 0; } lrows[lrows.length - 1].push([f[0], wd]); cw0 += wd; });
 var lampH = lamps.length ? lrows.length * LS.size * 2 + u(4) : 0;
