@@ -545,7 +545,7 @@ zoneBands: [[0, 0.25, 'solid'], [0.25, 0.5, 'outline'], [0.5, 0.75, 'solid'], [0
 }
 var darkMode = (() => { var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(String(paper)); return !!m && (+m[1] + +m[2] + +m[3]) < 384; })();
 var LCD = bits >= 2 && !darkMode;
-var SHD = bits === 2 && !darkMode && !color ? fillOf('gray-50') : null, SO = Mx(3, u(3));   // owner 2026-11-12: drop shadows on the OG 2-bit light
+var SHD = bits >= 2 && !darkMode ? fillOf(bits === 2 ? 'gray-50' : 'gray-65') : null, SHOFF = null, SO = Mx(3, u(3));   // owner 2026-11-12: drop shadows on the OG 2-bit light
 var GLASSD = LCD ? paper : bits === 4 ? fillOf(darkMode ? 'gray-75' : 'gray-25') : (bits === 2 ? (darkMode ? paper : fillOf('gray-15')) : paper);
 var GLOW = LCD || bits === 1 ? ink : (darkMode ? ink : paper);
 var GHOSTD = null;
@@ -827,7 +827,7 @@ if (on && SHD) mk('rect', { x: R(sx) + SO, y: sy + SO, width: R(segW), height: s
 if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc, 'data-sw-rseg': hg ? null : 'lit', 'data-sw-zone': hg ? null : zi }, hg || cg); }, false, cg);
 if (on && zi === 2 && bits === 4 && !LCD) glowDigits((hg) => { if (hg) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc }, hg); });
 else if (bits <= 2) { if (SHD && !on) mk('rect', { x: R(sx) + SO, y: sy + SO, width: R(segW), height: segH, fill: SHD, 'data-sw-shadow': 1 }, cg); mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: SHD && !on ? paper : 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg); }
-else if (DIMW && !on) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg);
+else if (DIMW && !on) { if (SHD) mk('rect', { x: R(sx) + SO, y: sy + SO, width: R(segW), height: segH, fill: SHOFF || (SHOFF = dith(paper, SHD, 0.5)), 'data-sw-shadow': 1 }, cg); mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: DIMW, 'data-sw-rseg': 'off' }, cg); }
 if (LCD) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: BMUT, 'stroke-width': Mx(1, u(1)) }, cg);
 }
 if (r.mark !== null && r.mark !== undefined) { var mx5 = x0 + r.mark * (NS * segW + (NS - 1) * sg), my5 = cy + segH / 2 + u(1); mk('polygon', { points: [[mx5, my5], [mx5 - u(3), my5 + u(6)], [mx5 + u(3), my5 + u(6)]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: 'none', stroke: GLOW, 'stroke-width': Mx(1, u(1)), 'data-sw-inmark': 1 }, cg); }
@@ -1011,7 +1011,7 @@ while (kSc < 6 && xOf(a0 + kSc * st) - xOf(a0) < wLab * 1.5) kSc++;
 mk('rect', { x: R(xOf(a0)), y: R(top - bw), width: R(xOf(b0) - xOf(a0)), height: bw, fill: AXC, 'data-sw-scale': 1 }, g);
 for (var mv = a0; mv <= b0 + 1e-9; mv += st / 5) mk('rect', { x: R(xOf(mv)), y: R(top - u(4)), width: 1, height: u(4), fill: AXC }, g);
 for (var v = a0, vi = 0; v <= b0 + 1e-9; v += st, vi++) { mk('rect', { x: R(xOf(v) - bw / 2), y: R(top - u(9)), width: bw, height: u(9), fill: AXC }, g); if (vi % kSc) continue; mk('rect', { x: R(xOf(v)), y: R(top + u(2)), width: 1, height: R(y + h - u(6) - top), fill: GRID, 'data-sw-grid': 1 }, g); var nT = text(g, SWModel.fmt(v), 0, 0, SC2), nW = width(nT); g.removeChild(nT); text(g, SWModel.fmt(v) + deg, xOf(v) - nW / 2, top - u(12), SC2, { fill: AXC }); }
-[[cLo, 0], [cHi, 1]].forEach((c) => { var ts = SC2.size * 0.7, tx = c[0] - nwC / 2, ty = top - u(12) - SC2.size * 0.3; mk('polygon', { points: [[tx, ty - ts * 0.75], [tx - ts / 2, ty + ts * 0.25], [tx + ts / 2, ty + ts * 0.25]].map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: c[1] ? AXC : 'none', stroke: AXC, 'stroke-width': Mx(1, u(1.5)), 'stroke-linejoin': 'round', 'data-sw-lohi': c[1] ? 'hi' : 'lo' }, g); });
+[[cLo, 0], [cHi, 1]].forEach((c) => { var ts = SC2.size * 0.7, tx = c[0] - nwC / 2, ty = top - u(12) - SC2.size * 0.3; mk('polygon', { points: (c[1] ? [[tx, ty - ts * 0.75], [tx - ts / 2, ty + ts * 0.25], [tx + ts / 2, ty + ts * 0.25]] : [[tx, ty + ts * 0.25], [tx - ts / 2, ty - ts * 0.75], [tx + ts / 2, ty - ts * 0.75]]).map((q) => q[0].toFixed(1) + ',' + q[1].toFixed(1)).join(' '), fill: c[1] ? AXC : 'none', stroke: AXC, 'stroke-width': Mx(1, u(1.5)), 'stroke-linejoin': 'round', 'data-sw-lohi': c[1] ? 'hi' : 'lo' }, g); });
 var iBox = (cy0) => ({ l: x + u(10) + dnW + D.L.size * 0.7, r: x + u(10) + dnW + D.L.size * 2.6, t: cy0 - rh * 0.4, b: cy0 + rh * 0.4 });
 var dsz = Mn.apply(null, days.map((d) => iconFit(g, d.icon, null, iBox(0), rh * 0.8, 0, true).sz).concat([1e5]));
 days.forEach((d, i) => {
@@ -1022,7 +1022,7 @@ ICON_INK = fg; iconFit(g, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz); ICO
 if (glass && !LCD) mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: DIMW }, g);
 if (d.hi === null || d.lo === null) return;
 var PILL = !glass || LCD, xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = PILL ? Mx(6, R(rh * 0.5)) : Mx(3, u(5));
-var SHL = SHL || (SHD ? dith(paper, SHD, 0.5) : null), BF = PILL ? (d === M.days[0] ? (bits === 1 ? ink : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))) : fg, bs = st / 5, bgap = Mx(1, u(2));
+var SHL = SHL || (SHD ? (bits === 2 ? dith(paper, SHD, 0.5) : fillOf('gray-75')) : null), BF = PILL ? (d === M.days[0] ? (bits === 1 ? ink : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))) : fg, bs = st / 5, bgap = Mx(1, u(2));
 while (bs < st && xOf(a0 + bs) - xOf(a0) < u(6)) bs *= 2;
 if (PILL) { var bpx = xOf(a0 + bs) - xOf(a0), k0 = Math.round((d.lo - a0) / bs), k1 = Mx(k0 + 1, Math.round((d.hi - a0) / bs)); xa = xOf(a0 + k0 * bs); xb = xOf(a0 + k1 * bs); for (var bk = k0; bk < k1; bk++) { if (SHD) mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2) + SO, y: R(cy - th / 2) + SO, width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: d === M.days[0] ? SHD : SHL, 'data-sw-shadow': 1 }, g); mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2), y: R(cy - th / 2), width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: BF, 'data-sw-band': i }, g); } }
 else mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': i }, g);
