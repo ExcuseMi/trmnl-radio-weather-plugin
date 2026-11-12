@@ -69,6 +69,12 @@ for(var i=1;i<n.length;i++){if(n[i].top>n[i-1].bottom+0.5)bad.push('now gap '+(n
 return bad.join('; ');})()})
       puts "DAYS #{c['name']}: #{ds}" unless ds.empty?
       expect(ds).to eq('')
+      # 2-bit (owner 2026-11-12): every grey a native level, no dither tiles in the drawn parts.
+      if c['palette'] == 'gray-4'
+        pat = s.evaluate("document.querySelectorAll('svg pattern').length")
+        puts "PATTERN #{c['name']}: #{pat}" unless pat.zero?
+        expect(pat).to eq(0)
+      end
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"

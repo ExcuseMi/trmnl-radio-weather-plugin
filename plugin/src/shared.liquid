@@ -172,9 +172,18 @@ function rect(x, y, w, h, rx, extra) { return '<rect x="' + n1(x) + '" y="' + n1
 // Paint: the page sets SWDraw.paint (TRMNLPaint.bg at the part); a dither Fill becomes an SVG pattern. Without it
 // (tests) the framework text class stands in. color= also feeds currentColor strokes inside the group.
 var DEFS = '';
+// 2-bit panels print four levels (black, gray-30, gray-55, white; the framework maps them per mode). Every grey token
+// snaps to the nearest band, keeping the light to dark order: 0-20 black, 21-47 gray-30, 48-72 gray-55, above white.
+function nat2(tok) {
+var m = /^gray-(\d+)$/.exec(tok || ''); if (!m) return tok;
+var v = +m[1]; return v <= 20 ? 'black' : (v <= 47 ? 'gray-30' : (v <= 72 ? 'gray-55' : 'white'));
+}
 function g(cls, body) {
 var keep = [], tok = null;
 cls.split(' ').forEach((c) => { if (c.indexOf('text--') === 0) tok = c.slice(6); else if (c) keep.push(c); });
+if (API.mode && API.mode.bits === 2) {   // 2-bit: native levels only, no dither tiles (owner 2026-11-12)
+tok = nat2(tok);
+}
 var f = tok && API.paint ? API.paint(tok) : null, at = '';
 if (f && f.url && f.size) { var id = 'swp' + (K++); DEFS += '<pattern id="' + id + '" patternUnits="userSpaceOnUse" width="' + f.size + '" height="' + f.size + '">' + (f.color ? '<rect width="' + f.size + '" height="' + f.size + '" fill="' + f.color + '"/>' : '') + '<image href="' + f.url + '" width="' + f.size + '" height="' + f.size + '"/></pattern>'; at = ' fill="url(#' + id + ')"' + (f.color ? ' color="' + f.color + '"' : ''); }
 else if (f && f.color) at = ' fill="' + f.color + '" color="' + f.color + '"';
