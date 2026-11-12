@@ -17,7 +17,7 @@ custom_fields:
 - keyname: author_info
   name: About This Plugin
   field_type: author_bio
-  description: 'The weather as the front of an early-80s hi-fi receiver: a needle meter for the temperature now within today''s low and high, a needle meter for the chance of rain, a smoked-glass display with the temperature and the time the rain starts, and a key for each coming day.<br /><br />Data: <strong>Open-Meteo</strong> (open-meteo.com), no key needed.'
+  description: 'The weather as the front of an early-80s hi-fi receiver. Two needle dials (barometer and temperature within today''s low and high), segment digits for the temperature and the felt temperature, block meters for wind, UV, air quality, humidity, pollen, pressure and CO2 (shown when they matter), a lamp that lights when rain is coming with an hour calendar of the rain, sunrise, sunset and the moon on dry days, and a strip of the coming days with their low to high range.<br /><br />With a TRMNL sensor it shows outdoor and indoor side by side and a second needle for the room. Light and dark mode, 1-bit, greyscale and colour screens; 24 or 12 hour time.<br /><br />Data: <strong>Open-Meteo</strong> (open-meteo.com), no key needed.'
   github_url: https://github.com/ExcuseMi/trmnl-radio-weather-plugin
   category: environment
 - keyname: lat_lon
