@@ -417,7 +417,6 @@ var debug = { view: view, z: z, W: UW, H: UH };
 var deg = '°';
 // ================= hybrid receiver =================
 var TS = Mx(1, (spec('label', 16).size / z) / 16);
-debug.palette = { color: color, red: RED !== ink, yel: !!YEL, blue: !!BLUE };
 function RD(px, minCss) { return Mx(px, u(minCss)) * TS; }
 var FAM = LG.family, FB = UW / z <= 900 ? 1.18 : 1, EI = FB > 1 ? 2 : u(4);
 function F(px, w, raw) {
@@ -427,6 +426,8 @@ return PIXFONT ? pixel(q, q.weight) : q;
 function tStr(v) { return v === null || v === undefined ? '--' : SWModel.fmt(v) + deg; }
 var SPAN = 24;
 var X1 = M.hours.slice(0, SPAN);
+// owner 2026-11-12: no dials on the OG; today's range moves to the BUITEN sub-line
+var RNG = OGD && !M.ev && M.today.hi !== null && M.today.lo !== null ? ' \u00b7 ' + Math.round(M.today.hi) + '\u00b0/' + Math.round(M.today.lo) + '\u00b0' : '';
 var peak = { p: null, i: -1 };
 X1.forEach((h, i) => { if (h.p !== null && (peak.p === null || h.p > peak.p)) peak = { p: h.p, i: i }; });
 var rainTo = M.rain ? M.rain.toLabel : null, rainFrom = M.rain ? M.rain.fromLabel : null;
@@ -468,10 +469,8 @@ return ib;
 }
 function guardFace(g, from, x, y, w, h, tag) {
 var tx = g.querySelectorAll('text');
-debug.guardN = debug.guardN || 0;
 for (var i = 0; i < tx.length; i++) {
 var bb; try { bb = tx[i].getBBox(); } catch (er) { continue; }
-debug.guardN++;
 var inter = bb.x < x + w && bb.x + bb.width > x && bb.y < y + h && bb.y + bb.height > y, inside = bb.x >= x - 1 && bb.x + bb.width <= x + w + 1 && bb.y >= y - 1 && bb.y + bb.height <= y + h + 1;
 if (inter && !inside) (debug.outside = debug.outside || []).push({ face: tag, text: tx[i].textContent, box: [R(bb.x), R(bb.y), R(bb.width), R(bb.height)] });
 }
@@ -501,7 +500,6 @@ var CP = o.captioned.family ? o.captioned : F(Mx(HS.size, badge ? badge.sp.size 
 var capRoom = fw / 2 - fh * (fh < fw * 0.5 ? 0.22 : 0.12) - u(14), capY = fy0 + fh * 0.92, capX = fx0 + fw - fh * 0.06;
 var ct = fitText(g, o.name, capX, capY, CP, capRoom, { anchor: 'end', ls: R(CP.size * 0.08), noShrink: !!o.captioned.family });
 ct.setAttribute('data-sw-caption', MN);
-if (o.chan === 'R') debug.rainCaption = ct.textContent;
 var cl = parseFloat(ct.getAttribute('x')), capBox = { l: cl, r: cl + width(ct), t: capY - CP.size * 0.8, b: capY + CP.size * 0.25 };
 }
 var fhE = Mn(fh, fw * 0.8); fy = fy + fh - fhE; fh = fhE;
@@ -655,10 +653,6 @@ for (var vi = 0; vi < 30; vi++) { uf = F(vf.size * 0.55, '700', 1); if (tw2(o.un
 nt = text(g, o.unitValue, fx + pad, ly1, vf, { ls: R(vf.size * 0.04) });
 text(g, o.unitName, fx + pad + width(nt) + vf.size * 0.5, ly1, uf, {});
 } else if (cornerTxt) nt = fitText(g, cornerTxt, fx + pad, ly1, BIG, cRoom, { ls: R(BIG.size * 0.04) });
-debug.cornerPrint = debug.cornerPrint || [];
-if (nt) debug.cornerPrint.push({ chan: o.chan, right: R(parseFloat(nt.getAttribute('x')) + width(nt)), hubLeft: R(cx - Mx(u(5), fh * 0.035)), gap: R(2 * Mx(u(5), fh * 0.035)) });
-(debug.names = debug.names || []).push((o.captioned ? o.name + ' ' + o.unitName : (nt ? nt.textContent : '')).trim());
-(debug.marks = debug.marks || []).push({ chan: o.chan, labels: mks.map((q) => q.m.label) });
 if (o.needle !== null && (o.needle < -0.001 || o.needle > 1.001)) {
 var over = o.needle > 1, LW = F(fh * 0.045, '800'), lword = I18N.ours(over ? 'over' : 'under');
 var endLab = placed.length ? placed[over ? placed.length - 1 : 0] : null, pe = at(over ? 1.03 : -0.03, rArc - fh * 0.1);
@@ -701,7 +695,6 @@ mk('circle', { cx: R(cx), cy: R(py), r: R(Mx(1.5, hubR * 0.35)), fill: bits === 
 if (badge) {
 var br = rrect(g, badge.x, badge.y, badge.w, badge.h, R(badge.h * 0.3), ink); br.setAttribute('data-sw-badge', MN); br.setAttribute('data-sw-badge-ch', o.badge);
 text(g, o.badge, badge.x + badge.w / 2, badge.y + badge.h * 0.5 + badge.sp.size * 0.36, badge.sp, { anchor: 'middle', fill: paper });
-(debug.badges = debug.badges || []).push(o.badge);
 }
 guardFace(g, gi0, x, y, w, h, o.chan);
 return { fx: fx, fy: fy, fw: fw, fh: fh };
@@ -814,9 +807,7 @@ glowDigits((hg) => { r = draw(hg || g); if (hg) { iconsUsed.wi = n[0]; iconsUsed
 return r;
 }
 var LAMP = AMBER || (color && RED !== ink ? RED : null);
-debug.backlight = FULL ? 'full' : (ORANGE ? 'orange' : (GREYGLOW ? 'grey' : 'none'));
 debug.orange = { digits: String(ORANGE), face: String(FACE_OR) };
-debug.glass = String(GLASSD); debug.lcd = LCD; debug.paper = String(paper); debug.glow = String(GLOW);
 var bevelN = 0;
 function insetBevel(g, x, y, w, h, r, onGlass) {
 if (bits === 1) return;
@@ -938,13 +929,11 @@ vfdBox(g, x, y, w, h);
 var h1 = R(h * 0.5);
 vfdPart(g, x, y, w, h1, false, 'meters');
 vfdPart(g, x, y + h1, w, h - h1, false, 'main');
-debug.glassBox = [R(x), R(y), R(w), R(h)];
 return;
 }
 vfdPart(g, x, y, w, h, compact);
 }
 function vfdPart(g, x, y, w, h, compact, part) {
-debug.glassBox = [R(x), R(y), R(w), R(h)]; debug.origin = [R(rect.left * z), R(rect.top * z)];
 debug.rain = M.ok ? (M.rain ? (M.rain.type || 'rain').toUpperCase() + ' ' + (M.rain.now ? 'NOW' : 'FROM ' + rainFrom) + ' UNTIL ' + rainTo : 'DRY ' + SPAN + ' H') : 'NO SIGNAL';
 if (!part) vfdBox(g, x, y, w, h);
 var ix = x + u(compact ? 16 : 30), iw = w - 2 * (ix - x);
@@ -966,7 +955,6 @@ if (noLampBox) lampBottom = y + u(8);
 if (!compact && part !== 'main') {
 var room = iw - u(20);
 var rowW = (fl, sp) => { return fl.reduce((a, f) => { var tt = text(g, f[0], 0, 0, sp, { ls: R(sp.size * 0.15) }); var ww = width(tt) + sp.size * (bits === 1 || !color ? 2.6 : 1.4); g.removeChild(tt); return a + ww; }, 0); };
-debug.lampFit = { need: R(rowW(flags, ST)), room: R(room) };
 while (rowW(flags, ST) > room && flags.some((f) => !f[1])) {
 for (var fi = flags.length - 1; fi >= 0; fi--) if (!flags[fi][1]) { flags.splice(fi, 1); break; }
 }
@@ -996,9 +984,13 @@ cells = { nM: ROS.length, ROW: ROW, LF: LF, labW: lmax * 1.15 + u(12), left: ROS
 blk = { divX: ix + lw + u(14), cL: ix + lw + u(22), cR: rx - u(22) };
 if (cells) { var nFit = Mx(2, Fl((cells.ROW.lab - cells.ROW.top + LF.size) / (LF.size * 1.9))); if (nFit < cells.nM) { cells.left = pickRows(nFit); cells.nM = cells.left.length; }
 var rhA = (cells.ROW.lab - cells.ROW.top + LF.size) / cells.nM;
-// owner 2026-11-12: meter labels sized from the row pitch (about 0.5 to 0.6 of it), at least the lamp-word size, capped by the label column
-var lmax0 = lmax, wCap = lmax0 > 0 ? LF.size * (lw * 0.4 - u(12)) / (lmax0 * 1.15) : LF.size, nSz = Mn(Mx(LF.size, ST.size, rhA * 0.5), Mx(LF.size, wCap), Mx(LF.size, WD.size * 1.5));
-if (nSz > LF.size * 1.05) { LF = F(nSz, '700'); lmax = 0; ['m_hum', 'uv'].forEach((key) => { lmax = Mx(lmax, mW(I18N.ours(key), LF)); }); lmax = Mx(lmax, mW(I18N.wind, LF), mW('AQI', LF), mW(I18N.ours('pollen'), LF), mW('CO2', LF)); cells.LF = LF; cells.labW = lmax * 1.15 + u(12); }
+// owner 2026-11-12: ONE font size for all console text (labels, sub-lines, condition, rain block, sun times): the largest that fits every one of them
+var avC = blk.cR - blk.cL, rwC = rw - u(4), S0 = M.sunT, txts = [I18N.ours('m_hum'), I18N.ours('uv'), I18N.wind, 'AQI', I18N.ours('pollen'), 'CO2'];
+var fitsQ = (q) => { var sp = F(q, '700', 1), mx = (arr) => Mx.apply(null, arr.map((t) => mW(t, sp)));
+return mx(txts) * 1.15 + u(12) <= lw * 0.42 && mW(condS, sp) <= avC && mW(I18N.ours('feels') + ' -22' + deg + RNG, sp) * (M.inn.temp !== null ? 2.1 : 1) <= avC && mx([I18N.ours('no_rain'), I18N.ours('rain_from')]) <= rwC && (!S0 || q * 5.2 + mx([S0.riseL, S0.setL]) <= rwC) && q * 1.7 * cells.nM <= cells.ROW.lab - cells.ROW.top + q; };
+var cq = Mx(WD.size, hb * 0.1); while (cq > 8 && !fitsQ(cq)) cq -= 0.5;
+WD = F(cq, '700'); LF = WD; cells.LF = LF; lmax = Mx.apply(null, txts.map((t) => mW(t, LF))); cells.labW = lmax * 1.15 + u(12);
+var rhA = (cells.ROW.lab - cells.ROW.top + LF.size) / cells.nM;
 var rhB = Mn(rhA, LF.size * 2.2); cells.ROW.rh = rhB; cells.ROW.off = (rhA - rhB) * cells.nM / 2; }
 if (part === 'meters') { lw = iw; blk = null; }
 else if (part === 'main') { rx = ix + iw * 0.64; rw = iw * 0.36; blk = { divX: rx - u(14), cL: ix, cR: ix + iw * 0.6 - u(10) }; cells.ROW = { top: y + h * 0.2, lab: y + h * 0.9 };
@@ -1020,7 +1012,7 @@ var chkZ = {};
 for (var k = 0; k < NS; k++) {
 var sx = x0 + k * (segW + sg), on = k < lit, sy = R(cy - segH / 2);
 var zi = r.zones ? ((k + 0.5) / NS >= r.zones[1] ? 2 : ((k + 0.5) / NS >= r.zones[0] ? 1 : 0)) : 0, zc = ZC[zi];
-if (on && !chkZ[zi]) { chkZ[zi] = 1; var lf = lumOf(zc), lgd = lumOf(GLASSD); if (lf !== null && lgd !== null && Math.abs(lf - lgd) < (bits === 2 ? 0.5 : 0.4)) (debug.lowContrast = debug.lowContrast || []).push({ row: i, zone: zi, fill: String(zc), ground: String(GLASSD) }); }
+if (on && !chkZ[zi] && !(color && bits === 1)) { chkZ[zi] = 1; var lf = lumOf(zc), lgd = lumOf(GLASSD); if (lf !== null && lgd !== null && Math.abs(lf - lgd) < (bits === 2 ? 0.5 : 0.4)) (debug.lowContrast = debug.lowContrast || []).push({ row: i, zone: zi, fill: String(zc), ground: String(GLASSD) }); }
 if (on) glowDigits((hg) => { mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc, 'data-sw-rseg': hg ? null : 'lit', 'data-sw-zone': hg ? null : zi }, hg || cg); }, false, cg);
 if (on && zi === 2 && bits === 4 && !LCD) glowDigits((hg) => { if (hg) mk('rect', { x: R(sx), y: sy, width: R(segW), height: segH, fill: zc }, hg); });
 else if (bits <= 2) mk('rect', { x: R(sx) + 0.5, y: sy + 0.5, width: R(segW) - 1, height: segH - 1, fill: 'none', stroke: ink, 'stroke-width': 1, 'data-sw-rseg': 'off' }, cg);
@@ -1043,7 +1035,7 @@ var CELLSX = EV ? CELLS.replace('.8', '') : CELLS, evLoStr = EV ? String(Math.ro
 function evLoW(d) { return EV && !compact ? R(d * 0.3) + seg7W(R(d * 0.3), evLoStr) + R(d * 0.3) : 0; }
 function need(d) { var dw0 = R(d * 0.5); if (dual) return 2 * (seg7W(dw0, CELLSX) + dw0 * 1.3) + d * 1.3 + dw0 * 0.9 + evLoW(d); return seg7W(dw0, CELLSX) + dw0 * 1.2 + (compact ? 0 : d * 1.25) + evLoW(d); }
 var lim = crMoved ? parseFloat(crMoved.getAttribute('y')) - CR.size : y + h * 0.88 - WD.size;
-var feelsOn = EV ? !compact && blk && dual && M.inn.hum !== null : !compact && blk && M.now.feels !== null && M.now.temp !== null && (Math.abs(M.now.feels - M.now.temp) >= 2 || dual);
+var feelsOn = EV ? !compact && blk && dual && M.inn.hum !== null : !compact && blk && M.now.feels !== null && M.now.temp !== null && (Math.abs(M.now.feels - M.now.temp) >= 2 || dual || OGD);
 var dyTop = compact ? y + h * 0.27 : (tallBox ? lampBottom + u(8) : Mx(y + h * (noRow || part === 'main' ? 0.14 : 0.25), lampBottom + u(4))), dyEnd = yb - WD.size - u(2) - (feelsOn ? WD.size * 1.2 : 0);
 while (dh > 8 && (need(dh) > avail || (compact && y + h * 0.27 + dh > lim - u(4)) || (!compact && dyTop + dh * (feelsOn ? 1.38 : 1) + (feelsOn ? u(6) : 0) > dyEnd))) dh -= 2;
 if (dual) dyTop += WD.size * 1.6;
@@ -1100,14 +1092,15 @@ else if (!compact) wt = fitText(g, condS, lx, yb, WD, iw * 0.62, { fill: GLOW, l
 if (feelsOn) {
 var fl = I18N.ours('feels'), fs = fv(M.now.feels), fy2 = yb - WD.size * 1.6;
 if (dual) {
-var SW2 = F(WD.size * 0.85, '700', 1), fw5 = mW(fl + ' ' + fs + deg, SW2) + WD.size * 1.2;
-if (dx + fw5 > x2) SW2 = F(SW2.size * Mx(0.6, (x2 - dx - WD.size * 1.2) / (fw5 - WD.size * 1.2)), '700', 1);
-if (!EV) text(g, fl + ' ' + fs + deg, dx, fy2, SW2, { fill: GLOW, ls: R(WD.size * 0.08) }).setAttribute('data-sw-feels', 1);
+var SW2 = F(WD.size, '700', 1), rg = RNG; if (rg && mW(fl + ' ' + fs + deg + rg, SW2) + WD.size * 1.2 > x2 - dx) rg = '';
+var fw5 = mW(fl + ' ' + fs + deg + rg, SW2) + WD.size * 1.2;
+if (dx + fw5 > x2) SW2 = F(SW2.size * Mx(0.4, 0.88 * (x2 - dx - WD.size * 1.2) / (fw5 - WD.size * 1.2)), '700', 1);
+if (!EV) text(g, fl + ' ' + fs + deg + rg, dx, fy2, SW2, { fill: GLOW, ls: R(WD.size * 0.08) }).setAttribute('data-sw-feels', 1);
 if (M.inn.hum !== null) text(g, I18N.ours('hum') + ' ' + Math.round(M.inn.hum) + ' %', x2, fy2, SW2, { fill: GLOW, ls: R(WD.size * 0.08) });
 } else {
-var flw = mW(fl, WD) * 1.15, fg = u(14), fdw = mW(fs + deg, WD) * 1.1, fx0 = blk.cL + avail / 2 - (flw + fg + fdw) / 2;
+var flw = mW(fl, WD) * 1.15, fg = u(14), fdw = mW(fs + deg + RNG, WD) * 1.1, fx0 = blk.cL + avail / 2 - (flw + fg + fdw) / 2;
 text(g, fl, fx0, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.15) }).setAttribute('data-sw-feels', 1);
-text(g, fs + deg, fx0 + flw + fg, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.1) }).setAttribute('data-sw-feels-value', 1);
+text(g, fs + deg + RNG, fx0 + flw + fg, fy2, WD, { fill: GLOW, ls: R(WD.size * 0.1) }).setAttribute('data-sw-feels-value', 1);
 }
 }
 if (blk) {
@@ -1129,7 +1122,7 @@ return;
 if (!stackDual) mk('rect', { x: R(rx - u(14)), y: R(y + h * 0.3), width: Mx(1, u(1.5)), height: R(h * 0.58), fill: DIMW || ink }, g);
 if (M.ok && !M.rain) {
 var dTop = cells ? rainROW.top : y + h * 0.3, dBot = cells ? rainROW.lab : y + h * 0.9, dM = (dTop + dBot) / 2, DB = F(WD.size * 1.45, '800', 1);
-var DB2 = F(WD.size * 1.15, '800', 1), dcx = rx + rw / 2, sz2 = WD.size, S2 = M.sunT;
+var DB2 = F(WD.size, '800', 1), dcx = rx + rw / 2, sz2 = WD.size, S2 = M.sunT;
 var s3 = WD.size, gp = WD.size * 1.5, tws = (q) => Mx(mW(S2 ? S2.riseL : '', F(q, '700')), mW(S2 ? S2.setL : '', F(q, '700'))), tot = (q) => q * 1.6 + q * 0.4 + tws(q) + q * 0.8 + q * 2.4;
 if (S2) for (var si = 0; si < 30 && (tot(s3) > rw - u(4) || DB2.size + gp + 2.4 * s3 > dBot - dTop) && s3 > 8; si++) s3 *= 0.93;
 var totH = S2 ? DB2.size + gp + 2.4 * s3 : DB2.size, hb = dM - totH / 2 + DB2.size;
@@ -1175,7 +1168,6 @@ function smallFace(h, w) { return h / z < 160 || (h / z < 230 && !(w > h * 1.8))
 // owner 2026-11-12: row pitch at most about 2.2 times the label height
 function dayPitch(w) { return Mn(u(52), 2.2 * Mx(u(11), Mn(u(31), w * 0.045))); }
 function keysRow(x, y, w, h, nd) {
-debug.days = 0;
 if (!M.days.length) {
 var lw = Mx(2, u(2)), P = F(RD(Mn(h, w * 0.2) * 0.16, 12), '700');
 rrect(root, x + lw / 2, y + lw / 2, w - lw - u(3), h - lw - u(3), u(6), paper, ink, lw);
@@ -1184,7 +1176,7 @@ text(root, I18N.ours(M.ok ? 'no_forecast' : 'no_signal'), x + w / 2, y + h / 2 +
 return;
 }
 if (h > w * 0.6) nd = Mx(2, Mn(M.days.length - (M.ev ? 2 : 1) || 1, 7, Fl((h - u(44)) / dayPitch(w))));
-debug.days = nd; debug.rows = false;
+debug.rows = false;
 daysDial(x, y, w, h, nd);
 }
 function dayFonts(w, h, nd) {
@@ -1272,7 +1264,7 @@ lamps.forEach((f) => { var wd = mw(f[0], LS) + LS.size * 1.2 + LS.size * 0.6; if
 var lampH = lamps.length ? lrows.length * LS.size * 2 + u(4) : 0;
 var str = M.ev ? intDigits(M.ev.hi) : tempDigits(), dh = Mn(h * 0.16, base * 4.5), dw, iconW, evTail = M.ev ? Math.round(M.ev.lo) + deg : null, evX = M.ev ? 1.5 : 0;
 for (var di = 0; di < 40; di++) { dw = R(dh * 0.5); iconW = dh * 1.1; if (iconW + u(6) + seg7W(dw, str) + dw * (1.3 + evX) <= iw || dh <= 12) break; dh -= 2; }
-var feelsOn = !M.ev && M.now.feels !== null && M.now.temp !== null && Math.abs(M.now.feels - M.now.temp) >= 2;
+var feelsOn = !M.ev && M.now.feels !== null && M.now.temp !== null && (Math.abs(M.now.feels - M.now.temp) >= 2 || OGD);
 var EV = M.ev, CI = EV ? EV.icon : M.now.icon, CD = EV ? true : M.now.day, condS = M.ok ? (EV ? I18N.cond(EV.code, true) : I18N.cond(M.now.code, M.now.day)) : String(M.reason || 'NO DATA').toUpperCase();
 var rainH = (M.ok && !M.rain) ? base * 4.2 : base * 3.6 + dh * 0.5;
 var RS = ROS, inR = M.inn.temp !== null, n5 = RS.length, tempH = dh + u(4) + (feelsOn ? base * 1.6 : 0) + base * 1.6 + (inR ? dh + u(4) + (M.inn.hum !== null ? base * 1.6 : 0) : 0), meterH = n5 * lh;
@@ -1295,7 +1287,7 @@ var sw3 = R(dw * 0.45), ux = tx0 + iconW + u(6) + seg7W(dw, str) + R(dw * 0.25);
 if (M.ev) { text(g, '/ ' + evTail, ux, cy + dh * 0.95, F(R(dh * 0.45), '700', 1), { fill: DIGIT }); debug.evening = { hi: M.ev.hi, lo: M.ev.lo }; } else { seg7(g, ux, cy, sw3, R(dh * 0.45), 'o', DIGIT, null); seg7(g, ux + sw3 + R(dw * 0.12), cy, sw3, R(dh * 0.45), M.unit, DIGIT, null); }
 ICON_INK = GLOW; ICON_NOW = true; glowIcon(g, (gg) => iconFit(gg, CI, CD, { l: tx0, r: tx0 + iconW, t: cy, b: cy + dh }, dh * 1.1, cy + dh / 2)); ICON_INK = null; ICON_NOW = false;
 cy += dh + u(4);
-if (feelsOn) { fitText(g, I18N.ours('feels') + ' ' + fv(M.now.feels) + deg, cx, cy + base, BF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.1) }); cy += base * 1.6; }
+if (feelsOn) { fitText(g, I18N.ours('feels') + ' ' + fv(M.now.feels) + deg + RNG, cx, cy + base, BF, iw, { anchor: 'middle', fill: GLOW, ls: R(base * 0.1) }); cy += base * 1.6; }
 if (inR) {
 var s4 = tempDigits(M.unit === 'F' ? M.inn.temp * 1.8 + 32 : M.inn.temp), tx4 = cx - (seg7W(dw, s4) + dw * 1.3) / 2 + iconW / 2;
 text(g, I18N.ours('indoor'), lx0, cy + dh * 0.7, SF, { fill: GLOW, ls: R(base * 0.08) });
@@ -1340,10 +1332,10 @@ if (W0 / z < 320) {
 colLayout(root, X0, Y0, W0, H0);
 } else if (view === 4) {
 if (W0 / z >= 330 && H0 / z >= 170) {
-var ch4 = H0 / W0 >= 1.1 ? R(H0 * 0.58) : H0, rem4 = H0 - ch4 - GP;
+var ch4 = H0 / W0 >= 1.1 && !OGD ? R(H0 * 0.58) : H0, rem4 = H0 - ch4 - GP;
 vfd(root, X0, Y0, W0, ch4, false);
-if (rem4 >= W0 * 0.38) baroMeter(root, X0, Y0 + ch4 + GP, W0, rem4, true, null, true);
-} else if (H0 / z >= 260) {
+if (rem4 >= W0 * 0.38 && !OGD) baroMeter(root, X0, Y0 + ch4 + GP, W0, rem4, true, null, true);
+} else if (H0 / z >= 260 && !OGD) {
 var qg = R(H0 * 0.42);
 vfd(root, X0, Y0, W0, qg, true);
 baroMeter(root, X0, Y0 + qg + GP, W0, H0 - qg - GP, true, null, true);
@@ -1355,7 +1347,7 @@ vfd(root, X0, Y0, W0, H0, false);
 } else if (view === 3) {
 var full3 = W0 / z >= 700, tall3 = !full3 && H0 >= W0 * 1.1, ch3 = R(H0 * (full3 ? 0.34 : tall3 ? 0.5 : 0.27)), rest3 = H0 - ch3 - GP, rowP = dayPitch(W0), dayH = (n) => u(44) + n * rowP;
 var left3 = rest3 - GP - dayH(3), dialH = R(Mn(left3, W0 * 0.5));
-var wantD = left3 >= W0 * 0.42;
+var wantD = left3 >= W0 * 0.42 && !OGD;
 var daysH3 = wantD ? rest3 - dialH - GP : rest3, nd3 = Mx(2, Mn(5, Fl((daysH3 - u(44)) / rowP)));
 if (dayH(nd3) < daysH3) { ch3 += daysH3 - dayH(nd3); daysH3 = dayH(nd3); }
 var dyTop = Y0 + ch3 + GP;
@@ -1368,8 +1360,8 @@ var portrait = UW / UH < 1.15;
 var big = UW / z >= 1040;
 var stk = portrait && W0 / z < 700, mh = R(H0 * (stk ? 0.27 : portrait ? 0.3 : 0.32)), vh = R(H0 * (stk ? 0.45 : portrait ? 0.3 : 0.34)), keyH = H0 - mh - vh - 2 * GP;
 if (!portrait) { var mhCap = R((W0 - GP) / 2 * 0.5); if (mh > mhCap) { vh += mh - mhCap; mh = mhCap; } }
-meterRow(X0, top, W0, mh, true);
-vfd(root, X0, top + mh + GP, W0, vh, false);
+if (OGD) { mh = 0; vh = R(H0 * (portrait ? 0.5 : 0.55)); keyH = H0 - vh - GP; } else meterRow(X0, top, W0, mh, true);
+vfd(root, X0, top + (OGD ? 0 : mh + GP), W0, vh, false);
 keysRow(X0, Y0 + H0 - keyH, W0, keyH, daysFit(W0, 150, big ? 5 : 4));
 }
 debug.unit = M.unit;

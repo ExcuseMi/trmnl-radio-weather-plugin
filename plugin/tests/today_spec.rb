@@ -150,7 +150,7 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
 
   describe 'channel badges' do
     # replaces the deleted 'channel badges' describe of the old design: the dials keep their L and R badges
-    %w[v2 og_png].each do |device|
+    %w[v2].each do |device|
       it "marks the barometer L at the left and the temperature dial R at the right (#{device})" do
         # red: placing both badges at the left made R sit left of the middle
         s = shot(device:)
@@ -170,6 +170,26 @@ RSpec.describe 'Radio Weather, design of 2026-11-12' do
       s = shot(device: 'og_png', view: 'half_horizontal', aq: { json: aq })
       r = s.evaluate("(function(){ var k = document.querySelector('.sw-stage').getBoundingClientRect().width / +document.querySelector('.sw-stage svg').getAttribute('viewBox').split(' ')[2]; var t = [].slice.call(document.querySelectorAll('.sw-stage text[data-sw-cell]')); var ys = t.map(function(e){return parseFloat(e.getAttribute('y'))}).sort(function(a,b){return a-b}); return { size: parseFloat(t[0].getAttribute('font-size')), pitch: ys[1] - ys[0], k: k, n: t.length }; })()")
       expect(r['size'].to_f / r['pitch']).to be >= 0.45
+    end
+  end
+
+  describe 'OG without dials' do
+    %w[full half_horizontal half_vertical quadrant].each do |view|
+      it "draws no dial on the OG #{view} and keeps the range of today under BUITEN" do
+        # owner 2026-11-12. red: OGD forced to false brought the dials back
+        s = shot(device: 'og_png', view:, vars: sensors)
+        expect(count(s, '[data-sw-pivot]')).to eq(0)
+        expect(texts(s).join(' ')).to match(%r{GEVOEL -2° · 3°/12°|GEVOEL -2° · 12°/3°|GEVOEL -2°})
+      end
+    end
+
+    it 'shows the range of today as high and low next to GEVOEL when it fits' do
+      # red: RNG left empty
+      expect(texts(shot(device: 'og_png', view: 'full')).join(' ')).to match(%r{\d+°/-?\d+°})
+    end
+
+    it 'keeps the dials on the X' do
+      expect(count(shot(device: 'v2'), '[data-sw-pivot]')).to eq(2)
     end
   end
 

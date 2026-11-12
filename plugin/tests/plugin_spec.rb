@@ -151,7 +151,7 @@ RSpec.describe 'Stereo Weather' do
           expect(d['rain']).to eq('RAIN FROM 17:00 UNTIL 23:00')
           # owner 2026-11-10: the OPEN-METEO plate is removed from the glass
           # owner 2026-11-12 priority pass: dials only with room left, so only the full view must draw both needles
-          expect(d['needles'].size).to eq(2) if view == 'full'
+          expect(d['needles'].size).to eq(2) if view == 'full' && device == 'v2'   # owner 2026-11-12: no dials on the OG
         end
       end
     end
