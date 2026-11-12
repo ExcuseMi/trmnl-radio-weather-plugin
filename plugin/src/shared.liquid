@@ -1018,7 +1018,10 @@ ICON_INK = fg; iconFit(g, d.icon, null, iBox(cy), rh * 0.8, cy, false, dsz); ICO
 if (glass && !LCD) mk('rect', { x: R(x0), y: R(cy), width: R(x1 - x0), height: 1, fill: DIMW }, g);
 if (d.hi === null || d.lo === null) return;
 var PILL = !glass || LCD, xa = xOf(d.lo), xb = Mx(xOf(d.hi), xa + u(4)), th = PILL ? Mx(6, R(rh * 0.5)) : Mx(3, u(5));
-mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, rx: PILL ? R(th / 2) : 0, fill: PILL ? (d === M.days[0] ? (bits === 1 ? dith(paper, ink, 0.8) : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))) : fg, 'data-sw-band': i }, g);
+var BF = PILL ? (d === M.days[0] ? (bits === 1 ? ink : fillOf('gray-20')) : (bits === 1 ? dith(paper, ink, 0.5) : fillOf('gray-45'))) : fg, bs = st / 5, bgap = Mx(1, u(2));
+while (bs < st && xOf(a0 + bs) - xOf(a0) < u(6)) bs *= 2;
+if (PILL) { var bpx = xOf(a0 + bs) - xOf(a0), k0 = Math.round((d.lo - a0) / bs), k1 = Mx(k0 + 1, Math.round((d.hi - a0) / bs)); xa = xOf(a0 + k0 * bs); xb = xOf(a0 + k1 * bs); for (var bk = k0; bk < k1; bk++) mk('rect', { x: R(xOf(a0 + bk * bs) + Mx(bgap, bpx * 0.18) / 2), y: R(cy - th / 2), width: R(bpx - Mx(bgap, bpx * 0.18)), height: th, fill: BF, 'data-sw-band': i }, g); }
+else mk('rect', { x: R(xa), y: R(cy - th / 2), width: R(xb - xa), height: th, fill: fg, 'data-sw-band': i }, g);
 var knock = (str, xt, endA, fnt) => { var kw = D.mW(str, fnt); mk('rect', { x: R((endA ? xt - kw : xt) - u(3)), y: R(Mx(top + 1, cy - fnt.size * 0.8 - u(1))), width: R(kw + 2 * u(3)), height: R(fnt.size * 1.2 + u(2) - Mx(0, top + 1 - (cy - fnt.size * 0.8 - u(1)))), fill: bg }, g); };
 var nwLo = D.mW(tStr(d.lo), D.t2), roomLo = xa - x0 - u(8), tLo = nwLo > roomLo ? F(Mx(8, D.t2.size * Mx(0.55, roomLo / nwLo)), D.t2.weight, 1) : D.t2;
 var pxv = M.now.temp !== null ? R(xOf(M.now.temp)) : null, xLo = xa - u(8), xHi = xb + u(8), nwHi = D.mW(tStr(d.hi), D.t2), nwLo2 = D.mW(tStr(d.lo), tLo);
