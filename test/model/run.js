@@ -125,6 +125,13 @@ test('no evening mode (owner 2026-11-12): at 19:00 the console shows now and tom
   ok(v.days.length >= 2, 'tomorrow on screen');
 });
 
+test('time format: the setting decides, 24 h when missing, the TIME constant overrides', () => {
+  eq([T.timeIs12(null, '12'), T.timeIs12(null, 12), T.timeIs12(null, '24'), T.timeIs12(null, T.field({}, 'time_format', '24'))], [true, true, false, false], 'missing field: 24 h');
+  eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
+  const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
+  ok(/- keyname: time_format\n  field_type: select\n[\s\S]*- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n(name:|$)/.test(y), 'last custom field, 24 by default');
+});
+
 test('air quality: the current index at any hour (no evening mode)', () => {
   const e = fx('mixed'); e.current.time = '2026-11-08T19:00';
   const aq = { current: { time: '2026-11-08T19:00', european_aqi: 30 }, hourly: { time: ['2026-11-08T20:00', '2026-11-09T09:00', '2026-11-09T10:00'], european_aqi: [30, 55, 75] } };

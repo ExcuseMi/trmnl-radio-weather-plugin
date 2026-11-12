@@ -42,6 +42,19 @@ custom_fields:
   field_type: boolean
   name: Hide Title Bar
   default: false
+- keyname: time_format
+  field_type: select
+  name: Time format
+  description: How times show on the screen (sunrise, sunset, rain hours).
+  description-de: Wie Uhrzeiten auf dem Bildschirm erscheinen (Sonnenaufgang, Sonnenuntergang, Regenstunden).
+  description-fr: Format des heures à l'écran (lever, coucher du soleil, heures de pluie).
+  description-es-ES: Cómo se muestran las horas en la pantalla (amanecer, atardecer, horas de lluvia).
+  description-nl: Hoe tijden op het scherm staan (zonsopkomst, zonsondergang, regenuren).
+  description-ja: 画面の時刻の表示形式（日の出、日の入り、雨の時間）。
+  options:
+  - 24 hours (17:00): '24'
+  - 12 hours (5:00 PM): '12'
+  default: '24'
 name: Radio Weather
 description: Weather as a vintage radio receiver
 refresh_interval: 60
