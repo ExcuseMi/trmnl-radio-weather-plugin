@@ -48,7 +48,7 @@
 {%- endif %}
 {%- capture c_meters %}
   <div class="flex flex--col {% if view == 3 %}gap--medium lg:gap--small{% else %}gap--small{% endif %} {% if stk %}w--full{% else %}w--[{{ 35 | times: wm | round | at_most: 100 }}cqw]{% endif %}">
-   <div class="flex flex--row flex--left gap--small h--[{{ 6 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh] w--full">
+   <div class="{% if view == 3 %}hidden lg:flex{% else %}flex{% endif %} flex--row flex--left gap--small h--[{{ 6 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh] w--full">
     {%- for f in ui.flags %}<span class="label label--inverted label--large text--bold" data-sw-lamp>{{ f }}</span>{% endfor -%}
    </div>
    {%- comment %} owner 2026-11-12: the meters take the full width; the label column is only as wide as its longest label {% endcomment %}
@@ -77,7 +77,7 @@
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y' %}{% assign tg_h = 'h--full' %}{% assign dv_x = '' %}{% assign pf_m = 10 %}{% assign fe_m = 9 %}
-   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line, the felt temperature under it {% endcomment %}{% assign th_m = 26 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full' %}{% assign dv_x = ' hidden lg:block' %}{% assign pf_m = 6 %}{% assign fe_m = 6 %}{% endif %}
+   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line, the felt temperature under it {% endcomment %}{% assign th_m = 26 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full' %}{% assign dv_x = ' hidden lg:block' %}{% assign pf_m = 8 %}{% assign fe_m = 8 %}{% endif %}
    <div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[8cqh]">
     {%- if ui.inn %}{% comment %} Indoor sensor (as live): BUITEN and BINNEN twin readouts, the felt temperature under the outdoor one, the indoor humidity under the indoor one. {% endcomment %}
     {%- for tw in (1..2) %}
@@ -148,7 +148,7 @@
 {%- if days_h %}
  <div class="w--full px--4 4bit:hidden dark:4bit:block" data-sw-between><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: no divider between filled panels (light 4-bit); the gap is enough {% endcomment %}
  <div class="{{ days_h }} grow">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4">
-  <div class="flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
+  <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
    <div class="shrink-0 {{ name_w }}"></div><div class="shrink-0 {{ icon_w }}"></div>
    <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
    <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
@@ -163,7 +163,7 @@
   {%- if on_md or on_lg %}
   <div class="w--full{% if on_md and on_lg %}{% elsif on_md %} lg:hidden{% else %} hidden lg:block{% endif %}{% if j == nd_last %}{{ last_p }}{% endif %}" data-sw-row="day">
   <div class="w--full h--[1px] shrink-0 border--h-60" data-sw-hair="row"></div>{% comment %} owner 2026-11-12: a faint hairline over every day row (the first one is the line under the header); no edge line left of the graph {% endcomment %}
-  <div class="flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
+  <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
    <div class="shrink-0 {{ name_w }} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%- if d.today %}<span class="label label--inverted label--large text--bold lg:hidden" data-sw-today>{{ d.name }}</span><span class="hidden lg:inline title title--base{{ name_t }} text--bold">{{ d.name }}</span>{% else %}<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}</span>{% endif %}</div></div>
    <div class="shrink-0 {{ icon_w }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
    <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.lo }}</span></div>
