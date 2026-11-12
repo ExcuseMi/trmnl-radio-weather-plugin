@@ -1085,11 +1085,11 @@ var dTop = cells ? cells.ROW.top : y + h * 0.3, dBot = cells ? cells.ROW.lab : y
 var DB2 = F(WD.size * 1.15, '800'), dcx = rx + rw / 2, sz2 = WD.size, S2 = M.sunT;
 fitText(g, I18N.ours('no_rain'), dcx, dM - WD.size * 0.5, DB2, rw - u(4), { anchor: 'middle', ls: R(DB2.size * 0.08), fill: GLOW });
 if (S2) {
-var items = [['sunrise', S2.riseL], ['sunset', S2.setL], ['moon', null]], iw2 = 0, wdt = 0;
-function rowW2(s) { return items.reduce((a2, it) => a2 + s * 1.1 + (it[1] ? mW(it[1], F(s, '700')) + s * 0.5 : 0), 0) + s * 0.6; }
-for (var si = 0; si < 30 && rowW2(sz2) > rw - u(4) && sz2 > 8; si++) sz2 *= 0.93;
-var rf = F(sz2, '700'), xx0 = dcx - rowW2(sz2) / 2 + sz2 * 0.3, yy0 = dM + WD.size * 1.6;
-items.forEach((it) => { glowIcon(g, (gg) => icon(gg, it[0], xx0 + sz2 * 0.55, yy0 - sz2 * 0.3, sz2 * 0.8, null)); xx0 += sz2 * 1.1; if (it[1]) { text(g, it[1], xx0, yy0, rf, { fill: GLOW }); xx0 += mW(it[1], rf) + sz2 * 0.5; } });
+var s3 = WD.size, tws = (q) => Mx(mW(S2.riseL, F(q, '700')), mW(S2.setL, F(q, '700'))), tot = (q) => q * 1.6 + q * 0.4 + tws(q) + q * 0.8 + q * 2.4;
+for (var si = 0; si < 30 && tot(s3) > rw - u(4) && s3 > 8; si++) s3 *= 0.93;
+var rf = F(s3, '700'), lw3 = s3 * 2 + tws(s3), x03 = dcx - tot(s3) / 2, yA = dM + WD.size * 1.2, yB = yA + s3 * 1.7;
+[['sunrise', S2.riseL, yA], ['sunset', S2.setL, yB]].forEach((it) => { glowIcon(g, (gg) => icon(gg, it[0], x03 + s3 * 0.8, it[2] - s3 * 0.3, s3 * 1.4, null)); text(g, it[1], x03 + s3 * 1.8, it[2], rf, { fill: GLOW }); });
+glowIcon(g, (gg) => icon(gg, 'moon', x03 + lw3 + s3 * 1.4, (yA + yB) / 2 - s3 * 0.3, s3 * 2.4, null));
 }
 debug.clock = { str: '', boxes: [] };
 return;
