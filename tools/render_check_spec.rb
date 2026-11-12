@@ -155,6 +155,10 @@ P.forEach(function(a){var Q=(document.querySelector('.screen')||document.body).g
 var mn=Math.min.apply(null,g),mx=Math.max.apply(null,g);return mx-mn>2?'gaps '+mn.toFixed(1)+'..'+mx.toFixed(1)+' ['+g.map(function(v){return v.toFixed(0)}).join(',')+']':'';})()})
       puts "GAPS #{c['name']}: #{pg}" unless pg.empty?
       expect(pg).to eq('')
+      # No warning lamps in any view (owner 2026-11-12); the rain unit's icon carries rain, snow or hail.
+      lp = s.evaluate("document.querySelectorAll('[data-sw-lamp]').length")
+      puts "LAMP #{c['name']}: #{lp}" unless lp.zero?
+      expect(lp).to eq(0)
       # Panels (owner 2026-11-12): a plain fill, no backlight lamps (radial grey circles) behind dials, console or days.
       bl = s.evaluate(%q{document.querySelectorAll('[data-sw-backlight], [data-sw-part="face"] ellipse, [data-sw-part="face"] pattern').length})
       puts "BACKLIGHT #{c['name']}: #{bl}" unless bl.zero?
@@ -167,7 +171,7 @@ var ic=one('[data-sw-unit="rain"] img')||one('[data-sw-unit="rain"] [data-sw-par
 if(!one('[data-sw-unit="sun"]'))bad.push('no sun times');var wi=one('img[data-sw-icon], [data-sw-cond]'),pn=one('[data-sw-panel]');if(wi&&pn){var wb=one('[data-sw-cond]').parentElement.getBoundingClientRect(),pq=pn.getBoundingClientRect();if(wb.left<pq.left+4)bad.push('weather row past the panel '+wb.left.toFixed(0));}
 var t=one('[data-sw-part="temp"] svg'),f=one('[data-sw-part="feels"] svg');if(t&&f&&(t.getBoundingClientRect().height<f.getBoundingClientRect().height*1.4||t.getBoundingClientRect().height<innerHeight*0.09))bad.push('temp not bigger '+t.getBoundingClientRect().height.toFixed(0)+'/'+f.getBoundingClientRect().height.toFixed(0));
 var ml=one('[data-sw-mlabel]'),dn=one('[data-sw-dname]');if(ml&&dn&&parseFloat(getComputedStyle(ml).fontSize)>parseFloat(getComputedStyle(dn).fontSize)+0.5)bad.push('meter label > day name');
-if(one('[data-sw-lamp]'))bad.push('lamp shown');var td=one('[data-sw-today]');if(td&&!/label--inverted/.test(td.className))bad.push('today not lit');
+var td=one('[data-sw-today]');if(td&&!/label--inverted/.test(td.className))bad.push('today not lit');
 var sc=(document.querySelector('.screen')||document.body).classList;if(sc.contains('screen--1bit')||sc.contains('screen--2bit'))[].filter.call(document.querySelectorAll('[data-sw-rule]'),function(r){return r.getClientRects().length>0;}).forEach(function(r){if(!/-black/.test(r.className))bad.push('dither rule');});
 return bad.join('; ');})()})
         puts "OGHV #{c['name']}: #{hv}" unless hv.empty?

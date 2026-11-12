@@ -370,10 +370,7 @@ var d0 = 0, days = (M.days || []).slice(d0, d0 + 7), dates = ((daily || {}).time
 var vals = []; days.forEach((d) => { if (d.lo !== null) vals.push(d.lo); if (d.hi !== null) vals.push(d.hi); }); if (tv !== null) vals.push(tv);
 var st = F_ ? 10 : 5, sc = { a: Math.floor(Math.min.apply(null, vals.length ? vals : [0]) / st) * st, b: Math.ceil(Math.max.apply(null, vals.length ? vals : [10]) / st) * st, major: st, now: tv, deg: deg };
 if (sc.b - sc.a < 2 * st) sc.b = sc.a + 2 * st;
-var pr = n.press, flags = [];
-if (wetIn12) flags.push(R.type === 'snow' ? i18n.snow : (R.type === 'hail' ? i18n.hail : O.rain));
-if (t.lo !== null && t.lo <= (F_ ? 32 : 0)) flags.push(O.frost);
-if ((n.wind !== null && n.wind >= (F_ ? 31 : 50)) || (t.gustMax !== null && t.gustMax >= (F_ ? 47 : 75))) flags.push(i18n.wind);
+var pr = n.press;   // no warning lamps (owner 2026-11-12): the rain unit's icon shows rain, snow or hail
 var inT = M.inn.temp === null ? null : (F_ ? M.inn.temp * 1.8 + 32 : M.inn.temp);   // sensors report Celsius
 var tl = t.lo, th = t.hi, tvals = [tl, th, tv, inT].filter((v) => v !== null), tst = F_ ? 10 : 5;
 var tsc = tvals.length ? { a: Math.floor(Math.min.apply(null, tvals) / tst) * tst, b: Math.ceil(Math.max.apply(null, tvals) / tst) * tst } : null;
@@ -381,7 +378,7 @@ if (tsc && tsc.b - tsc.a < 3 * tst) tsc.b = tsc.a + 3 * tst;
 var ps = (M.hours || []).slice(0, 24).map((q) => q.pr).filter((q) => q !== null && q !== undefined); if (pr !== null) ps.push(pr);
 var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg', phase: phase == null ? null : phase };
 return {
-ok: M.ok, flags: flags, meters: meters,
+ok: M.ok, meters: meters,
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
 temp: tStr, unit: deg + M.unit, feels: feelsOn && inT === null ? fmt(n.feels) : null,
 inn: inT === null ? null : { temp: (Math.round(inT * 10) / 10).toFixed(1), out: O.outdoor, in: O.indoor, felt: n.feels === null ? '' : O.feels + ' ' + fmt(n.feels) + deg, hum: M.inn.hum === null ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
