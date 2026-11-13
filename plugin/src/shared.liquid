@@ -82,7 +82,7 @@
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}
    {%- if calm_q and ui.inn == nil %}{% assign th_m = 21 %}{% endif %}
-   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line {% endcomment %}{% assign th_m = 26 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y lg:portrait:flex--col' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full lg:portrait:h--[7cqh]' %}{% assign tp_h = 'lg:portrait:h--[15cqh]' %}{% endif %}
+   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line {% endcomment %}{% assign th_m = 26 %}{% assign th_l = 22 %}{% comment %} X half vertical (owner 2026-11-13, live 114: 4.4 smaller than the sun times): the temperature the largest readout {% endcomment %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y lg:portrait:flex--col' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full lg:portrait:h--[7cqh]' %}{% assign tp_h = 'lg:portrait:h--[15cqh]' %}{% endif %}
    {%- assign bw_m = 9 | times: wm | round %}{% assign bw_l = 6 | times: wl | round %}{% capture badge_w %}w--[{{ bw_m }}cqw] lg:w--[{{ bw_l }}cqw]{% if view == 1 %} lg:portrait:w--[12cqw]{% endif %}{% endcapture %}{% comment %} Calm (owner): the clothing badge has one fixed width in the console and every day row {% endcomment %}
    {%- assign ar_m = 0.6 %}{% assign ar_l = 0.75 %}{% if view == 2 %}{% assign ar_m = 0.3 %}{% assign ar_l = 0.375 %}{% elsif view == 3 %}{% assign ar_m = 1.2 %}{% assign ar_l = 1.5 %}{% endif %}
    {%- assign dh_m = th_m %}{% assign dh_l = th_l %}{% assign ch_p = 7 %}{% if ui.inn %}{% assign dh_m = 12 %}{% assign dh_l = 10 %}{% assign ch_p = 3.5 %}{% endif %}{% assign ch_m = dh_m | times: hm | times: tm | times: 0.85 | round %}{% assign ch_l = dh_l | times: hl | times: tf | times: 0.85 | round %}{% assign cw_m = ch_m | times: ar_m | times: 1.6 | round %}{% assign cw_l = ch_l | times: ar_l | times: 1.6 | round %}{% assign cw_p = ch_p | times: 2.1 | round %}{% if view == 2 %}{% assign cw_p = ch_p | times: 1.1 | round %}{% endif %}{% comment %} owner 2026-11-13: the console badge beside the big temperature, in its own fixed box, about the digits' cap height (portrait: X 1404 wide, 1.33 cqw per cqh; half horizontal 0.67) {% endcomment %}
@@ -395,9 +395,10 @@ var c = Math.cos(2 * Math.PI * p), rx = r * Math.abs(c), wax = p < 0.5, top = n1
 var term = wax ? (c > 0 ? 0 : 1) : (c > 0 ? 1 : 0);
 return 'M' + top + ' A' + n1(r) + ',' + n1(r) + ' 0 0 ' + (wax ? 1 : 0) + ' ' + bot + ' A' + n1(rx) + ',' + n1(r) + ' 0 0 ' + term + ' ' + top + ' Z';
 }
+// Moon (owner 2026-11-13, "moon data isn't that important"): the disc 0.54 of its box, at most about 0.7 of the sun rows.
 function moon(p, H) {
 if (p == null || isNaN(p)) return '';
-var r = H * 0.44, cx = H / 2, f = (1 - Math.cos(2 * Math.PI * p)) / 2, lit = '';
+var r = H * 0.27, cx = H / 2, f = (1 - Math.cos(2 * Math.PI * p)) / 2, lit = '';
 if (f > 0.01) lit = '<path d="' + moonLit(p, cx, cx, r) + '" data-sw-moon="lit"/>';
 var dk = API.mode && API.mode.dark, bits = API.mode ? API.mode.bits : 4, sw = Math.max(bits <= 2 ? 2.5 : 1.5, H * 0.03), limb = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"/>';
 // dark: the halo sits OUTSIDE the disk (owner 2026-11-12): the whole disk's glow, masked off inside the limb
