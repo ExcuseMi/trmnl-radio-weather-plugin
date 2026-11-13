@@ -375,7 +375,7 @@ test('meter cell states for today (owner 2026-11-13): active, reached earlier, e
   ];
   table.forEach(([m, n, want]) => eq(S(m, n), want, JSON.stringify(m) + ' on ' + n));
   const svg = D.meter({ frac: 0.3, past: 0.6, later: 0.9, peak: 0.9 }, 300, 30, 10);
-  eq([(svg.match(/data-sw-gust/g) || []).length, /data-sw-st="l"><g class="text--gray-75"><rect/.test(svg) && !/data-sw-st="l">[^]*?stroke-dasharray[^]*?<\/g><g data-sw-on/.test(svg)], [1, true], 'one peak outline; later cells filled in the lightest grey (owner: background colours; 1-bit keeps a dashed outline)');
+  eq([(svg.match(/data-sw-gust/g) || []).length, (svg.match(/data-sw-st="p"><g class="([^"]+)"/) || [])[1] === (svg.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1] && !/stroke-dasharray/.test(svg)], [1, true], 'one peak outline; earlier and later cells share one range grey (owner: now + today\'s range)');
 });
 test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter, gibbous and full, light and dark, lit side right while waxing', () => {
   const H = 100, r = H * 0.27, disk = Math.PI * r * r;
