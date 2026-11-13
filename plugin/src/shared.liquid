@@ -748,7 +748,7 @@ return API;
     if (!screen || !screen.classList.contains('screen--portrait') || !screen.classList.contains('screen--md')) return;
     var panel = document.querySelector('[data-sw-console]'), view = +document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug').match(/view=(\d)/)[1];
     // Keep the verified compact views; full, half horizontal and rainy half vertical still need fitting.
-    if(view < 3 || (view === 3 && panel.querySelector('[data-sw-part="rain"]'))) return;
+    var full = view === 1 || view === 2;
     var narrow = view >= 3, short = view === 2 || view === 4;
     function set(el, re, cls) { if (!el) return; [].slice.call(el.classList).forEach(function(c) { if (re.test(c)) el.classList.remove(c); }); cls.split(' ').forEach(function(c) { if(c) el.classList.add(c); }); }
     var outer = panel.querySelector('[data-sw-panel] > .relative'), cond = panel.querySelector('[data-sw-cond]'), temp = cond.parentElement.parentElement, top = temp.parentElement, right = panel.querySelector('[data-sw-right]');
@@ -759,23 +759,32 @@ return API;
     if(narrow) [].forEach.call(top.querySelectorAll('[data-sw-rule]'),function(e){set(e,/^hidden$/, 'hidden');});
     set(cond.parentElement, /^h--/, 'h--[7cqh]');
     var digits = panel.querySelector('[data-sw-part="temp"]'), tr = digits.parentElement.parentElement;
-    set(tr, /^h--/, 'h--[10cqh]');
+    set(tr, /^h--/, 'h--[10cqh] shrink-0');   // half vertical with rain (step 15): the taller rain unit squeezed the digits to 13 px
+    if(narrow) set(temp, /^grow$/, 'grow shrink-0');
     set(digits.parentElement, /^h--/, 'h--full');
     set(tr, /^flex--col$/, 'flex--row');
     if(narrow) set(temp, /^w--/, 'w--full');
-    [].forEach.call(panel.querySelectorAll('[data-sw-mlabel]'),function(e){set(e,/^title--/, 'title--small');set(e.parentElement,/^h--/,short?'h--[8cqh]':'h--[6cqh]');set(e.parentElement.parentElement.parentElement.parentElement,/^w--/, 'w--full');});
-    [].forEach.call(panel.querySelectorAll('[data-sw-part="meter"]'),function(e){set(e,/^h--/,short?'h--[6cqh]':'h--[4cqh]');set(e.parentElement,/^h--/,short?'h--[8cqh]':'h--[6cqh]');});
-    var rain = panel.querySelector('[data-sw-part="rain"]'), sun = panel.querySelector('[data-sw-unit="sun"]');
+    [].forEach.call(panel.querySelectorAll('[data-sw-mlabel]'),function(e){set(e,/^title--/, 'title--small');set(e.parentElement,/^h--/,short?'h--[8cqh]':(view===1?'h--[5cqh]':'h--[6cqh]'));set(e.parentElement.parentElement.parentElement.parentElement,/^w--/, 'w--full');});
+    [].forEach.call(panel.querySelectorAll('[data-sw-part="meter"]'),function(e){set(e,/^h--/,short?'h--[6cqh]':'h--[4cqh]');set(e.parentElement,/^h--/,short?'h--[8cqh]':(view===1?'h--[5cqh]':'h--[6cqh]'));});
+    var rain = panel.querySelector('[data-sw-part="rain"]'), sun = panel.querySelector('[data-sw-unit="sun"]'), hv = view === 3, ib = hv ? 'h--[8cqh]' : 'h--[6cqh]';   // half vertical: the rain icon at the calendar's height (OG hv check), the moon the same size, sun rows tall enough for it (step 15)
+    if(full) {   // full and half horizontal (step 15): no stray divider beside the meters, no rain gauge (no room), the console taller than the days strip
+      [].forEach.call(outer.children,function(e){if(!e.querySelector('[data-sw-part]')&&!e.hasAttribute('data-sw-part'))set(e,/^flex$/,'hidden');});
+      [].forEach.call(panel.querySelectorAll('[data-sw-part="gauge"]'),function(e){e.parentNode.removeChild(e);});
+      var bt = document.querySelector('[data-sw-between]'), days = bt && bt.nextElementSibling;
+      if(view === 1 && days) { set(panel,/^h--/,'h--[57cqh]'); set(days,/^h--/,'h--[35cqh]'); }
+      if(view === 1) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-row="day"] > div > :nth-child(3)'),function(e){set(e.parentElement.firstElementChild,/^w--/,'w--[14cqw]');});   // day names (MON) clear their icons (DAYALIGN, step 15)
+    }
+    if(hv && rain) { set(top,/^gap--/,'gap--xsmall'); set(outer,/^gap--/,'gap--xsmall'); set(temp,/^gap--/,'gap--small'); }   // the rain unit needs the room (step 15)
     if(rain) {
-      set(rain,/^w--/,narrow?'w--[52cqw]':'w--[26cqw]'); set(rain,/^h--/,'h--[12cqh]');
+      set(rain,/^w--/,narrow?'w--[52cqw]':'w--[26cqw]'); set(rain,/^h--/,hv?'h--[8cqh]':'h--[12cqh]');
       set(rain.parentElement,/^flex--col$/, 'flex--row');
-      set(rain.parentElement.querySelector('img'),/^h--/,'h--[6cqh]');
+      set(rain.parentElement.querySelector('img'),/^h--/,ib);
       set(panel.querySelector('[data-sw-gap="rain-sun"]'),/^h--/,'h--[1cqh]');
     }
     if(sun) {
       set(sun,/^hidden$/, 'flex');
-      [].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,'h--[3cqh]');});
-      [].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,'h--[6cqh]');}});
+      [].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,hv&&rain?'h--[5cqh]':'h--[3cqh]');});
+      [].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,rain?ib:'h--[6cqh]');}});
     }
 
   }
