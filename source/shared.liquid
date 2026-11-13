@@ -15,7 +15,7 @@
 {%- comment -%} One console and one days strip {%- endcomment -%}
 {%- assign stk = false %}{% assign hm = 1 %}{% assign hl = 1 %}{% assign wm = 1 %}{% assign wl = 1 %}{% assign n_md = 9 %}{% assign n_lg = 9 %}{% assign nd_md = 4 %}{% assign nd_lg = 5 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1' %}{% assign pad_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = '' %}{% assign rgw_l = 18 %}
 {%- assign name_w = 'w--[6cqw] lg:w--[5cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw]' %}{% assign num_w = 'w--[6cqw] lg:w--[5cqw]' %}
-{%- if view == 1 %}{% assign name_w = 'w--[10cqw] lg:w--[5cqw] lg:portrait:w--[12cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh] lg:portrait:h--[31cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh] lg:portrait:h--[33cqh]' %}
+{%- if view == 1 %}{% assign name_w = 'w--[10cqw] lg:w--[5cqw] lg:portrait:w--[12cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign con_h = 'h--[56cqh] lg:h--[38cqh] lg:portrait:h--[31cqh]' %}{% assign days_h = 'h--[37cqh] lg:h--[28cqh] lg:portrait:h--[33cqh]' %}
 {%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
 {%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 4 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden lg:portrait:flex' %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% assign name_w = 'w--[26cqw] lg:w--[11cqw] lg:portrait:w--[15cqw]' %}{% assign icon_w = 'w--[7cqw] lg:portrait:hidden' %}{% assign num_w = 'w--[9cqw]' %}{% assign rw_m = 6 %}{% assign hh_m = 6 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[60cqh] lg:h--[54cqh] lg:portrait:h--[44cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[44cqh] lg:portrait:h--[54cqh]' %}
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 2.3 %}{% assign n_md = 1 %}{% assign n_lg = 2 %}{% assign con_h = 'h--full' %}{% endif %}
@@ -40,7 +40,7 @@
 <div class="layout layout--col layout--stretch-x gap--base relative" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
 {%- if st_on %}{% for sp in (1..2) %}{% if sp == 1 %}{% assign sp_c = 'top--5 right--10' %}{% if view == 4 %}{% assign sp_c = 'top--5 right--10 lg:hidden' %}{% endif %}{% elsif view == 4 %}{% assign sp_c = 'top--5 left--10 hidden lg:block' %}{% else %}{% break %}{% endif %}<span class="absolute {{ sp_c }} z--10 label label--small" data-sw-stale>{{ ui.stale }}</span>{% endfor %}{% endif %}{% comment %} offline, no title bar {% endcomment %}
 {%- if view == 1 %}
- <div class="hidden lg:block h--[30cqh] lg:portrait:h--[22cqh]"><div class="flex flex--row flex--stretch-y gap--base h--full">
+ <div class="hidden lg:block h--[28cqh] lg:portrait:h--[22cqh]"><div class="flex flex--row flex--stretch-y gap--base h--full">
   {%- for k in (1..2) %}
   {%- if k == 2 %}<div class="py--4 shrink-0 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner: hairlines in the gaps {% endcomment %}
   {{ p_open_g }}<div class="relative h--full w--full">
@@ -84,11 +84,12 @@
   <div class="flex flex--col flex--center gap--medium grow w--min-0">{% comment %} owner step 12 {% endcomment %}
    <div class="flex flex--row flex--center-y flex--center-x w--full {% if view == 3 %}gap--small lg:gap--medium lg:portrait:gap--small{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[{% if view == 3 %}3{% elsif view == 4 %}7{% else %}5{% endif %}cqh]">
     {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
-    <span class="title {% if view == 3 %}title--small lg:portrait:title--small{% elsif view == 4 %}title--small lg:title--base lg:portrait:title--small{% elsif view == 2 %}title--small lg:title--large{% else %}title--base lg:title--large{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
+    <span class="title {% if view == 3 %}title--small lg:portrait:title--small{% elsif view == 4 %}title--small lg:title--base lg:portrait:title--small{% elsif view == 2 %}title--small lg:title--large{% else %}title--medium lg:title--xlarge{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}
    {%- if calm_q and ui.inn == nil %}{% assign th_m = 21 %}{% endif %}
+   {%- if view == 1 %}{% assign th_m = 22 %}{% assign th_l = 20 %}{% if ui.inn %}{% assign th_m = 26 %}{% assign th_l = 22 %}{% endif %}{% endif %}{% comment %} readable from across the room (owner 2026-11-13) {% endcomment %}
    {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner) {% endcomment %}{% assign th_m = 26 %}{% assign th_l = 22 %}{% comment %} X half vertical (owner, live 114 {% endcomment %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full lg:portrait:h--[7cqh]' %}{% assign tp_h = 'lg:portrait:h--[15cqh]' %}{% endif %}
    {%- assign bw_m = 9 | times: wm | round %}{% assign bw_l = 6 | times: wl | round %}{% capture badge_w %}w--[{{ bw_m }}cqw] lg:w--[{{ bw_l }}cqw]{% if view == 1 %} lg:portrait:w--[12cqw]{% endif %}{% endcapture %}{% comment %} Calm (owner) {% endcomment %}
    {%- assign ar_m = 0.6 %}{% assign ar_l = 0.75 %}{% if view == 2 %}{% assign ar_m = 0.3 %}{% assign ar_l = 0.375 %}{% elsif view == 3 %}{% assign ar_m = 1.2 %}{% assign ar_l = 1.5 %}{% endif %}
@@ -99,7 +100,7 @@
     {%- for tw in (1..2) %}
     {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
     <div class="flex flex--col flex--center gap--xsmall h--full" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
-     <div class="flex flex--row flex--top gap--xsmall">{% if tw == 2 %}{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center h--[3cqh] hidden lg:block" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}" data-sw-inarrow></div>{% endif %}{% endif %}<div class="flex flex--col flex--center gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]" data-sw-part="loc" data-sw-sq data-sw-i="{% if tw == 1 %}0{% else %}1{% endif %}" data-sw-loc="{% if tw == 1 %}out{% else %}in{% endif %}"></div><div class="h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div></div><div class="flex flex--col gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
+     <div class="flex flex--row flex--top gap--xsmall">{% if tw == 2 %}{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center h--[3cqh] hidden lg:block" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}" data-sw-inarrow></div>{% endif %}{% endif %}<div class="flex flex--col flex--center gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]" data-sw-part="loc" data-sw-sq data-sw-i="{% if tw == 1 %}0{% else %}1{% endif %}" data-sw-loc="{% if tw == 1 %}out{% else %}in{% endif %}"></div>{% assign it_l = 8 %}{% if view == 1 %}{% assign it_l = 11 %}{% endif %}<div class="h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ it_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div></div><div class="flex flex--col gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
      <span class="label label--small flex flex--row flex--center-y gap--xsmall">{% if tw == 2 %}{{ ui.inn.hum }}{% if ui.inn.lohi %}<span class="hidden lg:flex flex--row flex--center-y gap--xsmall" data-sw-inlohi>{% if ui.inn.hum != '' %}·{% endif %}<div class="shrink-0 h--[1cqh] lg:h--[1cqh]" data-sw-part="tri" data-sw-i="2" data-sw-sq></div>{{ ui.inn.lo }}<div class="shrink-0 h--[1cqh] lg:h--[1cqh]" data-sw-part="tri" data-sw-i="3" data-sw-sq></div>{{ ui.inn.hi }}</span>{% endif %}{% else %}&nbsp;{% endif %}</span>{% comment %} indoor trend (saved state) {% endcomment %}{% comment %} an empty line under BUITEN keeps {% endcomment %}
     </div>
     {%- endfor %}
@@ -282,6 +283,7 @@ function nat2(tok) {
 var m = /^gray-(\d+)$/.exec(tok || ''); if (!m) return tok;
 var v = +m[1]; return v <= 20 ? 'black' : (v <= 47 ? 'gray-30' : (v <= 72 ? 'gray-55' : 'white'));
 }
+function mid() { return API.mode && API.mode.bits <= 1 ? '' : (API.mode && API.mode.bits === 2 ? 'text--gray-40 dark:text--gray-60' : 'text--gray-45 dark:text--gray-50'); }
 function act() { return API.mode && API.mode.bits === 2 ? 'text--gray-40' : 'text--gray-20'; }
 function blk(hi) { return API.mode && API.mode.bits <= 1 ? '' : (hi ? 'text--gray-10 dark:text--gray-75' : (act() + ' dark:text--gray-60')); }
 function g(cls, body) {
@@ -404,7 +406,7 @@ var X = xmap(sc, W), body = '';
 var E = API.extD || 0;
 body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
-var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.62, y = (H - bh) / 2, cells = '', sh = '';
+var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * (hi ? 0.5 : 0.4), y = (H - bh) / 2, cells = '', sh = '';
 var ptH = lfs(sc) * 0.3 * 1.4;
 if (hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); }
 var k = 1; while (k * cw - Math.max(2.5, k * cw * 0.16) < 6 && k < 50) k++;
@@ -412,7 +414,7 @@ var gp = Math.max(2.5, k * cw * 0.16), pc = [], a0 = sc.a + Math.floor((a - sc.a
 var ca = API.nfs ? 2.2 : 1.5; if ((API.nfs || API.port) && k * cw - gp >= 6 && bh > (k * cw - gp) * ca) { y += (bh - (k * cw - gp) * ca) / 2; bh = (k * cw - gp) * ca; }
 if (k * cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = k > 1 ? a0 : a; t < b; t += k) pc.push([X(t) + gp / 2, X(t + k) - gp / 2]);
 pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
-body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells data-sw-k="' + k + '" data-sw-r="' + (b - a) + '">' + g(blk(hi), cells) + '</g>';
+body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells data-sw-k="' + k + '" data-sw-r="' + (b - a) + '">' + g(hi ? blk(hi) : mid(), cells) + '</g>';
 }
 if (hi && nowV !== null && nowV !== undefined) { var pxn = X(nowV), pr2 = ptH / 1.4, py0 = API.nfs && y !== undefined ? Math.max(0, y - ptH - 2) : 0, ptr = poly([[pxn - pr2, py0], [pxn + pr2, py0], [pxn, py0 + ptH]], ' data-sw-nowmark'); body += hue('red') ? hg('red', ptr) : ptr; }
 if (hi) body += '<g data-sw-hl="1"></g>';
@@ -457,7 +459,7 @@ if (wmax * fs > cw * pf(wmax)) fs = cw * pf(wmax) / wmax;
 hs.forEach((q, i) => {
 var x = (i % C) * cw, y = Math.floor(i / C) * rh;
 if (q.wet) { var gp = Math.max(2, Math.min(cw, rh) * 0.06), wr = rect(x + gp / 2, y + gp / 2, cw - gp, rh - gp, 2);
-body += hue('red') ? hg('red', wr) : glow(wr, GPX); }
+body += hue('red') ? hg('red', wr) : (API.mode && API.mode.bits >= 4 ? g('text--gray-40 dark:text--gray-60', glow(wr, GPX)) : glow(wr, GPX)); }
 var hm = String(q.h).match(/^(\d+)(\D+)$/), tx = text(x + cw / 2, y + rh / 2, hm ? hm[1] + '<tspan font-size="' + n1(fs * 0.6) + '">' + hm[2] + '</tspan>' : q.h, fs, 'middle', ' dominant-baseline="central"'); body += q.wet ? g('text--white', tx) : tx;
 });
 return svg(W, H, body);
@@ -521,7 +523,7 @@ if (y < t) { y = t; x += (an < 0 ? 1 : -1) * (hw + r1 * 0.03 + H * 0.04 + 2); }
 return [Math.max(g + hw, Math.min(W - g - hw, x)), y];
 }
 function dialR(D, W, H, nums, py) {
-var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);
+var lw = Math.max(2, H * 0.026), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);
 var g = Math.max(4, H * 0.03), r = Math.min(W * 0.42 / Math.sin(A), H * (W < H * 1.8 ? 0.5893 : 0.639), py - g - 1.3 * mh - bw - lw - 2), rmin = Math.min(r, W * 0.37 / Math.sin(A)), ok = true;
 return [r, ok];
 }
@@ -530,12 +532,12 @@ var g = Math.max(4, H * 0.03), caps = (API.caps || {})[kind] || [];
 return dialInk(D, W, H, r, py, nums, kind === 'baro').some((b) => b[0] < g || b[1] < g || b[2] > W - g || b[3] > H - g || caps.some((c) => b[0] < c[2] + g && b[2] > c[0] - g && b[1] < c[3] + g && b[3] > c[1] - g));
 }
 function dialInk(D, W, H, r, py, nums, baro) {
-var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008), out = [];
+var lw = Math.max(2, H * 0.026), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008), out = [];
 var cl = (f) => Math.max(-0.03, Math.min(1.03, f)), at = (f, rad) => { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }, F = (v) => (v - D.a) / (D.b - D.a);
 var pt = (q, h) => out.push([q[0] - h, q[1] - h, q[0] + h, q[1] + h]), bx = (q, w, h) => out.push([q[0] - w / 2, q[1] - h / 2, q[0] + w / 2, q[1] + h / 2]);
 for (var f = 0; f <= 1.0001; f += 0.025) { pt(at(f, r), lw); pt(at(f, r - H * 0.07), lw); }
 if (baro) { var zri = r - H * 0.135, isz = r * 0.34; [0, 1, 2, 3].forEach((i) => bx(at((2 * i + 1) / 8, zri - isz * 0.62), isz, isz)); }
-else for (var v = D.a; v <= D.b + 1e-9; v += D.step) { var fs = H * 0.085; bx(at(F(v), r - H * 0.07 - fs * 0.8), fs * 0.62 * String(v).length, fs * 1.25); }
+else for (var v = D.a; v <= D.b + 1e-9; v += D.step) { var fs = H * 0.1; bx(at(F(v), r - H * 0.07 - fs * 0.8), fs * 0.62 * String(v).length, fs * 1.25); }
 if (D.lo !== null && D.lo !== undefined && D.hi !== null && D.hi !== undefined) {
 var r0 = r + lw + bw + 2, r1 = r0 + mh, f0 = F(D.lo), f1 = F(D.hi);
 for (var k = 0; k <= 20; k++) pt(at(f0 + (f1 - f0) * k / 20, r + lw / 2 + bw / 2), bw);
@@ -544,7 +546,7 @@ for (var k = 0; k <= 20; k++) pt(at(f0 + (f1 - f0) * k / 20, r + lw / 2 + bw / 2
 return out;
 }
 function dial(D, W, H, baro, O) {
-var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, py = H * (W < H * 1.8 ? 0.79 : 0.93),
+var lw = Math.max(2, H * 0.026), A = 75 * Math.PI / 180, cx = W / 2, py = H * (W < H * 1.8 ? 0.79 : 0.93),
 bw = H * 0.045, mh = H * 0.05 * 1.6;
 var cm = !baro, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);
 var k0 = baro ? 'baro' : 'tdial', k1 = baro ? 'tdial' : 'baro', R0, R1, r, nums, py0 = py;
@@ -567,11 +569,11 @@ body += (z[2] ? g('text--gray-45', '<path d="' + d + '"/>') : '') + path(d, Math
 (D.icons || []).forEach((u, i) => { var q = at((2 * i + 1) / 8, zri - isz * 0.62); body += glow('<image href="' + u + '" x="' + n1(q[0] - isz / 2) + '" y="' + n1(q[1] - isz / 2) + '" width="' + n1(isz) + '" height="' + n1(isz) + '" filter="url(#' + id + ')"/>', Math.max(2, H * 0.012)); });
 }
 body += glow(path(arc(r, 0, 1), lw), Math.max(2, H * 0.012));
-var step = baro ? 5 : 1, major = baro ? 20 : D.step, labs = '';
+var step = baro ? 10 : D.step / 2, major = baro ? 20 : D.step, labs = '';
 for (var v = D.a; v <= D.b + 1e-9; v += step) {
 var mj = Math.abs((v - D.a) / major - Math.round((v - D.a) / major)) < 1e-6, p0 = at(F(v), r), p1 = at(F(v), r - (mj ? H * 0.07 : H * 0.035));
 body += '<line x1="' + n1(p0[0]) + '" y1="' + n1(p0[1]) + '" x2="' + n1(p1[0]) + '" y2="' + n1(p1[1]) + '" stroke="currentColor" stroke-width="' + n1(mj ? lw : Math.max(1, lw * 0.6)) + '"/>';
-if (!baro && mj) { var fs = H * 0.085, pl = at(F(v), r - H * 0.07 - fs * 0.8); labs += text(pl[0], pl[1], String(v), fs, 'middle', ' dominant-baseline="central"'); }
+if (!baro && mj) { var fs = H * 0.1, pl = at(F(v), r - H * 0.07 - fs * 0.8); labs += text(pl[0], pl[1], String(v), fs, 'middle', ' dominant-baseline="central"'); }
 }
 body += labs;
 var lo = D.lo, hi = D.hi;
@@ -586,7 +588,7 @@ body += poly(t, ' data-sw-markt="' + (m[1] ? 'lo' : 'hi') + '"' + (m[1] ? ' fill
 });
 }
 if (D.now !== null && D.now !== undefined) {
-var ang = -A + 2 * A * cl(F(D.now)), ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux, tipR = r + H * 0.025, tailR = H * 0.1, wb = Math.max(4, H * 0.012), wt = 1.5;
+var ang = -A + 2 * A * cl(F(D.now)), ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux, tipR = r + H * 0.025, tailR = H * 0.1, wb = Math.max(4, H * 0.03), wt = Math.max(1.5, H * 0.012);
 var np = (ox, oy, an, k) => { var vx = an === undefined ? ux : Math.sin(an), vy = an === undefined ? uy : -Math.cos(an), qx = -vy, qy = vx, e = k || 1, b = [cx + ox, py + oy], t = [b[0] + vx * tipR * e, b[1] + vy * tipR * e], q = [b[0] - vx * tailR, b[1] - vy * tailR];
 return [[t[0] + qx * wt / 2, t[1] + qy * wt / 2], [b[0] + qx * wb / 2, b[1] + qy * wb / 2], [q[0] + qx * wb * 1.6, q[1] + qy * wb * 1.6], [q[0] - qx * wb * 1.6, q[1] - qy * wb * 1.6], [b[0] - qx * wb / 2, b[1] - qy * wb / 2], [t[0] - qx * wt / 2, t[1] - qy * wt / 2]]; };
 var hr = Math.max(6, H * 0.035), tw = '';
