@@ -8,6 +8,10 @@ RSpec.describe 'renders' do
   fx = File.join(TRMNLP::Testing.plugin_dir, 'tests', 'fixtures')
   cases.each do |c|
     it c['name'] do
+      # A custom screen (the markup editor previews a layout in a frame of the layout's own size, owner 2026-11-13):
+      # device {model, width, height, bit_depth, screen_classes}; the checks then read the model name.
+      dev = c['device'].is_a?(Hash) ? c['device'].transform_keys(&:to_sym) : (c['device'] || 'v2')
+      c = c.merge('device' => dev[:model]) if dev.is_a?(Hash)
       answer = JSON.parse(File.read(File.join(fx, "#{c['fixture'] || 'mixed'}.json")))
       (c['current'] || {}).each { |k, v| answer['current'][k] = v }
       (c['hourly'] || {}).each { |k, v| answer['hourly'][k] = v }
@@ -21,7 +25,7 @@ RSpec.describe 'renders' do
       mocks = { 'https://api.open-meteo.com/*' => { json: answer } }
       mocks['https://air-quality-api.open-meteo.com/*'] = { json: c['aq'] } if c['aq']
       fields = { 'lat_lon' => '52.52,13.41', 'unit' => 'celsius', 'days_shown' => 'auto', 'dial_span' => '24h', 'hide_title_bar' => 'false', 'language' => 'nl' }.merge(c['fields'] || {})
-      opts = { view: c['view'] || 'full', device: c['device'] || 'v2', mocks:, custom_fields: fields, now:, wait_for: "document.querySelector('[data-sw-drawn],[data-sw-error]') !== null" }
+      opts = { view: c['view'] || 'full', device: dev, mocks:, custom_fields: fields, now:, wait_for: "document.querySelector('[data-sw-drawn],[data-sw-error]') !== null" }
       opts[:variables] = { 'trmnl' => { 'user' => { 'locale' => c['locale'] } } } if c['locale']
       opts[:variables] = (opts[:variables] || {}).merge(c['vars']) if c['vars']
       opts[:theme] = c['theme'] if c['theme']
@@ -30,6 +34,7 @@ RSpec.describe 'renders' do
       opts[:dark_mode] = true if c['dark']
       opts[:text_scale] = c['text_scale'] if c['text_scale']
       s = trmnl.render(**opts)
+      puts "SCREEN #{c['name']}: #{s.evaluate("document.querySelector('.screen').className+' '+innerWidth")}" if ENV['SW_SCREEN']
       FileUtils.mkdir_p(out)
       FileUtils.cp(s.png_path, File.join(out, "#{c['name']}.png"))
       err = s.evaluate("(document.querySelector('[data-sw-error]')||{getAttribute:function(){return null}}).getAttribute('data-sw-error')")
