@@ -52,6 +52,7 @@ RSpec.describe 'renders' do
         opts[:now] = (Time.iso8601(now) + c['offline_h'] * 3600).iso8601
       end
       s = trmnl.render(**opts)
+      is_lg = s.evaluate("!!document.querySelector('.screen--lg')")   # the X layouts follow the lg size class, not the model name (device tier, 2026-11-13)
       puts "SCREEN #{c['name']}: #{s.evaluate("document.querySelector('.screen').className+' '+innerWidth")}" if ENV['SW_SCREEN']
       FileUtils.mkdir_p(out)
       FileUtils.cp(s.png_path, File.join(out, "#{c['name']}.png"))
@@ -166,11 +167,11 @@ var ci=m.querySelector('circle'),b=ci?ci.getBoundingClientRect():m.getBoundingCl
       expect(mo).to eq('') if c['view'] == 'half_vertical'
       # X quadrant (owner, step 12: big empty bands above and below): the content of each panel (images, drawings,
       # text) leaves no band over 8 % of the panel height at its top or bottom, also none between its rows on X quadrant (step 19: landscape too) and X full portrait, hairlines counting as ink (step 18).
-      if (c['view'] == 'quadrant' && (c['device'] || 'v2') == 'v2') || c['portrait_console']
+      if (c['view'] == 'quadrant' && is_lg) || c['portrait_console']
         band = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=p.getBoundingClientRect();if(!q.height)return;var t=1e9,b=-1e9;
 var iv=[];p.querySelectorAll('img, svg, span').forEach(function(e){if(e.closest('[data-sw-part="face"]'))return;var r=e.getBoundingClientRect();if(!r.width||!r.height||(e.tagName==='SPAN'&&!e.textContent.trim()))return;t=Math.min(t,r.top);b=Math.max(b,r.bottom);iv.push([r.top,r.bottom])});
 var a=(t-q.top)/q.height,z=(q.bottom-b)/q.height;if(a>0.08||z>0.08)bad.push('top '+(a*100).toFixed(0)+'% bottom '+(z*100).toFixed(0)+'%');
-if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&getComputedStyle(e).display!=='none')iv.push([r.top,Math.max(r.bottom,r.top+1)])});iv.sort(function(x,y){return x[0]-y[0]});var e0=t;iv.forEach(function(v){if((v[0]-e0)/q.height>0.08)bad.push('band '+((v[0]-e0)/q.height*100).toFixed(0)+'% at '+Math.round(e0-q.top));e0=Math.max(e0,v[1]);})}});return bad.join('; ')})()}.sub('BETWEEN', ((c['device'] || 'v2') == 'v2' && (c['view'] == 'quadrant' || (c['view'] == 'full' && c['orientation'] == 'portrait'))).to_s))
+if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&getComputedStyle(e).display!=='none')iv.push([r.top,Math.max(r.bottom,r.top+1)])});iv.sort(function(x,y){return x[0]-y[0]});var e0=t;iv.forEach(function(v){if((v[0]-e0)/q.height>0.08)bad.push('band '+((v[0]-e0)/q.height*100).toFixed(0)+'% at '+Math.round(e0-q.top));e0=Math.max(e0,v[1]);})}});return bad.join('; ')})()}.sub('BETWEEN', (is_lg && (c['view'] == 'quadrant' || (c['view'] == 'full' && c['orientation'] == 'portrait'))).to_s))
         puts "BAND #{c['name']}: #{band}" unless band.empty?
         expect(band).to eq('')
       end
@@ -180,7 +181,7 @@ if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.get
       # at the track's ends (within a cell); no empty band over 12 % of the panel height inside the console, the days
       # panel or the console's right column (ink measured in the screenshot); low/high digits at least 0.85 x the day name size;
       # quadrant: the temperature digits at least 13 % of the console height.
-      if c['orientation'] == 'portrait' && (c['device'] || 'v2') != 'v2' && %w[full half_vertical half_horizontal quadrant].include?(c['view'] || 'full')
+      if c['orientation'] == 'portrait' && !is_lg && %w[full half_vertical half_horizontal quadrant].include?(c['view'] || 'full')
         require 'chunky_png'
         og = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d'),R=function(b){return [b.left,b.top,b.right,b.bottom]};
 function cap(sp){var b=vis(sp);if(!b)return 0;var cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;return cx.measureText('H').actualBoundingBoxAscent*(b.width/(sp.offsetWidth||b.width));}
@@ -306,7 +307,7 @@ return bad.join('; ');})()})
       puts "DAYSTRIP #{c['name']}: #{ds}" unless ds.empty?
       expect(ds).to eq('')
       # X condition label (owner 2026-11-12): a clearly larger title than the day names, so it fills the middle block.
-      if c['device'] == 'v2' && %w[full half_horizontal].include?(c['view'] || 'full') && c['orientation'].nil?
+      if is_lg && %w[full half_horizontal].include?(c['view'] || 'full') && c['orientation'].nil?
         cr = s.evaluate(%q{(function(){var v=function(q){return [].filter.call(document.querySelectorAll(q),function(e){return e.getBoundingClientRect().width>0})[0]},a=v('[data-sw-cond]'),b=v('[data-sw-dname]')||v('[data-sw-mlabel]');return a&&b?parseFloat(getComputedStyle(a).fontSize)/parseFloat(getComputedStyle(b).fontSize):9;})()})
         puts "CONDSIZE #{c['name']}: #{cr.round(2)}" if cr < 1.2
         expect(cr).to be >= 1.2
@@ -341,7 +342,7 @@ var mn=Math.min.apply(null,g),mx=Math.max.apply(null,g);return mx-mn>2?'gaps '+m
       expect(bl).to eq(0)
       # OG half_vertical (owner 2026-11-12): rain icon left of the calendar at its height, sun times shown, temperature
       # clearly bigger than the felt one, meter labels no bigger than day names, today an inverted lamp, solid dividers.
-      if c['view'] == 'half_vertical' && c['device'] != 'v2'
+      if c['view'] == 'half_vertical' && !is_lg
         hv = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},one=function(q){return [].filter.call(document.querySelectorAll(q),vis)[0]};
 var ic=one('[data-sw-unit="rain"] img')||one('[data-sw-unit="rain"] [data-sw-part="icon"]'),ca=one('[data-sw-part="rain"]');if(ca&&!ic)bad.push('no rain icon');if(ca&&ic){var a=ic.getBoundingClientRect(),b=ca.getBoundingClientRect();if(a.right>b.left+1||Math.abs(a.height-b.height)>2)bad.push('rain icon '+[a.left,a.right,a.height].map(Math.round)+' cal '+[b.left,b.height].map(Math.round));}
 if(!one('[data-sw-unit="sun"]'))bad.push('no sun times');var wi=one('img[data-sw-icon], [data-sw-cond]'),pn=one('[data-sw-panel]');if(wi&&pn){var wb=one('[data-sw-cond]').parentElement.getBoundingClientRect(),pq=pn.getBoundingClientRect();if(wb.left<pq.left+4)bad.push('weather row past the panel '+wb.left.toFixed(0));}
@@ -365,7 +366,7 @@ var dial=n('[data-sw-part="baro"]');return [1,dial,n('[data-sw-part="baro"] ~ .l
         expect(q[3]).to eq(0)   # owner 2026-11-13: no trend word on the dial (the pressure shows; the trend is the arrow)
         expect(q[4]).to eq(q[1] * 2)
         expect(q[5..7]).to eq([0, 0, 0])
-        expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && !(c['view'] == 'half_vertical' && c['device'] != 'v2' && c['orientation'] != 'portrait'))   # step 18 (owner via coordinator): OG half_vertical portrait has room, the badge shows there   # owner 2026-11-13: beside the temperature, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) ; X half_vertical portrait shows it again (step 19, coordinator: owner rule, badge beside the temperature in every view; the OG hv portrait layout as the model)
+        expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && !(c['view'] == 'half_vertical' && !is_lg && c['orientation'] != 'portrait'))   # step 18 (owner via coordinator): OG half_vertical portrait has room, the badge shows there   # owner 2026-11-13: beside the temperature, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) ; X half_vertical portrait shows it again (step 19, coordinator: owner rule, badge beside the temperature in every view; the OG hv portrait layout as the model)
       end
       # Calm (owner): 1-bit and 2-bit panels stay paper (no grey fill); the dial's low/high numbers clear their triangles by 2 px
       # and are at least the size of the dial's scale numbers.
@@ -419,7 +420,7 @@ var px=function(r){var sv=r.ownerSVGElement;return +r.getAttribute('rx')*sv.getB
       expect(al).to eq('')
       d = dr.split(',').map(&:to_f)
       expect(d[0]).to eq(0) if c['view'] == 'quadrant'
-      expect(d[1]).to be >= (c['device'] == 'v2' ? 53 : 28) if d[0].positive?
+      expect(d[1]).to be >= (is_lg ? 53 : 28) if d[0].positive?
       expect([d[3], d[4]]).to eq(d[0].positive? ? [1, 1] : [0, 0])
       expect(d[5]).to eq(1)
       # Felt temperature (owner decision 2026-11-13): no felt readout anywhere (no felt digits, no felt word, no person
@@ -441,7 +442,7 @@ gs.forEach(function(e){var m=e.querySelector('[data-sw-gauge]'),lit=Object.keys(
 if(!m||+m.getAttribute('data-sw-gauge')!==G.segs||lit!==G.segs||Object.keys([].reduce.call(e.querySelectorAll('[data-sw-c]'),function(o,r){o[r.getAttribute('data-sw-c')]=1;return o},{})).length!==3)bad.push('gauge segments '+lit+' want '+(G&&G.segs));
 if(!t||t.textContent!==G.label)bad.push('gauge label');if(Math.abs(b.right-u.right)>1)bad.push('gauge not under the calendar columns');if(t&&t.getBoundingClientRect().right>u.left+0.5)bad.push('gauge label over the bar');});
 if(G&&!gs.length&&INNER_X_FULL)bad.push('no gauge on a wet X full case');
-return bad.join('; ')})()}.sub('INNER_X_FULL', (c['device'] == 'v2' && (c['view'] || 'full') == 'full' && !c['orientation'] && !c['fixture']) ? 'true' : 'false'))
+return bad.join('; ')})()}.sub('INNER_X_FULL', (is_lg && (c['view'] || 'full') == 'full' && !c['orientation'] && !c['fixture']) ? 'true' : 'false'))
       expect(rg0).to eq('')
       # Hours strip (owner): column count per view, an inverted stamp exactly on the current and the wet hours, the block
       # curve inside its column and its panel, stamp, temperature and icon ink centred on the column axis (2 px; every
