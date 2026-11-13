@@ -84,7 +84,7 @@
   <div class="flex flex--col flex--center gap--medium grow w--min-0">{% comment %} owner step 12 {% endcomment %}
    <div class="flex flex--row flex--center-y flex--center-x w--full {% if view == 3 %}gap--small lg:gap--medium lg:portrait:gap--small{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[{% if view == 3 %}3{% elsif view == 4 %}7{% else %}5{% endif %}cqh]">
     {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
-    <span class="title {% if view == 3 %}title--small lg:title--base lg:portrait:title--small{% elsif view == 4 %}title--small lg:title--base lg:portrait:title--small{% else %}title--base lg:title--large{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
+    <span class="title {% if view == 3 %}title--small lg:portrait:title--small{% elsif view == 4 %}title--small lg:title--base lg:portrait:title--small{% elsif view == 2 %}title--small lg:title--large{% else %}title--base lg:title--large{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}
@@ -610,14 +610,49 @@ return API;
 (function () {
 function whenReady(cb) { var tries = 0; (function attempt() { if (window.TRMNLPaint) return cb(); if (++tries > 200) return; setTimeout(attempt, 50); })(); }
 function swSeg(cx) {
-document.querySelectorAll('[data-sw-suntime] > span.title').forEach(function (sp) {
+var sps = [].slice.call(document.querySelectorAll('[data-sw-suntime] > span.title'));
+function seg(sp) {
 var t = sp.getAttribute('data-sw-t'); if (t === null) { t = sp.textContent.trim(); sp.setAttribute('data-sw-t', t); }
 var cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-var cap = cx.measureText('H').actualBoundingBoxAscent, r = cap > 0 ? SWDraw.segtime(t, cap) : null;
+var cap = cx.measureText('H').actualBoundingBoxAscent * (+sp.getAttribute('data-sw-sf') || 1), r = cap > 0 ? SWDraw.segtime(t, cap) : null;
 if (!r) { if (sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); } return; }
 if (sp.getAttribute('data-sw-segk') !== r.key) { sp.innerHTML = r.html; sp.setAttribute('data-sw-segk', r.key); sp.setAttribute('aria-label', t); }
 var scr = document.querySelector('.screen'), sc = scr && scr.offsetWidth ? window.innerWidth / scr.offsetWidth : 1; if (cap * 1.25 * sc < 24 && sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); }
-});
+}
+// The sun times never leave their column: owner 2026-11-13, narrow and native-portrait screens cut them by 3 to 91 px. Both rows take the
+// largest Framework title size at which every time fits the column and the panel's inner edge (the same size for sunrise and sunset).
+function over(sp) {
+var w = sp.parentElement.getBoundingClientRect(), pn = sp.closest('[data-sw-panel]'), un = sp.closest('[data-sw-unit]'); if (!w.width || !pn) return 0;
+var q = pn.getBoundingClientRect(), cs = getComputedStyle(pn), k = q.width / (pn.offsetWidth || q.width), lim = q.right - parseFloat(cs.paddingRight) * k;
+if (un && un.parentElement) lim = Math.min(lim, un.parentElement.getBoundingClientRect().right);
+return w.right - lim;
+}
+var sizes = ['title--large', 'title--base', 'title--small'];
+sps.forEach(seg);
+var vis = sps.filter(function (sp) { return sp.parentElement.getBoundingClientRect().width > 0; });
+if (!vis.length) return;
+for (var i = 0; i < sizes.length && vis.some(function (sp) { return over(sp) > 0.5; }); i++) {
+var cur = parseFloat(getComputedStyle(vis[0]).fontSize), cn = vis[0].className;
+var cand = sizes.map(function (z) { vis[0].className = 'title ' + z + ' text--bold'; return [z, parseFloat(getComputedStyle(vis[0]).fontSize)]; }).filter(function (c) { return c[1] < cur - 0.1; })[0];
+vis[0].className = cn;
+if (!cand) break;
+vis.forEach(function (sp) { sp.className = 'title ' + cand[0] + ' text--bold'; seg(sp); });
+}
+// Below the smallest title size the segments themselves shrink (never under half), by the share that still sticks out.
+for (var n = 0; n < 3 && vis.some(function (sp) { return over(sp) > 0.5; }); n++) {
+var f = Math.max(0.5, Math.min.apply(null, vis.map(function (sp) { var o = over(sp), w = sp.parentElement.getBoundingClientRect().width; return o > 0.5 && w ? (+sp.getAttribute('data-sw-sf') || 1) * (w - o - 1) / w : 1; })));
+vis.forEach(function (sp) { sp.setAttribute('data-sw-sf', f.toFixed(3)); sp.removeAttribute('data-sw-segk'); seg(sp); });
+}
+// Still too wide (plain digits below 24 px, or an icon sized by the screen height): the sun icons give way, both rows by the same amount.
+var ics = vis.map(function (sp) { return sp.parentElement.parentElement.querySelector('img,svg'); });
+var h0 = ics.every(Boolean) ? Math.min.apply(null, ics.map(function (e) { return e.getBoundingClientRect().height; })) : 0;
+for (var m = 0; m < 4; m++) {
+var cut = Math.max.apply(null, vis.map(function (sp) { return over(sp); }));
+if (!(cut > 0.5) || !ics.every(Boolean)) break;
+var ih = Math.min.apply(null, ics.map(function (e) { return e.getBoundingClientRect().height; })), k0 = (ics[0].offsetHeight && ics[0].getBoundingClientRect().height / ics[0].offsetHeight) || 1, nh = Math.max(0.45 * h0 / k0, (ih - 2 * cut - 1) / k0);
+if (nh * k0 >= ih - 0.1) break;
+ics.forEach(function (e) { e.style.setProperty('height', nh.toFixed(1) + 'px', 'important'); e.style.setProperty('width', nh.toFixed(1) + 'px', 'important'); });
+}
 }
 function swDayIcons() {
 var ims = [].slice.call(document.querySelectorAll('img[data-sw-dink]')), dx = 0;
