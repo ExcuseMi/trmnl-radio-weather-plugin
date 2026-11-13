@@ -28,6 +28,9 @@ RSpec.describe 'renders' do
         h = answer['hourly']; h['pressure_msl'] ||= h['time'].map { answer.dig('current', 'pressure_msl') }; t0 = Time.utc(*h['time'][0].split(/[-T:]/).map(&:to_i))
         h.each_key { |k| next unless h[k].is_a?(Array); 3.times { |j| h[k].unshift(k == 'time' ? (t0 - 3600 * (j + 1)).strftime('%Y-%m-%dT%H:%M') : (k == 'pressure_msl' ? c['past_press'] : h[k][0])) } }
       end
+      if (c['fields'] || {})['unit'] == 'fahrenheit' && !(c['fixture'] || '').end_with?('_f')   # the celsius fixtures hold mm; Open-Meteo answers inches for fahrenheit (precipitation_unit=inch)
+        %w[hourly daily].each { |sec| answer[sec].each { |k, v| answer[sec][k] = v.map { |x| x.is_a?(Numeric) ? (x / 25.4).round(3) : x } if k.start_with?('precipitation') && !k.include?('probability') && v.is_a?(Array) } }
+      end
       t = answer.dig('current', 'time')
       now = (Time.utc(*t.split(/[-T:]/).map(&:to_i)) - answer['utc_offset_seconds'].to_i + 600).iso8601
       mocks = { 'https://api.open-meteo.com/*' => { json: answer } }

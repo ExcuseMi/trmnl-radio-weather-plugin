@@ -458,9 +458,9 @@ function buildView(M, i18n, daily, moon, phase, opt) {
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 var R = M.rain, wetIn12 = !!R && R.from < 12;
-// Rain gauge (owner 2026-11-13, replaces the REGEN meter): the precipitation over the rain calendar's 12 hours, 5 segments of 2 mm (0.08 in), 0..10 mm (0..0.4 in); hidden without an amount above 0 (missing hourly precipitation hides it).
+// Rain gauge (owner 2026-11-13, replaces the REGEN meter): the precipitation over the rain calendar's 12 hours, 5 segments of 2 mm (0.08 in), 0..10 mm (0..0.4 in); in fahrenheit the hourly amounts are already inches (Open-Meteo precipitation_unit=inch), label capped at 0.4+; hidden without an amount above 0 (missing hourly precipitation hides it).
 var rs0 = R ? Math.max(0, Math.min(R.from, M.hours.length - 12)) : 0, regenMm = wetIn12 ? M.hours.slice(rs0, rs0 + 12).reduce((a, q) => a + (q.mm || 0), 0) : null;
-var gauge = wetIn12 && regenMm > 0 ? { segs: Math.max(1, Math.min(5, Math.round(regenMm / (F_ ? 0.4 : 10) * 5))), label: (F_ ? (Math.round(regenMm * 10) / 10).toFixed(1) + ' in' : (regenMm < 10 ? String(Math.round(regenMm)) : '10+') + ' mm') } : null;
+var gauge = wetIn12 && regenMm > 0 ? { segs: Math.max(1, Math.min(5, Math.round(regenMm / (F_ ? 0.4 : 10) * 5))), label: (F_ ? (regenMm >= 0.4 ? '0.4+' : (regenMm < 0.05 ? '<0.1' : (Math.round(regenMm * 10) / 10).toFixed(1))) + ' in' : (regenMm < 10 ? String(Math.round(regenMm)) : '10+') + ' mm') } : null;
 var RO = { wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
 aqi: ['AQI', bar(n.aqi, 0, 100), n.aqi !== null], pollen: [O.pollen, n.pollen, n.pollen !== null && n.pollen > 0], humidity: [O.m_hum, bar(n.hum, 0, 100), n.hum !== null],
 baro: ['BARO', bar(n.press, 970, 1050), n.press !== null], co2: ['CO2', bar(M.inn.co2, 400, 2000), M.inn.co2 !== null] };

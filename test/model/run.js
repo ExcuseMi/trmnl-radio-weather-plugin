@@ -209,6 +209,12 @@ test('rain gauge (owner 2026-11-13): mm over the calendar hours to 5 segments of
   eq(mk((M) => { M.hours.forEach((q) => { q.mm = 0; }); }).gauge, null, 'hidden at 0');
   ok(!T.buildView((() => { const M = SWModel.build(raw, {}); M.rain = null; return M; })(), T.buildI18n('nl'), raw.daily).rain, 'no calendar, no gauge');
   const fm = mk((M) => { M.unit = 'F'; M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = 0.3; }).gauge; eq([fm.segs, fm.label], [4, '0.3 in'], 'inch scale 0.4');
+  // mm and inch inputs at the same amounts (0.2, 3, 12 mm): the inch run gets inches from Open-Meteo, so 12 mm is 0.47 in, not 12 in
+  const one = (u, v) => mk((M) => { M.unit = u; M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = v; }).gauge, I = (mm) => mm / 25.4;
+  eq([0.2, 3, 12].map((a) => one('C', a).label), ['0 mm', '3 mm', '10+ mm'], 'mm labels');
+  eq([0.2, 3, 12].map((a) => one('F', I(a)).label), ['<0.1 in', '0.1 in', '0.4+ in'], 'inch labels, capped');
+  eq([0.2, 3, 12].map((a) => one('F', I(a)).segs), [1, 1, 5], 'inch segments (3 mm is 1.48 of 5)');
+  eq(one('F', 8.2).label, '0.4+ in', 'a mm number fed as inches caps, never reads 8.2 in');
 });
 test('the X view: a dry day shows sun times and the moon, no calendar', () => {
   const raw = fx('mixed'), n = raw.hourly.time.length;
@@ -621,6 +627,12 @@ async function stateTests() {
         ok(r.trmnl_state && !Array.isArray(r.trmnl_state) && typeof r.trmnl_state === 'object', 'trmnl_state is an object');
         eq([r.trmnl_state.snap.at, r.trmnl_state.snap.ct, r.trmnl_state.snap.d0], [AT, '2026-11-08T06:00', '2026-11-08']);
       }
+    });
+    await check('fahrenheit asks Open-Meteo for inches and mph, celsius for mm', async () => {
+      answer = fx('mixed'); const urls = [], f0 = global.fetch; global.fetch = async (u) => { urls.push(u); return f0(u); };
+      try { await run(undefined, AT + 600, { unit: 'fahrenheit' }); await run(undefined, AT + 600, {}); } finally { global.fetch = f0; }
+      const w = urls.filter((u) => u.startsWith('https://api.open-meteo.com'));
+      ok(w[0].includes('precipitation_unit=inch') && w[0].includes('wind_speed_unit=mph'), 'F: ' + w[0]); ok(w[1].includes('precipitation_unit=mm'), 'C: ' + w[1]);
     });
     await check('state size: the full trmnl_state stays under 7000 bytes on the biggest answer', async () => {
       answer = bigAnswer(); aq = { current: { time: '2026-11-08T06:00', european_aqi: 33 }, hourly: { time: answer.hourly.time, european_aqi: answer.hourly.time.map((_, i) => 20 + i) } };
