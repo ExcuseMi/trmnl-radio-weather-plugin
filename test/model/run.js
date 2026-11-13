@@ -374,8 +374,9 @@ test('meter cell states for today (owner 2026-11-13): active, reached earlier, e
     [{ frac: null, past: null, later: null, peak: null }, 5, 'eeeee|-1'],
   ];
   table.forEach(([m, n, want]) => eq(S(m, n), want, JSON.stringify(m) + ' on ' + n));
-  const svg = D.meter({ frac: 0.3, past: 0.6, later: 0.9, peak: 0.9 }, 300, 30, 10);
-  eq([(svg.match(/data-sw-gust/g) || []).length, (svg.match(/data-sw-st="p"><g class="([^"]+)"/) || [])[1] === (svg.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1] && !/stroke-dasharray/.test(svg)], [1, true], 'one peak outline; earlier and later cells share one range grey (owner: now + today\'s range)');
+  const svg = D.meter({ frac: 0.3, past: 0.6, later: 0.9, peak: 0.9 }, 300, 30, 10), gsv = D.meter({ frac: 0.2, past: 0.4, later: 0.3, peak: 0.8 }, 300, 30, 10);
+  eq([(svg.match(/data-sw-gust/g) || []).length, (gsv.match(/data-sw-gust/g) || []).length], [0, 1], 'peak outline only outside today\'s range (owner): none when the range already reaches it, one for a gust beyond it');
+  eq([1, (svg.match(/data-sw-st="p"><g class="([^"]+)"/) || [])[1] === (svg.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1] && !/stroke-dasharray/.test(svg)], [1, true], 'one peak outline; earlier and later cells share one range grey (owner: now + today\'s range)');
 });
 test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter, gibbous and full, light and dark, lit side right while waxing', () => {
   const H = 100, r = H * 0.27, disk = Math.PI * r * r;
