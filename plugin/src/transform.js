@@ -368,9 +368,9 @@ try { return new Intl.DateTimeFormat(loc, { weekday: 'short', timeZone: 'UTC' })
 });
 }
 var RO_ORDER = ['wind', 'uv', 'aqi', 'humidity', 'pollen', 'baro', 'co2'];   // owner 2026-11-12: wind before humidity, humidity before pollen
-// Rain calendar (owner 2026-11-12): 12 hours from two hours before the rain starts, never before the first forecast hour.
+// Rain calendar (owner 2026-11-13): 12 hours from the first wet hour (raining now: now), never past the forecast.
 function rainHours(hours, R) {
-var s = Math.max(0, Math.min(R.from - 2, hours.length - 12));
+var s = Math.max(0, Math.min(R.from, hours.length - 12));
 return hours.slice(s, s + 12).map((q, i) => ({ h: q.hl || q.h, wet: s + i >= R.from && s + i <= R.to }));
 }
 // Owner 2026-11-12: 2 x 3 hours; 3 x 3 when the rain runs on past the sixth shown hour.
@@ -451,7 +451,7 @@ var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 var R = M.rain, wetIn12 = !!R && R.from < 12;
 // Rain gauge (owner 2026-11-13, replaces the REGEN meter): the precipitation over the rain calendar's 12 hours, 5 segments of 2 mm (0.08 in), 0..10 mm (0..0.4 in); hidden without an amount above 0 (missing hourly precipitation hides it).
-var rs0 = R ? Math.max(0, Math.min(R.from - 2, M.hours.length - 12)) : 0, regenMm = wetIn12 ? M.hours.slice(rs0, rs0 + 12).reduce((a, q) => a + (q.mm || 0), 0) : null;
+var rs0 = R ? Math.max(0, Math.min(R.from, M.hours.length - 12)) : 0, regenMm = wetIn12 ? M.hours.slice(rs0, rs0 + 12).reduce((a, q) => a + (q.mm || 0), 0) : null;
 var gauge = wetIn12 && regenMm > 0 ? { segs: Math.max(1, Math.min(5, Math.round(regenMm / (F_ ? 0.4 : 10) * 5))), label: (F_ ? (Math.round(regenMm * 10) / 10).toFixed(1) + ' in' : (regenMm < 10 ? String(Math.round(regenMm)) : '10+') + ' mm') } : null;
 var RO = { wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
 aqi: ['AQI', bar(n.aqi, 0, 100), n.aqi !== null], pollen: [O.pollen, n.pollen, n.pollen !== null && n.pollen > 0], humidity: [O.m_hum, bar(n.hum, 0, 100), n.hum !== null],

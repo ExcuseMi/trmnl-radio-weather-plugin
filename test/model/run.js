@@ -247,11 +247,11 @@ test('block meter: half lit lights five of ten, no data lights none', () => {
   const lit = (s) => ((s.split('<g data-sw-on data-sw-st="a">')[1] || '').match(/data-sw-c=/g) || []).length;
   eq([lit(D.meter({ frac: 0.5 }, 300, 40)), lit(D.meter({ frac: null }, 300, 40)), lit(D.meter({ frac: 2 }, 300, 40))], [5, 0, 10]);
 });
-test('rain calendar: 12 hours from two hours before the rain, rain hours lit', () => {
+test('rain calendar: 12 hours from the first wet hour, rain hours lit', () => {
   const hrs = Array.from({ length: 25 }, (_, i) => ({ h: String(i).padStart(2, '0') }));
   const c = T.rainHours(hrs, { from: 5, to: 7 });
-  eq(c.length, 12); eq(c[0].h, '03', 'starts two hours before'); eq(c.filter((q) => q.wet).map((q) => q.h), ['05', '06', '07']);
-  eq(T.rainHours(hrs, { from: 1, to: 2 })[0].h, '00', 'never before the first hour');
+  eq(c.length, 12); eq(c[0].h, '05', 'starts at the first wet hour'); eq(c.filter((q) => q.wet).map((q) => q.h), ['05', '06', '07']);
+  eq(T.rainHours(hrs, { from: 0, to: 2 })[0].h, '00', 'raining now: starts now'); eq(T.rainHours(hrs, { from: 20, to: 22 })[0].h, '13', 'always 12 cells');
   const svg = D.rain(c, 600, 120);
   eq((svg.match(/<rect/g) || []).length, 3, 'one lit cell per rain hour'); ok(!/gray/.test(svg), 'dry hours in full text colour');
 });
@@ -269,7 +269,7 @@ test('right column: no rule between the rain calendar and the sun times (owner 2
 test('days strip: 5-degree lines faint, blocks at least half the row, now line dark', () => {
   const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40);
   ok(/^<svg[^>]*>(<defs>.*<\/defs>)?<g class="text--gray-7\d"/.test(s), 'grid lines light grey');
-  const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-40')[1])[1];
+  const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-20')[1])[1];
   ok(h >= 20, 'block height ' + h + ' of 40');
 });
 test('panel face (owner 2026-11-12): a plain fill on 4-bit light, no backlight lamps; none on 2-bit, in dark or 1-bit', () => {
@@ -328,7 +328,7 @@ test('rain unit: icon left of the grid on every size (owner 2026-11-12, later de
   const u = sh.indexOf('data-sw-unit="rain"'), end = sh.indexOf('data-sw-part="rain"', u);
   ok(u > 0 && /\{\{ ru_cls \}\}/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign ru_cls = 'flex--row lg:portrait:flex--col'/.test(sh), 'row on md and lg');
   ok(/{% if stk %}[^\n]*{% assign ru_cls = 'flex--col lg:flex--row' %}/.test(sh), 'narrow stacked md column: icon above the calendar (owner 2026-11-12)');
-  ok(/<img class="image image--adaptive \{\{ ib_cls \}\}" src="\{\{ ui.rain.icon \}\}"/.test(sh.slice(u, end)) && /h--\[\{\{ cal_m \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\][^"]*" data-sw-part="rain"/.test(sh) && /capture ib_cls %\}aspect--1\/1 h--\[\{\{ ib_m \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\]/.test(sh), 'icon as tall as the grid on md and lg');
+  ok(/<img class="image image--adaptive \{\{ ib_cls \}\}" src="\{\{ ui.rain.icon \}\}"/.test(sh.slice(u, end)) && /h--\[\{\{ cal_m \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\][^"]*" data-sw-part="rain"/.test(sh) && /capture ib_cls %\}aspect--1\/1 h--\[\{\{ ib_m \}\}cqh\] lg:h--\[\{\{ ib_l \}\}cqh\]/.test(sh), 'icon as tall as the grid on md and lg');
   ok(/assign ib_m = cal_m %}{% if stk and view != 3 %}{% assign ib_m = rc_m/.test(sh) && /{% if view == 3 %}[^\n]*{% assign ru_cls = 'flex--row' %}/.test(sh), 'stacked md: icon above, one row tall; OG half vertical: icon left at the calendar height (owner 2026-11-12)');
   ok(/<div class="\{\{ ib_cls \}\}" data-sw-part="moon">/.test(sh), 'moon box the same as the rain icon box');
   const T3 = (h) => D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, h).match(/<text/g).length;
@@ -555,4 +555,9 @@ async function sensorSettingsTests() {
 sensorSettingsTests().then(() => {
   console.log(passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
+});
+test('2-bit active cells are the native dark grey, not black; 4-bit gray-20 (owner 2026-11-13)', () => {
+  const f = (m) => { D.mode = m; const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40); D.mode = null; return s; };
+  ok(/gray-30/.test(f({ dark: false, bits: 2 })) && !/<g class="text--black/.test(f({ dark: false, bits: 2 }).split('data-sw-hl')[0].replace(/text--black[^>]*><line/g, '')), '2-bit day blocks gray-30');
+  ok(/text--gray-20/.test(f({ dark: false, bits: 4 })), '4-bit day blocks gray-20');
 });
