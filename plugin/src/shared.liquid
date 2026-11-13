@@ -49,11 +49,8 @@
     {%- if k == 1 %}<span class="value value--small value--tnums">{{ ui.baro.value }}</span><span class="title title--small text--bold">{{ ui.baro.unit }}</span>{% comment %} owner: the pressure, the trend only as the arrow {% endcomment %}
     {%- else %}<span class="value value--small value--tnums">{{ ui.tdial.value }}</span><span class="title title--small text--bold">{{ ui.tdial.unit }}</span>{% endif -%}
    {%- endcapture %}
-   <div class="absolute bottom--3 right--4 flex {% if k == 2 and ui.inn %}flex--col flex--end gap--xsmall{% else %}flex--row flex--bottom gap--small{% endif %}"{% unless k == 2 and ui.inn %} data-sw-cap{% endunless %}>
-    {%- if k == 2 and ui.inn %}<div class="flex flex--row flex--bottom gap--small" data-sw-cap>{{ dv_row }}</div>
-    <div class="flex flex--row flex--bottom gap--small" data-sw-dialin data-sw-cap>{% comment %} owner 2026-11-13: the indoor value stacked under the outdoor one, in the indoor grey, house icon and its own arrow {% endcomment %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="1" data-sw-loc="in"></div>{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center text--gray-50 dark:text--gray-45" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}"></div>{% endif %}<span class="value value--small value--tnums text--gray-50 dark:text--gray-45">{{ ui.inn.temp }}</span><span class="title title--small text--bold text--gray-50 dark:text--gray-45">{{ ui.tdial.unit }}</span></div>
-    {%- else %}{{ dv_row }}{% endif %}
-   </div>
+   <div class="absolute bottom--3 right--4 flex flex--row flex--bottom gap--small" data-sw-cap>{{ dv_row }}</div>
+   {%- if k == 2 and ui.inn %}<div class="absolute top--3 right--4 flex flex--row flex--bottom gap--small text--gray-50 dark:text--gray-45" data-sw-cap data-sw-dialin>{% comment %} owner 2026-11-13: the indoor value in the top right corner, grey, house icon and its own arrow; right edge level with the outdoor value {% endcomment %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="1" data-sw-loc="in"></div><div class="shrink-0 self--center" data-sw-part="arrow" data-sw-i="2"{% if ui.inn.arrow %} data-sw-arrow="{{ ui.inn.arrow }}"{% endif %}></div><span class="value value--small value--tnums">{{ ui.inn.temp }}</span><span class="title title--small text--bold">{{ ui.tdial.unit }}</span></div>{% endif %}
   </div>{{ p_close }}
   {%- endfor %}
  </div></div>
@@ -66,15 +63,15 @@
    {%- comment %} owner: the meters take the full width; the label column is only as wide as its longest label {% endcomment %}
    <div class="flex flex--row {% if stk %}{% else %}grow{% endif %}{% if view == 2 %} lg:portrait:flex--stretch-y{% endif %} gap--small w--full">
     <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %} shrink-0">
-    {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
-     <div class="{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--right flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
+    {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}{% assign rk = 1 %}{% if m.tw %}{% assign rk = 1.4 %}{% endif %}
+     <div class="{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--right flex--center-y gap--xsmall w--full h--[{{ mr_m | times: hm | times: rk | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | times: rk | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span>{% if m.tw %}<div class="flex flex--col shrink-0"><div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-for="{{ m.key }}" data-sw-i="0" data-sw-loc="out"></div><div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-for="{{ m.key }}" data-sw-i="1" data-sw-loc="in"></div></div>{% endif %}</div>
     {%- endfor %}
     </div>
     <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %} grow">
-    {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
-     <div class="{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}">
-      <div class="w--full h--[{{ mb_m | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
-      <div class="hidden lg:block w--full h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
+    {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}{% assign rk = 1 %}{% if m.tw %}{% assign rk = 1.4 %}{% endif %}
+     <div class="{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y w--full h--[{{ mr_m | times: hm | times: rk | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | times: rk | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}">
+      <div class="w--full h--[{{ mb_m | times: hm | times: rk | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
+      <div class="hidden lg:block w--full h--[{{ 4 | times: hl | times: rk | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
      </div>
     {%- endfor %}
     </div>
@@ -306,8 +303,8 @@ return { st: st, peak: k - 1 };
 }
 function meter(m, W, H, n) {
 m = m || {}; if (!m.tw) return svg(W, H, mrow(m, W, H, n));
-var gp = Math.max(2, H * 0.08), h = (H - gp) / 2, lw = h * 1.25;
-return svg(W, H, locAt('out', 0, 0, h) + locAt('in', 0, h + gp, h) + '<g transform="translate(' + n1(lw) + ' 0)">' + mrow(m, W - lw, h, n) + '</g><g data-sw-twrow="in" transform="translate(' + n1(lw) + ' ' + n1(h + gp) + ')">' + mrow(m.tw.m, W - lw, h, n, inc()) + '</g>');
+var gp = Math.max(2, H * 0.08), h = (H - gp) / 2;
+return svg(W, H, mrow(m, W, h, n) + '<g data-sw-twrow="in" transform="translate(0 ' + n1(h + gp) + ')">' + mrow(m.tw.m, W, h, n, inc()) + '</g>');
 }
 function mrow(m, W, H, n, lc) {
 n = n || 10;
@@ -805,7 +802,8 @@ var cl = /(^| )screen--color-/.test(sc.value);
 SWDraw.mode = { color: cl, dark: sc.contains('screen--dark-mode'), bits: sc.contains('screen--1bit') || (cl && !sc.contains('screen--color-full')) ? 1 : (sc.contains('screen--2bit') ? 2 : 4) };
 SWDraw.font = (TRMNLPaint.type('title', { el: el }) || {}).fontFamily || null;
 var r = el.getBoundingClientRect();
-if (el.hasAttribute('data-sw-sq') && r.height) { var k0 = (el.offsetHeight && r.height / el.offsetHeight) || 1, tf = el.getAttribute('data-sw-part') === 'tri' ? parseFloat(getComputedStyle(el.parentElement).fontSize) * 0.8 : 0; if (tf) el.style.setProperty('height', tf.toFixed(2) + 'px', 'important'); el.style.setProperty('width', (tf || r.height / k0).toFixed(2) + 'px', 'important'); r = el.getBoundingClientRect(); }   // a square tile
+if (el.hasAttribute('data-sw-for')) { var mt = [].filter.call(document.querySelectorAll('[data-sw-part="meter"][data-sw-key="' + el.getAttribute('data-sw-for') + '"]'), function (q) { return q.getBoundingClientRect().height > 0; })[0]; if (mt) { var mk = (mt.offsetHeight && mt.getBoundingClientRect().height / mt.offsetHeight) || 1, mh = mt.getBoundingClientRect().height / mk, mg = Math.max(2, mh * 0.08), rh = (mh - mg) / 2; el.style.setProperty('height', rh.toFixed(2) + 'px', 'important'); el.style.setProperty('width', rh.toFixed(2) + 'px', 'important'); el.parentElement.style.setProperty('gap', mg.toFixed(2) + 'px'); r = el.getBoundingClientRect(); } }   // a legend icon level with each block row of the twin meter
+if (el.hasAttribute('data-sw-sq') && !el.hasAttribute('data-sw-for') && r.height) { var k0 = (el.offsetHeight && r.height / el.offsetHeight) || 1, tf = el.getAttribute('data-sw-part') === 'tri' ? parseFloat(getComputedStyle(el.parentElement).fontSize) * 0.8 : 0; if (tf) el.style.setProperty('height', tf.toFixed(2) + 'px', 'important'); el.style.setProperty('width', (tf || r.height / k0).toFixed(2) + 'px', 'important'); r = el.getBoundingClientRect(); }   // a square tile
 if (!r.width && !r.height) return;
 SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
 var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
