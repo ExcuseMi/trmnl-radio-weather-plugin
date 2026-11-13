@@ -304,11 +304,12 @@ if (i === CS.peak) { var sw = Math.max(3, Math.min(w, ch) * 0.14), gr = rect(x +
 if (s === 'a' && ZT[zi]) { zc[zi] += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, ch, 2); }
 else if (s === 'a') { on += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, ch, 2); }
 else if (s === 'p') pv += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"');
-else if (s === 'l') lt += rect(x + 1.5, 1.5, w - 3, ch - 3, 2, ' fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="4 3" data-sw-c="' + i + '"');
+else if (s === 'l') lt += (API.mode && API.mode.bits <= 1) ? rect(x + 1.5, 1.5, w - 3, ch - 3, 2, ' fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="4 3" data-sw-c="' + i + '"') : rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"');   // later today: the lightest fill (owner: background colours); 1-bit keeps the dashed outline
 else off += DK ? rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2" data-sw-c="' + i + '"');
 }
-var PV = API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bits <= 1 ? 'text--gray-50' : 'text--gray-60');   // reached earlier: the Framework's lighter grey
-return svg(W, H, '<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + lt + '</g><g data-sw-on data-sw-st="a">' + glow(on, GPX) + (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);   // active cells (now) in full ink, black or white in dark mode (owner 2026-11-13)
+var PV = API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bits <= 1 ? 'text--gray-50' : 'text--gray-45');   // reached earlier: the darker Framework grey
+var LT = API.mode && API.mode.dark ? 'text--gray-60' : (API.mode && API.mode.bits <= 2 ? 'text--gray-65' : 'text--gray-75');   // expected later: the lightest Framework grey (fainter than earlier)
+return svg(W, H, '<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + (API.mode && API.mode.bits <= 1 ? lt : g(LT, lt)) + '</g><g data-sw-on data-sw-st="a">' + glow(on, GPX) + (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);   // active cells (now) in full ink, black or white in dark mode (owner 2026-11-13)
 }
 // Days strip x mapping, one for the header and every row (owner 2026-11-12): each grid line runs through the centre of
 // its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.
