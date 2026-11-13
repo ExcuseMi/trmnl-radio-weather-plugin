@@ -231,7 +231,7 @@ return n+(bad.length?' '+bad.slice(0,4).join('; '):'');})()})
       # Indoor sensor (as live): with a reading, BUITEN and BINNEN twin readouts side by side (digits drawn, no overlap,
       # the humidity under BINNEN, no felt line under BUITEN, owner 2026-11-13), and the temperature dial (when shown) carries the twin needle; without one, none of it.
       sn = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},bad=[];
-var tw=[].filter.call(document.querySelectorAll('[data-sw-twin="out"],[data-sw-twin="in"]'),vis),nd=[].filter.call(document.querySelectorAll('svg [data-sw-twin="1"] line'),function(l){return vis(l.ownerSVGElement)&&!l.closest('[data-sw-glow]')});
+var tw=[].filter.call(document.querySelectorAll('[data-sw-twin="out"],[data-sw-twin="in"]'),vis),nd=[].filter.call(document.querySelectorAll('svg [data-sw-twin="1"] polygon'),function(l){return vis(l.ownerSVGElement)&&!l.closest('[data-sw-glow]')});
 if(tw.length){if(tw.length!==2)bad.push('twins '+tw.length);else{var a=tw[0].getBoundingClientRect(),b=tw[1].getBoundingClientRect();if(a.right>b.left+1)bad.push('twins overlap');
 tw.forEach(function(t){var d=t.querySelector('[data-sw-part] svg'),sp=t.querySelectorAll(':scope > span');if(!d||!vis(d)||!d.querySelector('path,rect,polygon'))bad.push(t.getAttribute('data-sw-twin')+' no digits');var o=t.getAttribute('data-sw-twin')==='out';if(sp.length<2||!sp[0].textContent.trim()||(!o&&!sp[1].textContent.trim()))bad.push(t.getAttribute('data-sw-twin')+' label/line missing');if(o&&sp[1]&&sp[1].textContent.trim())bad.push('line under BUITEN '+sp[1].textContent.trim());});}}
 var td=[].filter.call(document.querySelectorAll('[data-sw-part="tdial"]'),vis).length;
