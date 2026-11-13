@@ -317,16 +317,19 @@ return { a: hseg(xl + gp, xr - gp, yt, t), g: hseg(xl + gp, xr - gp, ym, t), d: 
 f: vseg(xl, yt + gp, ym - gp, t), b: vseg(xr, yt + gp, ym - gp, t), e: vseg(xl, ym + gp, yb - gp, t), c: vseg(xr, ym + gp, yb - gp, t) };
 }
 function digits(str, H) {
-var W = 56, HH = 100, T = 13, G = 14, x = 0, body = '';
+var W = 56, HH = 100, T = 13, G = 14, x = 0, body = '', dec = '', post = false;
+// Owner 2026-11-14: the point and the decimal digit after it are drawn in a dark grey (light grey on black in dark mode), black stays on 1-bit.
+function put(t) { if (post) dec += t; else body += t; }
 for (var i = 0; i < str.length; i++) {
 var ch = str.charAt(i);
-if (ch === '.') { body += rect(x - G + 3, HH - T, T, T); x += 20 - G + (str.charAt(i + 1) === '1' ? 6 : 0); continue; }
-if (ch === '°') { body += '<circle cx="' + (x + 9) + '" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="5"/>'; x += 22 + G; continue; }
+if (ch === '.') { post = true; put(rect(x - G + 3, HH - T, T, T)); x += 20 - G + (str.charAt(i + 1) === '1' ? 6 : 0); continue; }
+if (ch === '°') { post = false; body += '<circle cx="' + (x + 9) + '" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="5"/>'; x += 22 + G; continue; }
 var w = ch === '-' ? 46 : (ch === '1' ? T : W), on = GLYPH[ch] || '', sh = shapes(x, w, HH, T), gb = '';
 'abcdefg'.split('').forEach((s) => { if (on.indexOf(s) >= 0) gb += poly(sh[s]); });
-body += '<g data-sw-glyph="' + ch + '">' + gb + '</g>';
+put('<g data-sw-glyph="' + ch + '">' + gb + '</g>');
 x += w + (ch === '-' ? G * 0.3 : G);
 }
+if (dec) body += '<g data-sw-dec>' + g(API.mode && API.mode.bits <= 1 ? '' : (API.mode && API.mode.dark ? 'text--gray-30 dark:text--gray-30' : 'text--gray-30'), dec) + '</g>';
 var vw = Math.max(1, x - G);
 return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
 }
