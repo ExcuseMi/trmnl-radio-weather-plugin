@@ -82,7 +82,7 @@
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}{% assign dv_x = '' %}{% assign pf_m = 10 %}{% assign fe_m = 9 %}
    {%- if calm_q and ui.inn == nil %}{% assign th_m = 21 %}{% assign pf_m = 11 %}{% assign fe_m = 10 %}{% endif %}
-   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line, the felt temperature under it {% endcomment %}{% assign th_m = 26 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y lg:portrait:flex--col' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full lg:portrait:h--[8cqh]' %}{% assign tp_h = 'lg:portrait:h--[15cqh]' %}{% comment %} X half vertical portrait (owner step 12): the felt reading under the temperature as on OG, the row taller {% endcomment %}{% assign dv_x = ' hidden lg:block lg:portrait:hidden' %}{% assign pf_m = 7 %}{% assign fe_m = 7 %}{% endif %}
+   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line, the felt temperature under it {% endcomment %}{% assign th_m = 26 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y lg:portrait:flex--col' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full lg:portrait:h--[7cqh]' %}{% assign tp_h = 'lg:portrait:h--[15cqh]' %}{% comment %} X half vertical portrait (owner step 12): the felt reading under the temperature as on OG, the row taller {% endcomment %}{% assign dv_x = ' hidden lg:block lg:portrait:hidden' %}{% assign pf_m = 7 %}{% assign fe_m = 7 %}{% endif %}
    {%- assign bw_m = 9 | times: wm | round %}{% assign bw_l = 6 | times: wl | round %}{% capture badge_w %}w--[{{ bw_m }}cqw] lg:w--[{{ bw_l }}cqw]{% if view == 1 %} lg:portrait:w--[12cqw]{% endif %}{% endcapture %}{% comment %} Calm (owner): the clothing badge has one fixed width in the console and every day row {% endcomment %}
    {%- assign ar_m = 0.6 %}{% assign ar_l = 0.75 %}{% if view == 2 %}{% assign ar_m = 0.3 %}{% assign ar_l = 0.375 %}{% elsif view == 3 %}{% assign ar_m = 1.2 %}{% assign ar_l = 1.5 %}{% endif %}
    {%- assign ch_m = th_m | times: hm | times: tm | times: 0.85 | round %}{% assign ch_l = th_l | times: hl | times: tf | times: 0.85 | round %}{% if view == 3 %}{% assign ch_m = pf_m | times: hm | times: tm | times: 1.3 | round %}{% endif %}{% assign cw_m = ch_m | times: ar_m | times: 1.6 | round %}{% assign cw_l = ch_l | times: ar_l | times: 1.6 | round %}{% comment %} owner: the console badge in its own fixed box, its main icon about the big digits' cap height {% endcomment %}
@@ -276,10 +276,11 @@ function digits(str, H) {
 var W = 56, HH = 100, T = 13, G = 14, x = 0, body = '';
 for (var i = 0; i < str.length; i++) {
 var ch = str.charAt(i);
-if (ch === '.') { body += rect(x - G + 3, HH - T, T, T); x += 20 - G; continue; }
+if (ch === '.') { body += rect(x - G + 3, HH - T, T, T); x += 20 - G + (str.charAt(i + 1) === '1' ? 6 : 0); continue; }   // a narrow 1 after the point keeps the point's own gap
 if (ch === '°') { body += '<circle cx="' + (x + 9) + '" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="5"/>'; x += 22 + G; continue; }
-var w = ch === '-' ? 46 : W, on = GLYPH[ch] || '', sh = shapes(x, w, HH, T);
-'abcdefg'.split('').forEach((s) => { if (on.indexOf(s) >= 0) body += poly(sh[s]); });
+var w = ch === '-' ? 46 : (ch === '1' ? T : W), on = GLYPH[ch] || '', sh = shapes(x, w, HH, T), gb = '';   // owner 2026-11-13: a narrow 1 (no empty left half), so "4.1" reads as one number
+'abcdefg'.split('').forEach((s) => { if (on.indexOf(s) >= 0) gb += poly(sh[s]); });
+body += '<g data-sw-glyph="' + ch + '">' + gb + '</g>';
 x += w + (ch === '-' ? G * 0.3 : G);
 }
 var vw = Math.max(1, x - G);
