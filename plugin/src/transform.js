@@ -401,11 +401,18 @@ return { weather: Object.assign({}, w, { hourly: nh }), ago: ago, today: h, prev
 // coldest is under 3 C; else from the warmest: jacket under 12 C, sweater under 18 C (owner, after WhetherWear's guides),
 // t-shirt. Extras in order: umbrella (rain), mittens (coldest under -2 C), sunglasses (daytime, UV 6 or more).
 // Fahrenheit converted. No temperature: no top layer. (Owner 2026-11-12: no raincoat.)
-function cueFor(o, F_) {
-var T = (c) => F_ ? c * 1.8 + 32 : c, has = (v) => v !== null && v !== undefined;
+// Hysteresis (owner 2026-11-13, saved state): with the last cue (prev {top, mit}) the top layer and the mittens change
+// only once the felt temperature is past the threshold by 1 C (2 F) in the new direction; umbrella and sunglasses none
+// (a day's rain chance and max UV, steady within the day).
+var TOPS = ['parka', 'jacket', 'sweater', 'tshirt'];
+function cueFor(o, F_, prev) {
+var T = (c) => F_ ? c * 1.8 + 32 : c, has = (v) => v !== null && v !== undefined, m = F_ ? 2 : 1;
 var lo = has(o.lo) ? o.lo : o.hi, hi = has(o.hi) ? o.hi : o.lo;
-var top = !has(lo) ? null : (lo < T(3) ? 'parka' : (hi < T(12) ? 'jacket' : (hi < T(18) ? 'sweater' : 'tshirt')));
-return [top, o.rain ? 'umbrella' : null, has(lo) && lo < T(-2) ? 'mittens' : null, o.day !== false && has(o.uv) && o.uv >= 6 ? 'sunglasses' : null].filter((k) => k);
+var cls = (l, h) => l < T(3) ? 'parka' : (h < T(12) ? 'jacket' : (h < T(18) ? 'sweater' : 'tshirt'));
+var top = !has(lo) ? null : cls(lo, hi), mit = has(lo) && lo < T(-2), pt = prev ? TOPS.indexOf(prev.top) : -1;
+if (top && pt >= 0 && top !== prev.top) top = TOPS.indexOf(top) > pt ? TOPS[Math.max(pt, TOPS.indexOf(cls(lo - m, hi - m)))] : TOPS[Math.min(pt, TOPS.indexOf(cls(lo + m, hi + m)))];
+if (prev && typeof prev.mit === 'boolean' && has(lo) && mit !== prev.mit) mit = lo < T(-2) + (prev.mit ? m : -m);
+return [top, o.rain ? 'umbrella' : null, mit ? 'mittens' : null, o.day !== false && has(o.uv) && o.uv >= 6 ? 'sunglasses' : null].filter((k) => k);
 }
 // Per-day cue input (owner): the daytime hours 07:00 to 19:00 of that day from the hourly data (coldest and warmest felt
 // temperature, highest rain chance); a field the hours lack comes from the daily values; UV from the daily max.
@@ -456,8 +463,12 @@ var gauge = wetIn12 && regenMm > 0 ? { segs: Math.max(1, Math.min(5, Math.round(
 var RO = { wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
 aqi: ['AQI', bar(n.aqi, 0, 100), n.aqi !== null], pollen: [O.pollen, n.pollen, n.pollen !== null && n.pollen > 0], humidity: [O.m_hum, bar(n.hum, 0, 100), n.hum !== null],
 baro: ['BARO', bar(n.press, 970, 1050), n.press !== null], co2: ['CO2', bar(M.inn.co2, 400, 2000), M.inn.co2 !== null] };
-var relevant = { uv: n.day !== false && t.uvMax !== null && t.uvMax >= 3, baro: false };
-var ORD = M.inn.co2 !== null && M.inn.co2 > 1400 ? ['wind', 'co2'].concat(RO_ORDER.filter((k) => k !== 'wind' && k !== 'co2')) : RO_ORDER;   // as live: high indoor CO2 moves up
+// Meter flags with a margin (owner 2026-11-13, saved state opt.prevMt): UV counts from today's max 3 (+/-0.5), high
+// indoor CO2 moves up past 1400 ppm (+/-50); a flag flips only past its threshold by the margin.
+var pm = (opt && opt.prevMt) || {}, flag = (v, th, mg, was) => v === null || v === undefined ? false : (typeof was === 'boolean' ? (was ? v >= th - mg : v >= th + mg) : v >= th);
+var uvOn = n.day !== false && flag(t.uvMax, 3, 0.5, pm.uv), co2Up = flag(M.inn.co2, 1401, 50, pm.co2);
+var relevant = { uv: uvOn, baro: false };
+var ORD = co2Up ? ['wind', 'co2'].concat(RO_ORDER.filter((k) => k !== 'wind' && k !== 'co2')) : RO_ORDER;   // as live: high indoor CO2 moves up
 var keys = ORD.filter((k) => RO[k][2] && relevant[k] !== false);
 ORD.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k !== 'uv') keys.push(k); });
 keys = ORD.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
@@ -490,7 +501,7 @@ var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--'
 var trend = pressTrend(n.press, opt && opt.pressAgo);
 var hrs = opt && opt.hours ? hourStrip(M.hours || [], fmt, deg, opt.prevHour) : null;   // owner: bottom strip Hours instead of the days
 var out = {
-ok: M.ok, meters: meters, cue: cueFor((() => { var ci = nowCueInput(opt && opt.hourly, M.hours, n, t.uvMax); if (ci.rain === null) ci.rain = wetIn12; return ci; })(), F_),
+ok: M.ok, meters: meters, cue: cueFor((() => { var ci = nowCueInput(opt && opt.hourly, M.hours, n, t.uvMax); if (ci.rain === null) ci.rain = wetIn12; return ci; })(), F_, opt && opt.prevCue),
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
 temp: tStr, unit: deg + M.unit,   // owner 2026-11-13: no felt readout; the felt temperature drives the clothing cue only
 inn: inT === null ? null : { temp: t1(inT), out: O.outdoor, in: O.indoor, hum: M.inn.hum === null ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
@@ -504,6 +515,8 @@ icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'].map((k) =
 tdial: { now: tv, twin: inT, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b : 15, step: tst, name: O.temperature, unit: deg + M.unit, value: tStr, arrow: tempTrend(tv, ((M.hours || [])[3] || {}).t, F_) }
 };
 if (hrs) { out.hours = hrs.hours; out.hscale = hrs.scale; }
+var tp = TOPS.indexOf(out.cue[0]) >= 0 ? out.cue[0] : (opt && opt.prevCue && opt.prevCue.top) || null;
+out.keep = { cue: { top: tp, mit: out.cue.indexOf('mittens') >= 0 }, mt: { uv: t.uvMax === null ? pm.uv : uvOn, co2: M.inn.co2 === null ? pm.co2 : co2Up } };   // what the next run remembers (saved state)
 return out;
 }
 
@@ -602,9 +615,10 @@ async function run(input) {
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
   var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
   if (field(input, 'sensor_co2', 'show') === 'hide') model.inn.co2 = null;
-  var ui = buildView(model, i18n, w.daily, moon, phase, { pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time) });
+  var pc = stObj(st0.cue), pmt = stObj(st0.mt);
+  var ui = buildView(model, i18n, w.daily, moon, phase, { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time) });
   if (fb && fb.asOf) ui.stale = i18n.ours.asof + ' ' + clk(fb.asOf.slice(0, 2), fb.asOf.slice(3, 5));
-  var st = { v: 1 }, keep = snap || stObj(st0.snap);
+  var st = { v: 1, cue: ui.keep.cue, mt: ui.keep.mt }, keep = snap || stObj(st0.snap); delete ui.keep;
   if (keep) st.snap = keep;   // a failed fetch writes the old copy back as it was
   return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }

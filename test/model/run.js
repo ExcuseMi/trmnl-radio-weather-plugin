@@ -569,6 +569,38 @@ function bigAnswer() {   // every hourly and daily field the transform asks for,
   D.sunrise = f.daily.sunrise; D.sunset = f.daily.sunset;
   return Object.assign({}, f, { hourly: H, daily: D });
 }
+test('clothing hysteresis (owner 2026-11-13): the top layer and mittens stay until 1 C (2 F) past the threshold, then flip', () => {
+  const c = (lo, hi, prev, F) => T.cueFor({ lo: lo, hi: hi, rain: false, day: true }, !!F, prev);
+  eq(c(5, 12.5, null)[0], 'sweater', 'no memory: threshold as before');
+  eq(c(5, 12.5, { top: 'jacket' })[0], 'jacket', 'warmer by 0.5: stays');
+  eq(c(5, 12.9, { top: 'jacket' })[0], 'jacket', 'warmer by 0.9: stays');
+  eq(c(5, 13, { top: 'jacket' })[0], 'sweater', 'warmer by 1: flips');
+  eq(c(5, 11.2, { top: 'sweater' })[0], 'sweater', 'colder by 0.8: stays');
+  eq(c(5, 10.9, { top: 'sweater' })[0], 'jacket', 'colder by 1.1: flips');
+  eq(c(2.5, 10, { top: 'jacket' })[0], 'jacket', 'parka needs under 2 C');
+  eq(c(1.9, 10, { top: 'jacket' })[0], 'parka');
+  eq(c(-5, 0, { top: 'tshirt' })[0], 'parka', 'a big change skips levels');
+  eq(c(55, 54.6, { top: 'jacket' }, true)[0], 'jacket', 'F: 53.6 threshold + 1 F stays');
+  eq(c(55, 55.7, { top: 'jacket' }, true)[0], 'sweater', 'F: past by 2 F flips');
+  ok(c(-1.5, 2, { top: 'parka', mit: true }).includes('mittens'), 'mittens stay at -1.5');
+  ok(!c(-0.9, 2, { top: 'parka', mit: true }).includes('mittens'), 'mittens off past -1');
+  ok(!c(-2.5, 2, { top: 'parka', mit: false }).includes('mittens'), 'mittens not on at -2.5');
+  ok(c(-3.1, 2, { top: 'parka', mit: false }).includes('mittens'), 'mittens on past -3');
+});
+test('meter flags with a margin (owner 2026-11-13): UV from today\'s max 3 (+/-0.5), high CO2 first past 1400 (+/-50)', () => {
+  const f = fx('mixed'), view = (uvMax, co2, prevMt) => { const m = SWModel.build(f, {}); m.now.day = true; m.today.uvMax = uvMax; m.now.uv = 1; m.inn.co2 = co2; return T.buildView(m, T.buildI18n('en'), f.daily, null, 0.3, { prevMt: prevMt }); };
+  const keys = (v) => v.meters.map((m) => m.key);
+  ok(keys(view(3.2, null, null)).includes('uv'), 'no memory: 3.2 shows UV');
+  ok(!keys(view(3.2, null, { uv: false })).includes('uv'), 'off, 3.2: stays off');
+  ok(keys(view(3.6, null, { uv: false })).includes('uv'), 'off, 3.6: on');
+  ok(keys(view(2.7, null, { uv: true })).includes('uv'), 'on, 2.7: stays on');
+  ok(!keys(view(2.4, null, { uv: true })).includes('uv'), 'on, 2.4: off');
+  eq(view(2.4, null, { uv: true }).keep.mt.uv, false, 'remembered');
+  eq(keys(view(1, 1420, { co2: false }))[1] === 'co2', false, 'CO2 1420 after a low reading: not moved up');
+  eq(keys(view(1, 1460, { co2: false }))[1], 'co2', 'CO2 1460: moved up');
+  eq(keys(view(1, 1360, { co2: true }))[1], 'co2', 'CO2 1360 after a high reading: stays up');
+  eq(keys(view(1, 1340, { co2: true }))[1] === 'co2', false, 'CO2 1340: back');
+});
 async function stateTests() {
   const originalFetch = global.fetch;
   let answer = null, aq = {};
@@ -615,7 +647,7 @@ async function stateTests() {
       eq((await run({ snap: short }, AT + 3 * 3600 + 600)).ui.ok, true, '6 hours left (09:00 to 14:00)');
       eq((await run({ snap: short }, AT + 4 * 3600 + 600)).ui.ok, false, '5 hours left');
       eq((await run({})).ui.ok, false, 'no copy');
-      eq((await run({}, AT, {})).trmnl_state, { v: 1 }, 'nothing to keep');
+      ok(!('snap' in (await run({}, AT, {})).trmnl_state), 'no copy to keep');
     });
     await check('state shapes: a string, an array, a number, bad or missing keys never crash; a failed fetch then shows NO SIGNAL', async () => {
       answer = fx('mixed'); const snap = (await run({})).trmnl_state.snap;
@@ -627,6 +659,15 @@ async function stateTests() {
       }
       answer = null; const r = await run({ snap: Object.assign({}, snap, { d: [], sr: 'x', aq: 'x' }) });
       eq(r.ui.ok, true, 'a copy without days still shows now');
+    });
+    await check('state: the clothing cue and meter flags are remembered run to run; bad shapes ignored', async () => {
+      answer = fx('mixed');
+      const r = await run({});
+      eq(r.trmnl_state.cue, { top: r.ui.cue[0], mit: r.ui.cue.includes('mittens') });
+      ok(!('keep' in r.ui), 'memory not in the merge variables');
+      const other = r.ui.cue[0] === 'parka' ? 'jacket' : 'parka';
+      ok((await run({ cue: { top: other, mit: false } })).ui.cue[0] !== undefined);
+      for (const bad of [{ cue: 'x' }, { cue: { top: 5 } }, { mt: [] }, { cue: null, mt: 'x' }]) eq((await run(bad)).ui.cue, r.ui.cue, 'ignored ' + JSON.stringify(bad));
     });
     await check('state size guard: an oversize state drops the indoor points, then the copy, and always stays an object under 8000 bytes', () => {
       const big = { v: 1, snap: { pad: 'x'.repeat(5000) }, inn: { p: Array.from({ length: 900 }, () => [1, 2, 3]) } };
