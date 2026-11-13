@@ -74,9 +74,10 @@
 {%- endcapture %}
 {%- capture c_temp %}
   <div class="flex flex--col flex--center gap--medium grow w--min-0">{% comment %} owner step 12: the column keeps its share; big readouts shrink to it (swFit) instead of pushing past the divider {% endcomment %}
-   <div class="flex flex--row flex--center-y {% if view == 3 %}gap--small lg:gap--medium lg:portrait:gap--small{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[{% if view == 3 %}3{% else %}5{% endif %}cqh]">
+   <div class="flex flex--row flex--center-y flex--center-x w--full {% if view == 3 %}gap--small lg:gap--medium lg:portrait:gap--small{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[{% if view == 3 %}3{% else %}5{% endif %}cqh]">
     {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
-    <span class="title {% if view == 3 %}title--small lg:title--base lg:portrait:title--small{% elsif view == 4 %}title--small lg:title--base{% else %}title--base lg:title--large{% endif %} text--bold" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
+    {% assign cue_on = false %}{% if ui.cue and ui.cue.size > 0 %}{% assign cue_on = true %}{% endif %}<span class="title {% if view == 3 %}title--small {% unless cue_on %}lg:title--base {% endunless %}lg:portrait:title--small{% elsif view == 4 %}title--small{% unless cue_on %} lg:title--base{% endunless %}{% elsif view == 2 and cue_on %}title--small lg:title--large{% else %}title--base lg:title--large{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
+    {%- if ui.cue and ui.cue.size > 0 %}{% assign cr_m = 13 | times: hm | times: tf %}{% assign cr_l = 8 | times: hl | times: tf %}{% assign cr_p = 5 %}{% if view == 3 %}{% assign cr_p = 3 %}{% endif %}{% assign ca_m = 0.6 %}{% assign ca_l = 0.75 %}{% if view == 2 %}{% assign ca_m = 0.3 %}{% assign ca_l = 0.375 %}{% elsif view == 3 %}{% assign ca_m = 1.2 %}{% assign ca_l = 1.5 %}{% endif %}<div class="shrink-0 h--full w--[{{ cr_m | times: ca_m | times: 1.6 | round }}cqw] lg:w--[{{ cr_l | times: ca_l | times: 1.6 | round }}cqw] lg:portrait:w--[{% if view == 3 %}13{% else %}{{ cr_p | times: 2.4 | round }}{% endif %}cqw]{% if view == 3 %} hidden lg:block lg:portrait:hidden{% endif %}" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}{% comment %} owner step 13 item 2: the console badge in the condition row, about the condition icon's height (left out where the row is too narrow: OG half vertical, owner 2026-11-13, and X half vertical in portrait) {% endcomment %}
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}{% assign dv_x = '' %}{% assign pf_m = 10 %}{% assign fe_m = 9 %}
@@ -85,8 +86,6 @@
    {%- assign bw_m = 9 | times: wm | round %}{% assign bw_l = 6 | times: wl | round %}{% capture badge_w %}w--[{{ bw_m }}cqw] lg:w--[{{ bw_l }}cqw]{% if view == 1 %} lg:portrait:w--[12cqw]{% endif %}{% endcapture %}{% comment %} Calm (owner): the clothing badge has one fixed width in the console and every day row {% endcomment %}
    {%- assign ar_m = 0.6 %}{% assign ar_l = 0.75 %}{% if view == 2 %}{% assign ar_m = 0.3 %}{% assign ar_l = 0.375 %}{% elsif view == 3 %}{% assign ar_m = 1.2 %}{% assign ar_l = 1.5 %}{% endif %}
    {%- assign ch_m = th_m | times: hm | times: tm | times: 0.85 | round %}{% assign ch_l = th_l | times: hl | times: tf | times: 0.85 | round %}{% if view == 3 %}{% assign ch_m = pf_m | times: hm | times: tm | times: 1.3 | round %}{% endif %}{% assign cw_m = ch_m | times: ar_m | times: 1.6 | round %}{% assign cw_l = ch_l | times: ar_l | times: 1.6 | round %}{% comment %} owner: the console badge in its own fixed box, its main icon about the big digits' cap height {% endcomment %}
-   {%- capture cue_html %}    {%- if ui.cue and ui.cue.size > 0 %}<div class="lg:portrait:shrink-0 w--[{{ cw_m }}cqw] lg:w--[{{ cw_l }}cqw] h--[{{ ch_m | at_most: 100 }}cqh] lg:h--[{{ ch_l | at_most: 100 }}cqh] lg:portrait:h--[5cqh] lg:portrait:w--[12cqw]{% if view == 3 %} lg:hidden{% endif %}" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}
-{%- endcapture %}
    <div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] {{ tp_h | default: 'lg:portrait:h--[8cqh]' }}">
     {%- if ui.inn %}{% comment %} Indoor sensor (as live): BUITEN and BINNEN twin readouts, the felt temperature under the outdoor one, the indoor humidity under the indoor one. {% endcomment %}
     {%- for tw in (1..2) %}
@@ -98,7 +97,7 @@
     </div>
     {%- endfor %}
     {%- else %}
-    <div class="flex flex--row flex--top gap--xsmall shrink-0 {{ tg_h }}"><div class="h--full" data-sw-part="temp"></div>{% if view == 3 and ui.cue and ui.cue.size > 0 %}<div class="flex flex--col flex--left gap--small lg:gap--none"><span class="value value--small" data-sw-unit>{{ ui.unit }}</span><div class="shrink-0 w--[9cqw] aspect--1/1 lg:hidden" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div></div>{% else %}<span class="value value--small" data-sw-unit>{{ ui.unit }}</span>{% endif %}</div>{% comment %} OG half vertical (owner screenshot 109): the badge under the unit, right of the digits, never under them {% endcomment %}
+    <div class="flex flex--row flex--top gap--xsmall shrink-0 {{ tg_h }}"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
     {%- endif %}
     {%- assign felt_on = false %}{% if ui.feels and view != 4 %}{% assign felt_on = true %}{% endif %}{% assign felt_v = '' %}{% if view == 3 %}{% assign felt_v = ' hidden lg:block' %}{% endif %}{% comment %} owner: the felt reading (label and digits) only where it fits: never in the quadrant, half vertical on lg only {% endcomment %}
     {%- if felt_on %}
@@ -106,9 +105,8 @@
     {%- if view == 3 %}<div class="flex flex--row flex--center-y gap--small lg:gap--medium">{% endif %}
     <div class="shrink-0{{ felt_v }}"><div class="flex flex--col flex--left gap--xsmall" data-sw-felt><span class="label label--inverted label--large lg:portrait:label--xxlarge text--bold" data-sw-feltlabel>{{ i18n.ours.feels }}</span>{% comment %} owner: the felt word over the felt digits, as today's day label {% endcomment %}
 <div class="shrink-0 h--[{{ fe_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 7 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="feels"></div></div></div>
-{% unless view == 3 %}{{ cue_html }}{% endunless %}    {%- if view == 3 %}</div>{% endif %}
-    {%- elsif ui.cue and view != 3 %}
-{{ cue_html }}    {%- endif %}
+{%- if view == 3 %}</div>{% endif %}
+    {%- endif %}
    </div>
   </div>
 {%- endcapture %}
