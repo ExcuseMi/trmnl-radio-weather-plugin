@@ -449,23 +449,49 @@ return svg(W, H, '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"
 }
 // Dial radius (owner step 12): both dials share one radius, as large as the panel allows; the temperature's low/high
 // numbers may shrink it to no less than an arc 74 % of the panel wide, below that the numbers are left out.
-function dialR(D, W, H, nums) {
-var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, py = H * (W < H * 1.8 ? 0.72 : 0.93), bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);
-var r = Math.min(W * 0.42 / Math.sin(A), py - H * 0.015 - mh - bw - lw), rmin = Math.min(r, W * 0.37 / Math.sin(A)), ok = true;
+function dialR(D, W, H, nums, py) {
+var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);
+var g = Math.max(4, H * 0.03), r = Math.min(W * 0.42 / Math.sin(A), py - g - 1.3 * mh - bw - lw - 2), rmin = Math.min(r, W * 0.37 / Math.sin(A)), ok = true;
 if (nums && D && D.lo !== null && D.lo !== undefined && D.hi !== null && D.hi !== undefined) {
 var fit = (rr) => [D.lo, D.hi].every((v) => { var f0 = Math.max(-0.03, Math.min(1.03, (v - D.a) / (D.b - D.a))), an = -A + 2 * A * f0, ca = Math.cos(an), r1 = rr + lw + bw + 2 + mh, s = String(Math.round(v)) + '°',
- ext = Math.abs(Math.sin(an)) * mfs * 0.62 * s.length / 2 + Math.abs(ca) * mfs * 0.4 + r1 * 0.022 * 2 * A, top = py - (r1 + mg + ext) * ca - mfs * 0.4, xs = cx + (r1 + mg + ext) * Math.sin(an);
- return top >= H * 0.015 && xs - mfs * 0.62 * s.length / 2 >= 0 && xs + mfs * 0.62 * s.length / 2 <= W; });
+ ext = Math.abs(Math.sin(an)) * mfs * 0.62 * s.length / 2 + Math.abs(ca) * mfs * 0.4 + r1 * 0.022 * 2 * A, top = py - (r1 + mg + ext) * ca - mfs * 0.625, xs = cx + (r1 + mg + ext) * Math.sin(an);
+ return top >= g && xs - mfs * 0.62 * s.length / 2 >= g && xs + mfs * 0.62 * s.length / 2 <= W - g; });   // the panel-edge gap (owner 2026-11-13)
 for (var it = 0; it < 80 && !fit(r); it++) r *= 0.98;
 ok = fit(r);
 }
 return [r, ok];
 }
+// Captions and panel edges (owner 2026-11-13, live X full: "0" on the U of TEMPERATUUR, the arc end on BAROMETER, the
+// high label cut at the top): the arc, its ticks, scale numbers, zone icons, the low/high band, marks and labels keep
+// the gap g clear of the caption text boxes (API.caps, measured by the page) and of the panel edges.
+function dialClash(D, W, H, r, py, nums, kind) {
+var g = Math.max(4, H * 0.03), caps = (API.caps || {})[kind] || [];
+return dialInk(D, W, H, r, py, nums, kind === 'baro').some((b) => b[0] < g || b[1] < g || b[2] > W - g || b[3] > H - g || caps.some((c) => b[0] < c[2] + g && b[2] > c[0] - g && b[1] < c[3] + g && b[3] > c[1] - g));
+}
+// The dial's ink boxes [x0, y0, x1, y1] for radius r, from the same geometry as dial() (hub and needle left out).
+function dialInk(D, W, H, r, py, nums, baro) {
+var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008), out = [];
+var cl = (f) => Math.max(-0.03, Math.min(1.03, f)), at = (f, rad) => { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }, F = (v) => (v - D.a) / (D.b - D.a);
+var pt = (q, h) => out.push([q[0] - h, q[1] - h, q[0] + h, q[1] + h]), bx = (q, w, h) => out.push([q[0] - w / 2, q[1] - h / 2, q[0] + w / 2, q[1] + h / 2]);
+for (var f = 0; f <= 1.0001; f += 0.025) { pt(at(f, r), lw); pt(at(f, r - H * 0.07), lw); }
+if (baro) { var zri = r - H * 0.135, isz = r * 0.34; [0, 1, 2, 3].forEach((i) => bx(at((2 * i + 1) / 8, zri - isz * 0.62), isz, isz)); }
+else for (var v = D.a; v <= D.b + 1e-9; v += D.step) { var fs = H * 0.085; bx(at(F(v), r - H * 0.07 - fs * 0.8), fs * 0.62 * String(v).length, fs * 1.25); }   // a text's box is its em box, not its ink
+if (D.lo !== null && D.lo !== undefined && D.hi !== null && D.hi !== undefined) {
+var r0 = r + lw + bw + 2, r1 = r0 + mh, f0 = F(D.lo), f1 = F(D.hi);
+for (var k = 0; k <= 20; k++) pt(at(f0 + (f1 - f0) * k / 20, r + lw + bw), lw / 2);
+[D.lo, D.hi].forEach((m) => { var f = F(m); pt(at(f, r1), mh * 0.3); if (nums) { var an = -A + 2 * A * cl(f), lt = String(Math.round(m)) + '°', ext = Math.abs(Math.sin(an)) * mfs * 0.62 * lt.length / 2 + Math.abs(Math.cos(an)) * mfs * 0.4 + r1 * 0.022 * 2 * A; bx(at(f, r1 + mg + ext), mfs * 0.62 * lt.length, mfs * 1.25); } });
+}
+return out;
+}
 function dial(D, W, H, baro, O) {
 var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, py = H * (W < H * 1.8 ? 0.72 : 0.93),   // narrow box: hub up, clear of the corner captions (owner 2026-11-12)
  bw = H * 0.045, mh = H * 0.05 * 1.6;   // the same low/high marks on both dials (owner step 12)
 var cm = !baro, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);   // Calm (owner): bigger low/high marks; numbers on the temperature dial
-var R0 = dialR(D, W, H, cm), R1 = O ? dialR(O, W, H, baro) : R0, r = Math.min(R0[0], R1[0]), nums = cm && R0[1];
+var k0 = baro ? 'baro' : 'tdial', k1 = baro ? 'tdial' : 'baro', R0, R1, r, nums, py0 = py;
+for (var yy = py0; yy >= H * 0.5; yy -= H * 0.01) {   // the lowest hub at which both dials, at one radius, clear their captions and the panel edges (owner 2026-11-13)
+R0 = dialR(D, W, H, cm, yy); R1 = O ? dialR(O, W, H, baro, yy) : R0; r = Math.min(R0[0], R1[0]); nums = cm && R0[1]; py = yy;
+if (!dialClash(D, W, H, r, yy, nums, k0) && !(O && dialClash(O, W, H, r, yy, baro && R1[1], k1))) break;
+}
 var F = (v) => (v - D.a) / (D.b - D.a), cl = (f) => Math.max(-0.03, Math.min(1.03, f));
 function at(f, rad) { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
 function arc(rad, f0, f1) { var p0 = at(f0, rad), p1 = at(f1, rad); return 'M' + n1(p0[0]) + ' ' + n1(p0[1]) + ' A' + n1(rad) + ' ' + n1(rad) + ' 0 0 1 ' + n1(p1[0]) + ' ' + n1(p1[1]); }
@@ -509,8 +535,8 @@ if (D.twin !== null && D.twin !== undefined) {   // indoor twin needle (as live)
 var ta = -A + 2 * A * cl(F(D.twin)), tux = Math.sin(ta), tuy = -Math.cos(ta), tr = r * 0.92, tcr = Math.max(3, H * 0.012), tsw = n1(Math.max(1.5, H * 0.005));
 tw = '<g data-sw-twin="1" fill="none" stroke="currentColor" stroke-width="' + tsw + '"><line x1="' + n1(cx) + '" y1="' + n1(py) + '" x2="' + n1(cx + tux * (tr - tcr)) + '" y2="' + n1(py + tuy * (tr - tcr)) + '"/><circle cx="' + n1(cx + tux * tr) + '" cy="' + n1(py + tuy * tr) + '" r="' + n1(tcr) + '"/></g>';
 }
-body += g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
-body += glow(tw + poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '" data-sw-hub="' + n1(Math.max(hr, tailR + wb * 1.6)) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>');
+body += '<g data-sw-needle>' + g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
+body += glow(tw + poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '" data-sw-hub="' + n1(Math.max(hr, tailR + wb * 1.6)) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>') + '</g>';   // needle and hub grouped (the caption check leaves them out)
 }
 return svg(W, H, body);
 }
@@ -659,6 +685,7 @@ return API;
         SWDraw.scaleH = rows.length && rows[0].getAttribute('data-sw-part') === 'scale' ? Math.round(rows[0].getBoundingClientRect().height) : null;
         var hb = [].map.call(document.querySelectorAll('[data-sw-part="hbar"]'), function (q) { return q.getBoundingClientRect().height; }).filter(function (h) { return h > 0; }); SWDraw.hbarH = hb.length ? Math.floor(Math.min.apply(null, hb)) : null;   // hours strip: one block height for every column
         SWDraw.extD = k >= 0 && k + 1 < rows.length ? Math.max(0, rows[k + 1].getBoundingClientRect().top - r.bottom + 1) : 0;   // scale and day rows: rules and the now line run on to the next row
+        if (/^(baro|tdial)$/.test(el.getAttribute('data-sw-part'))) { SWDraw.caps = {}; document.querySelectorAll('[data-sw-part="baro"], [data-sw-part="tdial"]').forEach(function (d) { var b = d.getBoundingClientRect(); if (!b.width) return; SWDraw.caps[d.getAttribute('data-sw-part')] = [].map.call(d.parentElement.querySelectorAll('[data-sw-cap]'), function (c) { var rg = document.createRange(); rg.selectNodeContents(c); var q = rg.getBoundingClientRect(); return [q.left - b.left, q.top - b.top, q.right - b.left, q.bottom - b.top]; }); }); }   // dial captions' text boxes, in each dial's own box (owner 2026-11-13: the arc keeps clear of them)
         el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.floor(r.width), Math.floor(r.height));   // floor: a drawn part never pokes a pixel past its box
         if (el.getAttribute('data-sw-part') === 'cue') { var cs0 = el.firstElementChild; if (cs0) { cs0.setAttribute('width', '100%'); cs0.setAttribute('height', '100%'); cs0.setAttribute('preserveAspectRatio', 'xMinYMid meet'); } }   // the console badge follows its box: it gives way when the row is short of room and never pushes past a divider
         el.querySelectorAll('text[data-sw-tick]').forEach(function (t) { var d = t.nextElementSibling; if (d) d.setAttribute('x', (+t.getAttribute('x') + t.getComputedTextLength() / 2 + 1).toFixed(1)); });   // the degree sign right after the drawn digits

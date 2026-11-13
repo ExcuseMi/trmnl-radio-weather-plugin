@@ -244,7 +244,7 @@ test('rain calendar: 12 hours from two hours before the rain, rain hours lit', (
 });
 test('dials: needle drawn last, low mark hollow, high mark solid, baro zone icons', () => {
   const t = D.dial({ now: 1.6, lo: 1.4, hi: 13.1, a: 0, b: 15, step: 5 }, 900, 380, false);
-  ok(/<circle[^>]*\/><\/g><\/svg>$/.test(t), 'hub (needle group) is the last thing drawn');
+  ok(/<circle[^>]*\/><\/g><\/g><\/svg>$/.test(t), 'hub (needle group) is the last thing drawn');
   ok(/fill="none" stroke="currentColor"[^>]*stroke-linejoin/.test(t), 'hollow low mark');
   const b = D.dial({ now: 1013, lo: 1008, hi: 1016, a: 970, b: 1050, icons: ['a.svg', 'b.svg', 'c.svg', 'd.svg'] }, 900, 380, true);
   eq((b.match(/<image /g) || []).length, 4, 'four zone icons');
@@ -272,7 +272,7 @@ test('dial light: backlight in light mode (2-bit up), glow in dark (blur 4-bit, 
   ok(/data-sw-glow="4"[\s\S]*feGaussianBlur|feGaussianBlur[\s\S]*data-sw-glow="4"/.test(t({ dark: true, bits: 4 })), 'dark 4-bit blur glow');
   ok(/feMorphology/.test(t({ dark: true, bits: 2 })) && !/feGaussianBlur/.test(t({ dark: true, bits: 2 })), 'dark 2-bit halo, no blur');
   ok(!/data-sw-glow|data-sw-backlight/.test(t({ dark: true, bits: 1 })), '1-bit dark: nothing');
-  ok(/<circle[^>]*\/><\/g><\/svg>$/.test(t({ dark: true, bits: 4 })), 'needle hub still last');
+  ok(/<circle[^>]*\/><\/g><\/g><\/svg>$/.test(t({ dark: true, bits: 4 })), 'needle hub still last');
 });
 test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none in light mode or 1-bit (owner 2026-11-12)', () => {
   const SWv = { temp: '12', meters: [{ frac: 0.5 }], rain: { hours: [{ h: '14', wet: true }, { h: '15', wet: false }] }, sun: { phase: 0.3 } };
