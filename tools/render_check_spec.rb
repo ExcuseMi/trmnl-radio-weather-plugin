@@ -246,7 +246,7 @@ var dial=n('[data-sw-part="baro"]');return [1,dial,n('[data-sw-part="baro"] ~ .l
         expect(q[3]).to eq(0)   # owner 2026-11-13: no trend word on the dial (the pressure shows; the trend is the arrow)
         expect(q[4]).to eq(q[1] * 2)
         expect(q[5..7]).to eq([0, 0, 0])
-        expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && !(c['view'] == 'half_vertical' && (c['device'] != 'v2' || c['orientation'] == 'portrait') && !(c['device'] != 'v2' && c['orientation'] == 'portrait')))   # step 18 (owner via coordinator): OG half_vertical portrait has room, the badge shows there   # owner 2026-11-13: beside the temperature, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) and X half_vertical portrait (the label ran under it)
+        expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && !(c['view'] == 'half_vertical' && c['device'] != 'v2' && c['orientation'] != 'portrait'))   # step 18 (owner via coordinator): OG half_vertical portrait has room, the badge shows there   # owner 2026-11-13: beside the temperature, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) ; X half_vertical portrait shows it again (step 19, coordinator: owner rule, badge beside the temperature in every view; the OG hv portrait layout as the model)
       end
       # Calm (owner): 1-bit and 2-bit panels stay paper (no grey fill); the dial's low/high numbers clear their triangles by 2 px
       # and are at least the size of the dial's scale numbers.
@@ -279,8 +279,8 @@ nm.forEach(function(e){var b=e.getBoundingClientRect(),k=ax?ax.ownerSVGElement.g
 return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.length,tod,big].join(',');})()})
       puts "DAYROW #{c['name']}: rows,minH,screenH,ptr,ptrToday,ptrBigAndClear #{dr}"
       # Day rows (owner step 17): one name column width, so the icons line up in every row, the name never reaches its icon
-      # (the inverted today label included) and all rows are the same height.
-      al = s.evaluate(%q{(function(){var bad=[],L=[],H=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(e){var q=e.getBoundingClientRect();if(!q.height)return;H.push(q.height);var lo=[].filter.call(e.querySelectorAll('span.title:not([data-sw-dname])'),function(x){return x.getBoundingClientRect().width>0})[0],im=e.querySelector('img'),nm=e.querySelector('[data-sw-today],[data-sw-dname]');if(nm&&lo&&nm.getBoundingClientRect().right>lo.getBoundingClientRect().left-6)bad.push('name '+nm.textContent.trim()+' reaches its low');if(!im||!nm)return;var a=im.getBoundingClientRect(),b=nm.getBoundingClientRect();L.push(a.left);if(b.right>a.left-3)bad.push('name '+nm.textContent.trim()+' reaches its icon');});
+      # (the inverted today label included; its text measured too, and never clipped by its box: step 19, x-port-hv) and all rows are the same height.
+      al = s.evaluate(%q{(function(){var bad=[],L=[],H=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(e){var q=e.getBoundingClientRect();if(!q.height)return;H.push(q.height);var lo=[].filter.call(e.querySelectorAll('span.title:not([data-sw-dname])'),function(x){return x.getBoundingClientRect().width>0})[0],im=[].filter.call(e.querySelectorAll('img'),function(x){return x.getBoundingClientRect().width>0})[0],nm=e.querySelector('[data-sw-today],[data-sw-dname]');if(nm&&lo&&nm.getBoundingClientRect().right>lo.getBoundingClientRect().left-6)bad.push('name '+nm.textContent.trim()+' reaches its low');if(nm){var r0=document.createRange();r0.selectNodeContents(nm);var tb=r0.getBoundingClientRect(),nb=nm.getBoundingClientRect();if(tb.width&&(tb.right>nb.right+0.5||tb.left<nb.left-0.5))bad.push('name '+nm.textContent.trim()+' runs past its label');}if(!im||!nm)return;var a=im.getBoundingClientRect(),b=nm.getBoundingClientRect(),rg=document.createRange();rg.selectNodeContents(nm);var rr=rg.getBoundingClientRect();if(rr.width&&rr.right>b.right)b=rr;L.push(a.left);if(b.right>a.left-3)bad.push('name '+nm.textContent.trim()+' reaches its icon');});
 if(L.length&&Math.max.apply(null,L)-Math.min.apply(null,L)>1)bad.push('icon lefts '+L.map(Math.round));if(H.length&&Math.max.apply(null,H)-Math.min.apply(null,H)>1)bad.push('row heights '+H.map(Math.round));return bad.join('; ')})()})
       # Rain calendar cells are rectangles with the meter cells' corner radius (owner step 17), in rendered pixels.
       rx = s.evaluate(%q{(function(){var cal=[].filter.call(document.querySelectorAll('[data-sw-part="rain"] svg rect[rx]'),function(r){return r.getBoundingClientRect().width>0})[0],mc=[].filter.call(document.querySelectorAll('[data-sw-part="meter"] svg rect[rx]'),function(r){return r.getBoundingClientRect().width>0})[0];if(!cal||!mc)return '';
@@ -374,6 +374,19 @@ if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);if(ws.length&&Math.max
       puts "CLOTH #{c['name']}: console,dayrows|bad #{co}"
       expect(co.split('|', 2)[1]).to eq('')
       expect(co.split(',')[1].to_i).to be_positive if (c['view'] || 'full') == 'full' && (c['fields'] || {})['bottom'] != 'hours'
+      # Portrait day rows and console (owner, step 19 on x-port-hv; OG half vertical portrait the model): the console badge
+      # beside the temperature, every day row keeps its low and high, the header its two markers, and the scale labels
+      # no larger than 1.3 x the low/high digits.
+      if c['orientation'] == 'portrait'
+        pr = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},bad=[],fs=function(e){return parseFloat(getComputedStyle(e).fontSize)*(e.getBoundingClientRect().width/(e.offsetWidth||1))};
+if(SW.cue&&SW.cue.length&&![].some.call(document.querySelectorAll('[data-sw-part="cue"]'),vis))bad.push('no console badge');
+var rows=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis),lf=0;rows.forEach(function(r){var n=[].filter.call(r.querySelectorAll('span.title:not([data-sw-dname])'),vis);if(n.length<2)bad.push('row '+r.textContent.trim().split(/\s+/)[0]+' without low/high');else lf=fs(n[0]);});
+if(rows.length){var tr=[].filter.call(document.querySelectorAll('[data-sw-part="tri"]'),vis).length;if(tr!==2)bad.push('markers '+tr);
+var sv=[].filter.call(document.querySelectorAll('[data-sw-part="scale"] svg'),vis)[0];if(sv&&lf){var k=sv.getBoundingClientRect().height/(+sv.getAttribute('height')||1);[].forEach.call(sv.querySelectorAll('text'),function(t){var f=+t.getAttribute('font-size')*k;if(f>lf*1.3)bad.push('scale label '+f.toFixed(0)+' px over low/high '+lf.toFixed(0));});}}
+return bad.filter(function(x,i,a){return a.indexOf(x)===i}).join('; ');})()})
+        puts "PORT #{c['name']}: #{pr}" unless pr.empty?
+        expect(pr).to eq('')
+      end
       # Dividers (owner 2026-11-12, step 12): no ink (shapes, icons, glyphs) within 0.75 of the row gap of a vertical
       # divider in a panel; the clothing badge, meters and digits keep the normal gap.
       dg = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e.getBoundingClientRect();return b.height>0?b:null};
