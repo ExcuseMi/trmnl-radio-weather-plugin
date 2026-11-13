@@ -225,6 +225,13 @@
 {%- if ui and ui.ok %}
 <script type="text/javascript">
 var SW = {{ ui | json }};
+// Size class follows the real screen (device tier, owner task D1): the X layout (lg) is tuned for about 4:3 and 780 px
+// of height. A model whose lg class arrives on a small or wide screen (800x480 where the framework has no size for the
+// model, 1067x600) reads as a md screen, so the md sizes and rows apply.
+(function () { var sc = document.querySelector('.screen'); if (sc && sc.classList.contains('screen--lg') && Math.min(sc.offsetWidth, sc.offsetHeight) < 640) { sc.classList.remove('screen--lg'); sc.classList.add('screen--md'); } })();
+// Full-colour screens (24 bit) fill their panels like 4-bit ones: no hairline in the gap between them (the markup hides it
+// by the 4bit class, which a colour screen does not carry). Dark mode draws no fill, so it keeps the hairline.
+(function () { var sc = document.querySelector('.screen'); if (sc && sc.classList.contains('screen--color-full') && !sc.classList.contains('screen--dark-mode')) document.querySelectorAll('[data-sw-between]').forEach(function (e) { e.classList.add('hidden'); }); })();
 // ==== DRAW_BEGIN ====
 var SWDraw = (() => {
 var API = { paint: null };
