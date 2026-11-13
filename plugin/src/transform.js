@@ -300,6 +300,13 @@ model.now.aqi = aq && aq.current ? num(aq.current.european_aqi) : null;
 var aqD = aq && aq.current ? String(aq.current.time || '').slice(0, 10) : '', aqH = (day) => aq ? maxOf(list(aq.hourly || {}, 'european_aqi').filter((v, i) => String(list(aq.hourly, 'time')[i]).slice(0, 10) === day)) : null;
 model.today.aqiMax = aqH(aqD);
 model.now.pollen = num(raw.pollen);
+// Today's range per meter (owner 2026-11-13): min and max over today's hours (local date of the current time; raw.todayHourly holds
+// the hours the forecast gives before now, 3 with past_hours=3, else the hourly list from now). WIND: min wind speed, max gust.
+var day0 = String(c.time || '').slice(0, 10), th = raw.todayHourly || raw.hourly || {}, tdx = list(th, 'time').map((t, i) => String(t).slice(0, 10) === day0 ? i : -1).filter((i) => i >= 0);
+var rng = (o, key, idx) => minMax(idx.map((i) => num(list(o, key)[i])).filter((v) => v !== null));
+var aqi0 = aq ? list(aq.hourly || {}, 'time').map((t, i) => String(t).slice(0, 10) === aqD ? i : -1).filter((i) => i >= 0) : [];
+var wl = rng(th, 'wind_speed_10m', tdx), gh = rng(th, 'wind_gusts_10m', tdx);
+model.range = { wind: { lo: wl.lo, hi: gh.hi !== null ? gh.hi : model.today.gustMax }, uv: rng(th, 'uv_index', tdx), humidity: rng(th, 'relative_humidity_2m', tdx), baro: rng(th, 'pressure_msl', tdx), aqi: aq ? rng(aq.hourly || {}, 'european_aqi', aqi0) : { lo: null, hi: null } };
 model.inn = { temp: null, hum: null, co2: null, press: null };
 var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;
 var dk = sd ? Object.keys(sd).sort().filter((k) => sd[k] && typeof sd[k] === 'object' && Object.keys(sd[k]).some((q) => Array.isArray(sd[k][q]) && sd[k][q].length))[0] : null;
@@ -385,7 +392,7 @@ var k = 0; while (k < t.length && String(t[k]) < String(cur).slice(0, 13) + ':00
 if (k !== 3) return { weather: w, ago: null };   // only the 3 past hours past_hours=3 gives; anything else is left as it came
 var pq = h.pressure_msl || [], ago = k >= 3 && typeof pq[k - 3] === 'number' ? pq[k - 3] : null, nh = {};
 var ph = {}; Object.keys(h).forEach((key) => { nh[key] = Array.isArray(h[key]) ? h[key].slice(k) : h[key]; ph[key] = Array.isArray(h[key]) ? h[key].slice(k - 1) : h[key]; });
-return { weather: Object.assign({}, w, { hourly: nh }), ago: ago, prev: SWModel.hoursAhead({ hourly: ph }, 1)[0] || null };   // the hour before the current one (the Hours strip's even slot)
+return { weather: Object.assign({}, w, { hourly: nh }), ago: ago, today: h, prev: SWModel.hoursAhead({ hourly: ph }, 1)[0] || null };   // the hour before the current one (the Hours strip's even slot)
 }
 // Calm clothing cues (owner): a list, the top layer first, then the extras. Top, by felt temperature: parka when the
 // coldest is under 3 C; else from the warmest: jacket under 12 C, sweater under 18 C (owner, after WhetherWear's guides),
@@ -449,7 +456,9 @@ ORD.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k
 keys = ORD.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
 var PRI = ORD;   // stacked views fill their meter rows in this order (owner 2026-11-12)
 var ZONES = { wind: [0.5, F_ ? 0.75 : 0.83], co2: [0.375, 0.625], pollen: [0.3, 0.6], aqi: [0.4, 0.6], uv: [3 / 11, 8 / 11] };   // warning zones, as live
-var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], gust: k === 'wind' ? bar(n.gust, 0, F_ ? 40 : 60) : null, zones: ZONES[k] || null, idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
+var SCL = { wind: [0, F_ ? 40 : 60], uv: [0, 11], aqi: [0, 100], humidity: [0, 100], baro: [970, 1050] }, RG = M.range || {};   // today's max (outlined cell) and min (lighter cells below it), owner 2026-11-13; CO2 and pollen (already today's max) none
+var mm = (k, e) => SCL[k] && RG[k] && RG[k][e] !== null && RG[k][e] !== undefined ? bar(RG[k][e], SCL[k][0], SCL[k][1]) : null;
+var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], gust: k === 'wind' ? (mm(k, 'hi') !== null ? mm(k, 'hi') : bar(n.gust, 0, F_ ? 40 : 60)) : mm(k, 'hi'), min: mm(k, 'lo'), zones: ZONES[k] || null, idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
 var t1 = (v) => { var s = (Math.round(v * 10) / 10).toFixed(1), r = Math.round(v); return s.split('.')[0].length >= 3 ? String(r === 0 ? 0 : r) : s; };   // owner (step 12): no decimal once the whole part has 3+ characters (104°, -12°)
 var tv = n.temp, tStr = tv === null ? '--.-' : t1(tv);
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
@@ -500,7 +509,7 @@ async function run(input) {
   var fahrenheit = String(UNIT || field(input, 'unit', 'celsius')) === 'fahrenheit';
   var forecast = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
     '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index' +
-    '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,pressure_msl,weather_code,is_day' +
+    '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,pressure_msl,weather_code,is_day,wind_speed_10m,wind_gusts_10m,uv_index,relative_humidity_2m' +
     '&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,uv_index_max,wind_gusts_10m_max,precipitation_sum,sunrise,sunset' +
     '&timezone=auto&past_hours=3&forecast_days=14&temperature_unit=' + (fahrenheit ? 'fahrenheit' : 'celsius') +
     '&precipitation_unit=' + (fahrenheit ? 'inch' : 'mm') + '&wind_speed_unit=' + (fahrenheit ? 'mph' : 'kmh');
@@ -513,7 +522,7 @@ async function run(input) {
   var sensors = (input && (input.sensor_readings || (input.trmnl && input.trmnl.sensor_readings))) || null;
   if (field(input, 'sensor_show', 'show') === 'hide') sensors = null;
   var sunO = sunTimes(weather), pollenV = pollenLevel(aq), w = weather || {};
-  var raw = { current: w.current || null, hourly: w.hourly || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
+  var raw = { current: w.current || null, hourly: w.hourly || null, todayHourly: past.today || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
   var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
