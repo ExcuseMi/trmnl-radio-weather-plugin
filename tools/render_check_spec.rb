@@ -208,10 +208,10 @@ var dial=n('[data-sw-part="baro"]');return [1,dial,n('[data-sw-part="baro"] ~ .l
       begin
         expect(q[0]).to eq(1)
         expect(q[2]).to eq(0)
-        expect(q[3]).to eq(q[10] == 1 ? q[1] : 0)   # the trend word on every barometer; none without the pressure 3 h ago
+        expect(q[3]).to eq(0)   # owner 2026-11-13: no trend word on the dial (the pressure shows; the trend is the arrow)
         expect(q[4]).to eq(q[1] * 2)
         expect(q[5..7]).to eq([0, 0, 0])
-        expect(q[8].positive?).to eq(q[9] == 1 && !(c['view'] == 'half_vertical' && (c['device'] != 'v2' || c['orientation'] == 'portrait')))   # owner step 13 item 2: in the condition row, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) and X half_vertical portrait (the label ran under it)
+        expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && !(c['view'] == 'half_vertical' && (c['device'] != 'v2' || c['orientation'] == 'portrait')))   # owner step 13 item 2: in the condition row, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) and X half_vertical portrait (the label ran under it)
       end
       # Calm (owner): 1-bit and 2-bit panels stay paper (no grey fill); the dial's low/high numbers clear their triangles by 2 px
       # and are at least the size of the dial's scale numbers.
@@ -327,10 +327,10 @@ return bad.join('; ');})()})
       puts "READOUT #{c['name']}: #{cr2}" unless cr2.empty?
       expect(cr2).to eq('')
       # Console badge (owner step 13 item 2): in the condition row, its top icon at least 0.8 x the condition icon's ink
-      # height; none on OG half vertical (owner 2026-11-13: too narrow there).
+      # height, the row gap between the label text and the badge ink (owner 2026-11-13, live OG full); none on OG half vertical (owner 2026-11-13: too narrow there).
       cb = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null};
 [].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){var row=e.parentElement,sp=row.querySelector(':scope > [data-sw-cond]');if(!sp){bad.push('badge not in the condition row');return;}
-var ic=row.firstElementChild,ib=ic.getBoundingClientRect(),ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),ih=ik[1]*ib.height,g=e.querySelector('g[data-sw-cloth]'),gh=g?g.getBoundingClientRect().height:0;if(gh<0.8*ih-0.5)bad.push('badge '+gh.toFixed(1)+' < 0.8 x icon '+ih.toFixed(1));var eb=e.getBoundingClientRect(),gb=g?g.getBoundingClientRect():eb,rg=document.createRange();rg.selectNodeContents(sp);[].forEach.call(rg.getClientRects(),function(q){if(q.width>0&&q.right>gb.left+0.5&&q.left<gb.right&&q.bottom>gb.top&&q.top<gb.bottom)bad.push('label under the badge '+(q.right-gb.left).toFixed(1));});});return bad.join('; ');})()})
+var ic=row.firstElementChild,ib=ic.getBoundingClientRect(),ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),ih=ik[1]*ib.height,g=e.querySelector('g[data-sw-cloth]'),gh=g?g.getBoundingClientRect().height:0;if(gh<0.8*ih-0.5)bad.push('badge '+gh.toFixed(1)+' < 0.8 x icon '+ih.toFixed(1));var eb=e.getBoundingClientRect(),gb=g?g.getBoundingClientRect():eb,kk=(row.offsetWidth&&row.getBoundingClientRect().width/row.offsetWidth)||1,gp=(parseFloat(getComputedStyle(row).columnGap)||8)*kk,cx2=document.createElement('canvas').getContext('2d'),cs2=getComputedStyle(sp),rg=document.createRange();cx2.font=cs2.fontWeight+' '+cs2.fontSize+' '+cs2.fontFamily;rg.selectNodeContents(sp);[].forEach.call(rg.getClientRects(),function(q){if(q.width>0&&q.right>gb.left-gp+0.5&&q.left<gb.right&&q.bottom>gb.top&&q.top<gb.bottom)bad.push('label within the gap of the badge '+(q.right-gb.left+gp).toFixed(1));});});return bad.join('; ');})()})
       puts "CUEROW #{c['name']}: #{cb}" unless cb.empty?
       expect(cb).to eq('')
       # Digit spacing (owner 2026-11-13, "4. 1"): in the seven-segment readouts the ink gap between neighbouring digits
@@ -339,11 +339,11 @@ var ic=row.firstElementChild,ib=ic.getBoundingClientRect(),ik=((ic.querySelector
 for(var i=1;i<gl.length;i++){var a=gl[i-1].getBoundingClientRect(),b=gl[i].getBoundingClientRect(),gp=(b.left-a.right)*k;if(gp>30)bad.push(gl[i-1].getAttribute('data-sw-glyph')+gl[i].getAttribute('data-sw-glyph')+' gap '+gp.toFixed(0));}});return bad.join('; ');})()})
       puts "DIGITGAP #{c['name']}: #{sp}" unless sp.empty?
       expect(sp).to eq('')
-      # Dial trend arrows (owner step 13): one outline arrow per dial with a trend (barometer: the trend word; temperature:
-      # +3 h), in the dial's top right quarter, about 1.5 x the name caption's cap height; none without a trend.
+      # Dial trend arrows (owner 2026-11-13): one trend-line arrow per dial trending up or down (barometer from 3 h ago,
+      # temperature +3 h), matching the direction, none when level, in the dial's top right quarter, its 28-unit box about 1.5 x the name caption's cap height.
       ar = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d');
-[].filter.call(document.querySelectorAll('[data-sw-part="baro"],[data-sw-part="tdial"]'),vis).forEach(function(d){var k=d.getAttribute('data-sw-part'),want=(k==='baro'?SW.baro:SW.tdial).arrow?1:0,box=d.parentElement,B=box.getBoundingClientRect(),a=[].filter.call(box.querySelectorAll('[data-sw-arrowpoly]'),vis);
-if(a.length!==want){bad.push(k+' arrows '+a.length+'/'+want);return;}if(!a.length)return;var r=a[0].getBoundingClientRect(),c=box.querySelector('[data-sw-cap]'),cs=getComputedStyle(c);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var cap=cx.measureText('H').actualBoundingBoxAscent*(c.getBoundingClientRect().height/(c.offsetHeight||1)),h=Math.max(r.width,r.height);
+[].filter.call(document.querySelectorAll('[data-sw-part="baro"],[data-sw-part="tdial"]'),vis).forEach(function(d){var k=d.getAttribute('data-sw-part'),aw=(k==='baro'?SW.baro:SW.tdial).arrow,want=aw==='up'||aw==='down'?1:0,box=d.parentElement,B=box.getBoundingClientRect(),a=[].filter.call(box.querySelectorAll('[data-sw-arrowpoly]'),vis);
+if(a.length!==want){bad.push(k+' arrows '+a.length+'/'+want);return;}if(!a.length)return;if(a[0].getAttribute('data-sw-arrowpoly')!==aw)bad.push(k+' arrow '+a[0].getAttribute('data-sw-arrowpoly')+' for '+aw);var r=a[0].ownerSVGElement.getBoundingClientRect(),c=box.querySelector('[data-sw-cap]'),cs=getComputedStyle(c);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var cap=cx.measureText('H').actualBoundingBoxAscent*(c.getBoundingClientRect().height/(c.offsetHeight||1)),h=Math.max(r.width,r.height);
 if(r.left<(B.left+B.right)/2||r.bottom>(B.top+B.bottom)/2)bad.push(k+' arrow not top right');if(h<1.2*cap||h>1.8*cap)bad.push(k+' arrow '+h.toFixed(0)+' cap '+cap.toFixed(0));});return bad.join('; ');})()})
       puts "ARROW #{c['name']}: #{ar}" unless ar.empty?
       expect(ar).to eq('')
