@@ -117,7 +117,7 @@ if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.get
       # of the text beside them; the days scale's track at least 45 % of the day row width with its first and last labels
       # at the track's ends (within a cell); no empty band over 12 % of the panel height inside the console, the days
       # panel or the console's right column (ink measured in the screenshot); low/high digits at least 0.85 x the day name size.
-      if c['orientation'] == 'portrait' && (c['device'] || 'v2') != 'v2' && %w[full].include?(c['view'] || 'full')
+      if c['orientation'] == 'portrait' && (c['device'] || 'v2') != 'v2' && %w[full half_vertical].include?(c['view'] || 'full')
         require 'chunky_png'
         og = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d'),R=function(b){return [b.left,b.top,b.right,b.bottom]};
 function cap(sp){var b=vis(sp);if(!b)return 0;var cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;return cx.measureText('H').actualBoundingBoxAscent*(b.width/(sp.offsetWidth||b.width));}
@@ -159,10 +159,10 @@ return JSON.stringify({ic:ic,tr:tr,pn:pn,iw:innerWidth});})()})
           y0 = (t * k).floor; y1 = [(b * k).ceil - 1, png.height - 1].min; xs = ((l * k).ceil..[(r * k).floor - 1, png.width - 1].min)
           ink = (y0..y1).select { |y| xs.any? { |x| dark.(x, y, 600) } }
           next if ink.empty?
-          runs = ink.each_cons(2).map { |a, z2| z2 - a - 1 }
-          runs += [ink.first - y0, y1 - ink.last] if edges
-          mx = runs.max || 0
-          bad << "#{n} empty band #{(mx / k / ph * 100).round}%" if mx / k > 0.12 * ph
+          runs = ink.each_cons(2).map { |a, z2| [z2 - a - 1, a] }
+          runs += [[ink.first - y0, y0], [y1 - ink.last, ink.last]] if edges
+          mx, at = runs.max_by(&:first) || [0, 0]
+          bad << "#{n} empty band #{(mx / k / ph * 100).round}% below y #{(at / k).round}" if mx / k > 0.12 * ph
         end
         puts "OGPORT #{c['name']}: #{bad.join('; ')}" unless bad.empty?
         expect(bad).to eq([])
