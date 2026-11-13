@@ -48,10 +48,10 @@ add('umbrella', "<path d='M" + OP(x - R, by) + 'A' + R + ' 4.6 0 0 1 ' + OP(x + 
 }
 return { P, bb, gh: G.hem - G.top };
 }
-function ofit(ks, sm, c) { var s = 1, L, h, w; for (var i = 0; i < 12; i++) { L = olay(ks, '#fff', sm, s); w = L.bb[2] - L.bb[0]; h = L.bb[3] - L.bb[1]; s = Math.min((.92 * 48 - OSW) / h, (.94 * 48 - OSW) / w); } return c ? Math.min(s, c / L.gh) : s; }
-var OCAP = {};
+function ofit(ks, sm) { var s = 1, L, h, w; for (var i = 0; i < 12; i++) { L = olay(ks, '#fff', sm, s); w = L.bb[2] - L.bb[0]; h = L.bb[3] - L.bb[1]; s = Math.min((.92 * 48 - OSW) / h, (.94 * 48 - OSW) / w); } return s; }
+// One scale and one spot per box size (owner 2026-11-13): the garment is drawn as in the largest outfit of its type (garment, beanie, glasses, umbrella), extras fill their places.
 function outfit(ks, bg, sm) {
-var ck = '' + sm; if (!(ck in OCAP)) { var c = ['tshirt', 'beanie'], s0 = ofit(c, sm); OCAP[ck] = s0 * olay(c, '#fff', sm, s0).gh; }
-var s = ofit(ks, sm, OCAP[ck]), L = olay(ks, bg, sm, s), w = L.bb[2] - L.bb[0], h = L.bb[3] - L.bb[1];
-return "<g transform='translate(" + OF(24 - s * (L.bb[0] + w / 2)) + ' ' + OF(24 - s * (L.bb[1] + h / 2)) + ') scale(' + +s.toFixed(4) + ")' fill='none' stroke='currentColor' stroke-width='" + OF(OSW / s) + "' stroke-linecap='round' stroke-linejoin='round'>" + L.P.join('').replace(/stroke-width='([\d.]+)'/g, (_, v) => "stroke-width='" + OF(v / s) + "'") + '</g>';
+var t = ['parka', 'jacket', 'sweater', 'tshirt'].find((x) => ks.indexOf(x) >= 0) || 'tshirt', R = [t, 'beanie', 'umbrella', 'sunglasses'].concat(ks.filter((x) => x == 'scarf' || x == 'shorts'));
+var s = ofit(R, sm), M = olay(R, '#fff', sm, s), L = olay(ks, bg, sm, s);
+return "<g transform='translate(" + OF(24 - s * (M.bb[0] + M.bb[2]) / 2) + ' ' + OF(24 - s * (M.bb[1] + M.bb[3]) / 2) + ') scale(' + +s.toFixed(4) + ")' fill='none' stroke='currentColor' stroke-width='" + OF(OSW / s) + "' stroke-linecap='round' stroke-linejoin='round'>" + L.P.join('').replace(/stroke-width='([\d.]+)'/g, (_, v) => "stroke-width='" + OF(v / s) + "'") + '</g>';
 }

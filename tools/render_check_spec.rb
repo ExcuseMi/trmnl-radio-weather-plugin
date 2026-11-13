@@ -499,12 +499,14 @@ var u=[];bad.forEach(function(s){if(u.indexOf(s)<0)u.push(s)});return u.slice(0,
       # Outfit proportions (owner 2026-11-13, squashed garments): the garment drawn in every cue box (console badge, day rows)
       # keeps the height/width ratio of tools/outfit.src.js for its type (within 5 %); stroke taken out, so a non-uniform scale shows.
       pr = s.evaluate(%q{(function(){var out=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0};
-function m(e,keys,tag){var t=keys[0],g=e.querySelector('g[data-sw-cloth]'),it=g&&g.querySelector('[data-sw-item="top"]');if(!it||!vis(it))return;var sw=+g.firstElementChild.getAttribute('stroke-width'),b=it.getBBox(),r=it.getBoundingClientRect();out.push(t+','+(b.height*(r.height/(b.height+sw))/(b.width*(r.width/(b.width+sw)))).toFixed(4)+','+tag)}
+function m(e,keys,tag){var t=keys[0],g=e.querySelector('g[data-sw-cloth]'),it=g&&g.querySelector('[data-sw-item="top"]');if(!it||!vis(it))return;var sw=+g.firstElementChild.getAttribute('stroke-width'),b=it.getBBox(),r=it.getBoundingClientRect();out.push(t+','+(b.height*(r.height/(b.height+sw))/(b.width*(r.width/(b.width+sw)))).toFixed(4)+','+tag+','+(r.width/(b.width+sw)).toFixed(3))}
 [].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){m(e,SW.cue||[],'console')});
 [].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis).forEach(function(r){var d=r.querySelector('[data-sw-part="dcue"]');if(d)m(d,SW.days[+d.getAttribute('data-sw-i')].cue||[],'day')});return out.join(' ')})()})
       unless pr.empty?
         @ref ||= JSON.parse(`node #{File.join(__dir__, 'outfit_ratios.js')}`)
         bad = pr.split.map { |q| t, v, tag = q.split(','); [t, v.to_f, tag] }.select { |t, v, _| (v / @ref[t] - 1).abs > 0.05 }
+        # One scale per box size (owner 2026-11-13): the garment is drawn at the same scale in every day-row cue, and in every console badge, within 3 %.
+        %w[day console].each { |g| ks = pr.split.map { |q| q.split(',') }.select { |q| q[2] == g }.map { |q| q[3].to_f }; bad << [g, 'scale', ks] if ks.size > 1 && ks.max / ks.min > 1.03 }
         puts "PROP #{c['name']}: #{bad.inspect}" unless bad.empty?
         expect(bad).to eq([])
       end
