@@ -247,11 +247,11 @@ test('block meter: half lit lights five of ten, no data lights none', () => {
   const lit = (s) => ((s.split('<g data-sw-on data-sw-st="a">')[1] || '').match(/data-sw-c=/g) || []).length;
   eq([lit(D.meter({ frac: 0.5 }, 300, 40)), lit(D.meter({ frac: null }, 300, 40)), lit(D.meter({ frac: 2 }, 300, 40))], [5, 0, 10]);
 });
-test('rain calendar: 12 hours from two hours before the rain, rain hours lit', () => {
+test('rain calendar: 12 hours from the first wet hour, rain hours lit', () => {
   const hrs = Array.from({ length: 25 }, (_, i) => ({ h: String(i).padStart(2, '0') }));
   const c = T.rainHours(hrs, { from: 5, to: 7 });
-  eq(c.length, 12); eq(c[0].h, '03', 'starts two hours before'); eq(c.filter((q) => q.wet).map((q) => q.h), ['05', '06', '07']);
-  eq(T.rainHours(hrs, { from: 1, to: 2 })[0].h, '00', 'never before the first hour');
+  eq(c.length, 12); eq(c[0].h, '05', 'starts at the first wet hour'); eq(c.filter((q) => q.wet).map((q) => q.h), ['05', '06', '07']);
+  eq(T.rainHours(hrs, { from: 0, to: 2 })[0].h, '00', 'raining now: starts now'); eq(T.rainHours(hrs, { from: 20, to: 22 })[0].h, '13', 'always 12 cells');
   const svg = D.rain(c, 600, 120);
   eq((svg.match(/<rect/g) || []).length, 3, 'one lit cell per rain hour'); ok(!/gray/.test(svg), 'dry hours in full text colour');
 });
