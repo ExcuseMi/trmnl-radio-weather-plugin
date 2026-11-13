@@ -348,12 +348,12 @@ if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.62, y = (H - bh) / 2, cells = '', sh = '';
 var ptH = lfs(sc) * 0.3 * 1.4;
 if (hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); }
-var k = 1; if (API.nfs) while (k * cw - Math.max(2.5, k * cw * 0.16) < 6 && k < 50) k++;
+var k = 1; while (k * cw - Math.max(2.5, k * cw * 0.16) < 6 && k < 50) k++;
 var gp = Math.max(2.5, k * cw * 0.16), pc = [], a0 = sc.a + Math.floor((a - sc.a) / k) * k;
 if ((API.nfs || API.port) && k * cw - gp >= 6 && bh > (k * cw - gp) * 1.5) { y += (bh - (k * cw - gp) * 1.5) / 2; bh = (k * cw - gp) * 1.5; }
 if (k * cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = k > 1 ? a0 : a; t < b; t += k) pc.push([X(t) + gp / 2, X(t + k) - gp / 2]);
 pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
-body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells' + (API.nfs ? ' data-sw-k="' + k + '" data-sw-r="' + (b - a) + '"' : '') + '>' + g(blk(hi), cells) + '</g>';
+body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells data-sw-k="' + k + '" data-sw-r="' + (b - a) + '">' + g(blk(hi), cells) + '</g>';
 }
 if (hi && nowV !== null && nowV !== undefined) { var pxn = X(nowV), pr2 = ptH / 1.4, py0 = API.nfs && y !== undefined ? Math.max(0, y - ptH - 2) : 0, ptr = poly([[pxn - pr2, py0], [pxn + pr2, py0], [pxn, py0 + ptH]], ' data-sw-nowmark'); body += hue('red') ? hg('red', ptr) : ptr; }
 if (hi) body += '<g data-sw-hl="1"></g>';
