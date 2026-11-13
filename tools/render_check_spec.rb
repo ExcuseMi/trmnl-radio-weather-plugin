@@ -112,6 +112,60 @@ if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.get
         puts "BAND #{c['name']}: #{band}" unless band.empty?
         expect(band).to eq('')
       end
+      # OG portrait (owner 2026-11-13, "portrait for the OG is still broken"): a well-filled tall layout, not landscape
+      # pieces squeezed. Icons (condition, rain, moon, sun, day-row clothing) have drawn ink at least 0.8 x the cap height
+      # of the text beside them; the days scale's track at least 45 % of the day row width with its first and last labels
+      # at the track's ends (within a cell); no empty band over 12 % of the panel height inside the console, the days
+      # panel or the console's right column (ink measured in the screenshot).
+      if c['orientation'] == 'portrait' && (c['device'] || 'v2') != 'v2' && %w[full].include?(c['view'] || 'full')
+        require 'chunky_png'
+        og = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d'),R=function(b){return [b.left,b.top,b.right,b.bottom]};
+function cap(sp){var b=vis(sp);if(!b)return 0;var cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;return cx.measureText('H').actualBoundingBoxAscent*(b.width/(sp.offsetWidth||b.width));}
+function scap(t){var sv=t.ownerSVGElement,k=sv.getBoundingClientRect().height/(+sv.getAttribute('height')||sv.getBoundingClientRect().height);cx.font='bold '+(+t.getAttribute('font-size'))+'px '+getComputedStyle(t).fontFamily;return cx.measureText('H').actualBoundingBoxAscent*k;}
+var ic=[],add=function(n,e,c){var b=vis(e);if(b&&c)ic.push([n].concat(R(b)).concat([c]))};
+[].filter.call(document.querySelectorAll('[data-sw-cond]'),vis).forEach(function(sp){add('cond',sp.parentElement.firstElementChild,cap(sp))});
+var st=[].filter.call(document.querySelectorAll('[data-sw-suntime] span.title'),vis);
+[].filter.call(document.querySelectorAll('[data-sw-unit="sun"] img'),vis).forEach(function(e,i){var t=e.parentElement.querySelector('[data-sw-suntime] span.title');add('sun',e,cap(t||st[0]))});
+[].filter.call(document.querySelectorAll('[data-sw-part="moon"]'),vis).forEach(function(e){if(st[0])add('moon',e.querySelector('svg')||e,cap(st[0]))});
+var ca=[].filter.call(document.querySelectorAll('[data-sw-part="rain"] svg text'),vis)[0];[].filter.call(document.querySelectorAll('[data-sw-unit="rain"] img'),vis).forEach(function(e){if(ca)add('rain',e,scap(ca))});
+[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis).forEach(function(r,i){var t=[].filter.call(r.querySelectorAll('span.title'),function(s){return vis(s)&&/\d/.test(s.textContent)})[0];if(!t)return;var c=cap(t);[].filter.call(r.querySelectorAll('img'),vis).forEach(function(e){add('day'+i+' icon',e,c)});var d=r.querySelector('[data-sw-part="dcue"]');if(vis(d))add('day'+i+' clothing',d,c);});
+var tr='',sc=[].filter.call(document.querySelectorAll('[data-sw-part="scale"]'),vis)[0],row=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis)[0];
+if(sc&&row){var sv=sc.querySelector('svg'),sb=sv.getBoundingClientRect(),k=sb.width/(+sv.getAttribute('width')||sb.width),g=sv.querySelector('[data-sw-track]'),cw=0;
+[].forEach.call(document.querySelectorAll('[data-sw-cells] rect'),function(q){var w=q.getBoundingClientRect().width;if(vis(q))cw=Math.max(cw,w+2)});
+var x0,x1;if(g){var v=g.getAttribute('data-sw-track').split(',').map(Number);x0=sb.left+v[0]*k;x1=sb.left+v[1]*k}else{var L=1e9,Rr=-1e9;[].forEach.call(document.querySelectorAll('[data-sw-cells] rect'),function(q){var b=vis(q);if(b){L=Math.min(L,b.left);Rr=Math.max(Rr,b.right)}});x0=L;x1=Rr}
+var lb=[].map.call(sv.querySelectorAll('text[data-sw-tick]'),function(t){var b=t.getBoundingClientRect();return (b.left+b.right)/2});
+tr=[(x1-x0)/row.getBoundingClientRect().width,lb.length?lb[0]-x0:1e9,lb.length?lb[lb.length-1]-x1:1e9,cw].map(function(v){return v.toFixed(3)}).join(',')}
+var pn=[];[].filter.call(document.querySelectorAll('[data-sw-panel]'),vis).forEach(function(p){var q=p.getBoundingClientRect(),t=1e9,b=-1e9;p.querySelectorAll('img, svg, span').forEach(function(e){if(e.closest('[data-sw-part="face"]'))return;var r=vis(e);if(!r||(e.tagName==='SPAN'&&!e.textContent.trim()))return;t=Math.min(t,r.top);b=Math.max(b,r.bottom)});if(b>t)pn.push([p.closest('[data-sw-console]')?'console':'days',q.left+10,t,q.right-10,b,q.height]);
+var rt=p.querySelector('[data-sw-right]'),rb=vis(rt);if(rb&&rb.left>q.left+q.width*0.25){var tp=rt.parentElement.getBoundingClientRect();pn.push(['right column',rb.left,tp.top,rb.right,tp.bottom,q.height,1])}});
+if([].filter.call(document.querySelectorAll('[data-sw-part="rain"]'),vis).length&&![].filter.call(document.querySelectorAll('[data-sw-unit="rain"] img'),vis).length)ic.push(['rain icon missing beside the calendar',0,0,0,0,1]);
+return JSON.stringify({ic:ic,tr:tr,pn:pn,iw:innerWidth});})()})
+        og = JSON.parse(og)
+        png = ChunkyPNG::Image.from_file(s.png_path)
+        k = png.width / og['iw'].to_f
+        dark = ->(x, y, lim) { v = png[x, y]; ChunkyPNG::Color.r(v) + ChunkyPNG::Color.g(v) + ChunkyPNG::Color.b(v) < lim }
+        bad = []
+        og['ic'].each do |n, l, t, r, b, capv|
+          ys = ((t * k).floor..((b * k).ceil - 1)).select { |y| y < png.height && ((l * k).floor..[(r * k).ceil - 1, png.width - 1].min).any? { |x| dark.(x, y, 384) } }
+          ink = ys.empty? ? 0 : (ys.last - ys.first + 1) / k
+          bad << "#{n} ink #{ink.round(1)} < 0.8 x cap #{capv.round(1)}" if ink < 0.8 * capv
+        end
+        unless og['tr'].empty?
+          w, f, z, cw = og['tr'].split(',').map(&:to_f)
+          bad << "track #{(w * 100).round}% of the row" if w < 0.45
+          bad << "scale labels first #{f.round(1)} last #{z.round(1)} from the track ends (cell #{cw.round(1)})" if f.abs > cw || z.abs > cw
+        end
+        og['pn'].each do |n, l, t, r, b, ph, edges|
+          y0 = (t * k).floor; y1 = [(b * k).ceil - 1, png.height - 1].min; xs = ((l * k).ceil..[(r * k).floor - 1, png.width - 1].min)
+          ink = (y0..y1).select { |y| xs.any? { |x| dark.(x, y, 600) } }
+          next if ink.empty?
+          runs = ink.each_cons(2).map { |a, z2| z2 - a - 1 }
+          runs += [ink.first - y0, y1 - ink.last] if edges
+          mx = runs.max || 0
+          bad << "#{n} empty band #{(mx / k / ph * 100).round}%" if mx / k > 0.12 * ph
+        end
+        puts "OGPORT #{c['name']}: #{bad.join('; ')}" unless bad.empty?
+        expect(bad).to eq([])
+      end
       # Bleed margin (owner 2026-11-12): every panel (borderless: its lit face) and the title bar keep the framework's
       # screen padding from the screen edge.
       edge = s.evaluate(%q{(function(){var sc=document.querySelector('.screen')||document.body,S=sc.getBoundingClientRect(),k=S.width/(sc.offsetWidth||S.width),bad=[],m=8*k;
