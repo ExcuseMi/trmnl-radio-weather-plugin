@@ -227,12 +227,12 @@ test('meters (owner 2026-11-12): order wind, uv, aqi, humidity, pollen, baro, co
   ok(M0 && keys(0.4, { aqi: 30 }).slice(0, 3).join() === 'wind,aqi,humidity', 'priority: humidity kept before pollen when rows run short: ' + k);
 });
 test('block meter: any reading above zero lights one cell', () => {
-  const lit = (s) => ((s.split('<g data-sw-on>')[1] || '').match(/<rect/g) || []).length;   // the current cells (owner 2026-11-13: full ink)
-  eq([lit(D.meter(0.01, 300, 40)), lit(D.meter(0, 300, 40))], [1, 0]);
+  const lit = (s) => ((s.split('<g data-sw-on data-sw-st="a">')[1] || '').match(/data-sw-c=/g) || []).length;   // the current cells (owner 2026-11-13: full ink)
+  eq([lit(D.meter({ frac: 0.01 }, 300, 40)), lit(D.meter({ frac: 0 }, 300, 40))], [1, 0]);
 });
 test('block meter: half lit lights five of ten, no data lights none', () => {
-  const lit = (s) => ((s.split('<g data-sw-on>')[1] || '').match(/<rect/g) || []).length;
-  eq([lit(D.meter(0.5, 300, 40)), lit(D.meter(null, 300, 40)), lit(D.meter(2, 300, 40))], [5, 0, 10]);
+  const lit = (s) => ((s.split('<g data-sw-on data-sw-st="a">')[1] || '').match(/data-sw-c=/g) || []).length;
+  eq([lit(D.meter({ frac: 0.5 }, 300, 40)), lit(D.meter({ frac: null }, 300, 40)), lit(D.meter({ frac: 2 }, 300, 40))], [5, 0, 10]);
 });
 test('rain calendar: 12 hours from two hours before the rain, rain hours lit', () => {
   const hrs = Array.from({ length: 25 }, (_, i) => ({ h: String(i).padStart(2, '0') }));
@@ -282,7 +282,7 @@ test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none 
   [{ dark: false, bits: 4 }, { dark: false, bits: 2 }, { dark: true, bits: 1 }, { dark: false, bits: 1 }].forEach((m) => parts(m).forEach(([k, s]) => ok(!/data-sw-glow|swgl/.test(s), k + ': no glow ' + JSON.stringify(m))));
   D.mode = { dark: true, bits: 4 }; const r = D.rain([{ h: '14', wet: true }], 120, 40); D.mode = null;
   ok(r.indexOf('data-sw-glow') < r.lastIndexOf('<rect'), 'halo under the lit cell, not over it');
-  D.mode = { dark: true, bits: 4 }; ok(!/text--gray-40/.test(D.meter(0.5, 200, 30, 10)), 'dark: lit meter cells in full ink, as live'); D.mode = null;
+  D.mode = { dark: true, bits: 4 }; ok(!/text--gray-40/.test(D.meter({ frac: 0.5 }, 200, 30, 10)), 'dark: lit meter cells in full ink, as live'); D.mode = null;
   ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 4, 'weather, rain and sun icons marked to glow');
 });
 test('moon glow outside the disk in dark mode, none in light or 1-bit (owner 2026-11-12)', () => {
@@ -306,10 +306,10 @@ test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 s
   ok(/lg:hidden" data-sw-part="meter" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="meter" data-sw-n="10"/.test(sh), 'meter copies per size');
   ok(/data-sw-row="day"/.test(sh) && !/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'every day row in the same full-width wrapper (no half-width fifth row)');
   ok(/{%- if d.today %}<span class="label label--inverted[^"]*" data-sw-today>/.test(sh), 'OG: today a lit lamp on the day name (owner 2026-11-12)');
-  D.mode = { bits: 1 }; ok(/<\/g><g><rect/.test(D.meter(0, 200, 30, 5)), '1-bit: unlit cells drawn in full colour'); D.mode = null;
-  const cells = (n) => (D.meter(0, 200, 30, n).match(/<rect/g) || []).length;
+  D.mode = { bits: 1 }; ok(/data-sw-st="e"><g><rect/.test(D.meter({ frac: 0 }, 200, 30, 5)), '1-bit: unlit cells drawn in full colour'); D.mode = null;
+  const cells = (n) => (D.meter({ frac: 0 }, 200, 30, n).match(/<rect/g) || []).length;
   eq([cells(5), cells(10)], [5, 10]);
-  D.mode = { bits: 2 }; ok(/text--gray-30/.test(D.meter(0, 200, 30, 5)), '2-bit: unlit cells dark enough to show (native dark grey)'); D.mode = null;
+  D.mode = { bits: 2 }; ok(/text--gray-30/.test(D.meter({ frac: 0 }, 200, 30, 5)), '2-bit: unlit cells dark enough to show (native dark grey)'); D.mode = null;
 });
 test('rain unit: icon left of the grid on every size (owner 2026-11-12, later decision)', () => {
   const u = sh.indexOf('data-sw-unit="rain"'), end = sh.indexOf('data-sw-part="rain"', u);
@@ -361,9 +361,21 @@ test('day names without full ICU (item 22): own weekday table, not Intl', () => 
     eq(T.dayNames(['2026-11-13'], 'en-GB'), ['FRI'], 'en');
   } finally { Intl.DateTimeFormat = real; }
 });
-test('wind gust cell (owner 2026-11-12): the cell where the gust peaks, none when missing or inside the lit cells', () => {
-  eq([D.gustCell(0.19, 0.47, 10), D.gustCell(0.19, null, 10), D.gustCell(0.19, 0.2, 10), D.gustCell(0.19, 0.47, 5), D.gustCell(0, 0.05, 10)], [4, -1, -1, 1, 0]);
-  ok(/data-sw-gust/.test(D.meter(0.19, 300, 30, 10, null, 0.47)) && !/data-sw-gust/.test(D.meter(0.19, 300, 30, 10, null, null)), 'one outlined gust cell, none without a gust');
+test('meter cell states for today (owner 2026-11-13): active, reached earlier, expected later, empty; one peak outline', () => {
+  const S = (m, n) => { const r = D.cellStates(m, n); return r.st.join('') + '|' + r.peak; };
+  // now, past max, later max, peak (fractions of the scale) -> cell states and the peak cell
+  const table = [
+    [{ frac: 0.3, past: 0.6, later: 0.9, peak: 0.9 }, 10, 'aaapppllle|8'],
+    [{ frac: 0.3, past: 0.9, later: 0.6, peak: 0.9 }, 10, 'aaappppppe|8'],    // later below the past max: no later cells
+    [{ frac: 0.7, past: 0.2, later: 0.4, peak: 0.7 }, 10, 'aaaaaaaeee|6'],    // now is the max: the peak on an active cell
+    [{ frac: 0.2, past: null, later: 0.5, peak: 0.5 }, 10, 'aallleeeee|4'],   // no past hours (first hour of the day)
+    [{ frac: 0.2, past: 0.55, later: 0.35, peak: 0.87 }, 10, 'aappppeeee|8'], // WIND: the max gust past the speeds, on an empty cell
+    [{ frac: 0.3, past: 0.55, later: 0.95, peak: 0.95 }, 5, 'aapll|4'],
+    [{ frac: null, past: null, later: null, peak: null }, 5, 'eeeee|-1'],
+  ];
+  table.forEach(([m, n, want]) => eq(S(m, n), want, JSON.stringify(m) + ' on ' + n));
+  const svg = D.meter({ frac: 0.3, past: 0.6, later: 0.9, peak: 0.9 }, 300, 30, 10);
+  eq([(svg.match(/data-sw-gust/g) || []).length, /data-sw-st="l"><rect[^>]*stroke-dasharray/.test(svg)], [1, true], 'one peak outline; later cells dashed outlines');
 });
 test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter, gibbous and full, light and dark, lit side right while waxing', () => {
   const H = 100, r = H * 0.27, disk = Math.PI * r * r;
@@ -446,21 +458,23 @@ test('console cue window (owner 2026-11-13): garment now to +3 h, umbrella to 19
   eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25), { day: false }, 7), 'tshirt', 'no sunglasses at night');
   const fb = T.nowCueInput(null, [], { temp: 15, feels: 1, day: true }, 2); eq([fb.lo, fb.hi, fb.rain], [1, 1, null], 'no hourly data: the current felt temperature; rain falls back to the rain window');
 });
-test('meters: today\'s max (outlined cell) and min (lighter cells below it) from today\'s hours (owner 2026-11-13)', () => {
-  const f = fx('mixed'), n = f.hourly.time.length, today = (k) => String(f.hourly.time[k]).slice(0, 10) === '2026-11-08';
-  const g = JSON.parse(JSON.stringify(f)); g.hourly.relative_humidity_2m = f.hourly.time.map((t, k) => today(k) ? (k === 3 ? 35 : (k === 5 ? 98 : 80)) : 10); g.hourly.pressure_msl = f.hourly.time.map((t, k) => today(k) ? (k === 2 ? 1000 : (k === 4 ? 1030 : 1013)) : 900);
-  g.hourly.wind_speed_10m = f.hourly.time.map((t, k) => today(k) ? (k === 1 ? 3 : 12) : 0); g.hourly.wind_gusts_10m = f.hourly.time.map((t, k) => today(k) ? (k === 6 ? 45 : 20) : 90);
-  const v = T.buildView(SWModel.build(g, {}), T.buildI18n('nl'), g.daily), m = (k) => v.meters.find((q) => q.key === k) || {};
-  const r2 = (x) => x === null || x === undefined ? x : Math.round(x * 1000) / 1000;
-  eq([r2(m('humidity').gust), r2(m('humidity').min)], [0.98, 0.35], 'humidity: max 98, min 35 of today (tomorrow\'s 10 not counted)');
-  eq([r2(m('baro').gust), r2(m('baro').min)], [0.75, 0.375], 'baro: 1030 and 1000 of today on 970..1050');
-  eq([r2(m('wind').gust), r2(m('wind').min)], [0.75, 0.05], 'wind: today\'s max gust 45 and min wind 3 (tomorrow\'s 90 gust not counted)');
-  eq([D.gustCell(0.91, 0.98, 10), D.minCell(0.91, 0.35, 10)], [9, 3], 'humidity now 91: outline at cell 9, cells 0..2 lighter (min in cell 3)');
-  eq([D.gustCell(0.5, 0.45, 10), D.minCell(0.3, 0.6, 10), D.minCell(0.5, null, 10), D.gustCell(0.5, null, 10)], [-1, 0, 0, -1], 'max in a lit cell: no outline; min above now or missing: no lighter cells');
-  const none = T.buildView(SWModel.build(f, {}), T.buildI18n('nl'), f.daily);
-  eq([none.meters.find((q) => q.key === 'humidity').min, none.meters.find((q) => q.key === 'humidity').gust], [null, null], 'no hourly humidity: no marks');
-  eq(v.meters.filter((q) => q.key === 'co2' || q.key === 'pollen').filter((q) => q.min !== null || q.gust !== null).length, 0, 'CO2 and pollen: no marks');
-  ok(n > 0);
+test('meters: today\'s past and later max from today\'s hours, the peak (WIND: max gust) (owner 2026-11-13)', () => {
+  const f = fx('mixed'), today = (k) => String(f.hourly.time[k]).slice(0, 10) === '2026-11-08';
+  const g = JSON.parse(JSON.stringify(f)); g.current.time = '2026-11-08T13:00'; g.current.relative_humidity_2m = 30; g.current.wind_speed_10m = 12; g.current.wind_gusts_10m = 20; g.current.pressure_msl = 1010;
+  g.hourly.relative_humidity_2m = f.hourly.time.map((t, k) => today(k) ? (k === 2 ? 55 : (k === 11 ? 95 : 40)) : 100);   // 08:00 55 (past), 17:00 95 (later), tomorrow 100
+  g.hourly.wind_speed_10m = f.hourly.time.map((t, k) => today(k) ? (k === 1 ? 33 : (k === 12 ? 21 : 8)) : 50); g.hourly.wind_gusts_10m = f.hourly.time.map((t, k) => today(k) ? (k === 4 ? 52 : 15) : 99);
+  g.hourly.pressure_msl = f.hourly.time.map((t, k) => today(k) ? (k === 3 ? 1031 : (k === 14 ? 1022 : 1005)) : 1049);
+  const d = T.dropPast(g), raw = Object.assign({}, d.weather, { todayHourly: d.today });
+  eq(d.weather.hourly.time[0], '2026-11-08T13:00', 'every other consumer still sees the hours from the current hour');
+  const v = T.buildView(SWModel.build(raw, {}), T.buildI18n('nl'), g.daily), m = (k) => v.meters.find((q) => q.key === k) || {};
+  const r2 = (x) => x === null || x === undefined ? x : Math.round(x * 1000) / 1000, P = (k) => [m(k).frac, m(k).past, m(k).later, m(k).peak].map(r2);
+  eq(P('humidity'), [0.3, 0.55, 0.95, 0.95], 'humidity: now 30, earlier 55, later 95 (tomorrow\'s 100 not counted)');
+  eq(P('wind'), [0.2, 0.55, 0.35, 0.867], 'wind: speeds earlier 33 and later 21, peak today\'s max gust 52 (tomorrow\'s 99 not counted)');
+  eq(P('baro'), [0.5, 0.763, 0.65, 0.763], 'baro: earlier 1031, later 1022 on 970..1050; peak the earlier max');
+  eq(D.cellStates(m('humidity'), 10).st.join(''), 'aaapppllll', 'humidity on 10 cells');
+  const none = T.buildView(SWModel.build(f, {}), T.buildI18n('nl'), f.daily), h = none.meters.find((q) => q.key === 'humidity');
+  eq([h.past, h.later], [null, null], 'no hourly humidity: no earlier or later cells');
+  eq(v.meters.filter((q) => q.key === 'co2' || q.key === 'pollen').filter((q) => q.past !== null || q.later !== null || q.peak !== null).length, 0, 'CO2 and pollen: no marks');
 });
 test('per-day clothing cue: daytime hours 07:00 to 19:00 from the hourly data, daily values where the hours are missing', () => {
   const d = { time: ['2026-11-08', '2026-11-09'], temperature_2m_min: [0, 8], temperature_2m_max: [10, 15], apparent_temperature_min: [-5, 6], apparent_temperature_max: [8, 14], precipitation_probability_max: [90, 10], uv_index_max: [1, 7] };
