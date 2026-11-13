@@ -457,7 +457,7 @@ var on=e.querySelector('[data-sw-on]');var dg=on&&on.querySelector(':scope > [da
       # Clothing badge (owner): the drawn icons are the model's list (top and up to two extras) in order; one fixed box
       # width on every day row (1 px; the console has its own, larger box); the extras sit right of the top icon, never over its box.
       co = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},bad=[],ws=[];
-var IT={parka:['top'],jacket:['top'],sweater:['top'],tshirt:['top'],umbrella:['umbrella'],mittens:['mittenL','mittenR'],sunglasses:['glasses'],beanie:['beanie'],scarf:['scarf'],shorts:['shorts']};
+var IT={parka:['top'],jacket:['top'],sweater:['top'],tshirt:['top'],umbrella:['umbrella'],sunglasses:['glasses'],beanie:['beanie'],scarf:['scarf'],shorts:['shorts']};
 function chk(e,want,tag){var cl=e.querySelector('g[data-sw-cloth]'),exp=[].concat.apply([],want.map(function(k){return IT[k]||[]})).sort().join('+'),its=[].slice.call(e.querySelectorAll('g[data-sw-item]')),got=its.map(function(g){return g.getAttribute('data-sw-item')}).sort().join('+');if(got!==exp)bad.push(tag+' parts '+got+'/'+exp);
 ws.push(e.getBoundingClientRect().width);var E=e.getBoundingClientRect(),sv=cl&&cl.closest('svg'),T=sv&&sv.getBoundingClientRect();its.forEach(function(g){var b=g.getBoundingClientRect();if(!b.width)return;if((tag==='console'&&(b.left<E.left-1||b.right>E.right+1||b.top<E.top-1||b.bottom>E.bottom+1))||b.left<T.left-1||b.right>T.right+1||b.top<T.top-1||b.bottom>T.bottom+1)bad.push(tag+' '+g.getAttribute('data-sw-item')+' overflows its box')});}
 var cn=0;[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){cn++;chk(e,SW.cue||[],'console');});ws=[];   // the console badge has its own box (owner); the day rows share one width
@@ -491,10 +491,18 @@ if(e.getAttribute&&e.tagName!=='IMG'){var cs=getComputedStyle(e);if((cs.fill==='
 if(b.bottom<=R.top||b.top>=R.bottom)return;var d=b.left>x?b.left-x:(b.right<x?x-b.right:-1);
 if(d<g){var p=e.t||((e.closest('[data-sw-part]')||{getAttribute:function(){return e.tagName}}).getAttribute('data-sw-part')+'/'+e.tagName);bad.push(p+' '+d.toFixed(1)+'<'+g.toFixed(1)+' @'+x.toFixed(0));}});});
 var u=[];bad.forEach(function(s){if(u.indexOf(s)<0)u.push(s)});return u.slice(0,8).join('; ');})()})
-      # Mittens (owner 2026-11-13): the two mittens never touch, at least 1 px of paper between them at every size.
-      mt = s.evaluate(%q{(function(){var bad=[],R=function(g){return g.getBoundingClientRect()},gap=function(a,b){return Math.max(a.left-b.right,b.left-a.right,a.top-b.bottom,b.top-a.bottom)};document.querySelectorAll('g[data-sw-cloth]').forEach(function(c){var L=c.querySelector('[data-sw-item="mittenL"]'),M=c.querySelector('[data-sw-item="mittenR"]');if(!L||!M||!R(L).width)return;[[L,M,'L/R']].forEach(function(p){var g=gap(R(p[0]),R(p[1]));if(g<0.9)bad.push('paper '+g.toFixed(2)+' px '+p[2]+' at '+R(c).height.toFixed(0)+' px')})});return bad.slice(0,3).join('; ')})()})
-      puts "MITTENS #{c['name']}: #{mt}" unless mt.empty?
-      expect(mt).to eq('')
+      # Outfit proportions (owner 2026-11-13, squashed garments): the garment drawn in every cue box (console badge, day rows)
+      # keeps the height/width ratio of tools/outfit.src.js for its type (within 5 %); stroke taken out, so a non-uniform scale shows.
+      pr = s.evaluate(%q{(function(){var out=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0};
+function m(e,keys,tag){var t=keys[0],g=e.querySelector('g[data-sw-cloth]'),it=g&&g.querySelector('[data-sw-item="top"]');if(!it||!vis(it))return;var sw=+g.firstElementChild.getAttribute('stroke-width'),b=it.getBBox(),r=it.getBoundingClientRect();out.push(t+','+(b.height*(r.height/(b.height+sw))/(b.width*(r.width/(b.width+sw)))).toFixed(4)+','+tag)}
+[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){m(e,SW.cue||[],'console')});
+[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis).forEach(function(r){var d=r.querySelector('[data-sw-part="dcue"]');if(d)m(d,SW.days[+d.getAttribute('data-sw-i')].cue||[],'day')});return out.join(' ')})()})
+      unless pr.empty?
+        @ref ||= JSON.parse(`node #{File.join(__dir__, 'outfit_ratios.js')}`)
+        bad = pr.split.map { |q| t, v, tag = q.split(','); [t, v.to_f, tag] }.select { |t, v, _| (v / @ref[t] - 1).abs > 0.05 }
+        puts "PROP #{c['name']}: #{bad.inspect}" unless bad.empty?
+        expect(bad).to eq([])
+      end
       # Console hairline (owner 2026-11-12, step 12): the same gap above (to the lowest ink of the top part) and below
       # (to the meters' first ink), at least half the column gap each.
       hg = s.evaluate(%q{(function(){var h=[].filter.call(document.querySelectorAll('[data-sw-hair="console"]'),function(e){return e.getBoundingClientRect().height>0||e.getBoundingClientRect().width>0})[0];if(!h)return'';
