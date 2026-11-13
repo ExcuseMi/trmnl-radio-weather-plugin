@@ -210,7 +210,7 @@
 {%- assign sw_hide = cf.hide_title_bar | append: '' -%}
 {%- unless sw_hide == 'true' or sw_hide == 'yes' or view != 1 %}
 <div class="title_bar">
- <img class="image image--adaptive" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
+ <img class="image image--adaptive w--[28px] h--[28px]" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
  <span class="title">{{ trmnl.plugin_settings.instance_name | default: 'Radio Weather' }}</span>
  {%- if clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}
 </div>

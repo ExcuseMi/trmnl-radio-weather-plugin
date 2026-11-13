@@ -37,6 +37,18 @@ RSpec.describe 'renders' do
       puts "SCREEN #{c['name']}: #{s.evaluate("document.querySelector('.screen').className+' '+innerWidth")}" if ENV['SW_SCREEN']
       FileUtils.mkdir_p(out)
       FileUtils.cp(s.png_path, File.join(out, "#{c['name']}.png"))
+      # Title bar icon (owner 2026-11-13, live OG 1-bit: gone): wherever the title bar shows, its icon has dark ink in the screenshot.
+      tb = s.evaluate(%q{(function(){var e=document.querySelector('.title_bar img');if(!e)return '';var b=e.getBoundingClientRect(),sc=document.querySelector('.screen')||document.body;return [b.left,b.top,b.width,b.height,sc.getBoundingClientRect().left,innerWidth].join(',')})()})
+      unless tb.to_s.empty?
+        require 'chunky_png'
+        bx, by, bw, bh, _sx, iw = tb.split(',').map(&:to_f)
+        png = ChunkyPNG::Image.from_file(s.png_path)
+        k = png.width / iw
+        ink = 0
+        (by * k).floor.upto(((by + bh) * k).ceil - 1) { |y| (bx * k).floor.upto(((bx + bw) * k).ceil - 1) { |x| next if x >= png.width || y >= png.height; v = png[x, y]; ink += 1 if ChunkyPNG::Color.r(v) + ChunkyPNG::Color.g(v) + ChunkyPNG::Color.b(v) < 300 } }
+        puts "TBAR #{c['name']}: icon #{bw.round}x#{bh.round} ink #{ink}" if ink < 12
+        expect(ink).to be >= 12
+      end
       err = s.evaluate("(document.querySelector('[data-sw-error]')||{getAttribute:function(){return null}}).getAttribute('data-sw-error')")
       puts "ERR #{c['name']}: #{err}" if err
       expect(err).to be_nil
