@@ -65,15 +65,16 @@ custom_fields:
 - keyname: bottom
   field_type: select
   name: Bottom strip
-  description: The coming days, or the coming hours with their temperature.
-  description-de: 'Die nächsten Tage oder die nächsten Stunden mit ihrer Temperatur.'
-  description-fr: 'Les prochains jours, ou les prochaines heures avec leur température.'
-  description-es-ES: 'Los próximos días, o las próximas horas con su temperatura.'
-  description-nl: 'De komende dagen, of de komende uren met hun temperatuur.'
-  description-ja: '今後の数日、または今後の数時間とその気温。'
+  description: The coming days, or the coming hours with their temperature; or both by the clock (hours until 18:00, days from 18:00).
+  description-de: 'Die nächsten Tage oder die nächsten Stunden mit ihrer Temperatur; oder beides nach der Uhr (Stunden bis 18:00, Tage ab 18:00).'
+  description-fr: 'Les prochains jours, ou les prochaines heures avec leur température ; ou les deux selon l''heure (heures jusqu''à 18:00, jours dès 18:00).'
+  description-es-ES: 'Los próximos días, o las próximas horas con su temperatura; o ambos según la hora (horas hasta las 18:00, días desde las 18:00).'
+  description-nl: 'De komende dagen, of de komende uren met hun temperatuur; of beide volgens de klok (uren tot 18:00, dagen vanaf 18:00).'
+  description-ja: '今後の数日、または今後の数時間とその気温。時刻で切り替えることもできます（18:00までは時間、18:00からは日）。'
   options:
   - Days: days
   - Hours: hours
+  - Hours, days after 18:00: auto
   default: days
 - keyname: hide_title_bar
   field_type: boolean
