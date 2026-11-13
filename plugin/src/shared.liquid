@@ -51,7 +51,7 @@
     {%- else %}<span class="value value--small value--tnums">{{ ui.tdial.value }}</span><span class="title title--small text--bold">{{ ui.tdial.unit }}</span>{% endif -%}
    {%- endcapture %}
    <div class="absolute bottom--3 right--4 flex flex--row flex--bottom gap--small" data-sw-cap>{{ dv_row }}</div>
-   {%- if k == 2 and ui.inn %}<div class="absolute top--3 right--4 flex flex--row flex--bottom gap--small text--gray-50 dark:text--gray-45" data-sw-cap data-sw-dialin>{% comment %} owner 2026-11-13 {% endcomment %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="1" data-sw-loc="in"></div><div class="shrink-0 self--center text--gray-50 dark:text--gray-45" data-sw-part="arrow" data-sw-i="2"{% if ui.inn.arrow %} data-sw-arrow="{{ ui.inn.arrow }}"{% endif %}></div><span class="value value--small value--tnums text--gray-50 dark:text--gray-45">{{ ui.inn.temp }}</span><span class="title title--small text--bold text--gray-50 dark:text--gray-45">{{ ui.tdial.unit }}</span></div>{% endif %}
+   {%- if k == 2 and ui.inn %}<div class="absolute top--3 right--4 flex flex--row flex--bottom gap--small text--gray-30 dark:text--gray-30" data-sw-cap data-sw-dialin>{% comment %} owner 2026-11-13 {% endcomment %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="1" data-sw-loc="in"></div><div class="shrink-0 self--center text--gray-30 dark:text--gray-30" data-sw-part="arrow" data-sw-i="2"{% if ui.inn.arrow %} data-sw-arrow="{{ ui.inn.arrow }}"{% endif %}></div><span class="value value--small value--tnums text--gray-30 dark:text--gray-30">{{ ui.inn.temp }}</span><span class="title title--small text--bold text--gray-30 dark:text--gray-30">{{ ui.tdial.unit }}</span></div>{% endif %}
   </div>{{ p_close }}
   {%- endfor %}
  </div></div>
@@ -292,7 +292,7 @@ return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
 var LOC = { out: "<path d='M8 17a4.5 4.5 0 0 1 .5-8.8A5.5 5.5 0 0 1 19.5 8.2 4.5 4.5 0 0 1 20 17z'/><path d='M14 17v8M10.5 25h7'/>", in: "<path d='M3 14L14 4l11 10'/><path d='M6 12v12h16V12'/><path d='M12 24v-7h4v7'/>" };
 function loc(k, W, H) { return svg(W, H, locAt(k, (W - Math.min(W, H)) / 2, (H - Math.min(W, H)) / 2, Math.min(W, H))); }
 function locAt(k, x, y, s) { return g(k === 'in' ? inc() : '', '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(s) + '" height="' + n1(s) + '" viewBox="0 0 28 28" overflow="visible"><g fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.8, 1.5 * 28 / Math.max(1, s)) * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-loc="' + k + '">' + LOC[k] + '</g></svg>'); }
-var inc = () => API.mode && API.mode.dark ? 'text--gray-45' : 'text--gray-50';
+var inc = () => 'text--gray-30', inb = () => API.mode && API.mode.dark ? 'text--gray-45' : 'text--gray-50';
 // Block meter: n cells, frac lit.
 function cells(frac, n) { return frac === null || frac === undefined || !(frac > 0) ? 0 : Math.max(1, Math.round(Math.min(1, frac) * n)); }
 // Cell states (owner):
@@ -304,7 +304,7 @@ return { st: st, peak: k - 1 };
 function meter(m, W, H, n) {
 m = m || {}; if (!m.tw) return svg(W, H, mrow(m, W, H, n));
 var gp = Math.max(2, H * 0.08), h = (H - gp) / 2;
-return svg(W, H, mrow(m, W, h, n) + '<g data-sw-twrow="in" transform="translate(0 ' + n1(h + gp) + ')">' + mrow(m.tw.m, W, h, n, inc()) + '</g>');
+return svg(W, H, mrow(m, W, h, n) + '<g data-sw-twrow="in" transform="translate(0 ' + n1(h + gp) + ')">' + mrow(m.tw.m, W, h, n, inb()) + '</g>');
 }
 function mrow(m, W, H, n, lc) {
 n = n || 10;
@@ -553,7 +553,7 @@ var np = (ox, oy, an, k) => { var vx = an === undefined ? ux : Math.sin(an), vy 
 return [[t[0] + qx * wt / 2, t[1] + qy * wt / 2], [b[0] + qx * wb / 2, b[1] + qy * wb / 2], [q[0] + qx * wb * 1.6, q[1] + qy * wb * 1.6], [q[0] - qx * wb * 1.6, q[1] - qy * wb * 1.6], [b[0] - qx * wb / 2, b[1] - qy * wb / 2], [t[0] - qx * wt / 2, t[1] - qy * wt / 2]]; };
 var hr = Math.max(6, H * 0.035), tw = '';
 if (D.twin !== null && D.twin !== undefined) {
-tw = '<g data-sw-twin="1">' + g(inc(), poly(np(0, 0, -A + 2 * A * cl(F(D.twin)), 0.86))) + '</g>';
+tw = '<g data-sw-twin="1">' + g(inb(), poly(np(0, 0, -A + 2 * A * cl(F(D.twin)), 0.86))) + '</g>';
 }
 body += '<g data-sw-needle>' + g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
 body += glow(tw + poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '" data-sw-hub="' + n1(Math.max(hr, tailR + wb * 1.6)) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>') + '</g>';
