@@ -171,7 +171,6 @@
    <div class="grow basis--0 h--full{% if i >= nh_md %} hidden lg:block{% elsif i >= nh_lg %} lg:hidden{% endif %}" data-sw-hcol="{{ i }}"><div class="flex flex--col flex--center-x h--full w--full gap--xsmall">{% comment %} the visibility on the outer box, the column layout on the inner one: lg:flex alone lost the flex rules (owner screenshot: rows pushed down) {% endcomment %}
     <div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">{%- if q.now or q.wet %}<span class="label label--inverted label--large{% if q.now %} text--bold{% endif %}" data-sw-hstamp="{% if q.now %}now{% else %}wet{% endif %}">{{ q.hl }}</span>{% else %}<span class="label label--large" data-sw-hstamp="">{{ q.hl }}</span>{% endif %}</div>
     <div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y h--[{{ 8 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 6 | times: hl | round | at_most: 100 }}cqh]">{% if q.icon %}<img class="image image--adaptive h--full" src="{{ q.icon }}" alt="">{% endif %}</div>
-    <div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y"><span class="title title--base{{ name_t }} text--bold" data-sw-htemp>{{ q.t }}</span></div>
     <div class="grow w--full" data-sw-part="hbar" data-sw-i="{{ i }}"></div>
    </div></div>
   {%- endif %}
@@ -211,7 +210,7 @@
 {%- assign sw_hide = cf.hide_title_bar | append: '' -%}
 {%- unless sw_hide == 'true' or sw_hide == 'yes' or view != 1 %}
 <div class="title_bar">
- <img class="image image--adaptive" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
+ <img class="image image--adaptive w--[28px] h--[28px]" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
  <span class="title">{{ trmnl.plugin_settings.instance_name | default: 'Radio Weather' }}</span>
  {%- if clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}
 </div>
@@ -360,16 +359,22 @@ function hscale(all, nc) {
 var ts = (all || []).slice(0, nc || (all || []).length).map((q) => q && q.tV).filter((v) => v !== null && v !== undefined).map(Math.round);   // the shown (whole) degrees
 return ts.length ? { a: Math.min.apply(null, ts) - 1, b: Math.max.apply(null, ts) } : null;
 }
+// Blocks at most 6 high (owner 2026-11-13: solid steps, not stripes): a range of up to 6 degrees gets whole blocks per degree,
+// a wider one a block per 2 (3, ...) degrees. The label sits right on top of the stack, so the part reserves its room above.
+function hper(hs, cap) { return Math.max(1, Math.ceil(Math.max(1, hs.b - hs.a) / cap)); }
 function hlevels(hs, C) {
-var steps = Math.max(1, hs.b - hs.a), cap = Math.max(1, Math.floor(Math.min(C / 6, 16)));
-return steps <= cap ? steps * Math.floor(cap / steps) : cap;
+var steps = Math.max(1, hs.b - hs.a), cap = Math.max(1, Math.min(6, Math.floor(C / 6))), per = hper(hs, cap);
+return per > 1 ? Math.ceil(steps / per) : steps * Math.floor(cap / steps);
 }
 function hbar(q, hs0, W, H, hi, all) {
 var hs = hscale(all, API.hcols) || hs0;
 if (!q || q.tV === null || q.tV === undefined || !hs) return svg(W, H, '');
-var C = Math.min(H, API.hbarH || H), L = hlevels(hs, C), n = Math.max(1, Math.min(L, Math.round((Math.round(q.tV) - hs.a) / (hs.b - hs.a) * L))), Hh = H - SO, lh = (C - SO) / L, gp = Math.max(2, lh * 0.2), bw = W - SO, cells = '', sh = '';
+var lw = String(q.t).length, fs = Math.max(8, Math.min(W / (Math.max(2, lw) * 0.62), (API.hbarH || H) * 0.2, 30)), R = Math.round(fs * 1.35) + 2;   // label room above the tallest stack
+var C = Math.min(H, API.hbarH || H) - R, L = hlevels(hs, C), per = hper(hs, Math.max(1, Math.min(6, Math.floor(C / 6))));
+var n = Math.max(1, Math.min(L, per > 1 ? Math.ceil((Math.round(q.tV) - hs.a) / per) : Math.round((Math.round(q.tV) - hs.a) / (hs.b - hs.a) * L))), Hh = H - SO, lh = (C - SO) / L, gp = Math.max(2, lh * 0.2), bw = W - SO, cells = '', sh = '';
 for (var k = 0; k < n; k++) { var y = Hh - (k + 1) * lh + gp / 2; cells += rect(0, y, bw, lh - gp, 2); sh += rect(SO, y + SO, bw, lh - gp, 2); }
-return svg(W, H, g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells="' + n + '">' + g(blk(hi), cells) + '</g>');
+var ty = Hh - n * lh + gp / 2 - 2 - fs * 0.3;   // baseline just above the top block (the text box reaches 0.3 em under it)
+return svg(W, H, g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells="' + n + '" data-sw-area="' + n1(C) + '">' + g(blk(hi), cells) + '</g>' + text(bw / 2, ty, q.t, fs, 'middle', ' data-sw-htemp'));
 }
 // Days strip header: degree labels (dark grey) and the now pointer; its line starts here unless it would cross a label.
 function scale(sc, W, H) {
