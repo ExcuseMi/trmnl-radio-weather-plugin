@@ -96,8 +96,8 @@
     {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
     <div class="flex flex--col flex--center gap--xsmall h--full" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
      <span class="label label--small text--bold">{% if tw == 1 %}{{ ui.inn.out }}{% else %}{{ ui.inn.in }}{% endif %}</span>
-     <div class="flex flex--row flex--top gap--xsmall h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 10 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]"><div class="h--full" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
-     <span class="label label--small">{% if tw == 2 %}{{ ui.inn.hum }}{% else %}&nbsp;{% endif %}</span>{% comment %} an empty line under BUITEN keeps both digit rows level {% endcomment %}
+     <div class="flex flex--row flex--top gap--xsmall h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 10 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]"><div class="h--full" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span>{% if tw == 1 %}{{ cbadge }}{% elsif ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center h--[3cqh] hidden lg:block" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}" data-sw-inarrow></div>{% endif %}</div>
+     <span class="label label--small">{% if tw == 2 %}{{ ui.inn.hum }}{% if ui.inn.lohi %}<span class="hidden lg:inline" data-sw-inlohi>&nbsp;·&nbsp;{{ ui.inn.lohi }}</span>{% endif %}{% else %}&nbsp;{% endif %}</span>{% comment %} indoor trend (saved state): arrow behind the unit, today's low/high after the humidity (X only: on OG the column is too narrow for both) {% endcomment %}{% comment %} an empty line under BUITEN keeps both digit rows level {% endcomment %}
     </div>
     {%- endfor %}
     {%- else %}
@@ -583,7 +583,7 @@ function axisFor(SW) { return (API.nRows && SW.scales && SW.scales[API.nRows]) |
 function part(SW, kind, i, W, H) {
 var scN = Object.assign({}, axisFor(SW), { now: null });
 switch (kind) {
-case 'arrow': return arrow(((i ? SW.tdial : SW.baro) || {}).arrow, W, H);
+case 'arrow': return arrow((i === 2 ? SW.inn : (i ? SW.tdial : SW.baro) || {}).arrow, W, H);
 case 'cue': return cue(SW.cue, W, H);
 case 'dcue': return cue((SW.days[i] || {}).cue, W, H);
 case 'temp': return digits(SW.temp, H);
@@ -682,6 +682,7 @@ if (Math.abs(nt - pt) > 0.3 || Math.abs(nb - pb) > 0.3) { w.style.paddingTop = n
 // Trend arrows (owner step 13): box 1.5x the caption cap height.
 function swArrow(cx) {
 document.querySelectorAll('[data-sw-part="arrow"]').forEach(function (e) {
+if (e.hasAttribute('data-sw-inarrow')) { e.style.width = e.getBoundingClientRect().height.toFixed(1) + 'px'; return; }
 var c = e.closest('.relative').querySelector('[data-sw-cap]'); if (!c) return; var cs = getComputedStyle(c); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
 var v = 1.5 * cx.measureText('H').actualBoundingBoxAscent; e.style.width = v.toFixed(1) + 'px'; e.style.height = v.toFixed(1) + 'px';
 });

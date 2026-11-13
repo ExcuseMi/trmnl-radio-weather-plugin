@@ -572,6 +572,16 @@ function fromSnap(sn, nowS) {
     return { weather: { current: cur, hourly: hourly, daily: daily, utc_offset_seconds: off }, aq: aq, pollen: rd(sn.pol, 1000), asOf: hmOf(sn.ct) };
   } catch (e) { return null; }
 }
+// Indoor trend (owner 2026-11-13, saved state inn): one point per 30 min ([slot, C, ppm]) for the last 6 h, today's
+// low/high (local date d). Returns the new state and the point nearest to 3 h ago (within 30 min), or null.
+function innTrack(prev, t, co2, nowS, day) {
+  prev = stObj(prev) || {};
+  var slot = Math.floor(nowS / 1800), ok = (q) => Array.isArray(q) && typeof q[0] === 'number' && typeof q[1] === 'number' && q[0] > slot - 13 && q[0] < slot;
+  var pts = (Array.isArray(prev.p) ? prev.p : []).filter(ok).map((q) => [q[0], q[1], typeof q[2] === 'number' ? q[2] : null]).slice(-12).concat([[slot, rd(t, 10), co2 === null ? null : Math.round(co2)]]);
+  var same = prev.d === day && typeof prev.lo === 'number' && typeof prev.hi === 'number';
+  var ago = pts.filter((q) => Math.abs(q[0] - (slot - 6)) <= 1).sort((a, b) => Math.abs(a[0] - slot + 6) - Math.abs(b[0] - slot + 6))[0] || null;
+  return { st: { d: day, lo: rd(same ? Math.min(prev.lo, t) : t, 10), hi: rd(same ? Math.max(prev.hi, t) : t, 10), p: pts }, ago: ago };
+}
 // The size guard: never hand TRMNL a state it would refuse; the indoor points go first, then the copy.
 function fitState(st) {
   var size = (o) => new TextEncoder().encode(JSON.stringify(o)).length;
@@ -619,8 +629,15 @@ async function run(input) {
   var ui = buildView(model, i18n, w.daily, moon, phase, { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time) });
   if (fb && fb.asOf) ui.stale = i18n.ours.asof + ' ' + clk(fb.asOf.slice(0, 2), fb.asOf.slice(3, 5));
   var st = { v: 1, cue: ui.keep.cue, mt: ui.keep.mt }, keep = snap || stObj(st0.snap); delete ui.keep;
+  if (sensors && model.inn.temp !== null && ui.inn) {   // sensor_show hide: sensors null, no indoor state
+    var cv = (c) => fahrenheit ? c * 1.8 + 32 : c, iv = innTrack(st0.inn, model.inn.temp, model.inn.co2, nowS, String((w.current || {}).time || msIso((nowS + (w.utc_offset_seconds || 0)) * 1000)).slice(0, 10));
+    st.inn = iv.st;
+    ui.inn.arrow = iv.ago ? tempTrend(cv(iv.ago[1]), cv(model.inn.temp), fahrenheit) : null;
+    ui.inn.co2arrow = iv.ago && iv.ago[2] !== null && model.inn.co2 !== null ? (model.inn.co2 - iv.ago[2] >= 100 ? 'up' : (model.inn.co2 - iv.ago[2] <= -100 ? 'down' : 'level')) : null;
+    if (iv.st.p.length > 1) ui.inn.lohi = i18n.lo + ' ' + SWModel.fmt(cv(iv.st.lo)) + '° ' + i18n.hi + ' ' + SWModel.fmt(cv(iv.st.hi)) + '°';
+  }
   if (keep) st.snap = keep;   // a failed fetch writes the old copy back as it was
   return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, snapOf: snapOf, fromSnap: fromSnap, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
+if (typeof module !== 'undefined') module.exports = { run: run, snapOf: snapOf, fromSnap: fromSnap, innTrack: innTrack, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
