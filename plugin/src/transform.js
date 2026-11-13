@@ -508,7 +508,7 @@ temp: tStr, unit: deg + M.unit,   // owner 2026-11-13: no felt readout; the felt
 inn: inT === null ? null : { temp: t1(inT), out: O.outdoor, in: O.indoor, hum: M.inn.hum === null || hm ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
 rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)), gauge: gauge } : null,
 sun: sun, dry: wetIn12 ? null : sun,
-days: days.map((d, i) => ({ cue: cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3), name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
+days: days.map((d, i) => ({ cue: cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3), name: names[i] || d.label, icon: wiUrl(d.icon, true), iconInk: wiInk(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
 scale: sc, scales: scales,
 baro: { now: pr, lo: ps.length ? Math.min.apply(null, ps) : null, hi: ps.length ? Math.max.apply(null, ps) : null, a: 970, b: 1050,
 value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro, trend: trend ? O['p_' + trend] : null, arrow: trend ? { rising: 'up', falling: 'down', steady: 'level' }[trend] : null,

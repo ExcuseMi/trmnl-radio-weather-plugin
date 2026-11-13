@@ -200,7 +200,7 @@
   {% comment %} owner: a faint hairline over {% endcomment %}
   <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
    <div class="shrink-0 {{ name_w }} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%- if d.today %}<span class="label label--inverted label--large{% if view != 3 %} lg:portrait:label--xxlarge{% endif %} text--bold" data-sw-today>{{ d.name }}</span>{% comment %} owner: today an inverted label in {% endcomment %}{% else %}<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}</span>{% endif %}</div></div>
-   <div class="shrink-0 {{ icon_w }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
+   <div class="shrink-0 {{ icon_w }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="" data-sw-dink="{{ d.iconInk }}">{% endif %}</div>
    <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.lo }}</span></div>
    <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.hi }}</span></div>
    <div class="grow basis--0 h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>{% if dcue_on %}<div class="shrink-0 {{ dcue_w }} flex flex--row flex--center-y"><div class="w--full h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" data-sw-part="dcue" data-sw-i="{{ forloop.index0 }}" data-sw-cue="{{ d.cue | join: '+' }}"></div></div>{% endif %}
@@ -611,6 +611,21 @@ if (sp.getAttribute('data-sw-segk') !== r.key) { sp.innerHTML = r.html; sp.setAt
 var scr = document.querySelector('.screen'), sc = scr && scr.offsetWidth ? window.innerWidth / scr.offsetWidth : 1; if (cap * 1.25 * sc < 24 && sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); }   // under 24 screen px the segments cannot read: the normal font
 });
 }
+function swDayIcons() {
+// Day rows (owner 2026-11-13): every weather icon has the same ink size and centre (a lone cloud is scaled up a little, never past 1.15x, from its left edge so the icon column stays aligned), and the day name keeps a minimum gap before the column.
+var ims = [].slice.call(document.querySelectorAll('img[data-sw-dink]')), dx = 0;
+ims.forEach(function (im) { im.style.transform = ''; });
+ims.forEach(function (im) {
+var row = im.closest('.relative'), nm = row && row.querySelector('[data-sw-dname], [data-sw-today]'), B = im.offsetHeight; if (!nm || !B) return;
+var nb = nm.getBoundingClientRect(), b0 = im.getBoundingClientRect(), k = (im.offsetWidth && b0.width / im.offsetWidth) || 1, need = B * k * 0.3 - (b0.left - nb.right);
+if (need > 0) dx = Math.max(dx, need / k);
+});
+ims.forEach(function (im) {
+var ik = im.getAttribute('data-sw-dink').split(','), iy = +ik[0], ih = +ik[1] || 1, sc = Math.min(1.15, Math.max(1, 0.8 / ih)), B = im.offsetHeight; if (!B) return;
+im.style.transformOrigin = 'left center';
+im.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + ((0.5 - iy - ih / 2) * B * sc).toFixed(1) + 'px) scale(' + sc.toFixed(3) + ')';
+});
+}
 function swCond(cx) {
 document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
 var ic = sp.parentElement.firstElementChild; if (!ic || ic === sp) return;
@@ -723,7 +738,7 @@ var swN = 0;
 function swAlign() {
 if (++swN > 60) return;
 var cx = document.createElement('canvas').getContext('2d');
-swSeg(cx); swCond(cx); swFit(); swBadge(cx); swFit(); swBadge(cx); swHair(); swBalance();
+swSeg(cx); swCond(cx); swDayIcons(); swFit(); swBadge(cx); swFit(); swBadge(cx); swHair(); swBalance();
 }
 function swOGPortrait() {
 var screen = document.querySelector('.screen');
