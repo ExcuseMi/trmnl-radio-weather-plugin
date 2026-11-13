@@ -295,7 +295,7 @@ else if (c === ':') body += rect(x + G * 0.7, 0.3 * HH - T / 2, T, T) + rect(x +
 else if (c !== ' ') { var on = GLYPH[c] || '', sh = shapes(c === '1' ? x + (W * 0.58 - T) / 2 : x, c === '1' ? T : W, HH, T, GP), gb = ''; 'abcdefg'.split('').forEach((q) => { if (on.indexOf(q) >= 0) gb += c === '7' && q === 'a' ? poly(hseg(x + GP, x + W - GP, T / 2, T)) : poly(sh[q]); }); body += '<g data-sw-glyph="' + c + '">' + gb + '</g>'; }
 x += adv(c);
 });
-var vw = x - G - (/[:.]$/.test(s) ? 0 : 0), k = cap * 1.25 / HH;
+var vw = x - G, k = cap * 1.25 / HH;
 return { html: svg(vw * k, HH * k, glow(body, GPX / k), '0 0 ' + vw + ' ' + HH).replace('<svg ', '<svg class="block" '), key: s + '|' + n1(cap) };
 }
 var LOC = { out: "<path d='M8 17a4.5 4.5 0 0 1 .5-8.8A5.5 5.5 0 0 1 19.5 8.2 4.5 4.5 0 0 1 20 17z'/><path d='M14 17v8M10.5 25h7'/>", in: "<path d='M3 14L14 4l11 10'/><path d='M6 12v12h16V12'/><path d='M12 24v-7h4v7'/>" };
@@ -408,7 +408,7 @@ return svg(W, H, body);
 function rain(hours, W, H, rows) {
 var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = rows === 2 ? 2 : (rows === 3 || fit(3) < fit(2)) && (W / C) / (H / 3) <= 1.95 && Math.min(H / 3 * 0.9, W / C * 0.7) >= (API.lp || 0) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.7), body = '';
 var hs = hours.slice(0, C * R), lw = (h) => { var m = String(h).match(/^(\d*)(.*)$/); return m[1].length * 0.62 + m[2].length * 0.7 * 0.6; }, wf = (a) => Math.max.apply(null, a.map((q) => lw(q.h)).concat(0)), wmax = wf(hs);
-var pf = (w) => Math.min(0.9, Math.max(0.7, (API.lp || 0) * 0.97 * w / cw));   // inner padding: 15 % each side, less only when the number would fall under the label size
+var pf = (w) => Math.min(0.9, Math.max(0.7, (API.lp || 0) * 0.97 * w / cw));
 if (wmax * fs > cw * pf(wmax) && cw * pf(wmax) / wmax < (API.lp || 0) * 0.95) { hs = hs.map((q) => ({ h: String(q.h).replace(/\D+$/, ''), wet: q.wet })); wmax = wf(hs); }
 if (wmax * fs > cw * pf(wmax)) fs = cw * pf(wmax) / wmax;
 hs.forEach((q, i) => {
@@ -435,7 +435,7 @@ var limb = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fi
 var h = dk ? halo('<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '"/>', GPX) : '';
 if (h) { var mid = 'swmk' + (K++); h = '<defs><mask id="' + mid + '" maskUnits="userSpaceOnUse" x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '"><rect x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '" fill="#fff"/><circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r + sw / 2) + '" fill="#000"/></mask></defs><g mask="url(#' + mid + ')" data-sw-moonhalo>' + h + '</g>'; }
 var disk = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" data-sw-moon="disk"/>', fd = !dk && bits >= 3 ? g('text--gray-75', disk) : '';
-if (f < 0.08) return svg(H, H, h + g(dk ? 'text--gray-45' : 'text--gray-10', disk) + limb);   // new moon (owner 2026-11-13): a filled disc, dark by day and the inverse in dark mode, never an empty ring
+if (f < 0.08) return svg(H, H, h + g(dk ? 'text--gray-45' : 'text--gray-10', disk) + limb);
 return svg(H, H, h + fd + (dk || bits <= 1 ? lit : g('text--gray-45', lit)) + limb);
 }
 var CLOTH = { umbrella: "<path d='M3.5 14a10.5 10.5 0 0 1 21 0c-1.7-1.4-3.5-1.4-5.2 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.5-1.4-5.2 0z'/><path d='M14 14v8.5a2 2 0 0 1-4 0'/><path d='M14 2.5v1'/>",
@@ -609,11 +609,10 @@ var cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' '
 var cap = cx.measureText('H').actualBoundingBoxAscent, r = cap > 0 ? SWDraw.segtime(t, cap) : null;
 if (!r) { if (sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); } return; }
 if (sp.getAttribute('data-sw-segk') !== r.key) { sp.innerHTML = r.html; sp.setAttribute('data-sw-segk', r.key); sp.setAttribute('aria-label', t); }
-var scr = document.querySelector('.screen'), sc = scr && scr.offsetWidth ? window.innerWidth / scr.offsetWidth : 1; if (cap * 1.25 * sc < 24 && sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); }   // under 24 screen px the segments cannot read: the normal font
+var scr = document.querySelector('.screen'), sc = scr && scr.offsetWidth ? window.innerWidth / scr.offsetWidth : 1; if (cap * 1.25 * sc < 24 && sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); }
 });
 }
 function swDayIcons() {
-// Day rows (owner 2026-11-13): every weather icon has the same ink size and centre (a lone cloud is scaled up a little, never past 1.15x, from its left edge so the icon column stays aligned), and the day name keeps a minimum gap before the column.
 var ims = [].slice.call(document.querySelectorAll('img[data-sw-dink]')), dx = 0;
 ims.forEach(function (im) { im.style.transform = ''; });
 ims.forEach(function (im) {
