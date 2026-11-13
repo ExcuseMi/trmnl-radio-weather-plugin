@@ -356,9 +356,10 @@ if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.62, y = (H - bh) / 2, cells = '', sh = '';
 var ptH = lfs(sc) * 0.3 * 1.4; // Calm today's pointer: the size of the header triangle
 if (hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); } // blocks start under it, never cover it
-var gp = Math.max(2.5, cw * 0.16), pc = []; // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner: never blocks merged into stripes)
-if (API.nfs && cw - gp >= 6 && bh > (cw - gp) * 1.5) { y += (bh - (cw - gp) * 1.5) / 2; bh = (cw - gp) * 1.5; } // OG portrait: blocks, not slats
-if (cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = a; t < b; t++) pc.push([X(t) + gp / 2, X(t + 1) - gp / 2]);
+var k = 1; if (API.nfs) while (k * cw - Math.max(2.5, k * cw * 0.16) < 6 && k < 50) k++; // OG portrait: a block per k degrees, at least 6 px
+var gp = Math.max(2.5, k * cw * 0.16), pc = [], a0 = sc.a + Math.floor((a - sc.a) / k) * k; // gap at least 2 px; too narrow: one solid bar (owner)
+if (API.nfs && bh > (k * cw - gp) * 1.5) { y += (bh - (k * cw - gp) * 1.5) / 2; bh = (k * cw - gp) * 1.5; } // OG portrait: blocks, not slats
+if (k * cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = k > 1 ? a0 : a; t < b; t += k) pc.push([X(t) + gp / 2, X(t + k) - gp / 2]);
 pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
 body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells>' + g(blk(hi), cells) + '</g>';
 }
@@ -756,7 +757,7 @@ var bt = document.querySelector('[data-sw-between]'), days = bt && bt.nextElemen
 if(view === 1 && days) { set(panel,/^h--/,'h--[57cqh]'); set(days,/^h--/,'h--[35cqh]'); }
 if(view === 1) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-row="day"] > div > :nth-child(3)'),function(e){set(e.parentElement.firstElementChild,/^w--/,'w--[14cqw]');}); // day names (MON) clear their icons (DAYALIGN, step 15)
 }
-if(hv) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'),function(e){var c=e.parentElement.children[1];if(c)c.parentNode.removeChild(c);}); // hv: no day icons, bars at least 4 px
+if(hv) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'),function(e){var c=e.parentElement.children[1];if(c)c.parentNode.removeChild(c);set(e.parentElement.children[0],/^w--/,'w--[30cqw]');}); // hv: no day icons, bars at least 4 px
 var dn = [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'),function(q){return q.getBoundingClientRect().width>0;})[0], tpx = dn ? Math.round(parseFloat(getComputedStyle(dn).fontSize)*0.85) : 0;
 if(tpx) [].forEach.call(document.querySelectorAll('[data-sw-part="tri"]'),function(e){set(e,/^[hw]--/,'h--['+tpx+'px] w--['+tpx+'px]');});
 if(hv && rain) { set(top,/^gap--/,'gap--xsmall'); set(outer,/^gap--/,'gap--xsmall'); set(temp,/^gap--/,'gap--small'); } // the rain unit needs the room (step 15)
