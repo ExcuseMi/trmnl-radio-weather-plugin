@@ -222,8 +222,8 @@ test('the X view: no data gives no crash and empty parts', () => {
   const M = SWModel.build(fx('error'), {}), v = T.buildView(M, T.buildI18n('en'), null, null);
   eq(v.ok, false); eq(v.days.length, 0);
 });
-// Page drawings (DRAW block of shared.liquid), cut out like the model so the test runs the page's own bytes.
-const shRaw = fs.readFileSync(path.join(__dirname, '../../plugin/src/shared.liquid'), 'utf-8');
+// Page drawings (DRAW block of source/shared.liquid, the readable source: the built page script is minified into one statement), cut out like the model.
+const shRaw = fs.readFileSync(path.join(__dirname, '../../source/shared.liquid'), 'utf-8');
 const sh = shRaw.replace(/\{\{ (\d+) \| times: \w+ \| round \| at_most: 100 \}\}/g, '$1');   // per-view size factors read as the full view's values
 const da = sh.indexOf('// ==== DRAW_BEGIN ===='), db = sh.indexOf('// ==== DRAW_END ====');
 if (da < 0 || db < 0) throw new Error('DRAW markers missing in shared.liquid');
@@ -525,6 +525,17 @@ test('days axis (owner bug): from the values as shown (rounded, -0 as 0) and onl
 test('every plugin/src file stays under 98 KiB: TRMNL refuses an import over 100 KB (step 18: shared.liquid reached 102.3 KB)', () => {
   const dir = path.join(__dirname, '../../plugin/src');
   fs.readdirSync(dir).forEach((n) => { const b = fs.statSync(path.join(dir, n)).size; ok(b < 98 * 1024, n + ' is ' + b + ' bytes, limit ' + 98 * 1024); });
+});
+test('plugin/src/shared.liquid is the build of source/shared.liquid: run node tools/build.js (owner 2026-11-13)', () => {
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sw-build-'));
+  const out = path.join(tmp, 'shared.liquid');
+  require('child_process').execFileSync(process.execPath, [path.join(__dirname, '../../tools/build.js'), out], { stdio: 'pipe' });
+  const built = fs.readFileSync(out, 'utf8'); fs.rmSync(tmp, { recursive: true });
+  ok(built === fs.readFileSync(path.join(__dirname, '../../plugin/src/shared.liquid'), 'utf8'), 'plugin/src/shared.liquid differs from the build of source/shared.liquid: run `node tools/build.js` and commit both');
+});
+test('built shared.liquid stays under 84 KB: a source edit that pushes it over must cut code first (limit 98 KiB above is the hard one)', () => {
+  const b = fs.statSync(path.join(__dirname, '../../plugin/src/shared.liquid')).size;
+  ok(b < 84 * 1000, 'plugin/src/shared.liquid is ' + b + ' bytes after the build, budget ' + 84 * 1000 + ': trim source/shared.liquid (dead code, duplicates), not the guard');
 });
 async function sensorSettingsTests() {
   const originalFetch = global.fetch;

@@ -5,3 +5,4 @@ review/
 plugin/renders/
 plugin/_build/
 plugin/report/
+node_modules/

@@ -35,8 +35,13 @@ cd plugin
 trmnlp serve        # preview
 trmnlp test         # RSpec specs in plugin/tests
 node ../test/model/run.js   # pure-logic tests of the weather model
+(cd .. && npm install && node tools/build.js)   # after editing source/shared.liquid
 ruby ../tools/sync_trmnl_i18n.rb   # re-sync TRMNL's translations
 ```
+
+## Editing
+
+Edit `source/shared.liquid` (all comments live there), then run `node tools/build.js`: it writes `plugin/src/shared.liquid` (Liquid comments stripped, page script minified), which is what trmnlp pushes. Never edit the built file; the model tests fail when it is out of date or over 84 KB.
 
 ## Licence
 

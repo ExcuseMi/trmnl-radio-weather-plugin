@@ -1,0 +1,6 @@
+{
+  "name": "radio-weather-build",
+  "private": true,
+  "description": "Build step only: source/shared.liquid -> plugin/src/shared.liquid",
+  "devDependencies": { "terser": "5.36.0" }
+}
