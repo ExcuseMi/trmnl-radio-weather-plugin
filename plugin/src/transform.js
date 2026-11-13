@@ -399,9 +399,9 @@ return { weather: Object.assign({}, w, { hourly: nh }), ago: ago, today: h, prev
 }
 // Calm clothing cues (owner): a list, the top layer first, then the extras. Top, by felt temperature: parka when the
 // coldest is under 3 C; else from the warmest: jacket under 12 C, sweater under 18 C (owner, after WhetherWear's guides),
-// t-shirt. Extras in order: umbrella (rain), mittens (coldest under -2 C), sunglasses (daytime, UV 6 or more).
+// t-shirt. Extras in order: umbrella (rain), beanie (coldest under 5 C, owner 2026-11-13: replaces the mittens), sunglasses (daytime, UV 6 or more).
 // Fahrenheit converted. No temperature: no top layer. (Owner 2026-11-12: no raincoat.)
-// Hysteresis (owner 2026-11-13, saved state): with the last cue (prev {top, mit}) the top layer and the mittens change
+// Hysteresis (owner 2026-11-13, saved state): with the last cue (prev {top, bn}; an old saved {mit} counts as bn) the top layer and the beanie change
 // only once the felt temperature is past the threshold by 1 C (2 F) in the new direction; umbrella and sunglasses none
 // (a day's rain chance and max UV, steady within the day).
 var TOPS = ['parka', 'jacket', 'sweater', 'tshirt'];
@@ -409,10 +409,11 @@ function cueFor(o, F_, prev) {
 var T = (c) => F_ ? c * 1.8 + 32 : c, has = (v) => v !== null && v !== undefined, m = F_ ? 2 : 1;
 var lo = has(o.lo) ? o.lo : o.hi, hi = has(o.hi) ? o.hi : o.lo;
 var cls = (l, h) => l < T(3) ? 'parka' : (h < T(12) ? 'jacket' : (h < T(18) ? 'sweater' : 'tshirt'));
-var top = !has(lo) ? null : cls(lo, hi), mit = has(lo) && lo < T(-2), pt = prev ? TOPS.indexOf(prev.top) : -1;
+var top = !has(lo) ? null : cls(lo, hi), bn = has(lo) && lo < T(5), pt = prev ? TOPS.indexOf(prev.top) : -1;
 if (top && pt >= 0 && top !== prev.top) top = TOPS.indexOf(top) > pt ? TOPS[Math.max(pt, TOPS.indexOf(cls(lo - m, hi - m)))] : TOPS[Math.min(pt, TOPS.indexOf(cls(lo + m, hi + m)))];
-if (prev && typeof prev.mit === 'boolean' && has(lo) && mit !== prev.mit) mit = lo < T(-2) + (prev.mit ? m : -m);
-return [top, o.rain ? 'umbrella' : null, mit ? 'mittens' : null, o.day !== false && has(o.uv) && o.uv >= 6 ? 'sunglasses' : null].filter((k) => k);
+var pb = prev ? (typeof prev.bn === 'boolean' ? prev.bn : prev.mit) : null;
+if (typeof pb === 'boolean' && has(lo) && bn !== pb) bn = lo < T(5) + (pb ? m : -m);
+return [top, o.rain ? 'umbrella' : null, bn ? 'beanie' : null, o.day !== false && has(o.uv) && o.uv >= 6 ? 'sunglasses' : null].filter((k) => k);
 }
 // Per-day cue input (owner): the daytime hours 07:00 to 19:00 of that day from the hourly data (coldest and warmest felt
 // temperature, highest rain chance); a field the hours lack comes from the daily values; UV from the daily max.
@@ -518,7 +519,7 @@ tdial: { now: tv, twin: inT, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b 
 };
 if (hrs) { out.hours = hrs.hours; out.hscale = hrs.scale; }
 var tp = TOPS.indexOf(out.cue[0]) >= 0 ? out.cue[0] : (opt && opt.prevCue && opt.prevCue.top) || null;
-out.keep = { cue: { top: tp, mit: out.cue.indexOf('mittens') >= 0 }, mt: { uv: t.uvMax === null ? pm.uv : uvOn, co2: M.inn.co2 === null ? pm.co2 : co2Up } };   // what the next run remembers (saved state)
+out.keep = { cue: { top: tp, bn: out.cue.indexOf('beanie') >= 0 }, mt: { uv: t.uvMax === null ? pm.uv : uvOn, co2: M.inn.co2 === null ? pm.co2 : co2Up } };   // what the next run remembers (saved state)
 return out;
 }
 
