@@ -519,6 +519,10 @@ test('days axis (owner bug): from the values as shown (rounded, -0 as 0) and onl
   eq([v.scales[5].a, v.scales[6].a], [0, -5], '5 rows: the hidden 6th day at -3 does not widen the axis; 6 rows: it does');
   f.current.temperature_2m = -1; eq(T.buildView(SWModel.build(f, {}), T.buildI18n('nl'), f.daily, null, 0.3, {}).scales[5].a, -5, 'the current temperature still counts');
 });
+test('every plugin/src file stays under 98 KiB: TRMNL refuses an import over 100 KB (step 18: shared.liquid reached 102.3 KB)', () => {
+  const dir = path.join(__dirname, '../../plugin/src');
+  fs.readdirSync(dir).forEach((n) => { const b = fs.statSync(path.join(dir, n)).size; ok(b < 98 * 1024, n + ' is ' + b + ' bytes, limit ' + 98 * 1024); });
+});
 async function sensorSettingsTests() {
   const originalFetch = global.fetch;
   global.fetch = async (url) => ({ ok: true, json: async () => url.includes('air-quality') ? {} : fx('mixed') });
