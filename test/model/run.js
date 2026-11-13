@@ -669,6 +669,27 @@ async function stateTests() {
       ok((await run({ cue: { top: other, mit: false } })).ui.cue[0] !== undefined);
       for (const bad of [{ cue: 'x' }, { cue: { top: 5 } }, { mt: [] }, { cue: null, mt: 'x' }]) eq((await run(bad)).ui.cue, r.ui.cue, 'ignored ' + JSON.stringify(bad));
     });
+    await check('indoor trend: points per 30 min kept 6 h, arrow over 3 h (1 C / 2 F, CO2 100 ppm), today\'s low/high, hide settings write nothing', async () => {
+      answer = fx('mixed');
+      const S = Math.floor((AT + 600) / 1800), rd = (t, c) => ({ device_1: { temperature: [{ '2026-11-08 05:00:00 UTC': t }], carbon_dioxide: [{ '2026-11-08 05:00:00 UTC': c }] } });
+      const go = (state, t, c, fields = {}) => run(state, AT + 600, fields, { sensor_readings: rd(t, c) });
+      const first = await go({}, 21, 900);
+      eq(first.trmnl_state.inn.p, [[S, 21, 900]]); eq([first.ui.inn.arrow, first.ui.inn.co2arrow, first.ui.inn.lohi], [null, null, undefined], 'one point: no trend, no low/high');
+      const st = (pts, lo, hi, d = '2026-11-08') => ({ inn: { d: d, lo: lo, hi: hi, p: pts } });
+      let r = await go(st([[S - 6, 20, 800]], 19.5, 21), 21, 900);
+      eq([r.ui.inn.arrow, r.ui.inn.co2arrow, r.ui.inn.lohi], ['up', 'up', 'L 20° H 21°']);
+      r = await go(st([[S - 6, 20.1, 801]], 19.5, 21), 21, 900); eq([r.ui.inn.arrow, r.ui.inn.co2arrow], ['level', 'level'], 'just under: level');
+      r = await go(st([[S - 7, 22, 1000]], 19.5, 23), 21, 900); eq([r.ui.inn.arrow, r.ui.inn.co2arrow], ['down', 'down'], '3.5 h ago counts');
+      r = await go(st([[S - 8, 22, 1000]], 19.5, 23), 21, 900); eq(r.ui.inn.arrow, null, '4 h ago does not');
+      r = await go(st([[S - 6, 20, 800]], 19.5, 21), 21, 900, { unit: 'fahrenheit' }); eq(r.ui.inn.arrow, 'level', 'F: 1.8 F is under 2 F');
+      r = await go(st([[S - 6, 19.8, 800]], 19.5, 21), 21, 900, { unit: 'fahrenheit' }); eq(r.ui.inn.arrow, 'up', 'F: 2.2 F');
+      r = await go(st(Array.from({ length: 20 }, (_, i) => [S - 20 + i, 20, 800]), 18, 21), 21, 900);
+      eq(r.trmnl_state.inn.p.map((q) => q[0]), Array.from({ length: 13 }, (_, i) => S - 12 + i), '6 h kept, trimmed');
+      r = await go(st([[S - 6, 20, 800]], 10, 30, '2026-11-07'), 21, 900); eq([r.trmnl_state.inn.lo, r.trmnl_state.inn.hi], [21, 21], 'a new day resets low/high');
+      for (const bad of [{ inn: 'x' }, { inn: [] }, { inn: { p: 'x', lo: 'a' } }, { inn: { p: [null, 'x', [1], ['a', 2]] } }]) eq((await go(bad, 21, 900)).trmnl_state.inn.p, [[S, 21, 900]], 'bad ' + JSON.stringify(bad));
+      ok(!('inn' in (await go(st([[S - 6, 20, 800]], 19, 21), 21, 900, { sensor_show: 'hide' })).trmnl_state), 'sensor_show hide: no indoor state');
+      r = await go(st([[S - 6, 20, 800]], 19, 21), 21, 900, { sensor_co2: 'hide' }); eq([r.trmnl_state.inn.p[1][2], r.ui.inn.co2arrow], [null, null], 'sensor_co2 hide: no CO2 kept');
+    });
     await check('state size guard: an oversize state drops the indoor points, then the copy, and always stays an object under 8000 bytes', () => {
       const big = { v: 1, snap: { pad: 'x'.repeat(5000) }, inn: { p: Array.from({ length: 900 }, () => [1, 2, 3]) } };
       const a = T.fitState(big); ok(Buffer.byteLength(JSON.stringify(a)) <= 8000); eq(a.snap, big.snap, 'copy kept'); eq(a.inn.p, []);
