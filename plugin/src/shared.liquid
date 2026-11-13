@@ -224,7 +224,6 @@
 <script type="text/javascript">
 var SW = {{ ui | json }};
 // ==== DRAW_BEGIN ====
-// One SVG per [data-sw-part], from SW at the element's size.
 var SWDraw = (() => {
 var API = { paint: null };
 var GLYPH = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '' };
@@ -233,14 +232,11 @@ function n1(v) { return String(Math.round(v * 10) / 10); }
 function pts(p) { return p.map((q) => n1(q[0]) + ',' + n1(q[1])).join(' '); }
 function poly(p, extra) { return '<polygon points="' + pts(p) + '"' + (extra || '') + '/>'; }
 function rect(x, y, w, h, rx, extra) { return '<rect x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(Math.max(0, w)) + '" height="' + n1(Math.max(0, h)) + '"' + (rx ? ' rx="' + n1(rx) + '"' : '') + (extra || '') + '/>'; }
-// Paint: SWDraw.paint (TRMNLPaint.bg); a dither fill
 var DEFS = '';
-// 2-bit: every grey snaps to a native band (0-20 black,
 function nat2(tok) {
 var m = /^gray-(\d+)$/.exec(tok || ''); if (!m) return tok;
 var v = +m[1]; return v <= 20 ? 'black' : (v <= 47 ? 'gray-30' : (v <= 72 ? 'gray-55' : 'white'));
 }
-// Block fill: grey, the current one darker; 1-bit solid
 function act() { return API.mode && API.mode.bits === 2 ? 'text--gray-40' : 'text--gray-20'; }
 function blk(hi) { return API.mode && API.mode.bits <= 1 ? '' : (hi ? 'text--gray-10 dark:text--gray-75' : (act() + ' dark:text--gray-60')); }
 function g(cls, body) {
@@ -255,7 +251,6 @@ else if (f && f.color) at = ' fill="' + f.color + '" color="' + f.color + '"';
 else if (tok) keep.push('text--' + tok);
 return '<g' + (keep.length ? ' class="' + keep.join(' ') + '"' : '') + at + '>' + body + '</g>';
 }
-// Colour panels: red and yellow only for warnings and
 function hue(tok) {
 if (!(API.mode && API.mode.color) || !API.paint) return null;
 var f = API.paint(tok); if (!f || !f.color || f.url) return null;
@@ -274,7 +269,6 @@ var gp = Math.max(1, t * 0.16), xl = x + t / 2, xr = x + w - t / 2, yt = t / 2, 
 return { a: hseg(xl + gp, xr - gp, yt, t), g: hseg(xl + gp, xr - gp, ym, t), d: hseg(xl + gp, xr - gp, yb, t),
 f: vseg(xl, yt + gp, ym - gp, t), b: vseg(xr, yt + gp, ym - gp, t), e: vseg(xl, ym + gp, yb - gp, t), c: vseg(xr, ym + gp, yb - gp, t) };
 }
-// Seven-segment digits, lit segments only (owner);
 function digits(str, H) {
 var W = 56, HH = 100, T = 13, G = 14, x = 0, body = '';
 for (var i = 0; i < str.length; i++) {
@@ -293,9 +287,7 @@ var LOC = { out: "<path d='M8 17a4.5 4.5 0 0 1 .5-8.8A5.5 5.5 0 0 1 19.5 8.2 4.5
 function loc(k, W, H) { return svg(W, H, locAt(k, (W - Math.min(W, H)) / 2, (H - Math.min(W, H)) / 2, Math.min(W, H))); }
 function locAt(k, x, y, s) { return g(k === 'in' ? inc() : '', '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(s) + '" height="' + n1(s) + '" viewBox="0 0 28 28" overflow="visible"><g fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.8, 1.5 * 28 / Math.max(1, s)) * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-loc="' + k + '">' + LOC[k] + '</g></svg>'); }
 var inc = () => 'text--gray-30', inb = () => API.mode && API.mode.dark ? 'text--gray-45' : 'text--gray-50';
-// Block meter: n cells, frac lit.
 function cells(frac, n) { return frac === null || frac === undefined || !(frac > 0) ? 0 : Math.max(1, Math.round(Math.min(1, frac) * n)); }
-// Cell states (owner):
 function cellStates(m, n) {
 m = m || {}; var a = cells(m.frac, n), p = cells(m.past, n), l = cells(m.later, n), k = cells(m.peak, n), st = [];
 for (var i = 0; i < n; i++) st.push(i < a ? 'a' : (i < p ? 'p' : (i < l ? 'l' : 'e')));
@@ -303,7 +295,7 @@ return { st: st, peak: k - 1 };
 }
 function meter(m, W, H, n) {
 m = m || {}; if (!m.tw) return svg(W, H, mrow(m, W, H, n));
-var r = (API.pr || 0) / 2, h = H - r, gp = H - 2 * h;   // each row is a full meter row: the pair's cell holds two row slots (2r), the blocks sit r apart
+var r = (API.pr || 0) / 2, h = H - r, gp = H - 2 * h;
 if (!(h > 2 && gp > 0)) { gp = Math.max(2, H * 0.08); h = (H - gp) / 2; }
 return svg(W, H, mrow(m, W, h, n) + '<g data-sw-twrow="in" transform="translate(0 ' + n1(h + gp) + ')">' + mrow(m.tw.m, W, h, n, inb()) + '</g>');
 }
@@ -326,7 +318,6 @@ var PV = API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bit
 var LT = PV;
 return ('<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + (lc ? '' : g(SHADOW + ' text--gray-65', sh)) + '<g data-sw-st="e">' + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + g(LT, lt) + '</g><g data-sw-on data-sw-st="a">' + (lc ? g(lc, on) : API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) +   /* owner: dark grey for the value now on 2-bit+ light; 1-bit black, dark mode white */ (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);
 }
-// Rain gauge (owner): 5-segment tube filled from the
 function gauge(gq, W, H) {
 if (!gq) return '';
 var lab = String(gq.label), fs = Math.min((API.lp || H * 0.2) * 0.7, W / (lab.length * 0.6)), lh = fs * 1.25, th = H - lh - 2, n = 5, tw = Math.min(W * 0.75, th / n * 2), x0 = (W - tw) / 2, sg = th / n, gp = Math.max(2, sg * 0.14), on = '', sh = '', off = '', DK = API.mode && API.mode.dark && API.mode.bits >= 2;
@@ -338,13 +329,12 @@ else off += DK ? rect(x0, y, tw, h, 2, ' data-sw-c="' + i + '"') : rect(x0 + 1, 
 var offc = !API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')));
 return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) + '</g>' + text(W / 2, th + 2 + fs, lab, fs, 'middle', ' data-sw-glabel'));
 }
-// Days strip x mapping (owner):
 function tick(v) { return String(v === 0 ? 0 : v); }
 function lfs(sc) { return API.nfs ? (API.lp && API.nfs > API.lp && API.ogfull ? API.lp : Math.max(API.nfs, API.lp || 0)) : Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }
 function ticks(sc, W) {
 var fs = lfs(sc), st = sc.major, w = (v) => fs * 0.62 * (tick(v).length + 1.2) + fs * 0.6, n = 0, out = [];
 for (var v = sc.a; v <= sc.b + 1e-9; v += st) n += w(v);
-if (n > W * 0.75) { st = sc.major * 2; if (API.nfs) { var m = 2; while (m * sc.major < sc.b - sc.a && Math.abs((sc.b - sc.a) / (m * sc.major) % 1) > 1e-9) m++; st = m * sc.major; } }   // OG portrait (owner 2026-11-13): the last label at the track's end
+if (n > W * 0.75) { st = sc.major * 2; if (API.nfs) { var m = 2; while (m * sc.major < sc.b - sc.a && Math.abs((sc.b - sc.a) / (m * sc.major) % 1) > 1e-9) m++; st = m * sc.major; } }
 for (var v = Math.ceil(sc.a / st - 1e-9) * st; v <= sc.b + 1e-9; v += st) out.push(v);
 return out;
 }
@@ -352,7 +342,6 @@ function xmap(sc, W) {
 var fs = lfs(sc), cw = fs * 0.62, pl = cw * tick(sc.a).length / 2 + 2, pr = cw * tick(sc.b).length / 2 + cw * 0.7 + 2;
 return (t) => pl + (t - sc.a) / (sc.b - sc.a) * (W - pl - pr);
 }
-// Days strip row: rules, low-high blocks, now line;
 function day(d, sc, W, H, hi) {
 var nowV = sc.now; sc = Object.assign({}, sc, { now: null });
 var X = xmap(sc, W), body = '';
@@ -373,12 +362,10 @@ if (hi && nowV !== null && nowV !== undefined) { var pxn = X(nowV), pr2 = ptH / 
 if (hi) body += '<g data-sw-hl="1"></g>';
 return svg(W, H, body);
 }
-// Hours column (owner): stacked blocks on one scale.
 function hscale(all, nc) {
 var ts = (all || []).slice(0, nc || (all || []).length).map((q) => q && q.tV).filter((v) => v !== null && v !== undefined).map(Math.round);
 return ts.length ? { a: Math.min.apply(null, ts) - 1, b: Math.max.apply(null, ts) } : null;
 }
-// Blocks at most 6 high (owner):
 function hper(hs, cap) { return Math.max(1, Math.ceil(Math.max(1, hs.b - hs.a) / cap)); }
 function hlevels(hs, C) {
 var steps = Math.max(1, hs.b - hs.a), cap = Math.max(1, Math.min(6, Math.floor(C / 6))), per = hper(hs, cap);
@@ -394,7 +381,6 @@ for (var k = 0; k < n; k++) { var y = Hh - (k + 1) * lh + gp / 2; cells += rect(
 var ty = Hh - n * lh + gp / 2 - 2 - fs * 0.3;
 return svg(W, H, g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells="' + n + '" data-sw-area="' + n1(C) + '">' + g(blk(hi), cells) + '</g>' + text(bw / 2, ty, q.t, fs, 'middle', ' data-sw-htemp'));
 }
-// Days strip header: degree labels and the now pointer.
 function scale(sc, W, H) {
 var X = xmap(sc, W), fs = lfs(sc), body = '', rules = '', ty = Math.max(H * 0.62, fs * 0.3 * 1.4 + 2 + fs * 0.4), lb = ty + fs * 0.55, E = API.extD || 0, cross = false, xn = sc.now === null || sc.now === undefined ? null : X(sc.now);
 ticks(sc, W).forEach((v) => {
@@ -406,10 +392,8 @@ var pw = (API.paint && (API.paint('white') || {}).color) || '#fff';
 body = '<g data-sw-track="' + n1(X(sc.a)) + ',' + n1(X(sc.b)) + '"></g>' + g('text--gray-70', rules) + '<g data-sw-axis stroke="' + pw + '" stroke-width="' + n1(fs * 0.22) + '" paint-order="stroke" stroke-linejoin="round">' + body + '</g>';
 return svg(W, H, body);
 }
-// Rain calendar (owner): 3 columns, 2 or 3 rows; rain
 function rain(hours, W, H, rows) {
 var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = rows === 2 ? 2 : (rows === 3 || fit(3) < fit(2)) && (W / C) / (H / 3) <= 1.95 && Math.min(H / 3 * 0.9, W / C * 0.7) >= (API.lp || 0) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.7), body = '';
-// 12 h labels (step 12): AM/PM at 0.6; too small: hour
 var hs = hours.slice(0, C * R), lw = (h) => { var m = String(h).match(/^(\d*)(.*)$/); return m[1].length * 0.62 + m[2].length * 0.7 * 0.6; }, wf = (a) => Math.max.apply(null, a.map((q) => lw(q.h)).concat(0)), wmax = wf(hs);
 if (wmax * fs > cw * 0.9 && cw * 0.9 / wmax < (API.lp || 0) * 0.95) { hs = hs.map((q) => ({ h: String(q.h).replace(/\D+$/, ''), wet: q.wet })); wmax = wf(hs); }
 if (wmax * fs > cw * 0.9) fs = cw * 0.9 / wmax;
@@ -422,13 +406,11 @@ var hm = String(q.h).match(/^(\d+)(\D+)$/), tx = text(x + cw / 2, y + rh / 2, hm
 return svg(W, H, body);
 }
 function rule(W, H) { return svg(W, H, g('text--gray-40', '<line x1="0" y1="' + n1(H / 2) + '" x2="' + W + '" y2="' + n1(H / 2) + '" stroke="currentColor" stroke-width="3" stroke-dasharray="3 7"/>')); }
-// Moon from phase p (0 new, 0.5 full;
 function moonLit(p, cx, cy, r) {
 var c = Math.cos(2 * Math.PI * p), rx = r * Math.abs(c), wax = p < 0.5, top = n1(cx) + ',' + n1(cy - r), bot = n1(cx) + ',' + n1(cy + r);
 var term = wax ? (c > 0 ? 0 : 1) : (c > 0 ? 1 : 0);
 return 'M' + top + ' A' + n1(r) + ',' + n1(r) + ' 0 0 ' + (wax ? 1 : 0) + ' ' + bot + ' A' + n1(rx) + ',' + n1(r) + ' 0 0 ' + term + ' ' + top + ' Z';
 }
-// Moon (owner): disc 0.54 of its box, at most ~0.7 of
 function moon(p, H) {
 if (p == null || isNaN(p)) return '';
 var r = H * 0.27, cx = H / 2, f = (1 - Math.cos(2 * Math.PI * p)) / 2, lit = '';
@@ -436,28 +418,22 @@ var dk = API.mode && API.mode.dark, bits = API.mode ? API.mode.bits : 4, sw = Ma
 ri = bits <= 1 && !dk ? r - sw * 1.6 : r;
 if (f > 0.01) lit = '<path d="' + moonLit(p, cx, cx, ri) + '" data-sw-moon="lit"/>';
 var limb = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"/>';
-// dark: halo outside the disk (owner)
 var h = dk ? halo('<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '"/>', GPX) : '';
 if (h) { var mid = 'swmk' + (K++); h = '<defs><mask id="' + mid + '" maskUnits="userSpaceOnUse" x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '"><rect x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '" fill="#fff"/><circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r + sw / 2) + '" fill="#000"/></mask></defs><g mask="url(#' + mid + ')" data-sw-moonhalo>' + h + '</g>'; }
-// 2-bit: native dark grey, >= 2 px; 1-bit: limb in full
-// Calm (owner): faint inner disk in a full outline; new
 var disk = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" data-sw-moon="disk"/>', fd = !dk && bits >= 3 ? g('text--gray-75', disk) : '';
 return svg(H, H, h + fd + (dk || bits <= 1 ? lit : g('text--gray-45', lit)) + limb);
 }
-// Outfit icon (owner 2026-11-13): source
 var outfit=(function(){var g=1.8,P=1.5,s=n=>+n.toFixed(2),a=(n,o)=>s(n)+" "+s(o),w=n=>"stroke-width='"+n+"'";function W(n,o,r){for(var e=0,h=1;h<n.length;h++)for(var i=0;i<=20;i++){var f=n[h-1][1]+(n[h][1]-n[h-1][1])*i/20;f>=o&&f<=r&&(e=Math.max(e,n[h-1][0]+(n[h][0]-n[h-1][0])*i/20))}return e}function Y(n,o,r,e){var h=d=>"C"+a(2.4,d+1.7)+" "+a(1.3,d+2.3)+" "+a(0,d+2.3)+"C"+a(-1.3,d+2.3)+" "+a(-2.4,d+1.7)+" "+a(-3.2,d),i=d=>d.map(c=>a(c[0],c[1])).concat(d.slice().reverse().map(c=>a(-c[0],c[1])));if(n==="tshirt"){var f=[[3.2,0],[9.2,3],[7.3,6.9],[5.5,5.9],[5.5,13.5]];return{d:"<path d='M"+i(f).reverse().join("L")+h(0)+"Z' fill='"+o+"'/>",top:0,neck:0,hem:13.5,half:9.2,body:5.5,outline:f}}if(n==="parka"){var t=3,l=t+9.6,p=t+14.5,v=[-3.6,-1.8,0,1.8,3.6],M="<path d='M"+a(-4.4,t+2.4)+"L"+a(-7.8,t+3.4)+"L"+a(-10.8,l)+"H-8.2L"+a(-5.9,t+6.4)+"V"+p+"H5.9V"+(t+6.4)+"L8.2 "+l+"H10.8L"+a(7.8,t+3.4)+"L"+a(4.4,t+2.4)+"Z' fill='"+o+"'/>";return M+="<path d='M"+a(-4.4,t+2.4)+"L"+a(-3.6,t)+(r?"L"+a(3.6,t):v.slice(1).map((k,C)=>"Q"+a((v[C]+k)/2,t-1.1)+" "+a(k,t)).join(""))+"L"+a(4.4,t+2.4)+"Z' fill='"+o+"'/>"+(e?"":"<path d='M"+a(0,t+2.4)+"V"+p+"'/>"),r||(M+="<path d='"+(e?"":"M"+a(-4.6,t+9.4)+"H-2M2 "+s(t+9.4)+"H4.6")+"M"+a(-10.3,l-1.5)+"H-8M8 "+s(l-1.5)+"H10.3' "+w(1.2)+"/>"),{d:M,top:t-.55,neck:t+1.2,hem:p,half:10.8,body:5.9,outline:[[3.6,t-.6],[4.4,t+2.4],[7.8,t+3.4],[10.8,l],[8.2,l],[5.9,t+6.4],[5.9,p]]}}var l=11.5,p=15,L=d=>"<path d='M"+a(-3.2,0)+"L"+a(-7.2,1.5)+"L"+a(-10.6,l)+"H-8.2L"+a(-5.5,5)+"V"+p+"H5.5V5L8.2 "+l+"H10.6L"+a(7.2,1.5)+"L"+a(3.2,0)+d+"Z' fill='"+o+"'/>",M;return n==="sweater"?(M=L(h(0)),r||(M+="<path d='"+(e?"":"M"+a(-5.4,p-1.6)+"H5.4")+"M"+a(-10.4,l-1.5)+"H-8.1M8.1 "+s(l-1.5)+"H10.4"+(e?"":"M"+a(-2.1,.3)+"Q"+a(0,2.5)+" "+a(2.1,.3))+"' "+w(1.2)+"/>")):(M=L("L"+a(0,5))+(e?"":"<path d='M0 5V"+p+"'/>")+"<path d='M"+a(-3.2,0)+"V3.4L"+a(-1.3,2.8)+"M"+a(3.2,0)+"V3.4L"+a(1.3,2.8)+"'/>",!r&&!e&&(M+="<path d='M"+a(-4.3,10.5)+"h2.2M"+a(2.1,10.5)+"h2.2' "+w(1.3)+"/>")),{d:M,top:0,neck:0,hem:p,half:10.6,body:5.5,outline:[[3.2,0],[7.2,1.5],[10.6,l],[8.2,l],[5.5,5],[5.5,p]]}}function x(n,o){return{d:"<path d='M"+a(-5.2,-2.2)+"C"+a(-5.4,-7.6)+" "+a(5.4,-7.6)+" "+a(5.2,-2.2)+"' fill='"+n+"'/><rect x='-6.2' y='-2.6' width='12.4' height='2.6' rx='1' fill='"+n+"'/><circle cx='0' cy='"+(o?-7.25:-7.15)+"' r='"+(o?1.3:1.05)+"' fill='currentColor' "+w(1)+"/>"+(o?"":"<path d='M-3.4 -2.1v1.6M-1.1 -2.1v1.6M1.1 -2.1v1.6M3.4 -2.1v1.6' "+w(1)+"/>"),top:o?-8.55:-8.2,half:6.2}}function B(n,o){var r=-2.6,e=h=>"M"+a(h,r)+"H"+s(h+5)+"L"+a(h+4.6,r+1.5)+"A1.2 1.2 0 0 1 "+a(h+3.4,r+2.6)+"H"+s(h+1.6)+"A1.2 1.2 0 0 1 "+a(h+.4,r+1.5)+"Z";return{d:"<path d='"+e(-6)+e(1)+"' fill='currentColor'/><path d='M"+a(-1,r)+"H1M"+a(-6,r)+"L"+a(-7.3,r+.5)+"M"+a(6,r)+"L"+a(7.3,r+.5)+"'/>"+(o?"":"<path d='M"+a(-4.6,r+1.5)+"L"+a(-3.6,r+.6)+"M"+a(2.4,r+1.5)+"L"+a(3.4,r+.6)+"' stroke='"+n+"' "+w(.7)+"/>"),top:r,half:7.3}}function _(n,o,r){var e=n.neck,h=3.3,i=r?e+9.5:n.hem-2.8,f=i-(r?1.6:2.2),t=r?"currentColor":o,v=.95*g/1.8,l=H=>{var u=(H+5.5)/11;return e-1.3+7.8*u*(1-u)},p="<path d='M"+a(-5.5,e-1.3)+"Q"+a(0,e+2.6)+" "+a(5.5,e-1.3)+"A1.5 1.5 0 0 1 "+a(5.7,e+1.7)+"Q"+a(0,e+7.4)+" "+a(-5.7,e+1.7)+"A1.5 1.5 0 0 1 "+a(-5.5,e-1.3)+"Z' fill='"+t+"'/>",L=.3,M="<path d='M"+a(L,e+3)+"V"+s(f)+"H"+s(L+h)+"V"+s(e+3)+"Z' fill='"+t+"'/>",d=-4.6,c=d+h,Z=e+6.6,k="M"+a(.2,l(.2)+v)+"Q"+a(d+.2,e+1.6)+" "+a(d,Z)+"V"+s(i)+"H"+s(c)+"V"+s(Z)+"Q"+a(c+.5,e+2.4)+" "+a(3.5,l(3.5)+v),C=M+p+"<path d='"+k+"Z' fill='"+t+"' stroke='none'/>"+(r?"<path d='"+k+"Z' fill='none' stroke='"+o+"' "+w(.9)+"/>":"<path d='"+k+"'/>");if(!r){var A="M"+a(d,i-2.2)+"H"+s(c)+"M"+a(L,f-1.8)+"H"+s(L+h);C+="<path d='"+A+"' "+w(1.1)+"/>"}return{d:C,top:e-2.2,endY:Math.max(i,f),left:-7.2}}function O(n,o,r,e){var h=new Set(n),i=["parka","jacket","sweater","tshirt"].find(j=>h.has(j))||"tshirt",f=(P+g)/e+.05,t=Y(i,o,r,h.has("scarf")),v=[],l=[-t.half,t.top,t.half,t.hem],p=(j,b,Q)=>{v.push("<g data-sw-item='"+j+"'>"+b+"</g>"),l[0]=Math.min(l[0],Q[0]),l[1]=Math.min(l[1],Q[1]),l[2]=Math.max(l[2],Q[2]),l[3]=Math.max(l[3],Q[3])},L=(j,b)=>"<g transform='translate(0 "+s(j)+")'>"+b+"</g>";p("top",t.d,l.slice());var M=t.top-f;if(h.has("scarf")){var d=_(t,o,r);p("scarf",d.d,[d.left,d.top,-d.left,d.endY]),M=Math.min(M,d.top-f)}if(h.has("sunglasses")){var c=B(o,r);p("glasses",L(M,c.d),[-c.half,M+c.top,c.half,M]),M+=c.top-f}if(h.has("beanie")){var Z=x(o,r);p("beanie",L(M,Z.d),[-Z.half,M+Z.top,Z.half,M])}var k=t.hem,C=h.has("shorts")&&i==="tshirt",A=t.half;if(C){var H=t.hem+f;p("shorts","<path d='M"+a(-5.3,H)+"L"+a(-5.7,H+4.8)+"H-1L"+a(0,H+2)+"L"+a(1,H+4.8)+"H5.7L"+a(5.3,H)+"Z' fill='"+o+"'/>",[-5.7,H,5.7,H+4.8]),k=H+4.8}if(h.has("umbrella")){var u=6.7,c=u/2,m=t.top+1.2,V=Math.max(A+f,W(t.outline,m-6-f,m+f)+f*1.2+u),F=Math.max(t.hem,k)-1.4,E=b=>"Q"+a(V+u-c*b-c/2,m-1.2)+" "+a(V+u-c*(b+1),m);p("umbrella","<path d='M"+a(V-u,m)+"A"+u+" 4.6 0 0 1 "+a(V+u,m)+[0,1,2,3].map(E).join("")+"Z' fill='"+o+"'/><path d='M"+a(V,m-4.6)+"v-1.1M"+a(V,m)+"V"+s(F)+"a1.4 1.4 0 0 1 -2.8 0'/>",[V-u,m-5.7,V+u,F+1.4])}return{P:v,bb:l,gh:t.hem-t.top}}function z(n,o){for(var r=1,e,h,i,f=0;f<12;f++)e=O(n,"#fff",o,r),i=e.bb[2]-e.bb[0],h=e.bb[3]-e.bb[1],r=Math.min((44.160000000000004-g)/h,(45.12-g)/i);return r}function D(n,o,r){var e=["parka","jacket","sweater","tshirt"].find(v=>n.indexOf(v)>=0)||"tshirt",h=[e,"beanie","umbrella","sunglasses"].concat(n.filter(v=>v=="scarf"||v=="shorts")),i=z(h,r),f=O(h,"#fff",r,i),t=O(n,o,r,i);return"<g transform='translate("+s(24-i*(f.bb[0]+f.bb[2])/2)+" "+s(24-i*(f.bb[1]+f.bb[3])/2)+") scale("+ +i.toFixed(4)+")' fill='none' stroke='currentColor' stroke-width='"+s(g/i)+"' stroke-linecap='round' stroke-linejoin='round'>"+t.P.join("").replace(/stroke-width='([\d.]+)'/g,(v,l)=>"stroke-width='"+s(l/i)+"'")+"</g>"}return D})();
 function cue(ks, W, H, mid) {
 if (!ks || !ks.length) return svg(W, H, '');
 var s = Math.min(H, W) * (mid ? 1.3 : 1), x = mid ? (W - s) / 2 : 0, y = (H - s) / 2;
 return svg(W, H, '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(s) + '" height="' + n1(s) + '" viewBox="0 0 48 48" overflow="visible"><g data-sw-cloth data-sw-box="' + [x, y, s].map(n1).join(',') + '">' + outfit(ks, API.bg || '#fff', s < 48) + '</g></svg>');
 }
-// Receiver dial: arc, ticks, band, marks, labels, zone
 function backlight(W, H, cx, cy, rad, ryk, rx) {
 var m = API.mode || {}, pa = API.paint ? API.paint(m.bits === 2 ? 'gray-55' : 'gray-75') : null;
 if (m.dark || (m.bits || 4) < 3) return '';
 return rect(0, 0, W, H, rx || 0, ' fill="' + ((pa && pa.color) || '#bbb') + '"' + (m.bits !== 2 ? ' fill-opacity="0.5"' : '') + ' data-sw-fill="1"');
 }
-// Dark-mode glow (owner): 4-bit blur, 2-bit dilated
 function glow(s, sd) { return halo(s, sd) + s; }
 function halo(s, sd) {
 var m = API.mode || {};
@@ -468,30 +444,25 @@ var id = 'swgl' + (K++), f = m.bits === 2
 return '<defs><filter id="' + id + '" x="-30%" y="-30%" width="160%" height="160%">' + f + '</filter></defs><g filter="url(#' + id + ')" data-sw-glow="' + m.bits + '">' + s + '</g>';
 }
 var GPX = 4;
-// Icon as SVG, flooded with ink, glowing in dark mode.
 function icon(href, W, H) {
 var id = 'swink' + (K++);
 return svg(W, H, '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>' + glow('<image href="' + href + '" x="0" y="0" width="' + n1(W) + '" height="' + n1(H) + '" filter="url(#' + id + ')"/>', GPX));
 }
-// Low/high number position (owner 2026-11-13): radially outside its marker; where that would leave the panel, level with the top limit and beside the marker, so the dial keeps its size.
 function mlp(f, r1, lt, W, H, py) {
 var A = 75 * Math.PI / 180, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008), g = Math.max(4, H * 0.03), hw = mfs * 0.62 * lt.length / 2, an = -A + 2 * A * Math.max(-0.03, Math.min(1.03, f));
 var rr = r1 + mg + Math.abs(Math.sin(an)) * hw + Math.abs(Math.cos(an)) * mfs * 0.4 + r1 * 0.022 * 2 * A, x = W / 2 + rr * Math.sin(an), y = py - rr * Math.cos(an), t = g + mfs * 0.625 + 0.5;
 if (y < t) { y = t; x += (an < 0 ? 1 : -1) * (hw + r1 * 0.03 + H * 0.04 + 2); }
 return [Math.max(g + hw, Math.min(W - g - hw, x)), y];
 }
-// Dial radius (owner step 12):
 function dialR(D, W, H, nums, py) {
 var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);
 var g = Math.max(4, H * 0.03), r = Math.min(W * 0.42 / Math.sin(A), py - g - 1.3 * mh - bw - lw - 2), rmin = Math.min(r, W * 0.37 / Math.sin(A)), ok = true;
 return [r, ok];
 }
-// Dial ink keeps gap g clear of captions (API.caps) and
 function dialClash(D, W, H, r, py, nums, kind) {
 var g = Math.max(4, H * 0.03), caps = (API.caps || {})[kind] || [];
 return dialInk(D, W, H, r, py, nums, kind === 'baro').some((b) => b[0] < g || b[1] < g || b[2] > W - g || b[3] > H - g || caps.some((c) => b[0] < c[2] + g && b[2] > c[0] - g && b[1] < c[3] + g && b[3] > c[1] - g));
 }
-// Dial ink boxes for radius r (hub and needle left out).
 function dialInk(D, W, H, r, py, nums, baro) {
 var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008), out = [];
 var cl = (f) => Math.max(-0.03, Math.min(1.03, f)), at = (f, rad) => { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }, F = (v) => (v - D.a) / (D.b - D.a);
@@ -566,7 +537,6 @@ var s = Math.min(W, H), x0 = (W - s) / 2, y0 = (H - s) / 2, p = down ? [[x0 + s 
 var pl = poly(p, down ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(2, s * 0.1)) + '" stroke-linejoin="round"' : '');
 return svg(W, H, c ? g(c, pl) : pl);
 }
-// Trend arrow (owner): 28x28 strokes; down mirrored;
 function arrow(dir, W, H) {
 if (dir !== 'up' && dir !== 'down') return '';
 var s = Math.min(W, H), k = s / 28, tf = 'translate(' + n1((W - s) / 2) + ' ' + n1((H - s) / 2) + ') scale(' + n1(k) + ')' + (dir === 'down' ? ' translate(0 28) scale(1 -1)' : '');
@@ -609,7 +579,6 @@ return API;
 // ==== DRAW_END ====
 (function () {
 function whenReady(cb) { var tries = 0; (function attempt() { if (window.TRMNLPaint) return cb(); if (++tries > 200) return; setTimeout(attempt, 50); })(); }
-// Condition icon (owner):
 function swCond(cx) {
 document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
 var ic = sp.parentElement.firstElementChild; if (!ic || ic === sp) return;
@@ -636,7 +605,6 @@ var ib = ic.getBoundingClientRect(); ic.style.transform = 'translateY(' + (mid -
 ic.setAttribute('data-sw-condicon', tops.length + ',' + h.toFixed(1) + ',' + mid.toFixed(1));
 });
 }
-// Big readout (owner step 12):
 var swRepaint = null;
 function swFit() {
 document.querySelectorAll('[data-sw-part="temp"]').forEach(function (t) {
@@ -659,7 +627,6 @@ var sq = document.querySelector('.screen'), q4 = / view=4 /.test(document.queryS
 if (q4 && !col) { row.classList.toggle('flex--center-y', f >= 1); row.classList.toggle('flex--top', f < 1); }
 });
 }
-// Console hairline (owner step 12): same paper above and
 function swHair() {
 document.querySelectorAll('[data-sw-hairwrap]').forEach(function (w) {
 var up = w.previousElementSibling, dn = w.nextElementSibling, hr = [].filter.call(w.children, function (e) { return e.getBoundingClientRect().width > 0; })[0];
@@ -673,7 +640,6 @@ var nt = Math.max(0, b - a), nb = Math.max(0, a - b);
 if (Math.abs(nt - pt) > 0.3 || Math.abs(nb - pb) > 0.3) { w.style.paddingTop = nt.toFixed(1) + 'px'; w.style.paddingBottom = nb.toFixed(1) + 'px'; }
 });
 }
-// Trend arrows (owner step 13): box 1.5x the caption cap
 function swArrow(cx) {
 document.querySelectorAll('[data-sw-part="arrow"]').forEach(function (e) {
 if (e.hasAttribute('data-sw-inarrow')) { e.style.width = e.getBoundingClientRect().height.toFixed(1) + 'px'; return; }
@@ -681,7 +647,6 @@ var c = e.closest('.relative').querySelector('[data-sw-cap]'); if (!c) return; v
 var v = 1.5 * cx.measureText('H').actualBoundingBoxAscent; e.style.width = v.toFixed(1) + 'px'; e.style.height = v.toFixed(1) + 'px';
 });
 }
-// Console badge (owner): top layer the digits' ink
 function swInk(e) { var r = e.getBoundingClientRect(), vb = e.viewBox.baseVal, b = e.getBBox(), kx = r.width / (vb.width || r.width), ky = r.height / (vb.height || r.height); return { l: r.left + (b.x - vb.x) * kx, r: r.left + (b.x - vb.x + b.width) * kx, t: r.top + (b.y - vb.y) * ky, h: b.height * ky }; }
 function swBadge(cx) {
 document.querySelectorAll('[data-sw-part="cue"]').forEach(function (cu) {
@@ -774,11 +739,10 @@ el.style.width = Math.ceil(lab.length * 0.62 * fs) + 4 + 'px';
 var gb = el.getBoundingClientRect(), cw = cal.getBoundingClientRect().width / 3, ch = cb.height / rows, over = gb.right > ub.right - pr + 0.5;
 if (!gb.width || over || cw / ch < 0.85 || cw * 0.7 < lp) el.classList.add('hidden');
 });
-// Twin meter fit (owner 2026-11-13): both HUM rows are full meter rows; where the column cannot hold them with a little spacing left, only the outdoor row stays (data-sw-drop), at a single row's height.
 var vm = [].filter.call(document.querySelectorAll('[data-sw-part="meter"]'), function (q) { return q.getBoundingClientRect().height > 0; }), tmx = vm.filter(function (q) { return (SW.meters[+q.getAttribute('data-sw-i')] || {}).tw; })[0], sgl = vm.filter(function (q) { return !(SW.meters[+q.getAttribute('data-sw-i')] || {}).tw; })[0];
 if (tmx && sgl) { var kk = (tmx.offsetHeight && tmx.getBoundingClientRect().height / tmx.offsetHeight) || 1, colh = tmx.parentElement.parentElement.getBoundingClientRect().height / kk, sh = sgl.getBoundingClientRect().height / kk, need = vm.reduce(function (a, q) { return a + q.getBoundingClientRect().height / kk; }, 0) + 0.25 * sh * (vm.length - 1);
 if (need > colh) { var mi = +tmx.getAttribute('data-sw-i'); SW.meters[mi].tw = null; document.querySelectorAll('[data-sw-part="meter"][data-sw-i="' + mi + '"]').forEach(function (q) { q.setAttribute('data-sw-drop', '1'); q.style.setProperty('height', sh + 'px', 'important'); var ci = [].indexOf.call(q.parentElement.parentElement.children, q.parentElement); [].forEach.call(q.parentElement.parentElement.parentElement.children, function (cc) { if (cc.children[ci]) cc.children[ci].style.setProperty('height', sgl.parentElement.getBoundingClientRect().height / kk + 'px', 'important'); }); }); document.querySelectorAll('[data-sw-for="' + SW.meters[mi].key + '"][data-sw-i="1"]').forEach(function (q) { q.classList.add('hidden'); }); } }
-document.querySelectorAll('[data-sw-for]').forEach(function (el) { var mt = [].filter.call(document.querySelectorAll('[data-sw-part="meter"][data-sw-key="' + el.getAttribute('data-sw-for') + '"]'), function (q) { return q.getBoundingClientRect().height > 0; })[0]; if (!mt) return; var mk = (mt.offsetHeight && mt.getBoundingClientRect().height / mt.offsetHeight) || 1, mh = mt.getBoundingClientRect().height / mk, pc = mt.parentElement.getBoundingClientRect().height / mk / 2, rh = mt.getAttribute('data-sw-drop') ? mh : mh - pc, mg = mt.getAttribute('data-sw-drop') ? 0 : mh - 2 * rh; if (!(rh > 2 && mg > 0)) { mg = Math.max(2, mh * 0.08); rh = (mh - mg) / 2; } el.style.setProperty('height', rh.toFixed(2) + 'px', 'important'); el.style.setProperty('width', rh.toFixed(2) + 'px', 'important'); el.parentElement.style.setProperty('gap', mg.toFixed(2) + 'px'); });   // legend icons level with the twin meter's block rows, sized before any meter is drawn
+document.querySelectorAll('[data-sw-for]').forEach(function (el) { var mt = [].filter.call(document.querySelectorAll('[data-sw-part="meter"][data-sw-key="' + el.getAttribute('data-sw-for') + '"]'), function (q) { return q.getBoundingClientRect().height > 0; })[0]; if (!mt) return; var mk = (mt.offsetHeight && mt.getBoundingClientRect().height / mt.offsetHeight) || 1, mh = mt.getBoundingClientRect().height / mk, pc = mt.parentElement.getBoundingClientRect().height / mk / 2, rh = mt.getAttribute('data-sw-drop') ? mh : mh - pc, mg = mt.getAttribute('data-sw-drop') ? 0 : mh - 2 * rh; if (!(rh > 2 && mg > 0)) { mg = Math.max(2, mh * 0.08); rh = (mh - mg) / 2; } el.style.setProperty('height', rh.toFixed(2) + 'px', 'important'); el.style.setProperty('width', rh.toFixed(2) + 'px', 'important'); el.parentElement.style.setProperty('gap', mg.toFixed(2) + 'px'); });
 document.querySelectorAll('[data-sw-part]').forEach(function (el) {
 TRMNLPaint.watch(el, function () { swPaint(el); });
 });
@@ -796,7 +760,7 @@ if (!r.width && !r.height) return;
 var pkx = (el.offsetHeight && r.height / el.offsetHeight) || 1; SWDraw.pr = el.parentElement ? el.parentElement.getBoundingClientRect().height / pkx : 0;
 SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
 var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
-var ogp = sc.contains('screen--portrait') && (sc.contains('screen--md') || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; SWDraw.ogfull = ogp && sc.contains('screen--md') && / view=1 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'));   // OG full portrait: scale labels at the meter label size, so the track keeps 45 % beside full-size low/high digits SWDraw.port = sc.contains('screen--portrait');
+var ogp = sc.contains('screen--portrait') && (sc.contains('screen--md') || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; SWDraw.ogfull = ogp && sc.contains('screen--md') && / view=1 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'));
 var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;
 var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
 SWDraw.nRows = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; }).length;
@@ -809,7 +773,6 @@ if (el.getAttribute('data-sw-part') === 'cue') { var cs0 = el.firstElementChild;
 el.querySelectorAll('text[data-sw-tick]').forEach(function (t) { var d = t.nextElementSibling; if (d) d.setAttribute('x', (+t.getAttribute('x') + t.getComputedTextLength() / 2 + 1).toFixed(1)); });
 swAlign();
 }
-// Dark mode 2-bit up: marked icons become glowing SVGs
 var scr = (document.querySelector('.screen') || document.body).classList;
 if (scr.contains('screen--dark-mode') && !scr.contains('screen--1bit')) document.querySelectorAll('img[data-sw-icon]').forEach(function (im) {
 function swap() { var r = im.getBoundingClientRect(), k = (im.offsetWidth && r.width / im.offsetWidth) || 1; if (!r.width || !r.height) return;
