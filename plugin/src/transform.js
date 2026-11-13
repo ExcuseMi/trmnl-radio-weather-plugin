@@ -399,10 +399,10 @@ return { weather: Object.assign({}, w, { hourly: nh }), ago: ago, today: h, prev
 }
 // Calm clothing cues (owner): a list, the top layer first, then the extras. Top, by felt temperature: parka when the
 // coldest is under 3 C; else from the warmest: jacket under 12 C, sweater under 18 C (owner, after WhetherWear's guides),
-// t-shirt. Extras in order: umbrella (rain), sunglasses (daytime, UV 6 or more).
+// t-shirt. Extra: umbrella (rain). Owner 2026-11-13: no beanie, no sunglasses.
 // Fahrenheit converted. No temperature: no top layer. (Owner 2026-11-12: no raincoat.)
 // Hysteresis (owner 2026-11-13, saved state): with the last cue (prev {top}; an old saved {bn} or {mit} is ignored) the top layer changes
-// only once the felt temperature is past the threshold by 1 C (2 F) in the new direction; umbrella and sunglasses none
+// only once the felt temperature is past the threshold by 1 C (2 F) in the new direction; umbrella none
 // (a day's rain chance and max UV, steady within the day).
 var TOPS = ['parka', 'jacket', 'sweater', 'tshirt'];
 function cueFor(o, F_, prev) {
@@ -411,7 +411,7 @@ var lo = has(o.lo) ? o.lo : o.hi, hi = has(o.hi) ? o.hi : o.lo;
 var cls = (l, h) => l < T(3) ? 'parka' : (h < T(12) ? 'jacket' : (h < T(18) ? 'sweater' : 'tshirt'));
 var top = !has(lo) ? null : cls(lo, hi), pt = prev ? TOPS.indexOf(prev.top) : -1;
 if (top && pt >= 0 && top !== prev.top) top = TOPS.indexOf(top) > pt ? TOPS[Math.max(pt, TOPS.indexOf(cls(lo - m, hi - m)))] : TOPS[Math.min(pt, TOPS.indexOf(cls(lo + m, hi + m)))];
-return [top, o.rain ? 'umbrella' : null, o.day !== false && has(o.uv) && o.uv >= 6 ? 'sunglasses' : null].filter((k) => k);
+return [top, o.rain ? 'umbrella' : null].filter((k) => k);
 }
 // Per-day cue input (owner): the daytime hours 07:00 to 19:00 of that day from the hourly data (coldest and warmest felt
 // temperature, highest rain chance); a field the hours lack comes from the daily values; UV from the daily max.

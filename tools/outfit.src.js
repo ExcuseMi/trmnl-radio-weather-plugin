@@ -18,14 +18,11 @@ if (t === 'sweater') { d = B(nr(0)); if (!sm) d += "<path d='" + (pl ? '' : 'M' 
 else { d = B('L' + OP(0, 5)) + (pl ? '' : "<path d='M0 5V" + h + "'/>") + "<path d='M" + OP(-3.2, 0) + 'V3.4L' + OP(-1.3, 2.8) + 'M' + OP(3.2, 0) + 'V3.4L' + OP(1.3, 2.8) + "'/>"; if (!sm && !pl) d += "<path d='M" + OP(-4.3, 10.5) + 'h2.2M' + OP(2.1, 10.5) + 'h2.2' + "' " + OW(1.3) + '/>'; }
 return { d, top: 0, neck: 0, hem: h, half: 10.6, body: 5.5, outline: [[3.2, 0], [7.2, 1.5], [10.6, cy], [8.2, cy], [5.5, 5], [5.5, h]] };
 }
-function oglass(bg, sm) { var y = -2.6, ln = (x) => 'M' + OP(x, y) + 'H' + OF(x + 5) + 'L' + OP(x + 4.6, y + 1.5) + 'A1.2 1.2 0 0 1 ' + OP(x + 3.4, y + 2.6) + 'H' + OF(x + 1.6) + 'A1.2 1.2 0 0 1 ' + OP(x + .4, y + 1.5) + 'Z';
-return { d: "<path d='" + ln(-6) + ln(1) + "' fill='currentColor'/><path d='M" + OP(-1, y) + 'H1M' + OP(-6, y) + 'L' + OP(-7.3, y + .5) + 'M' + OP(6, y) + 'L' + OP(7.3, y + .5) + "'/>" + (sm ? '' : "<path d='M" + OP(-4.6, y + 1.5) + 'L' + OP(-3.6, y + .6) + 'M' + OP(2.4, y + 1.5) + 'L' + OP(3.4, y + .6) + "' stroke='" + bg + "' " + OW(.7) + '/>'), top: y, half: 7.3 }; }
 function olay(ks, bg, sm, s) {
 var k = new Set(ks), t = ['parka', 'jacket', 'sweater', 'tshirt'].find((x) => k.has(x)) || 'tshirt', g = (OCL + OSW) / s + .05, G = ogarm(t, bg, sm, k.has('scarf')), P = [], bb = [-G.half, G.top, G.half, G.hem];
 var add = (n, d, b) => { P.push("<g data-sw-item='" + n + "'>" + d + '</g>'); bb[0] = Math.min(bb[0], b[0]); bb[1] = Math.min(bb[1], b[1]); bb[2] = Math.max(bb[2], b[2]); bb[3] = Math.max(bb[3], b[3]); }, tr = (y, d) => "<g transform='translate(0 " + OF(y) + ")'>" + d + '</g>';
 add('top', G.d, bb.slice());
 var y = G.top - g;
-if (k.has('sunglasses')) { var q = oglass(bg, sm); add('glasses', tr(y, q.d), [-q.half, y + q.top, q.half, y]); y += q.top - g; }
 var low = G.hem, right = G.half;
 if (k.has('umbrella')) {
 var R = 4.6, q = R / 2, by = G.top + 1.2, x = Math.max(ohalf(G.outline, by - 3.6 - g, by + g) + g * 1.2 + R, ohalf(G.outline, by, G.hem) + g + 1.3), en = Math.max(G.hem, low) - 1.4, sc = (i) => 'Q' + OP(x + R - q * i - q / 2, by - 1.2) + ' ' + OP(x + R - q * (i + 1), by);
