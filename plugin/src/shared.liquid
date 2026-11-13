@@ -658,6 +658,8 @@ var ex = w(g) - w(t.querySelector('svg')), f = col ? Math.min(1, Math.max(0.4, (
 function set(e, v, p) { if (Math.abs(h(e) - v) > 0.3) { e.style.setProperty('height', v.toFixed(1) + 'px', 'important'); if (swRepaint) swRepaint(p); } } // paint watcher misses height-only changes
 set(g, +g.getAttribute('data-sw-h0') * f, t);
 row.setAttribute('data-sw-fit', f.toFixed(3));
+var sq = document.querySelector('.screen'), q4 = / view=4 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug') + ' ') && sq && !sq.classList.contains('screen--portrait'); // X quadrant (step 19): a shrunk readout sits right under the condition, no band
+if (q4 && !col) { row.classList.toggle('flex--center-y', f >= 1); row.classList.toggle('flex--top', f < 1); }
 });
 }
 // Console hairline (owner step 12): same paper above and below.
