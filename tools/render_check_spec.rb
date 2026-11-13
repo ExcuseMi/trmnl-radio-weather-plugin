@@ -116,7 +116,7 @@ if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.get
       # pieces squeezed. Icons (condition, rain, moon, sun, day-row clothing) have drawn ink at least 0.8 x the cap height
       # of the text beside them; the days scale's track at least 45 % of the day row width with its first and last labels
       # at the track's ends (within a cell); no empty band over 12 % of the panel height inside the console, the days
-      # panel or the console's right column (ink measured in the screenshot).
+      # panel or the console's right column (ink measured in the screenshot); low/high digits at least 0.85 x the day name size.
       if c['orientation'] == 'portrait' && (c['device'] || 'v2') != 'v2' && %w[full].include?(c['view'] || 'full')
         require 'chunky_png'
         og = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d'),R=function(b){return [b.left,b.top,b.right,b.bottom]};
@@ -128,7 +128,7 @@ var st=[].filter.call(document.querySelectorAll('[data-sw-suntime] span.title'),
 [].filter.call(document.querySelectorAll('[data-sw-unit="sun"] img'),vis).forEach(function(e,i){var t=e.parentElement.querySelector('[data-sw-suntime] span.title');add('sun',e,cap(t||st[0]))});
 [].filter.call(document.querySelectorAll('[data-sw-part="moon"]'),vis).forEach(function(e){if(st[0])add('moon',e.querySelector('svg')||e,cap(st[0]))});
 var ca=[].filter.call(document.querySelectorAll('[data-sw-part="rain"] svg text'),vis)[0];[].filter.call(document.querySelectorAll('[data-sw-unit="rain"] img'),vis).forEach(function(e){if(ca)add('rain',e,scap(ca))});
-[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis).forEach(function(r,i){var t=[].filter.call(r.querySelectorAll('span.title'),function(s){return vis(s)&&/\d/.test(s.textContent)})[0];if(!t)return;var c=cap(t);[].filter.call(r.querySelectorAll('img'),vis).forEach(function(e){add('day'+i+' icon',e,c)});var d=r.querySelector('[data-sw-part="dcue"]');if(vis(d))add('day'+i+' clothing',d,c);});
+[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis).forEach(function(r,i){var t=[].filter.call(r.querySelectorAll('span.title'),function(s){return vis(s)&&/\d/.test(s.textContent)})[0];if(!t)return;var c=cap(t);var nm=r.querySelector('[data-sw-dname],[data-sw-today]'),nf=nm?parseFloat(getComputedStyle(nm).fontSize):0,tf=parseFloat(getComputedStyle(t).fontSize);if(nf&&tf<0.85*nf)ic.push(['day'+i+' low/high '+tf+'px under 0.85 x the day name '+nf+'px',0,0,0,0,1]);[].filter.call(r.querySelectorAll('img'),vis).forEach(function(e){add('day'+i+' icon',e,c)});var d=r.querySelector('[data-sw-part="dcue"]');if(vis(d))add('day'+i+' clothing',d,c);});
 var tr='',sc=[].filter.call(document.querySelectorAll('[data-sw-part="scale"]'),vis)[0],row=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis)[0];
 if(sc&&row){var sv=sc.querySelector('svg'),sb=sv.getBoundingClientRect(),k=sb.width/(+sv.getAttribute('width')||sb.width),g=sv.querySelector('[data-sw-track]'),cw=0;
 [].forEach.call(document.querySelectorAll('[data-sw-cells] rect'),function(q){var w=q.getBoundingClientRect().width;if(vis(q))cw=Math.max(cw,w+2)});
@@ -145,6 +145,7 @@ return JSON.stringify({ic:ic,tr:tr,pn:pn,iw:innerWidth});})()})
         dark = ->(x, y, lim) { v = png[x, y]; ChunkyPNG::Color.r(v) + ChunkyPNG::Color.g(v) + ChunkyPNG::Color.b(v) < lim }
         bad = []
         og['ic'].each do |n, l, t, r, b, capv|
+          next bad << n if r.zero?
           ys = ((t * k).floor..((b * k).ceil - 1)).select { |y| y < png.height && ((l * k).floor..[(r * k).ceil - 1, png.width - 1].min).any? { |x| dark.(x, y, 384) } }
           ink = ys.empty? ? 0 : (ys.last - ys.first + 1) / k
           bad << "#{n} ink #{ink.round(1)} < 0.8 x cap #{capv.round(1)}" if ink < 0.8 * capv

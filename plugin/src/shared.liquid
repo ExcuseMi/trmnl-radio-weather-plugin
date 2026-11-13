@@ -327,7 +327,7 @@ return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--
 }
 // Days strip x mapping (owner): grid lines through the end labels' digit centres.
 function tick(v) { return String(v === 0 ? 0 : v); }
-function lfs(sc) { return API.nfs ? Math.max(API.nfs, API.lp || 0) : Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }
+function lfs(sc) { return API.nfs ? (API.lp && API.nfs > API.lp && API.ogfull ? API.lp : Math.max(API.nfs, API.lp || 0)) : Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }
 function ticks(sc, W) {
 var fs = lfs(sc), st = sc.major, w = (v) => fs * 0.62 * (tick(v).length + 1.2) + fs * 0.6, n = 0, out = [];
 for (var v = sc.a; v <= sc.b + 1e-9; v += st) n += w(v);
@@ -738,7 +738,7 @@ if(full) {
 [].forEach.call(panel.querySelectorAll('[data-sw-part="gauge"]'),function(e){e.parentNode.removeChild(e);});
 var bt = document.querySelector('[data-sw-between]'), days = bt && bt.nextElementSibling;
 if(view === 1 && days) { set(panel,/^h--/,'h--[57cqh]'); set(days,/^h--/,'h--[35cqh]'); }
-if(view === 1) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-row="day"] > div > :nth-child(3)'),function(e){var r=e.parentElement,c=r.children,dr=r.parentElement.hasAttribute('data-sw-row');set(r,/^gap--/,'gap--xsmall');if(dr){set(r.parentElement,/^hidden$/,'');set(r,/^h--/,'h--[7cqh]');}set(c[0],/^w--/,'w--[12cqw]');set(c[1],/^w--/,'w--[7cqw]');[c[2],c[3]].forEach(function(q){set(q,/^w--/,'w--[5cqw]');var t=q.querySelector('span.title');if(t)set(t,/^title--/,'title--small');});if(c[5]){set(c[5],/^w--/,'w--[10cqw]');if(dr)set(c[5].firstElementChild,/^h--/,'h--[6cqh]');}var im=c[1].querySelector('img');if(im)set(im,/^h--/,'h--[6cqh]');});   // OG full portrait (owner 2026-11-13): four rows, a wider bar track, larger icons and badges
+if(view === 1) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-row="day"] > div > :nth-child(3)'),function(e){var r=e.parentElement,c=r.children,dr=r.parentElement.hasAttribute('data-sw-row');set(r,/^gap--/,'gap--xsmall');if(dr){set(r.parentElement,/^hidden$/,'');set(r,/^h--/,'h--[7cqh]');}set(c[0],/^w--/,'w--[12cqw]');set(c[1],/^w--/,'w--[7cqw]');set(c[2],/^w--/,'w--[6cqw]');set(c[3],/^w--/,'w--[6cqw]');if(c[5]){set(c[5],/^w--/,'w--[10cqw]');if(dr)set(c[5].firstElementChild,/^h--/,'h--[6cqh]');}var im=c[1].querySelector('img');if(im)set(im,/^h--/,'h--[6cqh]');});   // OG full portrait (owner 2026-11-13): four rows, a wider bar track, larger icons and badges
 }
 if(hv) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'),function(e){var c=e.parentElement.children[1];if(c)c.parentNode.removeChild(c);set(e.parentElement.children[0],/^w--/,'w--[30cqw]');});
 var dn = [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'),function(q){return q.getBoundingClientRect().width>0;})[0], tpx = dn ? Math.round(parseFloat(getComputedStyle(dn).fontSize)*0.85) : 0;
@@ -786,7 +786,7 @@ var r = el.getBoundingClientRect();
 if (!r.width && !r.height) return;
 SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
 var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
-var ogp = sc.contains('screen--portrait') && (sc.contains('screen--md') || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; SWDraw.port = sc.contains('screen--portrait');
+var ogp = sc.contains('screen--portrait') && (sc.contains('screen--md') || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; SWDraw.ogfull = ogp && sc.contains('screen--md') && / view=1 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'));   // OG full portrait: scale labels at the meter label size, so the track keeps 45 % beside full-size low/high digits SWDraw.port = sc.contains('screen--portrait');
 var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;
 var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
 SWDraw.nRows = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; }).length;
