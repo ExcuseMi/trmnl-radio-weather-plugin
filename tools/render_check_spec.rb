@@ -24,7 +24,7 @@ RSpec.describe 'renders' do
       now = (Time.utc(*t.split(/[-T:]/).map(&:to_i)) - answer['utc_offset_seconds'].to_i + 600).iso8601
       mocks = { 'https://api.open-meteo.com/*' => { json: answer } }
       mocks['https://air-quality-api.open-meteo.com/*'] = { json: c['aq'] } if c['aq']
-      fields = { 'lat_lon' => '52.52,13.41', 'unit' => 'celsius', 'days_shown' => 'auto', 'dial_span' => '24h', 'hide_title_bar' => 'false', 'language' => 'nl' }.merge(c['fields'] || {})
+      fields = { 'lat_lon' => '52.52,13.41', 'unit' => 'celsius', 'days_shown' => 'auto', 'dial_span' => '24h', 'hide_title_bar' => 'false' }.merge(c['fields'] || {})
       opts = { view: c['view'] || 'full', device: dev, mocks:, custom_fields: fields, now:, wait_for: "document.querySelector('[data-sw-drawn],[data-sw-error]') !== null" }
       opts[:variables] = { 'trmnl' => { 'user' => { 'locale' => c['locale'] } } } if c['locale']
       opts[:variables] = (opts[:variables] || {}).merge(c['vars']) if c['vars']
