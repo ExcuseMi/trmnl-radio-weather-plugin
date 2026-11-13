@@ -1,5 +1,6 @@
 {% template main %}
 {%- assign cf = trmnl.plugin_settings.custom_fields_values -%}
+{%- capture sw_stale_icon -%}<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="10" stroke="#000" stroke-width="2.2"/><path d="M14 8V14L18 16.5" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>{%- endcapture -%}
 {%- capture sw_icon -%}<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M4 16A10 10 0 0 1 24 16" stroke="#000" stroke-width="2.2" stroke-linecap="round"/> <path d="M14 6V8.5M6.9 8.9L8.6 10.6M21.1 8.9L19.4 10.6" stroke="#000" stroke-width="1.6" stroke-linecap="round"/> <path d="M14 16L18.6 9.6" stroke="#000" stroke-width="2" stroke-linecap="round"/> <circle cx="14" cy="16" r="1.8" fill="#000"/> <rect x="3" y="21" width="4" height="4" rx="0.8" fill="#000"/><rect x="8.5" y="21" width="4" height="4" rx="0.8" fill="#000"/><rect x="14" y="21" width="4" height="4" rx="0.8" fill="#000"/> <rect x="19.5" y="21.5" width="4" height="3" rx="0.8" stroke="#000" stroke-width="1"/> </svg>{%- endcapture -%}
 {%- comment -%} Panel (owner {%- endcomment -%}
 {%- capture p_open_g -%}<div class="relative h--full w--full"><div class="h--full w--full"><div class="relative h--full w--full p--1" data-sw-panel><div class="absolute inset--0" data-sw-part="face"></div>{%- endcapture -%}
@@ -218,7 +219,7 @@
  <img class="image image--adaptive w--[28px] h--[28px]" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
  {%- assign sw_name = trmnl.plugin_settings.instance_name %}{% if sw_name == blank or sw_name == 'Radio Weather' %}{% assign sw_name = i18n.ours.app | default: 'Radio Weather' %}{% endif %}{% comment %} owner 2026-11-13 {% endcomment %}
  <span class="title">{{ sw_name }}</span>
- {%- if ui.stale %}<span class="instance" data-sw-stale>{{ ui.stale }}</span>{% elsif clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}{% comment %} offline (saved copy): when the {% endcomment %}
+ {%- if ui.stale %}<span class="instance flex flex--row flex--center-y gap--xsmall"><img class="image image--adaptive w--[20px] h--[20px]" src="data:image/svg+xml;base64,{{ sw_stale_icon | base64_encode }}" alt=""><span data-sw-stale>{{ ui.stale }}</span></span>{% elsif clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}{% comment %} offline (saved copy): when the {% endcomment %}
 </div>
 {%- endunless %}
 {%- if ui and ui.ok %}
