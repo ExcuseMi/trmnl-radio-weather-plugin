@@ -240,7 +240,7 @@ var m = /^gray-(\d+)$/.exec(tok || ''); if (!m) return tok;
 var v = +m[1]; return v <= 20 ? 'black' : (v <= 47 ? 'gray-30' : (v <= 72 ? 'gray-55' : 'white'));
 }
 // Block fill (days and hours strips): grey, the current one darker; 1-bit solid ink, no dither (owner 2026-11-13).
-function blk(hi) { return API.mode && API.mode.bits <= 1 ? '' : (hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60'); }
+function blk(hi) { return API.mode && API.mode.bits <= 1 ? '' : (hi ? 'text--gray-10 dark:text--gray-75' : 'text--gray-20 dark:text--gray-60'); }
 function g(cls, body) {
 var keep = [], tok = null;
 cls.split(' ').forEach((c) => { if (c.indexOf('text--') === 0) tok = c.slice(6); else if (c) keep.push(c); });
@@ -314,7 +314,7 @@ else off += DK ? rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1,
 }
 var PV = API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bits <= 1 ? 'text--gray-50' : (API.mode && API.mode.bits <= 2 ? 'text--gray-65' : 'text--gray-70'));   // today's range (earlier or later), one light Framework grey (owner)
 var LT = PV;
-return svg(W, H, '<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + g(LT, lt) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g('text--gray-40', on) + '</g>' : glow(on, GPX)) +   /* owner 2026-11-13: dark grey for the value now on 2-bit+ light; 1-bit black, dark mode white */ (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);   // active cells (now) in full ink, black or white in dark mode (owner 2026-11-13)
+return svg(W, H, '<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + g(LT, lt) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g('text--gray-20', on) + '</g>' : glow(on, GPX)) +   /* owner 2026-11-13: dark grey for the value now on 2-bit+ light; 1-bit black, dark mode white */ (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);   // active cells (now) in full ink, black or white in dark mode (owner 2026-11-13)
 }
 // Rain gauge (owner 2026-11-13, replaces the REGEN meter row): a narrow vertical tube of 5 segments filled from the
 // bottom (segs from the transform), the amount under it. Same fill as the meter's active cells.
@@ -327,7 +327,7 @@ if (i < gq.segs) { on += rect(x0, y, tw, h, 2, ' data-sw-c="' + i + '"'); sh += 
 else off += DK ? rect(x0, y, tw, h, 2, ' data-sw-c="' + i + '"') : rect(x0 + 1, y + 1, tw - 2, h - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2" data-sw-c="' + i + '"');
 }
 var offc = !API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')));
-return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g('text--gray-40', on) + '</g>' : glow(on, GPX)) + '</g>' + text(W / 2, th + 2 + fs, lab, fs, 'middle', ' data-sw-glabel'));
+return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g('text--gray-20', on) + '</g>' : glow(on, GPX)) + '</g>' + text(W / 2, th + 2 + fs, lab, fs, 'middle', ' data-sw-glabel'));
 }
 // Days strip x mapping, one for the header and every row (owner 2026-11-12): each grid line runs through the centre of
 // its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.

@@ -269,7 +269,7 @@ test('right column: no rule between the rain calendar and the sun times (owner 2
 test('days strip: 5-degree lines faint, blocks at least half the row, now line dark', () => {
   const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40);
   ok(/^<svg[^>]*>(<defs>.*<\/defs>)?<g class="text--gray-7\d"/.test(s), 'grid lines light grey');
-  const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-40')[1])[1];
+  const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-20')[1])[1];
   ok(h >= 20, 'block height ' + h + ' of 40');
 });
 test('panel face (owner 2026-11-12): a plain fill on 4-bit light, no backlight lamps; none on 2-bit, in dark or 1-bit', () => {
