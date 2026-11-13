@@ -41,12 +41,12 @@
   {%- if k == 2 %}<div class="py--4 shrink-0 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner: hairlines in the gaps between blocks {% endcomment %}
   {{ p_open_g }}<div class="relative h--full w--full">
    <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
-   <span class="absolute bottom--4 left--5 title title--base lg:portrait:title--small text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>{% comment %} owner step 13: name bottom left, value bottom right, trend arrow top right {% endcomment %}
+   <span class="absolute bottom--4 left--5 title title--base lg:portrait:title--small text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>{% comment %} owner step 13: name bottom left, value bottom right (trend arrow behind it) {% endcomment %}
    <div class="absolute bottom--3 right--4 flex flex--row flex--bottom gap--small" data-sw-cap>
     {%- if k == 1 %}<span class="value value--small value--tnums">{{ ui.baro.value }}</span><span class="title title--small text--bold">{{ ui.baro.unit }}</span>{% comment %} owner: the pressure, the trend only as the arrow {% endcomment %}
     {%- else %}<span class="value value--small value--tnums">{{ ui.tdial.value }}</span><span class="title title--small text--bold">{{ ui.tdial.unit }}</span>{% endif -%}
+    {%- if k == 1 %}{% assign arw = ui.baro.arrow %}{% else %}{% assign arw = ui.tdial.arrow %}{% endif %}{% if arw == 'up' or arw == 'down' %}<div class="shrink-0 self--center" data-sw-part="arrow" data-sw-i="{{ k | minus: 1 }}" data-sw-arrow="{{ arw }}"></div>{% endif %}{% comment %} owner 2026-11-13: the trend arrow behind the value {% endcomment %}
    </div>
-   {%- if k == 1 %}{% assign arw = ui.baro.arrow %}{% else %}{% assign arw = ui.tdial.arrow %}{% endif %}{% if arw == 'up' or arw == 'down' %}<div class="absolute top--4 right--5" data-sw-part="arrow" data-sw-i="{{ k | minus: 1 }}" data-sw-arrow="{{ arw }}"></div>{% endif %}
   </div>{{ p_close }}
   {%- endfor %}
  </div></div>
@@ -680,7 +680,7 @@ if (Math.abs(nt - pt) > 0.3 || Math.abs(nb - pb) > 0.3) { w.style.paddingTop = n
 // Trend arrows (owner step 13): box 1.5x the caption cap height.
 function swArrow(cx) {
 document.querySelectorAll('[data-sw-part="arrow"]').forEach(function (e) {
-var c = e.parentElement.querySelector('[data-sw-cap]'); if (!c) return; var cs = getComputedStyle(c); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+var c = e.closest('.relative').querySelector('[data-sw-cap]'); if (!c) return; var cs = getComputedStyle(c); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
 var v = 1.5 * cx.measureText('H').actualBoundingBoxAscent; e.style.width = v.toFixed(1) + 'px'; e.style.height = v.toFixed(1) + 'px';
 });
 }
