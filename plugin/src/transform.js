@@ -138,6 +138,8 @@ function sunTimes(w) {
   return { rise: r, set: s, now: n, day: n >= r && n <= s, riseL: hm(sr[rT ? 1 : 0]), setL: hm(ss[sT ? 1 : 0]), riseTom: rT, setTom: sT, rise1L: hm(sr[1]) || hm(sr[0]), set1L: hm(ss[1]) || hm(ss[0]) };
 }
 
+// Bottom strip (owner step 13): 'hours', 'days', or 'auto' = hours from 00:00 to 17:59 local, days from 18:00.
+function bottomHours(v, localTime) { v = String(v); if (v !== 'auto') return v === 'hours'; var m = /T(\d{2}):/.exec(String(localTime || '')); return !!m && +m[1] < 18; }
 function field(input, key, fallback) {
   var cf = (((input || {}).trmnl || {}).plugin_settings || {}).custom_fields_values || {};
   var v = cf[key];
@@ -492,7 +494,7 @@ async function run(input) {
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
   var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
-  return { ui: buildView(model, i18n, w.daily, moon, phase, { pressAgo: past.ago, hourly: w.hourly, hours: String(field(input, 'bottom', 'days')) === 'hours' }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
+  return { ui: buildView(model, i18n, w.daily, moon, phase, { pressAgo: past.ago, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'days'), w.current && w.current.time) }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
+if (typeof module !== 'undefined') module.exports = { run: run, bottomHours: bottomHours, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };

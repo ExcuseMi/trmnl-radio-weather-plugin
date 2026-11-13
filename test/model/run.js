@@ -130,7 +130,12 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
   ok(/- keyname: author_info\n[\s\S]*- keyname: lat_lon\n[\s\S]*- keyname: unit\n[\s\S]*- keyname: time_format\n[\s\S]*- keyname: bottom\n[\s\S]*- keyname: hide_title_bar\n/.test(y), 'settings in the owner order: about, location, unit, time format, bottom strip, title bar (owner 2026-11-13)');
-  ok(/- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n/.test(y) && /- Days: days\n  - Hours: hours\n  default: days\n/.test(y), 'time format 24 by default, bottom strip Days by default');
+  ok(/- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n/.test(y) && /- Days: days\n  - Hours: hours\n  - Hours, days after 18:00: auto\n  default: days\n/.test(y), 'time format 24 by default, bottom strip Days by default');
+});
+
+test('bottom strip auto: hours until 17:59 local, days from 18:00', () => {
+  eq([T.bottomHours('auto', '2026-11-13T17:59'), T.bottomHours('auto', '2026-11-13T18:00'), T.bottomHours('auto', '2026-11-13T00:00'), T.bottomHours('auto', null)], [true, false, true, false]);
+  eq([T.bottomHours('hours', '2026-11-13T20:00'), T.bottomHours('days', '2026-11-13T09:00')], [true, false]);
 });
 
 test('air quality: the current index at any hour (no evening mode)', () => {
