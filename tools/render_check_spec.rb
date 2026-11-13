@@ -342,6 +342,11 @@ if(L.length&&Math.max.apply(null,L)-Math.min.apply(null,L)>1)bad.push('icon left
 var px=function(r){var sv=r.ownerSVGElement;return +r.getAttribute('rx')*sv.getBoundingClientRect().height/+sv.getAttribute('height')};var a=px(cal),b=px(mc);return Math.abs(a-b)>0.6?'calendar rx '+a.toFixed(1)+' meter rx '+b.toFixed(1):''})()})
       puts "RAINRX #{c['name']}: #{rx}" unless rx.empty?
       expect(rx).to eq('')
+      # Day names on one left edge, and a bar under its name sits closer to that name than to the next day (owner
+      # 2026-11-13, OG half vertical portrait: names shifted, bars floating between rows).
+      dn = s.evaluate(%q{(function(){var tb=function(n){var g=document.createRange();g.selectNodeContents(n);return n.hasAttribute('data-sw-today')?n.getBoundingClientRect():g.getBoundingClientRect()};var L=[],bad=[],R=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),function(r){return r.getBoundingClientRect().height>0});R.forEach(function(r){var n=r.querySelector('[data-sw-today],[data-sw-dname]');if(n)L.push(tb(n).left)});if(L.length&&Math.max.apply(null,L)-Math.min.apply(null,L)>2)bad.push('name lefts '+L.map(Math.round));R.forEach(function(r,i){var n=r.querySelector('[data-sw-today],[data-sw-dname]'),b=r.querySelector('[data-sw-part="day"]'),nx=R[i+1]&&R[i+1].querySelector('[data-sw-today],[data-sw-dname]');if(!n||!b||!nx)return;var nb=tb(n),bb=b.getBoundingClientRect(),xb=tb(nx);if(bb.top>=nb.bottom-1&&bb.top-nb.bottom>xb.top-bb.bottom-3)bad.push('bar '+i+' nearer the next day ('+Math.round(bb.top-nb.bottom)+' vs '+Math.round(xb.top-bb.bottom)+')')});return bad.join('; ')})()})
+      puts "DAYNAME #{c['name']}: #{dn}" unless dn.empty?
+      expect(dn).to eq('')
       # Rain calendar (owner 2026-11-13): a third row only when it holds a wet hour.
       r3 = s.evaluate(%q{(function(){var sv=[].filter.call(document.querySelectorAll('[data-sw-part="rain"] svg'),function(v){return v.getBoundingClientRect().width>0})[0];if(!sv)return '';var ys={};[].forEach.call(sv.querySelectorAll('text'),function(t){var y=t.getAttribute('y');ys[y]=ys[y]||[];ys[y].push(!!t.closest('.text--white'))});var k=Object.keys(ys).sort(function(a,b){return a-b});if(k.length<3)return '';return ys[k[k.length-1]].some(Boolean)?'':k.length+' rows, last dry'})()})
       puts "RAIN3 #{c['name']}: #{r3}" unless r3.empty?
