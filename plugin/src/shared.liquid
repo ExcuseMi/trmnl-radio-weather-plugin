@@ -64,20 +64,18 @@
    {%- comment %} owner: no lamps; the rain unit's {% endcomment %}
    {%- comment %} owner: the meters take the full {% endcomment %}
    <div class="flex flex--row {% if stk %}{% else %}grow{% endif %}{% if view == 2 %} lg:portrait:flex--stretch-y{% endif %} gap--small w--full">
-    {%- assign any_tw = false %}{% capture c_lab %}{% endcapture %}{% capture c_blk %}{% endcapture %}{% capture c_ico %}{% endcapture %}
+    {%- assign any_tw = false %}{% capture c_lab %}{% endcapture %}{% capture c_blk %}{% endcapture %}
     {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}{% assign passes = 1 %}{% if m.tw %}{% assign passes = 2 %}{% assign any_tw = true %}{% endif %}
     {%- capture rc %}{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y{% endcapture %}
     {%- capture rh %}h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}{% endcapture %}
     {%- for pass in (1..passes) %}{% assign h2 = '' %}{% assign pk = 'meter' %}{% if pass == 2 %}{% assign h2 = ' data-sw-hum2' %}{% assign pk = 'meterin' %}{% endif %}
-    {%- capture c_lab %}{{ c_lab }}<div class="{{ rc }} flex--right w--full {{ rh }}"{{ h2 }}><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>{% endcapture %}
+    {%- capture c_lab %}{{ c_lab }}<div class="{{ rc }} flex--right w--full gap--xsmall {{ rh }}"{{ h2 }}>{% if m.tw %}<div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-for="{{ m.key }}" data-sw-i="{{ pass | minus: 1 }}" data-sw-loc="{% if pass == 1 %}out{% else %}in{% endif %}"></div>{% endif %}<span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>{% endcapture %}
     {%- capture c_blk %}{{ c_blk }}<div class="{{ rc }} w--full {{ rh }}"{{ h2 }}><div class="w--full h--[{{ mb_m | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="{{ pk }}" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div><div class="hidden lg:block w--full h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}" data-sw-part="{{ pk }}" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div></div>{% endcapture %}
-    {%- capture c_ico %}{{ c_ico }}<div class="{{ rc }} {{ rh }}"{{ h2 }}>{% if m.tw %}<div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-for="{{ m.key }}" data-sw-i="{{ pass | minus: 1 }}" data-sw-loc="{% if pass == 1 %}out{% else %}in{% endif %}"></div>{% endif %}</div>{% endcapture %}
     {%- endfor %}
     {%- endfor %}
     {%- capture mcol %}flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %}{% endcapture %}
     <div class="{{ mcol }} shrink-0">{{ c_lab }}</div>
     <div class="{{ mcol }} grow">{{ c_blk }}</div>
-    {%- if any_tw %}<div class="{{ mcol }} shrink-0">{{ c_ico }}</div>{% endif %}
    </div>
   </div>
 {%- endcapture %}
