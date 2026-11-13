@@ -556,3 +556,8 @@ sensorSettingsTests().then(() => {
   console.log(passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 });
+test('2-bit active cells are the native dark grey, not black; 4-bit gray-20 (owner 2026-11-13)', () => {
+  const f = (m) => { D.mode = m; const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40); D.mode = null; return s; };
+  ok(/gray-30/.test(f({ dark: false, bits: 2 })) && !/<g class="text--black/.test(f({ dark: false, bits: 2 }).split('data-sw-hl')[0].replace(/text--black[^>]*><line/g, '')), '2-bit day blocks gray-30');
+  ok(/text--gray-20/.test(f({ dark: false, bits: 4 })), '4-bit day blocks gray-20');
+});
