@@ -367,7 +367,7 @@ if (tab) return tab.split(' ')[new Date(iso + 'T12:00:00Z').getUTCDay()];
 try { return new Intl.DateTimeFormat(loc, { weekday: 'short', timeZone: 'UTC' }).format(new Date(iso + 'T12:00:00Z')).replace(/\.$/, '').toLocaleUpperCase(loc); } catch (e) { return null; }
 });
 }
-var RO_ORDER = ['regen', 'wind', 'uv', 'aqi', 'humidity', 'pollen', 'baro', 'co2'];   // owner 2026-11-12: wind before humidity, humidity before pollen
+var RO_ORDER = ['wind', 'uv', 'aqi', 'humidity', 'pollen', 'baro', 'co2'];   // owner 2026-11-12: wind before humidity, humidity before pollen
 // Rain calendar (owner 2026-11-12): 12 hours from two hours before the rain starts, never before the first forecast hour.
 function rainHours(hours, R) {
 var s = Math.max(0, Math.min(R.from - 2, hours.length - 12));
@@ -450,9 +450,10 @@ function buildView(M, i18n, daily, moon, phase, opt) {
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 var R = M.rain, wetIn12 = !!R && R.from < 12;
-// REGEN (owner 2026-11-13): the precipitation over the rain calendar's 12 hours, scale 0..10 mm (0..0.4 in); only with rain in the calendar and a amount above 0 (missing hourly precipitation hides it, like pollen). No today's range / peak states (a sum over the window has none).
+// Rain gauge (owner 2026-11-13, replaces the REGEN meter): the precipitation over the rain calendar's 12 hours, 5 segments of 2 mm (0.08 in), 0..10 mm (0..0.4 in); hidden without an amount above 0 (missing hourly precipitation hides it).
 var rs0 = R ? Math.max(0, Math.min(R.from - 2, M.hours.length - 12)) : 0, regenMm = wetIn12 ? M.hours.slice(rs0, rs0 + 12).reduce((a, q) => a + (q.mm || 0), 0) : null;
-var RO = { regen: [O.rain, bar(regenMm, 0, F_ ? 0.4 : 10), wetIn12 && regenMm > 0], wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
+var gauge = wetIn12 && regenMm > 0 ? { segs: Math.max(1, Math.min(5, Math.round(regenMm / (F_ ? 0.4 : 10) * 5))), label: (F_ ? (Math.round(regenMm * 10) / 10).toFixed(1) + ' in' : (regenMm < 10 ? String(Math.round(regenMm)) : '10+') + ' mm') } : null;
+var RO = { wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
 aqi: ['AQI', bar(n.aqi, 0, 100), n.aqi !== null], pollen: [O.pollen, n.pollen, n.pollen !== null && n.pollen > 0], humidity: [O.m_hum, bar(n.hum, 0, 100), n.hum !== null],
 baro: ['BARO', bar(n.press, 970, 1050), n.press !== null], co2: ['CO2', bar(M.inn.co2, 400, 2000), M.inn.co2 !== null] };
 var relevant = { uv: n.day !== false && t.uvMax !== null && t.uvMax >= 3, baro: false };
@@ -493,7 +494,7 @@ ok: M.ok, meters: meters, cue: cueFor((() => { var ci = nowCueInput(opt && opt.h
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
 temp: tStr, unit: deg + M.unit,   // owner 2026-11-13: no felt readout; the felt temperature drives the clothing cue only
 inn: inT === null ? null : { temp: t1(inT), out: O.outdoor, in: O.indoor, hum: M.inn.hum === null ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
-rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)) } : null,
+rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)), gauge: gauge } : null,
 sun: sun, dry: wetIn12 ? null : sun,
 days: days.map((d, i) => ({ cue: cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3), name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
 scale: sc, scales: scales,
