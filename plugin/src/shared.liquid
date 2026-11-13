@@ -331,7 +331,7 @@ function lfs(sc) { return API.nfs ? Math.max(API.nfs, API.lp || 0) : Math.max((A
 function ticks(sc, W) {
 var fs = lfs(sc), st = sc.major, w = (v) => fs * 0.62 * (tick(v).length + 1.2) + fs * 0.6, n = 0, out = [];
 for (var v = sc.a; v <= sc.b + 1e-9; v += st) n += w(v);
-if (n > W * 0.75) st = sc.major * 2;
+if (n > W * 0.75) { st = sc.major * 2; if (API.nfs) { var m = 2; while (m * sc.major < sc.b - sc.a && Math.abs((sc.b - sc.a) / (m * sc.major) % 1) > 1e-9) m++; st = m * sc.major; } }   // OG portrait (owner 2026-11-13): the last label at the track's end
 for (var v = Math.ceil(sc.a / st - 1e-9) * st; v <= sc.b + 1e-9; v += st) out.push(v);
 return out;
 }
@@ -351,7 +351,7 @@ var ptH = lfs(sc) * 0.3 * 1.4;
 if (hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); }
 var k = 1; while (k * cw - Math.max(2.5, k * cw * 0.16) < 6 && k < 50) k++;
 var gp = Math.max(2.5, k * cw * 0.16), pc = [], a0 = sc.a + Math.floor((a - sc.a) / k) * k;
-if ((API.nfs || API.port) && k * cw - gp >= 6 && bh > (k * cw - gp) * 1.5) { y += (bh - (k * cw - gp) * 1.5) / 2; bh = (k * cw - gp) * 1.5; }
+var ca = API.nfs ? 2.2 : 1.5; if ((API.nfs || API.port) && k * cw - gp >= 6 && bh > (k * cw - gp) * ca) { y += (bh - (k * cw - gp) * ca) / 2; bh = (k * cw - gp) * ca; }
 if (k * cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = k > 1 ? a0 : a; t < b; t += k) pc.push([X(t) + gp / 2, X(t + k) - gp / 2]);
 pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
 body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells data-sw-k="' + k + '" data-sw-r="' + (b - a) + '">' + g(blk(hi), cells) + '</g>';
@@ -390,7 +390,7 @@ body += text(p, ty, s, fs, 'middle', ' dominant-baseline="middle" data-sw-tick="
 
 });
 var pw = (API.paint && (API.paint('white') || {}).color) || '#fff';
-body = g('text--gray-70', rules) + '<g data-sw-axis stroke="' + pw + '" stroke-width="' + n1(fs * 0.22) + '" paint-order="stroke" stroke-linejoin="round">' + body + '</g>';
+body = '<g data-sw-track="' + n1(X(sc.a)) + ',' + n1(X(sc.b)) + '"></g>' + g('text--gray-70', rules) + '<g data-sw-axis stroke="' + pw + '" stroke-width="' + n1(fs * 0.22) + '" paint-order="stroke" stroke-linejoin="round">' + body + '</g>';
 return svg(W, H, body);
 }
 // Rain calendar (owner): 3 columns, 2 or 3 rows; rain hours lit.
@@ -721,11 +721,11 @@ var outer = panel.querySelector('[data-sw-panel] > .relative'), cond = panel.que
 set(outer, /^(flex--(?:row|col|col-reverse|center)|gap--\w+)$/, 'flex--col-reverse flex--between gap--small');
 if (narrow) set(outer, /^flex--col-reverse$/, 'flex--col');
 set(top, /^flex--(?:row|stretch-y)$/, (narrow ? 'flex--col' : 'flex--row') + ' w--full');
-set(right, /^w--/, narrow ? 'w--full' : 'w--[44cqw]');
+set(right, /^w--/, narrow ? 'w--full' : (view === 1 ? 'w--[38cqw]' : 'w--[44cqw]'));
 if(narrow) [].forEach.call(top.querySelectorAll('[data-sw-rule]'),function(e){set(e,/^hidden$/, 'hidden');});
 set(cond.parentElement, /^h--/, 'h--[7cqh]');
 var digits = panel.querySelector('[data-sw-part="temp"]'), tr = digits.parentElement.parentElement;
-set(tr, /^h--/, 'h--[10cqh] shrink-0');
+set(tr, /^h--/, (view === 1 ? 'h--[13cqh]' : 'h--[10cqh]') + ' shrink-0');
 if(narrow) set(temp, /^grow$/, 'grow shrink-0');
 set(digits.parentElement, /^h--/, 'h--full');
 set(tr, /^flex--col$/, 'flex--row');
@@ -738,7 +738,7 @@ if(full) {
 [].forEach.call(panel.querySelectorAll('[data-sw-part="gauge"]'),function(e){e.parentNode.removeChild(e);});
 var bt = document.querySelector('[data-sw-between]'), days = bt && bt.nextElementSibling;
 if(view === 1 && days) { set(panel,/^h--/,'h--[57cqh]'); set(days,/^h--/,'h--[35cqh]'); }
-if(view === 1) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-row="day"] > div > :nth-child(3)'),function(e){set(e.parentElement.firstElementChild,/^w--/,'w--[14cqw]');});
+if(view === 1) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-row="day"] > div > :nth-child(3)'),function(e){var r=e.parentElement,c=r.children,dr=r.parentElement.hasAttribute('data-sw-row');set(r,/^gap--/,'gap--xsmall');if(dr){set(r.parentElement,/^hidden$/,'');set(r,/^h--/,'h--[7cqh]');}set(c[0],/^w--/,'w--[12cqw]');set(c[1],/^w--/,'w--[7cqw]');[c[2],c[3]].forEach(function(q){set(q,/^w--/,'w--[5cqw]');var t=q.querySelector('span.title');if(t)set(t,/^title--/,'title--small');});if(c[5]){set(c[5],/^w--/,'w--[10cqw]');if(dr)set(c[5].firstElementChild,/^h--/,'h--[6cqh]');}var im=c[1].querySelector('img');if(im)set(im,/^h--/,'h--[6cqh]');});   // OG full portrait (owner 2026-11-13): four rows, a wider bar track, larger icons and badges
 }
 if(hv) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'),function(e){var c=e.parentElement.children[1];if(c)c.parentNode.removeChild(c);set(e.parentElement.children[0],/^w--/,'w--[30cqw]');});
 var dn = [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'),function(q){return q.getBoundingClientRect().width>0;})[0], tpx = dn ? Math.round(parseFloat(getComputedStyle(dn).fontSize)*0.85) : 0;
@@ -753,8 +753,10 @@ set(panel.querySelector('[data-sw-gap="rain-sun"]'),/^h--/,'h--[1cqh]');
 }
 if(sun) {
 set(sun,/^hidden$/, 'flex');
-[].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,hv&&rain?'h--[5cqh]':'h--[3cqh]');});
-[].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,rain?ib:'h--[6cqh]');}});
+var big = view === 1 && !rain;   // OG full portrait without rain (owner 2026-11-13): the sun unit fills the right column
+[].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,hv&&rain?'h--[5cqh]':(big?'h--[5cqh]':(view===1?'h--[4cqh]':'h--[3cqh]')));});
+if(big){set(sun,/^flex--(?:row|left)$/,'flex--col flex--center');set(sun.children[1]||sun,/^gap--/,'gap--medium');[].forEach.call(sun.querySelectorAll('[data-sw-suntime] span.title'),function(e){set(e,/^title--/,'title--large');});}
+[].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,rain?ib:(big?'h--[8cqh]':'h--[6cqh]'));}});
 }
 
 }
