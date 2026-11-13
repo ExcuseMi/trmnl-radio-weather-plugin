@@ -399,20 +399,19 @@ return { weather: Object.assign({}, w, { hourly: nh }), ago: ago, today: h, prev
 }
 // Calm clothing cues (owner): a list, the top layer first, then the extras. Top, by felt temperature: parka when the
 // coldest is under 3 C; else from the warmest: jacket under 12 C, sweater under 18 C (owner, after WhetherWear's guides),
-// t-shirt. Extras in order: umbrella (rain), mittens (coldest under -2 C), sunglasses (daytime, UV 6 or more).
+// t-shirt. Extra: umbrella (rain). Owner 2026-11-13: no beanie, no sunglasses.
 // Fahrenheit converted. No temperature: no top layer. (Owner 2026-11-12: no raincoat.)
-// Hysteresis (owner 2026-11-13, saved state): with the last cue (prev {top, mit}) the top layer and the mittens change
-// only once the felt temperature is past the threshold by 1 C (2 F) in the new direction; umbrella and sunglasses none
+// Hysteresis (owner 2026-11-13, saved state): with the last cue (prev {top}; an old saved {bn} or {mit} is ignored) the top layer changes
+// only once the felt temperature is past the threshold by 1 C (2 F) in the new direction; umbrella none
 // (a day's rain chance and max UV, steady within the day).
 var TOPS = ['parka', 'jacket', 'sweater', 'tshirt'];
 function cueFor(o, F_, prev) {
 var T = (c) => F_ ? c * 1.8 + 32 : c, has = (v) => v !== null && v !== undefined, m = F_ ? 2 : 1;
 var lo = has(o.lo) ? o.lo : o.hi, hi = has(o.hi) ? o.hi : o.lo;
 var cls = (l, h) => l < T(3) ? 'parka' : (h < T(12) ? 'jacket' : (h < T(18) ? 'sweater' : 'tshirt'));
-var top = !has(lo) ? null : cls(lo, hi), mit = has(lo) && lo < T(-2), pt = prev ? TOPS.indexOf(prev.top) : -1;
+var top = !has(lo) ? null : cls(lo, hi), pt = prev ? TOPS.indexOf(prev.top) : -1;
 if (top && pt >= 0 && top !== prev.top) top = TOPS.indexOf(top) > pt ? TOPS[Math.max(pt, TOPS.indexOf(cls(lo - m, hi - m)))] : TOPS[Math.min(pt, TOPS.indexOf(cls(lo + m, hi + m)))];
-if (prev && typeof prev.mit === 'boolean' && has(lo) && mit !== prev.mit) mit = lo < T(-2) + (prev.mit ? m : -m);
-return [top, o.rain ? 'umbrella' : null, mit ? 'mittens' : null, o.day !== false && has(o.uv) && o.uv >= 6 ? 'sunglasses' : null].filter((k) => k);
+return [top, o.rain ? 'umbrella' : null].filter((k) => k);
 }
 // Per-day cue input (owner): the daytime hours 07:00 to 19:00 of that day from the hourly data (coldest and warmest felt
 // temperature, highest rain chance); a field the hours lack comes from the daily values; UV from the daily max.
@@ -457,9 +456,9 @@ function buildView(M, i18n, daily, moon, phase, opt) {
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 var R = M.rain, wetIn12 = !!R && R.from < 12;
-// Rain gauge (owner 2026-11-13, replaces the REGEN meter): the precipitation over the rain calendar's 12 hours, 5 segments of 2 mm (0.08 in), 0..10 mm (0..0.4 in); hidden without an amount above 0 (missing hourly precipitation hides it).
-var rs0 = R ? Math.max(0, Math.min(R.from, M.hours.length - 12)) : 0, regenMm = wetIn12 ? M.hours.slice(rs0, rs0 + 12).reduce((a, q) => a + (q.mm || 0), 0) : null;
-var gauge = wetIn12 && regenMm > 0 ? { segs: Math.max(1, Math.min(5, Math.round(regenMm / (F_ ? 0.4 : 10) * 5))), label: (F_ ? (Math.round(regenMm * 10) / 10).toFixed(1) + ' in' : (regenMm < 10 ? String(Math.round(regenMm)) : '10+') + ' mm') } : null;
+// Rain gauge (owner 2026-11-13, replaces the REGEN meter; owner 2026-11-13 later: 3 blocks = drizzle, rain, heavy rain): the blocks follow the peak hourly precipitation in the rain calendar's 12 hours (1 block under 1 mm/h, 2 from 1 mm/h, 3 from 4 mm/h; 0.04 and 0.16 in/h); the label is the 12 hour total, capped at 10+ mm / 0.4+ in; in fahrenheit the hourly amounts are already inches (Open-Meteo precipitation_unit=inch); hidden without an amount above 0 (missing hourly precipitation hides it).
+var rs0 = R ? Math.max(0, Math.min(R.from, M.hours.length - 12)) : 0, regenMm = wetIn12 ? M.hours.slice(rs0, rs0 + 12).reduce((a, q) => a + (q.mm || 0), 0) : null, peakMm = wetIn12 ? Math.max.apply(null, M.hours.slice(rs0, rs0 + 12).map((q) => q.mm || 0)) : 0;
+var gauge = wetIn12 && regenMm > 0 ? { segs: peakMm >= (F_ ? 0.16 : 4) ? 3 : (peakMm >= (F_ ? 0.04 : 1) ? 2 : 1), label: (F_ ? (regenMm >= 0.4 ? '0.4+' : (regenMm < 0.05 ? '<0.1' : (Math.round(regenMm * 10) / 10).toFixed(1))) + ' in' : (regenMm < 10 ? String(Math.round(regenMm)) : '10+') + ' mm') } : null;
 var RO = { wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
 aqi: ['AQI', bar(n.aqi, 0, 100), n.aqi !== null], pollen: [O.pollen, n.pollen, n.pollen !== null && n.pollen > 0], humidity: [O.m_hum, bar(n.hum, 0, 100), n.hum !== null],
 baro: ['BARO', bar(n.press, 970, 1050), n.press !== null], co2: ['CO2', bar(M.inn.co2, 400, 2000), M.inn.co2 !== null] };
@@ -479,6 +478,8 @@ var mm = (k, e) => SCL[k] && RG[k] && RG[k][e] !== null && RG[k][e] !== undefine
 var top = (a) => { a = a.filter((v) => v !== null && v !== undefined); return a.length ? Math.max.apply(null, a) : null; };
 var pk = (k) => k === 'wind' ? (mm(k, 'hi') !== null ? mm(k, 'hi') : bar(n.gust, 0, F_ ? 40 : 60)) : (SCL[k] ? top([RO[k][1], mm(k, 'past'), mm(k, 'later')]) : null);   // the peak: today's max gust (WIND), else the max of past, now and later
 var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], past: mm(k, 'past'), later: mm(k, 'later'), peak: pk(k), zones: ZONES[k] || null, idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
+var hm = meters.filter((m) => m.key === 'humidity')[0];
+if (hm && inT !== null && M.inn.hum !== null) hm.tw = { out: O.outdoor, in: O.indoor, m: { frac: bar(M.inn.hum, 0, 100) } };   // owner 2026-11-13: with the indoor sensor the humidity row is a twin meter (indoor in grey)
 var t1 = (v) => { var s = (Math.round(v * 10) / 10).toFixed(1), r = Math.round(v); return s.split('.')[0].length >= 3 ? String(r === 0 ? 0 : r) : s; };   // owner (step 12): no decimal once the whole part has 3+ characters (104°, -12°)
 var tv = n.temp, tStr = tv === null ? '--.-' : t1(tv);
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
@@ -504,7 +505,7 @@ var out = {
 ok: M.ok, meters: meters, cue: cueFor((() => { var ci = nowCueInput(opt && opt.hourly, M.hours, n, t.uvMax); if (ci.rain === null) ci.rain = wetIn12; return ci; })(), F_, opt && opt.prevCue),
 cond: (i18n.cond[n.code] || [])[n.day === false ? 1 : 0] || '', icon: wiUrl(n.icon, n.day), iconInk: wiInk(n.icon, n.day),
 temp: tStr, unit: deg + M.unit,   // owner 2026-11-13: no felt readout; the felt temperature drives the clothing cue only
-inn: inT === null ? null : { temp: t1(inT), out: O.outdoor, in: O.indoor, hum: M.inn.hum === null ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
+inn: inT === null ? null : { temp: t1(inT), out: O.outdoor, in: O.indoor, hum: M.inn.hum === null || hm ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
 rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)), gauge: gauge } : null,
 sun: sun, dry: wetIn12 ? null : sun,
 days: days.map((d, i) => ({ cue: cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3), name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
@@ -516,7 +517,7 @@ tdial: { now: tv, twin: inT, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b 
 };
 if (hrs) { out.hours = hrs.hours; out.hscale = hrs.scale; }
 var tp = TOPS.indexOf(out.cue[0]) >= 0 ? out.cue[0] : (opt && opt.prevCue && opt.prevCue.top) || null;
-out.keep = { cue: { top: tp, mit: out.cue.indexOf('mittens') >= 0 }, mt: { uv: t.uvMax === null ? pm.uv : uvOn, co2: M.inn.co2 === null ? pm.co2 : co2Up } };   // what the next run remembers (saved state)
+out.keep = { cue: { top: tp }, mt: { uv: t.uvMax === null ? pm.uv : uvOn, co2: M.inn.co2 === null ? pm.co2 : co2Up } };   // what the next run remembers (saved state)
 return out;
 }
 
@@ -635,6 +636,7 @@ async function run(input) {
     ui.inn.arrow = iv.ago ? tempTrend(cv(iv.ago[1]), cv(model.inn.temp), fahrenheit) : null;
     ui.inn.co2arrow = iv.ago && iv.ago[2] !== null && model.inn.co2 !== null ? (model.inn.co2 - iv.ago[2] >= 100 ? 'up' : (model.inn.co2 - iv.ago[2] <= -100 ? 'down' : 'level')) : null;
     if (iv.st.p.length > 1) ui.inn.lohi = i18n.lo + ' ' + SWModel.fmt(cv(iv.st.lo)) + '° ' + i18n.hi + ' ' + SWModel.fmt(cv(iv.st.hi)) + '°';
+    if (ui.inn.lohi) { ui.inn.lo = SWModel.fmt(cv(iv.st.lo)) + '°'; ui.inn.hi = SWModel.fmt(cv(iv.st.hi)) + '°'; }   // owner: shown with the plugin's triangle marks (hollow down low, filled up high)
   }
   if (keep) st.snap = keep;   // a failed fetch writes the old copy back as it was
   return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
