@@ -269,6 +269,12 @@ nm.forEach(function(e){var b=e.getBoundingClientRect(),k=ax?ax.ownerSVGElement.g
 [].forEach.call(e.ownerSVGElement.querySelectorAll('[data-sw-cells] rect'),function(r){var q=r.getBoundingClientRect();if(q.top<b.bottom-0.5&&q.left<b.right&&q.right>b.left)big=0;});});
 return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.length,tod,big].join(',');})()})
       puts "DAYROW #{c['name']}: rows,minH,screenH,ptr,ptrToday,ptrBigAndClear #{dr}"
+      # Day rows (owner step 17): one name column width, so the icons line up in every row, the name never reaches its icon
+      # (the inverted today label included) and all rows are the same height.
+      al = s.evaluate(%q{(function(){var bad=[],L=[],H=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(e){var q=e.getBoundingClientRect();if(!q.height)return;H.push(q.height);var im=e.querySelector('img'),nm=e.querySelector('[data-sw-today],[data-sw-dname]');if(!im||!nm)return;var a=im.getBoundingClientRect(),b=nm.getBoundingClientRect();L.push(a.left);if(b.right>a.left-3)bad.push('name '+nm.textContent.trim()+' reaches its icon');});
+if(L.length&&Math.max.apply(null,L)-Math.min.apply(null,L)>1)bad.push('icon lefts '+L.map(Math.round));if(H.length&&Math.max.apply(null,H)-Math.min.apply(null,H)>1)bad.push('row heights '+H.map(Math.round));return bad.join('; ')})()})
+      puts "DAYALIGN #{c['name']}: #{al}" unless al.empty?
+      expect(al).to eq('')
       d = dr.split(',').map(&:to_f)
       expect(d[0]).to eq(0) if c['view'] == 'quadrant'
       expect(d[1]).to be >= (c['device'] == 'v2' ? 53 : 28) if d[0].positive?
