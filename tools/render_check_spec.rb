@@ -103,12 +103,12 @@ var ci=m.querySelector('circle'),b=ci?ci.getBoundingClientRect():m.getBoundingCl
       expect(m1).to eq('')
       expect(mo).to eq('') if c['view'] == 'half_vertical'
       # X quadrant (owner, step 12: big empty bands above and below): the content of each panel (images, drawings,
-      # text) leaves no band over 8 % of the panel height at its top or bottom, on X quadrant and full portrait also none between its rows, hairlines counting as ink (step 18).
+      # text) leaves no band over 8 % of the panel height at its top or bottom, also none between its rows on X quadrant (step 19: landscape too) and X full portrait, hairlines counting as ink (step 18).
       if (c['view'] == 'quadrant' && (c['device'] || 'v2') == 'v2') || c['portrait_console']
         band = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=p.getBoundingClientRect();if(!q.height)return;var t=1e9,b=-1e9;
 var iv=[];p.querySelectorAll('img, svg, span').forEach(function(e){if(e.closest('[data-sw-part="face"]'))return;var r=e.getBoundingClientRect();if(!r.width||!r.height||(e.tagName==='SPAN'&&!e.textContent.trim()))return;t=Math.min(t,r.top);b=Math.max(b,r.bottom);iv.push([r.top,r.bottom])});
 var a=(t-q.top)/q.height,z=(q.bottom-b)/q.height;if(a>0.08||z>0.08)bad.push('top '+(a*100).toFixed(0)+'% bottom '+(z*100).toFixed(0)+'%');
-if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&getComputedStyle(e).display!=='none')iv.push([r.top,Math.max(r.bottom,r.top+1)])});iv.sort(function(x,y){return x[0]-y[0]});var e0=t;iv.forEach(function(v){if((v[0]-e0)/q.height>0.08)bad.push('band '+((v[0]-e0)/q.height*100).toFixed(0)+'% at '+Math.round(e0-q.top));e0=Math.max(e0,v[1]);})}});return bad.join('; ')})()}.sub('BETWEEN', (%w[quadrant full].include?(c['view']) && (c['device'] || 'v2') == 'v2' && c['orientation'] == 'portrait').to_s))
+if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&getComputedStyle(e).display!=='none')iv.push([r.top,Math.max(r.bottom,r.top+1)])});iv.sort(function(x,y){return x[0]-y[0]});var e0=t;iv.forEach(function(v){if((v[0]-e0)/q.height>0.08)bad.push('band '+((v[0]-e0)/q.height*100).toFixed(0)+'% at '+Math.round(e0-q.top));e0=Math.max(e0,v[1]);})}});return bad.join('; ')})()}.sub('BETWEEN', ((c['device'] || 'v2') == 'v2' && (c['view'] == 'quadrant' || (c['view'] == 'full' && c['orientation'] == 'portrait'))).to_s))
         puts "BAND #{c['name']}: #{band}" unless band.empty?
         expect(band).to eq('')
       end
