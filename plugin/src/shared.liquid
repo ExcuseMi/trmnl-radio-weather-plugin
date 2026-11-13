@@ -34,7 +34,9 @@
 {%- if tf == nil %}{% assign tf = 1 %}{% endif %}{% assign tm = tf %}{% if view == 3 %}{% assign tm = 1 %}{% endif %}
 {%- if view == 4 and ui.rain == nil %}{% assign n_lg = 3 %}{% endif %}{% comment %} X quadrant without rain: a third meter fills the panel {% endcomment %}
 {%- if stk %}{% assign ms = ui.meters | sort: 'rank' %}{% else %}{% assign ms = ui.meters %}{% endif %}
-<div class="layout layout--col layout--stretch-x gap--base" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
+{%- assign st_h = cf.hide_title_bar | append: '' %}{% if ui.stale %}{% if view != 1 or st_h == 'true' or st_h == 'yes' %}{% assign st_on = true %}{% endif %}{% endif %}
+<div class="layout layout--col layout--stretch-x gap--base relative" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
+{%- if st_on %}{% for sp in (1..2) %}{% if sp == 1 %}{% assign sp_c = 'top--5' %}{% if view == 4 %}{% assign sp_c = 'top--5 lg:hidden' %}{% endif %}{% elsif view == 4 %}{% assign sp_c = 'bottom--1 hidden lg:block' %}{% else %}{% break %}{% endif %}<span class="absolute {{ sp_c }} right--10 z--10 label label--small" data-sw-stale>{{ ui.stale }}</span>{% endfor %}{% endif %}{% comment %} offline, no title bar: a small "as of" in the panel corner {% endcomment %}
 {%- if view == 1 %}
  <div class="hidden lg:block h--[30cqh] lg:portrait:h--[22cqh]"><div class="flex flex--row flex--stretch-y gap--base h--full">
   {%- for k in (1..2) %}
@@ -214,7 +216,7 @@
  <img class="image image--adaptive w--[28px] h--[28px]" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
  {%- assign sw_name = trmnl.plugin_settings.instance_name %}{% if sw_name == blank or sw_name == 'Radio Weather' %}{% assign sw_name = i18n.ours.app | default: 'Radio Weather' %}{% endif %}{% comment %} owner 2026-11-13: an unchanged instance name shows the translated plugin name {% endcomment %}
  <span class="title">{{ sw_name }}</span>
- {%- if clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}
+ {%- if ui.stale %}<span class="instance" data-sw-stale>{{ ui.stale }}</span>{% elsif clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}{% comment %} offline (saved copy): when the data is from {% endcomment %}
 </div>
 {%- endunless %}
 {%- if ui and ui.ok %}
