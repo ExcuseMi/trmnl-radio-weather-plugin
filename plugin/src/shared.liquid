@@ -334,7 +334,7 @@ return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--
 // Days strip x mapping, one for the header and every row (owner 2026-11-12): each grid line runs through the centre of
 // its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.
 function tick(v) { return String(v === 0 ? 0 : v); }
-function lfs(sc) { return Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }   // axis labels at least the meter label size (owner 2026-11-12)
+function lfs(sc) { return API.nfs ? Math.max(API.nfs, API.lp || 0) : Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }   // OG portrait (step 18): the labels at the low/high digits' size   // axis labels at least the meter label size (owner 2026-11-12)
 function ticks(sc, W) {
 var fs = lfs(sc), st = sc.major, w = (v) => fs * 0.62 * (tick(v).length + 1.2) + fs * 0.6, n = 0, out = [];
 for (var v = sc.a; v <= sc.b + 1e-9; v += st) n += w(v);
@@ -357,7 +357,8 @@ if (d.loV !== null && d.hiV !== null) {
 var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.62, y = (H - bh) / 2, cells = '', sh = '';
 var ptH = lfs(sc) * 0.3 * 1.4;   // Calm today's pointer: the size of the header triangle
 if (hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); }   // blocks start under it, never cover it
-var gp = Math.max(2.5, cw * 0.16), pc = [];   // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner 2026-11-12: never blocks merged into stripes)
+var gp = Math.max(2.5, cw * 0.16), pc = [];
+if (API.nfs && cw - gp >= 6 && bh > (cw - gp) * 1.2) { y += (bh - (cw - gp) * 1.2) / 2; bh = (cw - gp) * 1.2; }   // blocks, not slats (step 18, OG portrait): never much taller than wide   // a gap of at least 2 px between blocks; too narrow for that: one solid bar (owner 2026-11-12: never blocks merged into stripes)
 if (cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = a; t < b; t++) pc.push([X(t) + gp / 2, X(t + 1) - gp / 2]);
 pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
 body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells>' + g(blk(hi), cells) + '</g>';
@@ -813,7 +814,8 @@ return API;
         var r = el.getBoundingClientRect();
         if (!r.width && !r.height) return;   // the other size's copy (lg:hidden / hidden lg:block)
         SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
-        var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;   // rain: 3 rows only at the meter label size or larger (owner 2026-11-12)
+        var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
+        var ogp = sc.contains('screen--portrait') && sc.contains('screen--md'), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0;   // OG portrait: axis labels at the day digits' size (step 18)   // rain: 3 rows only at the meter label size or larger (owner 2026-11-12)
         var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;   // rows the md / lg box was sized for
         var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
         SWDraw.nRows = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; }).length;
