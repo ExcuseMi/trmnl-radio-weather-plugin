@@ -331,6 +331,12 @@ return bad.join('; ');})()})
 var ic=row.firstElementChild,ib=ic.getBoundingClientRect(),ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),ih=ik[1]*ib.height,g=e.querySelector('g[data-sw-cloth]'),gh=g?g.getBoundingClientRect().height:0;if(gh<0.8*ih-0.5)bad.push('badge '+gh.toFixed(1)+' < 0.8 x icon '+ih.toFixed(1));var eb=e.getBoundingClientRect(),gb=g?g.getBoundingClientRect():eb,rg=document.createRange();rg.selectNodeContents(sp);[].forEach.call(rg.getClientRects(),function(q){if(q.width>0&&q.right>gb.left+0.5&&q.left<gb.right&&q.bottom>gb.top&&q.top<gb.bottom)bad.push('label under the badge '+(q.right-gb.left).toFixed(1));});});return bad.join('; ');})()})
       puts "CUEROW #{c['name']}: #{cb}" unless cb.empty?
       expect(cb).to eq('')
+      # Digit spacing (owner 2026-11-13, "4. 1"): in the seven-segment readouts the ink gap between neighbouring digits
+      # (a decimal point between them allowed) at most 30 of the 100-unit digit height (normal 14, with a point 20).
+      sp = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part] svg').forEach(function(v){var r=v.getBoundingClientRect();if(!r.height)return;var k=100/r.height,gl=[].filter.call(v.querySelectorAll('g[data-sw-glyph]'),function(g){return /[0-9]/.test(g.getAttribute('data-sw-glyph'))&&g.getBoundingClientRect().width>0});
+for(var i=1;i<gl.length;i++){var a=gl[i-1].getBoundingClientRect(),b=gl[i].getBoundingClientRect(),gp=(b.left-a.right)*k;if(gp>30)bad.push(gl[i-1].getAttribute('data-sw-glyph')+gl[i].getAttribute('data-sw-glyph')+' gap '+gp.toFixed(0));}});return bad.join('; ');})()})
+      puts "DIGITGAP #{c['name']}: #{sp}" unless sp.empty?
+      expect(sp).to eq('')
       # Sun times (owner 2026-11-12, step 12): one line each, 12 h too (the AM/PM smaller, on the same line).
       st = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-suntime]').forEach(function(e){var rg=document.createRange();rg.selectNodeContents(e);var r=[].filter.call(rg.getClientRects(),function(q){return q.width>0&&q.height>0});if(r.length>1&&r.some(function(q){return q.left<r[0].right-1&&q.top>r[0].top+2}))bad.push(e.textContent.replace(/\s+/g,' ').trim());});return bad.join('; ');})()})
       puts "SUNTIME #{c['name']}: #{st}" unless st.empty?
