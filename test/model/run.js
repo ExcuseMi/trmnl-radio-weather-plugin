@@ -133,6 +133,13 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   ok(/- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n/.test(y) && /- Days: days\n  - Hours: hours\n  - Hours, days after 18:00: auto\n  default: days\n/.test(y), 'time format 24 by default, bottom strip Days by default');
 });
 
+test('temperature trend arrow: +3 h against now, 1 degree C or 2 degrees F', () => {
+  eq([T.tempTrend(4, 5, false), T.tempTrend(4, 4.9, false), T.tempTrend(4, 3, false), T.tempTrend(4, 3.1, false), T.tempTrend(null, 3, false)], ['up', 'level', 'down', 'level', null]);
+  eq([T.tempTrend(40, 42, true), T.tempTrend(40, 41.9, true), T.tempTrend(40, 38, true), T.tempTrend(40, 38.1, true)], ['up', 'level', 'down', 'level']);
+  const v = T.buildView(SWModel.build(fx('mixed'), {}), T.buildI18n('nl'), fx('mixed').daily);
+  eq(v.tdial.arrow, 'up', 'mixed: 1.6 now, 4.6 at 09:00');
+});
+
 test('bottom strip auto: hours until 17:59 local, days from 18:00', () => {
   eq([T.bottomHours('auto', '2026-11-13T17:59'), T.bottomHours('auto', '2026-11-13T18:00'), T.bottomHours('auto', '2026-11-13T00:00'), T.bottomHours('auto', null)], [true, false, true, false]);
   eq([T.bottomHours('hours', '2026-11-13T20:00'), T.bottomHours('days', '2026-11-13T09:00')], [true, false]);

@@ -41,11 +41,12 @@
   {%- if k == 2 %}<div class="py--4 shrink-0 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner 2026-11-12: hairlines in the gaps between blocks {% endcomment %}
   {{ p_open_g }}<div class="relative h--full w--full">
    <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
-   <div class="absolute bottom--3 left--4 flex flex--row flex--bottom gap--small" data-sw-cap>
+   <span class="absolute bottom--4 left--5 title title--base text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>{% comment %} owner step 13: name bottom left, value bottom right, trend arrow top right {% endcomment %}
+   <div class="absolute bottom--3 right--4 flex flex--row flex--bottom gap--small" data-sw-cap>
     {%- if k == 1 %}{% if ui.baro.trend %}<span class="title title--base text--bold" data-sw-trend>{{ ui.baro.trend }}</span>{% endif %}
     {%- else %}<span class="value value--small value--tnums">{{ ui.tdial.value }}</span><span class="title title--small text--bold">{{ ui.tdial.unit }}</span>{% endif -%}
    </div>
-   <span class="absolute bottom--4 right--5 title title--base text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>
+   {%- if k == 1 %}{% assign arw = ui.baro.arrow %}{% else %}{% assign arw = ui.tdial.arrow %}{% endif %}{% if arw %}<div class="absolute top--4 right--5" data-sw-part="arrow" data-sw-i="{{ k | minus: 1 }}" data-sw-arrow="{{ arw }}"></div>{% endif %}
   </div>{{ p_close }}
   {%- endfor %}
  </div></div>
@@ -516,10 +517,18 @@ function tri(down, W, H) {
 var s = Math.min(W, H), x0 = (W - s) / 2, y0 = (H - s) / 2, p = down ? [[x0 + s * 0.1, y0 + s * 0.12], [x0 + s * 0.9, y0 + s * 0.12], [x0 + s / 2, y0 + s * 0.9]] : [[x0 + s * 0.1, y0 + s * 0.9], [x0 + s * 0.9, y0 + s * 0.9], [x0 + s / 2, y0 + s * 0.12]];
 return svg(W, H, poly(p, down ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(2, s * 0.1)) + '" stroke-linejoin="round"' : ''));
 }
+// Trend arrow (owner step 13): an outline block arrow, up, down or level (pointing right), filling its square box.
+function arrow(dir, W, H) {
+if (!dir) return '';
+var s = Math.min(W, H), sw = Math.max(1.5, s * 0.09), m = sw / 2 + 0.5, a = s - 2 * m, q = [[0.5, 0], [1, 0.5], [0.68, 0.5], [0.68, 1], [0.32, 1], [0.32, 0.5], [0, 0.5]];
+var rot = dir === 'up' ? (p) => p : (dir === 'down' ? (p) => [p[0], 1 - p[1]] : (p) => [1 - p[1], p[0]]);
+return svg(W, H, poly(q.map((p) => { var r = rot(p); return [(W - s) / 2 + m + r[0] * a, (H - s) / 2 + m + r[1] * a]; }), ' fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '" stroke-linejoin="round" data-sw-arrowpoly'));
+}
 function axisFor(SW) { return (API.nRows && SW.scales && SW.scales[API.nRows]) || SW.scale; }   // the axis of the rows this view shows
 function part(SW, kind, i, W, H) {
 var scN = Object.assign({}, axisFor(SW), { now: null });   // Calm (owner): no now line
 switch (kind) {
+case 'arrow': return arrow(((i ? SW.tdial : SW.baro) || {}).arrow, W, H);
 case 'cue': return cue(SW.cue, W, H);
 case 'dcue': return cue((SW.days[i] || {}).cue, W, H);
 case 'temp': return digits(SW.temp, H);
@@ -621,6 +630,13 @@ return API;
       if (Math.abs(nt - pt) > 0.3 || Math.abs(nb - pb) > 0.3) { w.style.paddingTop = nt.toFixed(1) + 'px'; w.style.paddingBottom = nb.toFixed(1) + 'px'; }
     });
   }
+  // Trend arrows (owner step 13): a square box 1.5 x the cap height of the dial's name caption.
+  function swArrow(cx) {
+    document.querySelectorAll('[data-sw-part="arrow"]').forEach(function (e) {
+      var c = e.parentElement.querySelector('[data-sw-cap]'); if (!c) return; var cs = getComputedStyle(c); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+      var v = 1.5 * cx.measureText('H').actualBoundingBoxAscent; e.style.width = v.toFixed(1) + 'px'; e.style.height = v.toFixed(1) + 'px';
+    });
+  }
   function swAlign() {
     var cx = document.createElement('canvas').getContext('2d');
     swCond(cx); swFit(); swHair();
@@ -640,6 +656,7 @@ return API;
   }
   whenReady(function () {
     swRepaint = swPaint;
+    swArrow(document.createElement('canvas').getContext('2d'));
     document.querySelectorAll('[data-sw-part]').forEach(function (el) {
       TRMNLPaint.watch(el, function () { swPaint(el); });
     });

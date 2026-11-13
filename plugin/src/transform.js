@@ -364,6 +364,13 @@ var s = Math.max(0, Math.min(R.from - 2, hours.length - 12));
 return hours.slice(s, s + 12).map((q, i) => ({ h: q.hl || q.h, wet: s + i >= R.from && s + i <= R.to }));
 }
 // Owner 2026-11-12: 2 x 3 hours; 3 x 3 when the rain runs on past the sixth shown hour.
+// Temperature trend arrow (owner step 13): the temperature in 3 h against now, in the shown unit; up from +1 °C
+// (+2 °F), down from -1 °C (-2 °F), else level; null without both.
+function tempTrend(now, later, fahrenheit) {
+if (now === null || now === undefined || later === null || later === undefined) return null;
+var k = fahrenheit ? 2 : 1, d = later - now;
+return d >= k ? 'up' : (d <= -k ? 'down' : 'level');
+}
 // Calm style: the barometer trend, now against 3 h ago (owner: +/-1 hPa); null without both readings.
 function pressTrend(now, ago) {
 if (now === null || now === undefined || ago === null || ago === undefined) return null;
@@ -459,9 +466,9 @@ sun: sun, dry: wetIn12 ? null : sun,
 days: days.map((d, i) => ({ cue: cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3), name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
 scale: sc, scales: scales,
 baro: { now: pr, lo: ps.length ? Math.min.apply(null, ps) : null, hi: ps.length ? Math.max.apply(null, ps) : null, a: 970, b: 1050,
-value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro, trend: trend ? O['p_' + trend] : null,
+value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro, trend: trend ? O['p_' + trend] : null, arrow: trend ? { rising: 'up', falling: 'down', steady: 'level' }[trend] : null,
 icons: ['wi-thunderstorm', 'wi-rain', 'wi-day-cloudy', 'wi-day-sunny'].map((k) => WI_BASE + k + '.svg') },
-tdial: { now: tv, twin: inT, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b : 15, step: tst, name: O.temperature, unit: deg + M.unit, value: tStr }
+tdial: { now: tv, twin: inT, lo: tl, hi: th, a: tsc ? tsc.a : 0, b: tsc ? tsc.b : 15, step: tst, name: O.temperature, unit: deg + M.unit, value: tStr, arrow: tempTrend(tv, ((M.hours || [])[3] || {}).t, F_) }
 };
 if (hrs) { out.hours = hrs.hours; out.hscale = hrs.scale; }
 return out;
@@ -497,4 +504,4 @@ async function run(input) {
   return { ui: buildView(model, i18n, w.daily, moon, phase, { pressAgo: past.ago, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'days'), w.current && w.current.time) }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, bottomHours: bottomHours, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
+if (typeof module !== 'undefined') module.exports = { run: run, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
