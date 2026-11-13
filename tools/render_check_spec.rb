@@ -313,6 +313,18 @@ var a=H.top-ink(up,true),b=ink(dn,false)-H.bottom,g=parseFloat(getComputedStyle(
         puts "HAIR #{c['name']}: above,below,gap #{hg}"
         expect([(ha - hb).abs <= [3, 0.25 * [ha, hb].max].max, [ha, hb].min >= 0.5 * hgap]).to eq([true, true])
       end
+      # Console readouts (owner screenshots 107-109, OG 2026-11-13): temperature digits, the felt label and the felt digits
+      # never overlap; felt digits at least the label's height; the temperature the largest readout; the clothing badge
+      # never below or over the temperature digits; the last day row inside its panel.
+      cr2 = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},all=function(q){return [].map.call(document.querySelectorAll(q),vis).filter(Boolean)},ov=function(a,b){return Math.min(a.right,b.right)-Math.max(a.left,b.left)>0.5&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>0.5};
+var t=all('[data-sw-part="temp"] svg')[0],f=all('[data-sw-part="feels"] svg'),l=all('[data-sw-feltlabel]'),cu=all('[data-sw-part="cue"]');
+if(t){f.forEach(function(b){if(ov(t,b))bad.push('temp over felt');if(b.height>t.height+0.5)bad.push('felt '+b.height.toFixed(0)+' > temp '+t.height.toFixed(0))});l.forEach(function(b){if(ov(t,b))bad.push('temp over label')});
+cu.forEach(function(b){if(ov(t,b))bad.push('badge over temp');if(b.top>=t.bottom-0.5)bad.push('badge below temp '+b.top.toFixed(0)+'>='+t.bottom.toFixed(0))});}
+f.forEach(function(b,i){var a=l[i];if(!a)return;if(ov(a,b))bad.push('label over felt');if(b.height<a.height-0.5)bad.push('felt '+b.height.toFixed(0)+' < label '+a.height.toFixed(0))});
+document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=vis(p);if(!q)return;var r=[].map.call(p.querySelectorAll('[data-sw-row="day"]'),vis).filter(Boolean);if(r.length&&r[r.length-1].bottom>q.bottom+0.5)bad.push('day row '+r.length+' past the panel '+(r[r.length-1].bottom-q.bottom).toFixed(0))});
+return bad.join('; ');})()})
+      puts "READOUT #{c['name']}: #{cr2}" unless cr2.empty?
+      expect(cr2).to eq('')
       # Sun times (owner 2026-11-12, step 12): one line each, 12 h too (the AM/PM smaller, on the same line).
       st = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-suntime]').forEach(function(e){var rg=document.createRange();rg.selectNodeContents(e);var r=[].filter.call(rg.getClientRects(),function(q){return q.width>0&&q.height>0});if(r.length>1&&r.some(function(q){return q.left<r[0].right-1&&q.top>r[0].top+2}))bad.push(e.textContent.replace(/\s+/g,' ').trim());});return bad.join('; ');})()})
       puts "SUNTIME #{c['name']}: #{st}" unless st.empty?
