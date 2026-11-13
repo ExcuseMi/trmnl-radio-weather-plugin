@@ -202,6 +202,7 @@ test('REGEN meter (owner 2026-11-13): mm over the calendar hours on 0..10 mm (0.
   const wet = mk((M) => { M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = 2.5; M.hours[M.rain.to].mm += 2.5; });
   eq([wet[0].key, wet[0].label, Math.round(wet[0].frac * 100)], ['regen', 'REGEN', 50], '5 mm of 10');
   const big = mk((M) => { M.hours[M.rain.from].mm = 40; }); eq(big[0].frac, 1, 'clamped');
+  const none = mk((M) => { M.hours.forEach((q) => { q.mm = null; }); }); ok(!none.some((m) => m.key === 'regen'), 'hidden without an amount');
   const dry = mk((M) => { M.rain = null; }); ok(!dry.some((m) => m.key === 'regen'), 'hidden when the calendar shows no rain');
   const fm = mk((M) => { M.unit = 'F'; M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = 0.2; }); eq(Math.round(fm[0].frac * 100), 50, 'inch scale 0.4');
 });

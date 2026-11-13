@@ -282,6 +282,9 @@ return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.len
 return bad.join('; ');})()})
       puts "FEELS #{c['name']}: #{fi}" unless fi.empty?
       expect(fi).to eq('')
+      # REGEN (owner 2026-11-13): a REGEN meter row never shows with no lit cell (missing or zero amount hides it).
+      rg0 = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="meter"][data-sw-key="regen"]').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width)return;var lg=e.querySelector('[data-sw-lit]');if(!lg||!(+lg.getAttribute('data-sw-lit')>0))bad.push('regen without a lit cell');});return bad.join('; ')})()})
+      expect(rg0).to eq('')
       # Hours strip (owner): column count per view, an inverted stamp exactly on the current and the wet hours, the block
       # curve inside its column and its panel, stamp, temperature and icon ink centred on the column axis (2 px; every
       # icon's ink is centred in its 30x30 box, 0.502 measured 2026-11-12, so the box centre is the ink centre), columns ordered and equal, the temperature's blocks on one scale.
