@@ -28,7 +28,7 @@
 {%- comment -%} Right column: rain unit and sun unit side by side on lg; stacked views keep the icon above the grid and the moon beside the sun times. {%- endcomment -%}
 {%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3w = 26 %}{% if ui.rain %}{% assign q3w = 23 %}{% endif %}{% assign q3 = q3w | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign ri_lg = 'hidden lg:block lg:portrait:hidden' %}{% assign su_cls = 'flex--row' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6b = 20 %}{% if stk %}{% assign q6b = 15 %}{% assign ru_cls = 'flex--col lg:flex--row' %}{% endif %}{% assign q6 = q6b | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
 {%- if stk %}{% assign ri_md = 'w--[8cqw] lg:hidden' %}{% assign rgw_l = 15 %}{% assign rg_p = '' %}{% assign su_cls = 'flex--row' %}{% assign rc_w = 'w--[40cqw] lg:w--[37cqw] shrink-0' %}{% assign rule_w = 'w--full' %}{% assign tf = 0.7 %}{% assign mh_l = 0.4 %}{% if ui.rain %}{% assign su_cls = 'hidden lg:flex flex--row' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}{% if view == 3 %}{% assign su_cls = 'flex--row' %}{% assign sep_cls = '' %}{% assign ru_cls = 'flex--row' %}{% assign rc_w = 'w--[44cqw] lg:w--[37cqw] lg:portrait:w--[42cqw] shrink-0' %}{% endif %}{% endif %}
-{%- if calm_q %}{% assign rc_w = 'w--[33cqw] lg:w--[39cqw] shrink-0' %}{% assign rg_m = 'w--[31cqw]' %}{% endif %}
+{%- if calm_q %}{% assign rc_w = 'w--[33cqw] lg:w--[39cqw] lg:portrait:w--[32cqw] shrink-0' %}{% assign rg_m = 'w--[31cqw]' %}{% endif %}
 {%- if hh_m == nil %}{% assign hh_m = 6 %}{% endif %}{% if rw_m == nil %}{% assign rw_m = 6 %}{% endif %}
 {%- if rh_l == nil %}{% assign rh_l = 4 | times: hl | round | at_most: 100 %}{% endif %}
 {%- if tf == nil %}{% assign tf = 1 %}{% endif %}{% assign tm = tf %}{% if view == 3 %}{% assign tm = 1 %}{% endif %}
@@ -88,7 +88,7 @@
    {%- assign ar_m = 0.6 %}{% assign ar_l = 0.75 %}{% if view == 2 %}{% assign ar_m = 0.3 %}{% assign ar_l = 0.375 %}{% elsif view == 3 %}{% assign ar_m = 1.2 %}{% assign ar_l = 1.5 %}{% endif %}
    {%- assign dh_m = th_m %}{% assign dh_l = th_l %}{% assign ch_p = 7 %}{% if ui.inn %}{% assign dh_m = 12 %}{% assign dh_l = 10 %}{% assign ch_p = 3.5 %}{% endif %}{% assign ch_m = dh_m | times: hm | times: tm | times: 0.85 | round %}{% assign ch_l = dh_l | times: hl | times: tf | times: 0.85 | round %}{% assign cw_m = ch_m | times: ar_m | times: 1.6 | round %}{% assign cw_l = ch_l | times: ar_l | times: 1.6 | round %}{% assign cw_p = ch_p | times: 2.1 | round %}{% if view == 2 %}{% assign cw_p = ch_p | times: 1.1 | round %}{% endif %}{% comment %} owner 2026-11-13: the console badge beside the big temperature, in its own fixed box, about the digits' cap height (portrait: X 1404 wide, 1.33 cqw per cqh; half horizontal 0.67) {% endcomment %}
    {%- capture cbadge %}{% if ui.cue and ui.cue.size > 0 %}<div class="shrink-0 h--[{{ ch_m }}cqh] lg:h--[{{ ch_l }}cqh] lg:portrait:h--[{{ ch_p }}cqh] w--[{{ cw_m }}cqw] lg:w--[{{ cw_l }}cqw] lg:portrait:w--[{{ cw_p }}cqw]{% if view == 3 %} hidden lg:block lg:portrait:hidden{% endif %}" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}{% endcapture %}{% comment %} left out on OG half vertical and X half vertical portrait (too narrow, owner 2026-11-13) {% endcomment %}
-   <div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] {{ tp_h | default: 'lg:portrait:h--[8cqh]' }}">
+   <div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] {% if view == 2 %}lg:portrait:h--[9cqh]{% else %}{{ tp_h | default: 'lg:portrait:h--[8cqh]' }}{% endif %}">
     {%- if ui.inn %}{% comment %} Indoor sensor (as live): BUITEN and BINNEN twin readouts, the indoor humidity under the indoor one (owner 2026-11-13: no felt line), the badge beside the outdoor digits. {% endcomment %}
     {%- for tw in (1..2) %}
     {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
@@ -109,14 +109,14 @@
 {%- capture c_right %}
   {%- comment -%} Rain unit (owner 2026-11-12): calendar rows of one size per view (rc_m/rc_l cqh), 2 or 3 rows; rain icon and moon as tall as the calendar, the same size, on one left edge; a gap of one calendar row before the sun unit. Portrait: icon above. {%- endcomment -%}
   {%- assign rr = 2 %}{% if ui.rain.rows == 3 %}{% assign rr = 3 %}{% endif %}{% assign rr_m = rr %}{% if view == 4 or view == 2 %}{% assign rr_m = 2 %}{% endif %}
-  {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% if view == 3 %}{% assign k_m = 5.6 %}{% if rr_m == 3 %}{% assign k_m = 4 %}{% endif %}{% endif %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.75 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}
+  {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% if view == 3 %}{% assign k_m = 5.6 %}{% if rr_m == 3 %}{% assign k_m = 4 %}{% endif %}{% endif %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.75 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}{% if view == 2 %}{% assign cal_p = 4 | times: rr %}{% endif %}
   {%- assign ib_m = cal_m %}{% if stk and view != 3 %}{% assign ib_m = rc_m | times: 0.7 | round %}{% endif %}
   {%- capture ib_cls %}aspect--1/1 h--[{{ ib_m }}cqh] lg:h--[{{ cal_l }}cqh] {% if view == 3 %}lg:portrait:h--[6cqh]{% else %}lg:portrait:h--[3cqh]{% endif %} shrink-0{% endcapture %}{% comment %} X half vertical portrait (owner step 12): rain icon and moon as tall as the smaller sun rows {% endcomment %}{% if calm_q %}{% assign ib_cls = ib_cls | append: ' hidden lg:block' %}{% endif %}{% comment %} Calm quadrant: the calendar alone, its moon hidden with the sun unit {% endcomment %}
   <div data-sw-right class="flex flex--col flex--center gap--xsmall lg:gap--small shrink-0 {{ rc_w }}">
    {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small">
    <div class="flex {{ ru_cls }} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full pr--1" data-sw-unit="rain">
     <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
-    <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | times: kw | round | at_most: 100 }}cqw] lg:portrait:w--[{% if view == 3 %}28{% else %}18{% endif %}cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"></div>
+    <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | times: kw | round | at_most: 100 }}cqw] lg:portrait:w--[{% if view == 3 %}28{% elsif view == 4 %}24{% else %}18{% endif %}cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"></div>
    </div>
    <div class="h--[{% if view == 3 %}2{% else %}{{ rc_m }}{% endif %}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
    {%- endif %}
@@ -135,9 +135,9 @@
    {%- if ui.rain %}</div>{% endif %}
   </div>
 {%- endcapture %}
- <div data-sw-console class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% else %}flex--row lg:portrait:flex--col-reverse flex--stretch-y gap--medium lg:gap--large{% endif %} {% if view == 3 %}px--2 pt--5 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
+ <div data-sw-console class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% if view == 4 %} lg:portrait:flex--between{% endif %}{% else %}flex--row lg:portrait:flex--col-reverse{% if view == 2 %} lg:portrait:flex--between{% endif %} flex--stretch-y gap--medium lg:gap--large{% endif %} {% if view == 3 %}px--2 pt--5 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
 {%- if stk %}
-  <div class="flex flex--row flex--stretch-y gap--medium w--full">
+  <div class="flex flex--row flex--stretch-y gap--medium{% if view == 4 %} lg:portrait:gap--xsmall{% endif %} w--full">
 {{ c_temp }}
   {{ vr }}
 {{ c_right }}
