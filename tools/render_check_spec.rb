@@ -280,10 +280,13 @@ var cb=cl.getBoundingClientRect(),p=cl.closest('[data-sw-panel]').getBoundingCli
 var n=cl.querySelectorAll('[data-sw-cells] rect').length;if(q.tV!==null&&n<1)bad.push('no blocks '+i);if(Math.abs(cb.width-cols[0].getBoundingClientRect().width)>1)bad.push('width '+i);
 var sp=st.getBoundingClientRect();if(sp.width>cb.width+1)bad.push('stamp wider '+i);
 var ic=[].filter.call(cl.querySelectorAll('img, [data-sw-part="icon"] svg'),vis)[0],k=(cl.offsetWidth&&cb.width/cl.offsetWidth)||1,mid=(cb.left+cb.right)/2;if(ic){var ib=ic.getBoundingClientRect(),ix=ib.left+ib.width*0.502;if(Math.abs(ix-mid)>2*k)bad.push('icon off '+i+' '+(ix-mid).toFixed(1));}
-[st,cl.querySelector('[data-sw-htemp]')].forEach(function(e){var b=e.getBoundingClientRect();if(Math.abs((b.left+b.right)/2-mid)>2*k)bad.push('off '+i+' '+e.tagName);});});
+[st,cl.querySelector('[data-sw-htemp]')].filter(Boolean).forEach(function(e){var b=e.getBoundingClientRect();if(Math.abs((b.left+b.right)/2-mid)>2*k)bad.push('off '+i+' '+e.tagName);});});
 var L=cols.map(function(cl){return +(cl.querySelector('[data-sw-cells]')||{getAttribute:function(){return 0}}).getAttribute('data-sw-cells')}),T=cols.map(function(cl){return SW.hours[+cl.getAttribute('data-sw-hcol')].tV});
-var tb=cols.map(function(cl){return cl.querySelector('[data-sw-htemp]').getBoundingClientRect().bottom}),ib=cols.map(function(cl){var e=[].filter.call(cl.querySelectorAll('img, [data-sw-part="icon"] svg'),vis)[0];return e?e.getBoundingClientRect().top:null}).filter(function(v){return v!==null});
-if(tb.length&&Math.max.apply(null,tb)-Math.min.apply(null,tb)>1)bad.push('temp baseline spread '+(Math.max.apply(null,tb)-Math.min.apply(null,tb)).toFixed(1));if(ib.length&&Math.max.apply(null,ib)-Math.min.apply(null,ib)>1)bad.push('icon row spread '+(Math.max.apply(null,ib)-Math.min.apply(null,ib)).toFixed(1));
+var ib=cols.map(function(cl){var e=[].filter.call(cl.querySelectorAll('img, [data-sw-part="icon"] svg'),vis)[0];return e?e.getBoundingClientRect().top:null}).filter(function(v){return v!==null});
+if(ib.length&&Math.max.apply(null,ib)-Math.min.apply(null,ib)>1)bad.push('icon row spread '+(Math.max.apply(null,ib)-Math.min.apply(null,ib)).toFixed(1));
+cols.forEach(function(cl){var i=+cl.getAttribute('data-sw-hcol'),q=SW.hours[i],tx=cl.querySelector('[data-sw-htemp]'),rs=cl.querySelectorAll('[data-sw-cells] rect');if(q.tV===null||q.tV===undefined)return;if(!tx||!rs.length){bad.push('no label '+i);return}
+var top=Math.min.apply(null,[].map.call(rs,function(r){return r.getBoundingClientRect().top})),tb=tx.getBoundingClientRect(),ic=[].filter.call(cl.querySelectorAll('img'),vis)[0],k=cl.getBoundingClientRect().width/(cl.offsetWidth||1),gap=top-tb.bottom;
+if(gap<-1*k||gap>8*k)bad.push('label '+i+' gap '+gap.toFixed(1)+' above its stack');if(ic&&tb.top<ic.getBoundingClientRect().bottom-1)bad.push('label '+i+' into the icon row');});
 for(var a=0;a<cols.length;a++)for(var b=0;b<cols.length;b++)if(T[a]!==null&&T[b]!==null&&T[a]>T[b]+1.5&&L[a]<L[b])bad.push('scale '+a+'<'+b);
 return cols.length+'|'+bad.join('; ');})()})
       puts "HOURS #{c['name']}: cols|bad #{hs}" if c['hcols'] || hs != '0|'
@@ -293,10 +296,10 @@ return cols.length+'|'+bad.join('; ');})()})
       # least 80 % of the block area.
       hc = s.evaluate(%q{(function(){var bad=[],cs=[].filter.call(document.querySelectorAll('[data-sw-part="hbar"]'),function(e){return e.getBoundingClientRect().height>0});if(!cs.length)return '';
 var v=cs.map(function(e){var q=(SW.hours||[])[+e.getAttribute('data-sw-i')]||{},g=e.querySelector('[data-sw-cells]');return {t:q.tV,n:g?+g.getAttribute('data-sw-cells'):0,e:e,g:g}}).filter(function(o){return o.t!==null&&o.t!==undefined});
-var C0=Math.min.apply(null,cs.map(function(e){return e.getBoundingClientRect().height})),rt=v.map(function(o){return Math.round(o.t)}),room=Math.max.apply(null,rt)-Math.min.apply(null,rt)+1<=Math.min(C0/6,16);   // room for a block per degree (6 px blocks, 16 at most)
+var C0=Math.min.apply(null,cs.map(function(e){return e.getBoundingClientRect().height})),rt=v.map(function(o){return Math.round(o.t)}),room=Math.max.apply(null,rt)-Math.min.apply(null,rt)+1<=6;   // a block per degree up to 6 blocks high (owner 2026-11-13)
 v.forEach(function(a){v.forEach(function(b){if(Math.round(a.t)<Math.round(b.t)&&(a.n>b.n||(room&&a.n>=b.n)))bad.push(a.t+':'+a.n+' vs '+b.t+':'+b.n);});});
 v.forEach(function(o){if(o.n<1)bad.push(o.t+': no block');var P=o.e.closest('[data-sw-panel]'),pb=P&&P.getBoundingClientRect();if(pb&&o.g)[].forEach.call(o.g.querySelectorAll('rect'),function(x){if(x.getBoundingClientRect().bottom>pb.bottom+0.5)bad.push(o.t+': block past the panel')});});   // owner 2026-11-13, live X hv dark
-var top=v.reduce(function(m,o){return o.t>m.t?o:m},v[0]);if(top&&top.g){var C=Math.min.apply(null,cs.map(function(e){return e.getBoundingClientRect().height})),r=[].map.call(top.g.querySelectorAll('rect'),function(x){return x.getBoundingClientRect()}),h=r.length?Math.max.apply(null,r.map(function(x){return x.bottom}))-Math.min.apply(null,r.map(function(x){return x.top})):0;if(h<0.8*C-8)bad.push('warmest stack '+h.toFixed(0)+' of '+C.toFixed(0));}
+var top=v.reduce(function(m,o){return o.t>m.t?o:m},v[0]);if(top&&top.g){var C=+top.g.getAttribute('data-sw-area'),r=[].map.call(top.g.querySelectorAll('rect'),function(x){return x.getBoundingClientRect()}),h=r.length?Math.max.apply(null,r.map(function(x){return x.bottom}))-Math.min.apply(null,r.map(function(x){return x.top})):0;if(h<0.8*C-8)bad.push('warmest stack '+h.toFixed(0)+' of '+C.toFixed(0));}
 return bad.slice(0,4).join('; ');})()})
       puts "HCURVE #{c['name']}: #{hc}" unless hc.empty?
       # 1-bit (owner 2026-11-13): block parts (hours and days strip blocks, meter cells) solid ink, no grey (dithered) fill.
