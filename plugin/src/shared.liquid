@@ -121,8 +121,8 @@
    <div class="flex {{ ru_cls }} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full{% if view == 4 %} lg:portrait:w--[60cqw]{% endif %} pr--1" data-sw-unit="rain">
     <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
     <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | times: kw | round | at_most: 100 }}cqw] lg:portrait:w--[{% if view == 3 %}28{% elsif view == 4 %}30{% else %}18{% endif %}cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"></div>
-    {%- if ui.rain.gauge %}<div class="shrink-0 lg:portrait:hidden h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh]" data-sw-part="gauge"></div>{% endif %}
    </div>
+   {%- if ui.rain.gauge %}<div class="shrink-0 lg:portrait:hidden" data-sw-part="gauge"></div>{% endif %}
    <div class="h--[{% if view == 3 %}2{% else %}{{ rc_m }}{% endif %}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
    {%- endif %}
    {%- if calm_q and ui.rain %}{% assign su_cls = 'hidden lg:flex' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}
@@ -332,14 +332,14 @@ return ('<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + (lc ? ''
 }
 function gauge(gq, W, H) {
 if (!gq) return '';
-var lab = String(gq.label), fs = Math.min((API.lp || H * 0.2) * 0.7, W / (lab.length * 0.6)), lh = fs * 1.25, th = H - lh - 2, n = 5, tw = Math.min(W * 0.75, th / n * 2), x0 = (W - tw) / 2, sg = th / n, gp = Math.max(2, sg * 0.14), on = '', sh = '', off = '', DK = API.mode && API.mode.dark && API.mode.bits >= 2;
+var lab = String(gq.label), fs = Math.min((API.lp || 16) * 0.7, W / (lab.length * 0.62)), bh = Math.max(3, H - fs * 1.25 - 2), n = 3, cw = W / n, gp = API.gp || Math.max(2, Math.min(cw, bh) * 0.06), on = '', sh = '', off = '', DK = API.mode && API.mode.dark && API.mode.bits >= 2;
 for (var i = 0; i < n; i++) {
-var y = th - (i + 1) * sg + gp / 2, h = sg - gp;
-if (i < gq.segs) { on += rect(x0, y, tw, h, 2, ' data-sw-c="' + i + '"'); sh += rect(x0 + SO, y + SO, tw, h, 2); }
-else off += DK ? rect(x0, y, tw, h, 2, ' data-sw-c="' + i + '"') : rect(x0 + 1, y + 1, tw - 2, h - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2" data-sw-c="' + i + '"');
+var x = i * cw + gp / 2, w = cw - gp;
+if (i < gq.segs) { on += rect(x, 0, w, bh, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, bh, 2); }
+else off += DK ? rect(x, 0, w, bh, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1, w - 2, bh - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2" data-sw-c="' + i + '"');
 }
 var offc = !API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')));
-return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) + '</g>' + text(W / 2, th + 2 + fs, lab, fs, 'middle', ' data-sw-glabel'));
+return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) + '</g>' + text(W, bh + 2 + fs, lab, fs, 'end', ' data-sw-glabel'));
 }
 function tick(v) { return String(v === 0 ? 0 : v); }
 function lfs(sc) { return API.nfs ? (API.lp && API.nfs > API.lp && API.ogfull ? API.lp : Math.max(API.nfs, API.lp || 0)) : Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }
@@ -436,7 +436,7 @@ var disk = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" da
 return svg(H, H, h + fd + (dk || bits <= 1 ? lit : g('text--gray-45', lit)) + limb);
 }
 var CLOTH = { umbrella: "<path d='M3.5 14a10.5 10.5 0 0 1 21 0c-1.7-1.4-3.5-1.4-5.2 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.5-1.4-5.2 0z'/><path d='M14 14v8.5a2 2 0 0 1-4 0'/><path d='M14 2.5v1'/>",
-parka: "<path d='M8 9.5C8 5.5 10.5 3.5 14 3.5s6 2 6 6'/><path d='M8.6 8.2q1.1-1 2.2 0q1.1-1 2.2 0q1.1-1 2.2 0q1.1-1 2.2 0q1.1-1 2.2 0' stroke-width='1.4'/><path d='M8 9.5Q6.4 9.4 5.5 10.5L4 22h3l1.5-8.5V24.5h11V13.5L21 22h3L22.5 10.5Q21.6 9.4 20 9.5'/><path d='M14 10v14.5'/><path d='M14 13.5h1.5' stroke-width='1.6'/><path d='M10 18.5h2.2M15.8 18.5h2.2'/>",
+parka: "<path d='M5.5 10.5C6.7 9.3 6.2 6.3 8.3 4.7 9.6 3.8 11.6 3.4 14 3.4s4.4.4 5.7 1.3c2.1 1.6 1.6 4.6 2.8 5.8'/><path d='M8.8 9.4a1.3 1.3 0 0 1 2.6 0a1.3 1.3 0 0 1 2.6 0a1.3 1.3 0 0 1 2.6 0a1.3 1.3 0 0 1 2.6 0' stroke-width='1.5'/><path d='M5.5 10.5L4 22h3l1.5-8.5V24.5h11V13.5L21 22h3L22.5 10.5Q14 12.4 5.5 10.5'/><path d='M14 11.3v13.2'/><path d='M14 13.5h1.5' stroke-width='1.6'/><path d='M10 18.5h2.2M15.8 18.5h2.2'/>",
 jacket: "<path d='M10.5 4.5L5.5 7 4 22h3l1.5-10V24h11V12L21 22h3L22.5 7l-5-2.5'/><path d='M10.5 4.5L14 9l3.5-4.5'/><path d='M14 9v15'/>",
 sweater: "<path d='M10 5L5.5 7 4 22h3l1.5-10V24h11V12L21 22h3L22.5 7 18 5'/><path d='M10 5c.6 1.3 2 1.9 4 1.9s3.4-.6 4-1.9'/><path d='M11.3 5.4c.7.7 1.6 1 2.7 1s2-.3 2.7-1' stroke-width='1.2'/><path d='M8.5 21.5h11M8.5 19h11' stroke-width='1.3'/>",
 tshirt: "<path d='M10 5L4 8.5l2.5 4.5L9 11.5V24h10V11.5l2.5 1.5L24 8.5 18 5'/><path d='M10 5c.8 1.8 2.2 2.6 4 2.6S17.2 6.8 18 5'/>" };
@@ -760,13 +760,13 @@ whenReady(function () {
 swRepaint = swPaint;
 swArrow(document.createElement('canvas').getContext('2d'));
 document.querySelectorAll('[data-sw-part="gauge"]').forEach(function (el) {
-var cal = el.parentElement.querySelector('[data-sw-part="rain"]'), ub = el.parentElement.getBoundingClientRect(), pr = parseFloat(getComputedStyle(el.parentElement).paddingRight) || 0;
+var un = el.previousElementSibling, cal = un && un.querySelector('[data-sw-part="rain"]'); if (!cal) return;
 var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0], lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
-var lab = ((SW.rain || {}).gauge || {}).label || '', fs = lp * 0.7 || 12, rw = (cal.getAttribute('data-sw-rows') || '').split(','), rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || 2;
-el.classList.add('hidden'); var cb = cal.getBoundingClientRect(), w0 = cb.width; el.classList.remove('hidden');
-el.style.width = Math.ceil(lab.length * 0.62 * fs) + 4 + 'px';
-var gb = el.getBoundingClientRect(), cw = cal.getBoundingClientRect().width / 3, ch = cb.height / rows, over = gb.right > ub.right - pr + 0.5;
-if (!gb.width || over || cw / ch < 0.85 || cw * 0.7 < lp) el.classList.add('hidden');
+var lab = ((SW.rain || {}).gauge || {}).label || '', rw = (cal.getAttribute('data-sw-rows') || '').split(','), rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || 2, cb = cal.getBoundingClientRect(), ub = un.getBoundingClientRect();
+var cw = cb.width / 3, ch = cb.height / rows, gp = Math.max(2, Math.min(cw, ch) * 0.06), fs = Math.min(lp * 0.7 || 12, cb.width / (lab.length * 0.62));
+el.style.marginLeft = (cb.left - ub.left).toFixed(2) + 'px'; el.style.width = cb.width.toFixed(2) + 'px'; el.style.height = (Math.max(4, ch * 0.3) + 2 + fs * 1.25).toFixed(2) + 'px'; el.setAttribute('data-sw-gp', gp.toFixed(2));
+var rc = el.closest('[data-sw-right]'), pn = rc && rc.closest('[data-sw-panel]'), pb = pn && pn.getBoundingClientRect(), ps = pn && getComputedStyle(pn), rb = rc && rc.getBoundingClientRect();
+if (!cb.width || cw / ch < 0.85 || cw * 0.7 < lp || (rb && pb && (rb.bottom > pb.bottom - parseFloat(ps.paddingBottom) + 0.5 || rb.top < pb.top + parseFloat(ps.paddingTop) - 0.5))) el.classList.add('hidden');
 });
 var qvm = [].filter.call(document.querySelectorAll('[data-sw-part^="meter"]'), function (q) { return q.getBoundingClientRect().height > 0; }), qhv = qvm.filter(function (q) { return q.getAttribute('data-sw-part') === 'meterin'; })[0];
 if (qhv) { var qcol = qhv.parentElement.parentElement, qpn = qcol.closest('[data-sw-panel]') || qcol.parentElement, qcs = getComputedStyle(qpn), qin = qpn.getBoundingClientRect().height - (parseFloat(qcs.paddingTop) + parseFloat(qcs.paddingBottom)) * ((qpn.offsetHeight && qpn.getBoundingClientRect().height / qpn.offsetHeight) || 1);
@@ -786,7 +786,7 @@ SWDraw.font = (TRMNLPaint.type('title', { el: el }) || {}).fontFamily || null;
 var r = el.getBoundingClientRect();
 if (el.hasAttribute('data-sw-sq') && r.height) { var k0 = (el.offsetHeight && r.height / el.offsetHeight) || 1, tf = el.getAttribute('data-sw-part') === 'tri' ? parseFloat(getComputedStyle(el.parentElement).fontSize) * 0.8 : 0; if (tf) el.style.setProperty('height', tf.toFixed(2) + 'px', 'important'); el.style.setProperty('width', (tf || r.height / k0).toFixed(2) + 'px', 'important'); r = el.getBoundingClientRect(); }
 if (!r.width && !r.height) return;
-SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
+SWDraw.gp = +(el.getAttribute('data-sw-gp') || 0); SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
 var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
 var ogp = sc.contains('screen--portrait') && (sc.contains('screen--md') || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; SWDraw.ogfull = ogp && sc.contains('screen--md') && / view=1 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'));
 var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;

@@ -416,9 +416,9 @@ return bad.join('; ');})()})
 document.querySelectorAll('[data-sw-key="regen"]').forEach(function(e){if(vis(e))bad.push('REGEN meter row');});
 var gs=[].filter.call(document.querySelectorAll('[data-sw-part="gauge"]'),vis);
 if(gs.length&&!G)bad.push('gauge without data');
-gs.forEach(function(e){var m=e.querySelector('[data-sw-gauge]'),lit=Object.keys([].reduce.call(e.querySelectorAll('[data-sw-st="a"] rect'),function(o,r){o[r.getAttribute('data-sw-c')]=1;return o},{})).length,t=e.querySelector('[data-sw-glabel]'),u=e.closest('[data-sw-unit]').getBoundingClientRect(),b=e.getBoundingClientRect();
-if(!m||+m.getAttribute('data-sw-gauge')!==G.segs||lit!==G.segs||Object.keys([].reduce.call(e.querySelectorAll('[data-sw-c]'),function(o,r){o[r.getAttribute('data-sw-c')]=1;return o},{})).length!==5)bad.push('gauge segments '+lit+' want '+(G&&G.segs));
-if(!t||t.textContent!==G.label)bad.push('gauge label');if(b.right>u.right+0.5||b.left<u.left)bad.push('gauge outside the rain unit');});
+gs.forEach(function(e){var m=e.querySelector('[data-sw-gauge]'),lit=Object.keys([].reduce.call(e.querySelectorAll('[data-sw-st="a"] rect'),function(o,r){o[r.getAttribute('data-sw-c')]=1;return o},{})).length,t=e.querySelector('[data-sw-glabel]'),u=e.previousElementSibling.querySelector('[data-sw-part="rain"]').getBoundingClientRect(),b=e.getBoundingClientRect();
+if(!m||+m.getAttribute('data-sw-gauge')!==G.segs||lit!==G.segs||Object.keys([].reduce.call(e.querySelectorAll('[data-sw-c]'),function(o,r){o[r.getAttribute('data-sw-c')]=1;return o},{})).length!==3)bad.push('gauge segments '+lit+' want '+(G&&G.segs));
+if(!t||t.textContent!==G.label)bad.push('gauge label');if(Math.abs(b.left-u.left)>1||Math.abs(b.right-u.right)>1)bad.push('gauge not under the calendar columns');});
 if(G&&!gs.length&&INNER_X_FULL)bad.push('no gauge on a wet X full case');
 return bad.join('; ')})()}.sub('INNER_X_FULL', (c['device'] == 'v2' && (c['view'] || 'full') == 'full' && !c['orientation'] && !c['fixture']) ? 'true' : 'false'))
       expect(rg0).to eq('')
