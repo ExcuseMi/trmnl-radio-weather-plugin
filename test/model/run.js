@@ -192,19 +192,21 @@ test('sun: the next sunrise and sunset, tomorrow flagged (owner 2026-11-12)', ()
 // v2 X full view: the parts the layout places (buildView in transform.js)
 test('the X view: meters in owner order, rain calendar on a wet day, seven days from today (X half vertical shows 7), today flagged', () => {
   const raw = fx('mixed'), M = SWModel.build(raw, {}), v = T.buildView(M, T.buildI18n('nl'), raw.daily, 'wi-moon-full');
-  eq(v.meters.map((m) => m.key), ['regen', 'wind', 'humidity', 'baro'].slice(0, 4), 'REGEN first on a wet day');
+  eq(v.meters.map((m) => m.key), ['wind', 'humidity', 'baro'], 'no REGEN meter row (the rain gauge replaced it)');
   ok(v.rain && !v.dry && v.rain.hours.length === 12, 'rain calendar on a wet day');
   eq(v.days.map((d) => d.name), ['ZO', 'MA', 'DI', 'WO', 'DO', 'VR', 'ZA'], 'seven days from today'); eq(v.days.map((d) => d.today), [true, false, false, false, false, false, false]);
   ok(!JSON.stringify(v).includes('<svg'), 'the transform builds no SVG (owner 2026-11-12)');
 });
-test('REGEN meter (owner 2026-11-13): mm over the calendar hours on 0..10 mm (0..0.4 in), first, only with rain in the calendar', () => {
-  const raw = fx('mixed'), mk = (f) => { const M = SWModel.build(raw, {}); if (f) f(M); return T.buildView(M, T.buildI18n('nl'), raw.daily).meters; };
-  const wet = mk((M) => { M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = 2.5; M.hours[M.rain.to].mm += 2.5; });
-  eq([wet[0].key, wet[0].label, Math.round(wet[0].frac * 100)], ['regen', 'REGEN', 50], '5 mm of 10');
-  const big = mk((M) => { M.hours[M.rain.from].mm = 40; }); eq(big[0].frac, 1, 'clamped');
-  const none = mk((M) => { M.hours.forEach((q) => { q.mm = null; }); }); ok(!none.some((m) => m.key === 'regen'), 'hidden without an amount');
-  const dry = mk((M) => { M.rain = null; }); ok(!dry.some((m) => m.key === 'regen'), 'hidden when the calendar shows no rain');
-  const fm = mk((M) => { M.unit = 'F'; M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = 0.2; }); eq(Math.round(fm[0].frac * 100), 50, 'inch scale 0.4');
+test('rain gauge (owner 2026-11-13): mm over the calendar hours to 5 segments of 2 mm (0.08 in), label, only with rain in the calendar', () => {
+  const raw = fx('mixed'), mk = (f) => { const M = SWModel.build(raw, {}); if (f) f(M); const v = T.buildView(M, T.buildI18n('nl'), raw.daily); ok(!v.meters.some((m) => m.key === 'regen'), 'no REGEN meter'); return v.rain; };
+  const amt = (a) => mk((M) => { M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = a / 2; M.hours[M.rain.to].mm += a / 2; }).gauge;
+  eq([amt(8).segs, amt(8).label], [4, '8 mm'], '8 mm is 4 segments');
+  eq([amt(2).segs, amt(4).segs, amt(10).segs, amt(0.3).segs], [1, 2, 5, 1], 'segments from the bottom, one for a trace');
+  eq(mk((M) => { M.hours[M.rain.from].mm = 40; }).gauge.segs, 5, 'clamped at 5');
+  eq(mk((M) => { M.hours.forEach((q) => { q.mm = null; }); }).gauge, null, 'hidden without an amount');
+  eq(mk((M) => { M.hours.forEach((q) => { q.mm = 0; }); }).gauge, null, 'hidden at 0');
+  ok(!T.buildView((() => { const M = SWModel.build(raw, {}); M.rain = null; return M; })(), T.buildI18n('nl'), raw.daily).rain, 'no calendar, no gauge');
+  const fm = mk((M) => { M.unit = 'F'; M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = 0.3; }).gauge; eq([fm.segs, fm.label], [4, '0.3 in'], 'inch scale 0.4');
 });
 test('the X view: a dry day shows sun times and the moon, no calendar', () => {
   const raw = fx('mixed'), n = raw.hourly.time.length;
