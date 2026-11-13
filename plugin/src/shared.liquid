@@ -386,11 +386,11 @@ return per > 1 ? Math.ceil(steps / per) : steps * Math.floor(cap / steps);
 function hbar(q, hs0, W, H, hi, all) {
 var hs = hscale(all, API.hcols) || hs0;
 if (!q || q.tV === null || q.tV === undefined || !hs) return svg(W, H, '');
-var lw = String(q.t).length, fs = Math.max(8, Math.min(W / (Math.max(2, lw) * 0.62), (API.hbarH || H) * 0.2, 30)), R = Math.round(fs * 1.35) + 2;
+var lw = String(q.t).length, fs = Math.max(8, Math.min(W / (Math.max(2, lw) * 0.62), (API.hbarH || H) * 0.2, 30)), R = Math.round(fs * 1.55) + 4;
 var C = Math.min(H, API.hbarH || H) - R, L = hlevels(hs, C), per = hper(hs, Math.max(1, Math.min(6, Math.floor(C / 6))));
 var n = Math.max(1, Math.min(L, per > 1 ? Math.ceil((Math.round(q.tV) - hs.a) / per) : Math.round((Math.round(q.tV) - hs.a) / (hs.b - hs.a) * L))), Hh = H - SO, lh = (C - SO) / L, gp = Math.max(2, lh * 0.2), bw = W - SO, cells = '', sh = '';
 for (var k = 0; k < n; k++) { var y = Hh - (k + 1) * lh + gp / 2; cells += rect(0, y, bw, lh - gp, 2); sh += rect(SO, y + SO, bw, lh - gp, 2); }
-var ty = Hh - n * lh + gp / 2 - 2 - fs * 0.3;
+var ty = Hh - n * lh + gp / 2 - 4 - fs * 0.45;
 return svg(W, H, g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells="' + n + '" data-sw-area="' + n1(C) + '">' + g(blk(hi), cells) + '</g>' + text(bw / 2, ty, q.t, fs, 'middle', ' data-sw-htemp'));
 }
 function scale(sc, W, H) {
