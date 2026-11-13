@@ -141,7 +141,33 @@
    {%- if ui.rain %}</div>{% endif %}
   </div>
 {%- endcapture %}
- <div data-sw-console class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col {% if view == 4 and ui.rain == nil %}flex--evenly lg:flex--center{% else %}flex--center{% endif %} gap--xsmall{% if view == 4 %} lg:portrait:flex--evenly{% endif %}{% else %}flex--row lg:portrait:flex--col-reverse{% if view == 2 %} lg:portrait:flex--between{% endif %} {% if view == 1 %}landscape:{% endif %}flex--stretch-y gap--medium lg:gap--large{% if view == 1 %} lg:portrait:gap--medium{% endif %}{% endif %} {% if view == 3 %}px--2 pt--3 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
+{%- comment -%} Small views (owner 2026-11-13, "a tiny view also looks spectacular with the most important info"): quadrant and half vertical
+ on every screen, and the full view on a sm or narrow (< 500 px) screen, show their own console instead of a shrunken full one: the big
+ temperature first (the largest element), the condition icon and text, the clothing cue, the rain calendar with its rain icon (else today's
+ low/high), the meters only when they fit readable. The page script (swSmall) sizes every part from the digit height and drops lower
+ items whole. In the full view both consoles are in the markup and the script keeps one (data-sw-big / data-sw-alt). {%- endcomment -%}
+{%- if view != 2 %}
+ <div data-sw-console data-sw-small{% if view == 1 %} data-sw-alt{% endif %} class="{{ con_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full w--full p--2 lg:p--4" data-sw-sbox>
+  <div class="flex flex--row flex--center-y flex--center-x gap--small w--full" data-sw-srow="cond">
+   {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1" data-sw-sicon><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
+   <span class="title title--small text--bold" data-sw-cond data-sw-scond>{{ ui.cond }}</span>
+  </div>
+  <div class="flex flex--row flex--center-y flex--center-x w--full" data-sw-srow="main">
+   <div class="flex flex--row flex--top shrink-0" data-sw-sgrp="temp"><div class="shrink-0" data-sw-part="temp"></div><span class="title title--small text--bold shrink-0" data-sw-unit data-sw-sunit>{{ ui.unit }}</span></div>
+   <div class="flex flex--col flex--center shrink-0" data-sw-sgrp="side">
+    {%- if ui.cue and ui.cue.size > 0 %}<div class="shrink-0" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}
+    {%- if ui.rain %}<div class="flex flex--row flex--center-y shrink-0" data-sw-unit="rain"><img class="image image--adaptive shrink-0" src="{{ ui.rain.icon }}" alt="" data-sw-icon data-sw-sricon><div class="shrink-0" data-sw-part="rain" data-sw-rows="2,2"></div></div>
+    {%- elsif ui.days[0] %}<span class="title title--small text--bold shrink-0" data-sw-slohi="{{ ui.days[0].lo }}|{{ ui.days[0].hi }}">{{ ui.days[0].lo }} {{ ui.days[0].hi }}</span>{% endif %}
+   </div>
+  </div>
+  {%- assign sms = ui.meters | sort: 'rank' %}
+  {%- for m in sms %}{% if forloop.index > 2 %}{% break %}{% endif %}
+  <div class="hidden flex--row flex--center-y gap--small w--full" data-sw-srow="meter"><span class="title title--small text--bold shrink-0" data-sw-mlabel>{{ m.label }}</span><div class="grow" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div></div>
+  {%- endfor %}
+ </div>{{ p_close }}</div>
+{%- endif %}
+{%- if view <= 2 %}
+ <div data-sw-console{% if view == 1 %} data-sw-big{% endif %} class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col {% if view == 4 and ui.rain == nil %}flex--evenly lg:flex--center{% else %}flex--center{% endif %} gap--xsmall{% if view == 4 %} lg:portrait:flex--evenly{% endif %}{% else %}flex--row lg:portrait:flex--col-reverse{% if view == 2 %} lg:portrait:flex--between{% endif %} {% if view == 1 %}landscape:{% endif %}flex--stretch-y gap--medium lg:gap--large{% if view == 1 %} lg:portrait:gap--medium{% endif %}{% endif %} {% if view == 3 %}px--2 pt--3 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
 {%- if stk %}
   <div class="flex flex--row flex--stretch-y gap--medium{% if view == 4 %} lg:portrait:flex--col lg:portrait:gap--small{% endif %} w--full">
 {{ c_temp }}
@@ -166,9 +192,10 @@
   </div>
 {%- endif %}
  </div>{{ p_close }}</div>
+{%- endif %}
 {%- if days_h %}
- <div class="w--full px--4 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner: no divider between filled {% endcomment %}
- <div class="{{ days_h }} grow">{{ p_open_g }}<div class="relative flex flex--col flex--center{% if view == 1 %} lg:portrait:flex--evenly{% endif %} h--full p--2 lg:p--4">
+ <div class="w--full px--4 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between data-sw-dstrip><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner: no divider between filled {% endcomment %}
+ <div class="{{ days_h }} grow" data-sw-dstrip>{{ p_open_g }}<div class="relative flex flex--col flex--center{% if view == 1 %} lg:portrait:flex--evenly{% endif %} h--full p--2 lg:p--4">
 {%- if ui.hours %}{% comment %} Hours strip (owner) {% endcomment %}
   {%- assign nh_md = 8 %}{% assign nh_lg = 12 %}{% if view == 3 %}{% assign nh_md = 6 %}{% assign nh_lg = 8 %}{% endif %}
   <div class="relative z--2 flex flex--row w--full h--full gap--xsmall" data-sw-hours="{{ nh_md }},{{ nh_lg }}">
@@ -231,6 +258,14 @@ var SW = {{ ui | json }};
 (function () { var sc = document.querySelector('.screen'); if (sc && sc.classList.contains('screen--lg') && Math.min(sc.offsetWidth, sc.offsetHeight) < 640) { sc.classList.remove('screen--lg'); sc.classList.add('screen--md'); } })();
 // Full-colour screens (24 bit) fill their panels like 4-bit ones: no hairline in the gap between them (the markup hides it
 // by the 4bit class, which a colour screen does not carry). Dark mode draws no fill, so it keeps the hairline.
+// Small screens (owner 2026-11-13): the full view on a sm screen or one under 500 px wide shows the small-view console (data-sw-alt)
+// instead of the full one (data-sw-big), as does a native portrait md screen (the full console cut its rain calendar on the poke 5); under 300 px of height the days strip goes too and the console takes the view.
+(function () { var sc = document.querySelector('.screen'), big = document.querySelector('[data-sw-big]'); if (!big) return;
+var sm = !!sc && (sc.classList.contains('screen--sm') || sc.offsetWidth < 500 || (sc.offsetHeight > sc.offsetWidth && !sc.classList.contains('screen--lg') && !sc.classList.contains('screen--portrait')));   // native portrait md screens (poke 5) too
+if (!sm) { document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.remove(); }); return; }
+big.remove(); document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.removeAttribute('data-sw-alt'); });
+if (sc.offsetHeight < 300) { document.querySelectorAll('[data-sw-dstrip]').forEach(function (e) { e.remove(); }); var c = document.querySelector('[data-sw-small]'); if (c) { [].slice.call(c.classList).forEach(function (q) { if (/h--/.test(q)) c.classList.remove(q); }); c.classList.add('h--full'); } }
+})();
 (function () { var sc = document.querySelector('.screen'); if (sc && sc.classList.contains('screen--color-full') && !sc.classList.contains('screen--dark-mode')) document.querySelectorAll('[data-sw-between]').forEach(function (e) { e.classList.add('hidden'); }); })();
 // ==== DRAW_BEGIN ====
 var SWDraw = (() => {
@@ -668,9 +703,88 @@ im.style.transformOrigin = 'left center';
 im.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + ((0.5 - iy - ih / 2) * B * sc).toFixed(1) + 'px) scale(' + sc.toFixed(3) + ')';
 });
 }
+// Small views (owner 2026-11-13): one size, the digit height D, drives the console: condition text 0.33 D (SVG text, the ratio of the full
+// view), its icon 2.3 cap heights, unit 0.3 D, clothing cue and rain calendar 0.55 D each. The layout (temperature beside or above the cue
+// and rain column, that column stacked or side by side) that allows the largest D wins; a meter row is added only while D keeps 85 % and its
+// label stays readable; nothing is shrunk below its share, lower items are dropped whole.
+var SWR = 0.33;
+function swSmall(cx) {
+var box = document.querySelector('[data-sw-sbox]'); if (!box) return;
+var bb = box.getBoundingClientRect(); if (!bb.width || !bb.height) return;
+var bs = getComputedStyle(box), W = box.clientWidth - parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight) - 1, H = box.clientHeight - parseFloat(bs.paddingTop) - parseFloat(bs.paddingBottom) - 1;
+var q = function (s) { return box.querySelector(s); }, cond = q('[data-sw-scond]'), ico = q('[data-sw-sicon]'), tg = q('[data-sw-sgrp="temp"]'), te = q('[data-sw-part="temp"]'), un = q('[data-sw-sunit]');
+var side = q('[data-sw-sgrp="side"]'), cue = q('[data-sw-part="cue"]'), ru = q('[data-sw-unit="rain"]'), cal = q('[data-sw-part="rain"]'), lh = q('[data-sw-slohi]'), main = q('[data-sw-srow="main"]');
+var mrows = [].slice.call(box.querySelectorAll('[data-sw-srow="meter"]'));
+var cs = getComputedStyle(cond), fam = cs.fontFamily, wt = cs.fontWeight;
+var ct = cond.getAttribute('data-sw-t0'); if (ct === null) { ct = cond.textContent.trim(); cond.setAttribute('data-sw-t0', ct); }
+var lht = lh ? lh.getAttribute('data-sw-slohi').split('|') : null;
+function mw(t, fs) { cx.font = wt + ' ' + fs.toFixed(2) + 'px ' + fam; return cx.measureText(t).width; }
+function capk() { cx.font = wt + ' 100px ' + fam; return (cx.measureText('H').actualBoundingBoxAscent || 72) / 100; }
+var CK = capk(), at = 0.8, ik = ((ico && ico.querySelector('[data-sw-ink]')) || ico || { getAttribute: function () { return null; } }).getAttribute('data-sw-ink') || '0,1', IY = +ik.split(',')[0] || 0, IH = Math.max(0.3, +ik.split(',')[1] || 1);
+try { var ds = SWDraw.digits(String(SW.temp), 100); at = parseFloat(ds.match(/width="([\d.]+)"/)[1]) / 100; } catch (e) { at = 0.6 * String(SW.temp).length; }
+var cjk = /[⺀-鿿가-힯＀-￯]/.test(ct), toks = cjk ? ct.split('') : ct.split(/\s+/);
+function wrap(fs, avail) { var out = ['']; toks.forEach(function (w) { var cur = out[out.length - 1], tr = cur ? cur + (cjk ? '' : ' ') + w : w; if (cur && mw(tr, fs) > avail) out.push(w); else out[out.length - 1] = tr; }); return out; }
+var mlabT = mrows.map(function (r) { var l = r.querySelector('[data-sw-mlabel]'), t = l.getAttribute('data-sw-t0'); return t === null ? l.textContent.trim() : t; }), mlw = mlabT.length ? Math.max.apply(null, mlabT.map(function (t) { return mw(t, 100) / 100; })) : 0;
+// geometry of one candidate: D, main row (row or col), side (col or row), n meter rows
+function geo(D, mainRow, sideCol, n) {
+var g = Math.max(4, 0.07 * D), fsC = SWR * D, ic = ico ? 2.3 * CK * fsC / IH : 0, gc = 0.3 * fsC, av = W - ic - (ico ? gc : 0);
+var ln = wrap(fsC, av), cw = Math.max.apply(null, ln.map(function (l) { return mw(l, fsC); }));
+var r = { D: D, g: g, fsC: fsC, ic: ic, ln: ln, ok: ln.length <= 2 && cw <= av };
+r.condH = Math.max(ic * IH, ln.length * 1.15 * fsC); r.condW = ic + (ico ? gc : 0) + cw;
+r.fsU = 0.3 * D; r.uW = mw(SW.unit || '', r.fsU) + 2; r.gU = 0.05 * D; r.tW = at * D + r.gU + r.uW;
+var it = [];
+if (cue) { r.cueH = 0.55 * D; it.push([1.6 * r.cueH, r.cueH]); }
+if (ru) { r.calH = 0.55 * D; r.calW = 1.95 * r.calH; r.gR = 0.06 * D; it.push([r.calH + r.gR + r.calW, r.calH]); }
+else if (lh) { r.fsL = 0.3 * D; r.lW = mw(lht[0], r.fsL) + mw(lht[1], r.fsL) + 2.8 * r.fsL; it.push([r.lW, 1.2 * r.fsL]); }
+var sW = 0, sH = 0; it.forEach(function (x, i) { if (sideCol) { sW = Math.max(sW, x[0]); sH += x[1] + (i ? g : 0); } else { sW += x[0] + (i ? 1.5 * g : 0); sH = Math.max(sH, x[1]); } });
+r.sW = sW; r.sH = sH;
+var mW = mainRow ? r.tW + (it.length ? 1.6 * g + sW : 0) : Math.max(r.tW, sW), mH = mainRow ? Math.max(D, sH) : D + (it.length ? g + sH : 0);
+r.mh = 0.2 * D; r.fsM = 0.5 * r.mh; r.n = n;
+var tH = r.condH + g + mH + n * (r.mh + g), tW = Math.max(r.condW, mW, n ? mlw * r.fsM + 0.3 * r.mh + 7 * r.mh : 0);
+r.tH = tH; r.fit = r.ok && tH <= H && tW <= W; r.mainRow = mainRow; r.sideCol = sideCol;
+return r;
+}
+function best(n) { var b = null; [[true, true], [false, true], [false, false], [true, false]].forEach(function (m) { var lo = 8, hi = H, r = null; for (var i = 0; i < 18; i++) { var mid = (lo + hi) / 2, x = geo(mid, m[0], m[1], n); if (x.fit) { lo = mid; r = x; } else hi = mid; } if (r && (!b || r.D > b.D + 0.5)) b = r; }); return b && n && b.fsM < 11 ? null : b; }
+var R = best(0); if (!R) return;
+for (var n = Math.min(2, mrows.length); n > 0; n--) { var Rn = best(n); if (Rn && Rn.D >= 0.85 * R.D) { R = Rn; break; } }
+// A console limited by its width (narrow columns) gives its spare height to the days or hours strip below it.
+var cw0 = box.closest('[data-sw-console]'), ds = document.querySelector('div[data-sw-dstrip]');
+if (cw0 && ds && H - R.tH > 0.06 * H) { var k1 = (cw0.offsetHeight && cw0.getBoundingClientRect().height / cw0.offsetHeight) || 1; cw0.style.setProperty('height', (cw0.getBoundingClientRect().height / k1 - (H - R.tH) + 2).toFixed(1) + 'px', 'important'); H = R.tH + 1; }
+var key = [W.toFixed(0), H.toFixed(0), R.D.toFixed(1), R.n, R.mainRow, R.sideCol, fam].join('|');
+if (box.getAttribute('data-sw-sk') === key) return; box.setAttribute('data-sw-sk', key);
+function sz(e, w, h) { if (!e) return; if (w !== null) e.style.setProperty('width', w.toFixed(1) + 'px', 'important'); if (h !== null) e.style.setProperty('height', h.toFixed(1) + 'px', 'important'); }
+function stext(lines, fs, w) { var lh2 = 1.15 * fs, h = lh2 * (lines.length - 1) + 1.25 * fs, y1 = (h - lh2 * (lines.length - 1)) / 2 + CK * fs / 2; return { h: h, html: '<svg class="block" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" viewBox="0 0 ' + w.toFixed(1) + ' ' + h.toFixed(1) + '" role="img" aria-label="' + lines.join(' ').replace(/"/g, '&quot;') + '">' + lines.map(function (l, j) { return '<text x="0" y="' + (y1 + j * lh2).toFixed(2) + '" font-size="' + fs.toFixed(2) + '" font-family="' + fam.replace(/"/g, "'") + '" font-weight="' + wt + '" fill="currentColor">' + l.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>'; }).join('') + '</svg>' }; }
+box.style.rowGap = R.g.toFixed(1) + 'px';
+var cr = q('[data-sw-srow="cond"]'); cr.style.columnGap = (0.3 * R.fsC).toFixed(1) + 'px'; sz(cr, null, R.condH);
+sz(ico, R.ic, R.ic); if (ico) { ico.style.margin = (-(R.ic - R.ic * IH) / 2).toFixed(1) + 'px 0'; ico.style.transform = 'translateY(' + ((0.5 - IY - IH / 2) * R.ic).toFixed(1) + 'px)'; ico.setAttribute('data-sw-condicon', R.ln.length + ',' + R.ic.toFixed(1)); }
+var cwid = Math.max.apply(null, R.ln.map(function (l) { return mw(l, R.fsC); })) + 2, st = stext(R.ln, R.fsC, cwid);
+cond.innerHTML = st.html; cond.setAttribute('data-sw-fs', R.fsC.toFixed(2)); cond.setAttribute('data-sw-lines', R.ln.length);
+main.classList.toggle('flex--row', R.mainRow); main.classList.toggle('flex--col', !R.mainRow); main.style.gap = (R.mainRow ? 1.6 * R.g : R.g).toFixed(1) + 'px';
+sz(te, at * R.D, R.D); te.setAttribute('data-sw-d', R.D.toFixed(1));
+var su = stext([SW.unit || ''], R.fsU, R.uW); un.innerHTML = su.html; un.style.marginLeft = R.gU.toFixed(1) + 'px'; sz(un, R.uW, su.h);
+if (side) { side.classList.toggle('flex--col', R.sideCol); side.classList.toggle('flex--row', !R.sideCol); side.style.gap = (R.sideCol ? R.g : 1.5 * R.g).toFixed(1) + 'px'; side.style.alignItems = R.sideCol && R.mainRow ? 'flex-start' : 'center'; }
+if (cue) sz(cue, 1.6 * R.cueH, R.cueH);
+if (ru) { ru.style.gap = R.gR.toFixed(1) + 'px'; sz(ru.firstElementChild, R.calH, R.calH); sz(cal, R.calW, R.calH); }
+if (lh) { var f = R.fsL, tw = f * 0.8, x = 0, b = ''; lht.forEach(function (v, i) { var y0 = 0.5 * f, P = i ? [[x, y0 + tw * 0.8], [x + tw, y0 + tw * 0.8], [x + tw / 2, y0]] : [[x, y0], [x + tw, y0], [x + tw / 2, y0 + tw * 0.8]];
+b += '<polygon points="' + P.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" ' + (i ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="' + (f * 0.08).toFixed(1) + '"') + '/>';
+x += tw + 0.2 * f; b += '<text x="' + x.toFixed(1) + '" y="' + (0.5 * f + CK * f).toFixed(1) + '" font-size="' + f.toFixed(1) + '" font-family="' + fam.replace(/"/g, "'") + '" font-weight="' + wt + '" fill="currentColor">' + v + '</text>'; x += mw(v, f) + 0.6 * f; });
+lh.innerHTML = '<svg class="block" width="' + R.lW.toFixed(1) + '" height="' + (1.2 * f + 0.5 * f).toFixed(1) + '" viewBox="0 0 ' + R.lW.toFixed(1) + ' ' + (1.7 * f).toFixed(1) + '" role="img" aria-label="' + lht.join(' ') + '">' + b + '</svg>'; }
+var mwid = Math.min(W, Math.max(R.condW, R.mainRow ? R.tW + 1.6 * R.g + R.sW : Math.max(R.tW, R.sW)));
+mrows.forEach(function (r, i) { var on = i < R.n; r.classList.toggle('hidden', !on); r.classList.toggle('flex', on); if (!on) return; sz(r, mwid, R.mh); r.style.gap = (0.3 * R.mh).toFixed(1) + 'px';
+var l = r.querySelector('[data-sw-mlabel]'), t = l.getAttribute('data-sw-t0'); if (t === null) { t = l.textContent.trim(); l.setAttribute('data-sw-t0', t); } var fsM = R.fsM, lw = Math.max.apply(null, mlabT.map(function (x) { return mw(x, fsM); })) + 2, sl = stext([t], fsM, lw); l.innerHTML = sl.html; sz(l, lw, sl.h);
+sz(r.querySelector('[data-sw-part]'), null, R.mh * 0.75); });
+}
+// Day names never clip (owner 2026-11-13, remarkable 2 half vertical cut "SUN"): when a name is wider than its column, the name column of
+// every day row and of the scale row takes the widest name, so the bars stay aligned with the scale.
+function swNames() {
+var cells = [].slice.call(document.querySelectorAll('[data-sw-row="day"] > div > :first-child')).filter(function (c) { return c.getBoundingClientRect().width > 0; }), sc = document.querySelector('[data-sw-part="scale"]');
+if (!cells.length) return; if (sc && sc.parentElement.firstElementChild.getBoundingClientRect().width > 0) cells.push(sc.parentElement.firstElementChild);
+var need = 0; cells.forEach(function (c) { [].forEach.call(c.querySelectorAll('span'), function (q) { need = Math.max(need, q.scrollWidth); }); });
+if (need > cells[0].clientWidth + 0.5) cells.forEach(function (c) { c.style.setProperty('width', Math.ceil(need + 1) + 'px', 'important'); });
+}
 function swCond(cx) {
 document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
-var ic = sp.parentElement.firstElementChild; if (!ic || ic === sp) return;
+var ic = sp.parentElement.firstElementChild; if (!ic || ic === sp || sp.hasAttribute('data-sw-scond')) return;
 var sb = sp.getBoundingClientRect(); if (!sb.height) return;
 var k = (sp.offsetWidth && sb.width / sp.offsetWidth) || 1, cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
 function size(v) { ic.style.setProperty('height', v.toFixed(1) + 'px', 'important'); ic.style.setProperty('width', v.toFixed(1) + 'px', 'important'); }
@@ -697,7 +811,7 @@ ic.setAttribute('data-sw-condicon', tops.length + ',' + h.toFixed(1) + ',' + mid
 var swRepaint = null;
 function swFit() {
 document.querySelectorAll('[data-sw-part="temp"]').forEach(function (t) {
-var g = t.parentElement, row = g.parentElement; if (t.closest('[data-sw-twin]')) return;
+var g = t.parentElement, row = g.parentElement; if (t.closest('[data-sw-twin]') || t.closest('[data-sw-small]')) return;
 var rb = row.getBoundingClientRect(); if (!rb.width) return;
 var k = (row.offsetWidth && rb.width / row.offsetWidth) || 1, w = function (e) { return e ? e.getBoundingClientRect().width / k : 0; };
 var kids = [].filter.call(row.children, function (c) { return c.getBoundingClientRect().width > 0; }), rs = getComputedStyle(row), gap = parseFloat(rs.columnGap) || 0;
@@ -766,7 +880,7 @@ if (Math.abs(dl) > 0.2) cap.style.bottom = (parseFloat(getComputedStyle(cap).bot
 }
 function swBalance() {
 var dbg = (document.querySelector('[data-sw-debug]') || document.body).getAttribute('data-sw-debug') || '', sc = document.querySelector('.screen');
-if (!/view=3/.test(dbg) || (sc && sc.classList.contains('screen--portrait'))) return;
+if (!/view=3/.test(dbg) || (sc && sc.classList.contains('screen--portrait')) || document.querySelector('[data-sw-small]')) return;
 var pn = document.querySelector('[data-sw-console] [data-sw-panel]'), f = pn && pn.querySelector('[data-sw-part="face"]'), rel = pn && pn.querySelector(':scope > .relative, :scope > * > .relative');
 if (!f || !rel) return;
 var F = f.getBoundingClientRect(), lo = 1e9, hi = -1e9, k = (pn.offsetWidth && pn.getBoundingClientRect().width / pn.offsetWidth) || 1;
@@ -780,11 +894,11 @@ var swN = 0;
 function swAlign() {
 if (++swN > 60) return;
 var cx = document.createElement('canvas').getContext('2d');
-swSeg(cx); swCond(cx); swDayIcons(); swFit(); swBadge(cx); swFit(); swBadge(cx); swHair(); swBalance();
+swSmall(cx); swNames(); swSeg(cx); swCond(cx); swDayIcons(); swFit(); swBadge(cx); swFit(); swBadge(cx); swHair(); swBalance();
 }
 function swOGPortrait() {
 var screen = document.querySelector('.screen');
-if (!screen || !screen.classList.contains('screen--portrait') || !screen.classList.contains('screen--md')) return;
+if (!screen || !screen.classList.contains('screen--portrait') || !screen.classList.contains('screen--md') || document.querySelector('[data-sw-small]')) return;
 var panel = document.querySelector('[data-sw-console]'), view = +document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug').match(/view=(\d)/)[1];
 var full = view === 1 || view === 2;
 var narrow = view >= 3, short = view === 2 || view === 4;
@@ -839,6 +953,7 @@ if(big||view===4)[].forEach.call(sun.querySelectorAll('[data-sw-suntime] span.ti
 swOGPortrait();
 whenReady(function () {
 swRepaint = swPaint;
+swSmall(document.createElement('canvas').getContext('2d'));
 swArrow(document.createElement('canvas').getContext('2d')); swCapBase();
 document.querySelectorAll('[data-sw-part="gauge"]').forEach(function (el) {
 var un = el.previousElementSibling, cal = un && un.querySelector('[data-sw-part="rain"]'); if (!cal) return;
