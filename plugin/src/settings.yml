@@ -75,7 +75,7 @@ custom_fields:
   - Days: days
   - Hours: hours
   - Hours, days after 18:00: auto
-  default: days
+  default: auto
 - keyname: hide_title_bar
   field_type: boolean
   name: Hide title bar

@@ -130,7 +130,7 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
   ok(/- keyname: author_info\n[\s\S]*- keyname: lat_lon\n[\s\S]*- keyname: unit\n[\s\S]*- keyname: time_format\n[\s\S]*- keyname: bottom\n[\s\S]*- keyname: hide_title_bar\n/.test(y), 'settings in the owner order: about, location, unit, time format, bottom strip, title bar (owner 2026-11-13)');
-  ok(/- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n/.test(y) && /- Days: days\n  - Hours: hours\n  - Hours, days after 18:00: auto\n  default: days\n/.test(y), 'time format 24 by default, bottom strip Days by default');
+  ok(/- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n/.test(y) && /- Days: days\n  - Hours: hours\n  - Hours, days after 18:00: auto\n  default: auto\n/.test(y), 'time format 24 by default, bottom strip auto (hours, days after 18:00) by default (owner 2026-11-13)');
 });
 
 test('temperature trend arrow: +3 h against now, 1 degree C or 2 degrees F', () => {
