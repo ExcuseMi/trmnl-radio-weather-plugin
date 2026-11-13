@@ -300,13 +300,16 @@ model.now.aqi = aq && aq.current ? num(aq.current.european_aqi) : null;
 var aqD = aq && aq.current ? String(aq.current.time || '').slice(0, 10) : '', aqH = (day) => aq ? maxOf(list(aq.hourly || {}, 'european_aqi').filter((v, i) => String(list(aq.hourly, 'time')[i]).slice(0, 10) === day)) : null;
 model.today.aqiMax = aqH(aqD);
 model.now.pollen = num(raw.pollen);
-// Today's range per meter (owner 2026-11-13): min and max over today's hours (local date of the current time; raw.todayHourly holds
-// the hours the forecast gives before now, 3 with past_hours=3, else the hourly list from now). WIND: min wind speed, max gust.
-var day0 = String(c.time || '').slice(0, 10), th = raw.todayHourly || raw.hourly || {}, tdx = list(th, 'time').map((t, i) => String(t).slice(0, 10) === day0 ? i : -1).filter((i) => i >= 0);
-var rng = (o, key, idx) => minMax(idx.map((i) => num(list(o, key)[i])).filter((v) => v !== null));
-var aqi0 = aq ? list(aq.hourly || {}, 'time').map((t, i) => String(t).slice(0, 10) === aqD ? i : -1).filter((i) => i >= 0) : [];
-var wl = rng(th, 'wind_speed_10m', tdx), gh = rng(th, 'wind_gusts_10m', tdx);
-model.range = { wind: { lo: wl.lo, hi: gh.hi !== null ? gh.hi : model.today.gustMax }, uv: rng(th, 'uv_index', tdx), humidity: rng(th, 'relative_humidity_2m', tdx), baro: rng(th, 'pressure_msl', tdx), aqi: aq ? rng(aq.hourly || {}, 'european_aqi', aqi0) : { lo: null, hi: null } };
+// Today's range per meter (owner 2026-11-13, five cell states): the max of today's hours before now (past) and after
+// now to midnight (later), local date of the current time; raw.todayHourly holds today's past hours (past_hours=24), else
+// the hourly list from now. WIND: past/later from the wind speed, hi = today's max gust.
+var day0 = String(c.time || '').slice(0, 10), cur0 = String(c.time || ''), th = raw.todayHourly || raw.hourly || {};
+var side = (o, d, cu) => { var ts = list(o, 'time'), p = [], l = []; ts.forEach((t, i) => { t = String(t); if (t.slice(0, 10) !== d) return; if (t < cu) p.push(i); else if (t > cu) l.push(i); }); return { p: p, l: l }; };
+var mx = (o, key, idx) => maxOf(idx.map((i) => num(list(o, key)[i])).filter((v) => v !== null));
+var rg2 = (o, key, sd) => ({ past: mx(o, key, sd.p), later: mx(o, key, sd.l) });
+var sdW = side(th, day0, cur0), sdA = aq ? side(aq.hourly || {}, aqD, String(aq.current.time || '')) : { p: [], l: [] };
+var gh = maxOf([mx(th, 'wind_gusts_10m', sdW.p.concat(sdW.l)), num(c.wind_gusts_10m)].filter((v) => v !== null));
+model.range = { wind: Object.assign(rg2(th, 'wind_speed_10m', sdW), { hi: gh !== null ? gh : model.today.gustMax }), uv: rg2(th, 'uv_index', sdW), humidity: rg2(th, 'relative_humidity_2m', sdW), baro: rg2(th, 'pressure_msl', sdW), aqi: aq ? rg2(aq.hourly || {}, 'european_aqi', sdA) : { past: null, later: null } };
 model.inn = { temp: null, hum: null, co2: null, press: null };
 var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;
 var dk = sd ? Object.keys(sd).sort().filter((k) => sd[k] && typeof sd[k] === 'object' && Object.keys(sd[k]).some((q) => Array.isArray(sd[k][q]) && sd[k][q].length))[0] : null;
@@ -383,13 +386,13 @@ function pressTrend(now, ago) {
 if (now === null || now === undefined || ago === null || ago === undefined) return null;
 return now - ago >= 1 ? 'rising' : (now - ago <= -1 ? 'falling' : 'steady');
 }
-// The forecast asks for past_hours=3 (the trend needs the pressure 3 h ago). The model reads the hourly lists from
+// The forecast asks for past_hours=24 (the trend needs the pressure 3 h ago, the meters today's past hours). The model reads the hourly lists from
 // the current hour on, so the past hours are cut off here: every hourly list starts at the current hour again, as before.
 function dropPast(w) {
 var h = w && w.hourly, t = h && h.time, cur = w && w.current && w.current.time;
 if (!t || !cur) return { weather: w, ago: null };
 var k = 0; while (k < t.length && String(t[k]) < String(cur).slice(0, 13) + ':00') k++;
-if (k !== 3) return { weather: w, ago: null };   // only the 3 past hours past_hours=3 gives; anything else is left as it came
+if (k < 3) return { weather: w, ago: null };   // past_hours=24 gives today's past hours (the meters' today); fewer than 3: left as it came
 var pq = h.pressure_msl || [], ago = k >= 3 && typeof pq[k - 3] === 'number' ? pq[k - 3] : null, nh = {};
 var ph = {}; Object.keys(h).forEach((key) => { nh[key] = Array.isArray(h[key]) ? h[key].slice(k) : h[key]; ph[key] = Array.isArray(h[key]) ? h[key].slice(k - 1) : h[key]; });
 return { weather: Object.assign({}, w, { hourly: nh }), ago: ago, today: h, prev: SWModel.hoursAhead({ hourly: ph }, 1)[0] || null };   // the hour before the current one (the Hours strip's even slot)
@@ -456,9 +459,11 @@ ORD.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k
 keys = ORD.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
 var PRI = ORD;   // stacked views fill their meter rows in this order (owner 2026-11-12)
 var ZONES = { wind: [0.5, F_ ? 0.75 : 0.83], co2: [0.375, 0.625], pollen: [0.3, 0.6], aqi: [0.4, 0.6], uv: [3 / 11, 8 / 11] };   // warning zones, as live
-var SCL = { wind: [0, F_ ? 40 : 60], uv: [0, 11], aqi: [0, 100], humidity: [0, 100], baro: [970, 1050] }, RG = M.range || {};   // today's max (outlined cell) and min (lighter cells below it), owner 2026-11-13; CO2 and pollen (already today's max) none
+var SCL = { wind: [0, F_ ? 40 : 60], uv: [0, 11], aqi: [0, 100], humidity: [0, 100], baro: [970, 1050] }, RG = M.range || {};   // today's past and later max (owner 2026-11-13); CO2 and pollen (already today's max) none
 var mm = (k, e) => SCL[k] && RG[k] && RG[k][e] !== null && RG[k][e] !== undefined ? bar(RG[k][e], SCL[k][0], SCL[k][1]) : null;
-var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], gust: k === 'wind' ? (mm(k, 'hi') !== null ? mm(k, 'hi') : bar(n.gust, 0, F_ ? 40 : 60)) : mm(k, 'hi'), min: mm(k, 'lo'), zones: ZONES[k] || null, idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
+var top = (a) => { a = a.filter((v) => v !== null && v !== undefined); return a.length ? Math.max.apply(null, a) : null; };
+var pk = (k) => k === 'wind' ? (mm(k, 'hi') !== null ? mm(k, 'hi') : bar(n.gust, 0, F_ ? 40 : 60)) : (SCL[k] ? top([RO[k][1], mm(k, 'past'), mm(k, 'later')]) : null);   // the peak: today's max gust (WIND), else the max of past, now and later
+var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], past: mm(k, 'past'), later: mm(k, 'later'), peak: pk(k), zones: ZONES[k] || null, idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
 var t1 = (v) => { var s = (Math.round(v * 10) / 10).toFixed(1), r = Math.round(v); return s.split('.')[0].length >= 3 ? String(r === 0 ? 0 : r) : s; };   // owner (step 12): no decimal once the whole part has 3+ characters (104°, -12°)
 var tv = n.temp, tStr = tv === null ? '--.-' : t1(tv);
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
@@ -511,7 +516,7 @@ async function run(input) {
     '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index' +
     '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,pressure_msl,weather_code,is_day,wind_speed_10m,wind_gusts_10m,uv_index,relative_humidity_2m' +
     '&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,uv_index_max,wind_gusts_10m_max,precipitation_sum,sunrise,sunset' +
-    '&timezone=auto&past_hours=3&forecast_days=14&temperature_unit=' + (fahrenheit ? 'fahrenheit' : 'celsius') +
+    '&timezone=auto&past_hours=24&forecast_days=14&temperature_unit=' + (fahrenheit ? 'fahrenheit' : 'celsius') +
     '&precipitation_unit=' + (fahrenheit ? 'inch' : 'mm') + '&wind_speed_unit=' + (fahrenheit ? 'mph' : 'kmh');
   var air = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon +
     '&current=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&hourly=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto&forecast_days=2';

@@ -294,14 +294,17 @@ var top=v.reduce(function(m,o){return o.t>m.t?o:m},v[0]);if(top&&top.g){var C=Ma
 return bad.slice(0,4).join('; ');})()})
       puts "HCURVE #{c['name']}: #{hc}" unless hc.empty?
       # 1-bit (owner 2026-11-13): block parts (hours and days strip blocks, meter cells) solid ink, no grey (dithered) fill.
-      sb = s.evaluate(%q{(function(){if(!(document.querySelector('.screen')||document.body).classList.contains('screen--1bit'))return '';var bad=[];document.querySelectorAll('[data-sw-part="hbar"] g, [data-sw-part="day"] [data-sw-cells] g, [data-sw-part="meter"] g').forEach(function(e){if(!/text--gray-/.test(e.getAttribute('class')||'')||!e.querySelector('rect,path')||e.closest('[data-sw-minlight]'))return;   // today's min cells: the Framework's lighter grey (owner 2026-11-13)
+      sb = s.evaluate(%q{(function(){if(!(document.querySelector('.screen')||document.body).classList.contains('screen--1bit'))return '';var bad=[];document.querySelectorAll('[data-sw-part="hbar"] g, [data-sw-part="day"] [data-sw-cells] g, [data-sw-part="meter"] g').forEach(function(e){if(!/text--gray-/.test(e.getAttribute('class')||'')||!e.querySelector('rect,path')||e.closest('[data-sw-st="p"]'))return;   // cells reached earlier today: the Framework's lighter grey (owner 2026-11-13)
 var b=e.getBoundingClientRect();if(b.width>0&&getComputedStyle(e).display!=='none')bad.push(e.closest('[data-sw-part]').getAttribute('data-sw-part')+' '+e.getAttribute('class'));});return bad.slice(0,3).join('; ');})()})
       puts "SOLID1 #{c['name']}: #{sb}" unless sb.empty?
-      # Meter range (owner 2026-11-13): per meter at most one outlined cell, at today's max (none when it falls in a lit
-      # cell), and the lighter cells exactly the ones below today's min cell, as the model's fractions give.
-      mr = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="meter"]').forEach(function(e){if(!e.getBoundingClientRect().width)return;var m=SW.meters[+e.getAttribute('data-sw-i')||0],lt=e.querySelector('[data-sw-lit]');if(!m||!lt)return;var n=+lt.getAttribute('data-sw-ncell'),o=e.querySelectorAll('[data-sw-gust]').length,want=SWDraw.gustCell(m.frac,m.gust,n)>=0?1:0,ml=e.querySelector('[data-sw-minlight]'),lc=ml?ml.querySelectorAll('rect').length:0,wl=SWDraw.minCell(m.frac,m.min,n);
-if(o!==want)bad.push(m.key+' outlines '+o+'/'+want);var on=e.querySelector('[data-sw-on]');if(!on||on.hasAttribute('fill')||on.querySelector(':scope > g[fill]'))bad.push(m.key+' current cells grey');   // owner 2026-11-13: full ink
-if(lc!==wl)bad.push(m.key+' light '+lc+'/'+wl);});return bad.join('; ');})()})
+      # Meter states (owner 2026-11-13): every cell drawn in exactly the state the model gives (a now, p reached earlier
+      # today, l expected later today, e empty) and one thick outline at today's peak; active cells in full ink, earlier
+      # cells filled grey, later cells a dashed outline.
+      mr = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="meter"]').forEach(function(e){if(!e.getBoundingClientRect().width)return;var m=SW.meters[+e.getAttribute('data-sw-i')||0],lt=e.querySelector('[data-sw-lit]');if(!m||!lt)return;var n=+lt.getAttribute('data-sw-ncell'),W=SWDraw.cellStates(m,n),got=[];
+e.querySelectorAll('rect[data-sw-c]').forEach(function(r){var i=+r.getAttribute('data-sw-c'),st=r.closest('[data-sw-st]');var sv=st?st.getAttribute('data-sw-st'):'?';if((got[i]||'').indexOf(sv)<0)got[i]=(got[i]||'')+sv;if(st&&st.getAttribute('data-sw-st')==='l'&&!r.getAttribute('stroke-dasharray'))bad.push(m.key+' later cell not dashed');if(st&&st.getAttribute('data-sw-st')==='p'&&r.getAttribute('fill')==='none')bad.push(m.key+' earlier cell not filled');});
+var gs=[];for(var i=0;i<n;i++)gs.push(got[i]||'-');if(gs.join('')!==W.st.join(''))bad.push(m.key+' states '+gs.join('')+'/'+W.st.join(''));
+var pk=[].map.call(e.querySelectorAll('[data-sw-gust]'),function(r){return +r.getAttribute('data-sw-gust')});if(pk.join(',')!==(W.peak>=0?String(W.peak):''))bad.push(m.key+' peak '+pk.join(',')+'/'+W.peak);
+var on=e.querySelector('[data-sw-on]');if(!on||on.hasAttribute('fill')||on.querySelector(':scope > g[fill]'))bad.push(m.key+' current cells grey');});return bad.join('; ');})()})
       puts "MRANGE #{c['name']}: #{mr}" unless mr.empty?
       expect(mr).to eq('')
       expect(sb).to eq('')
