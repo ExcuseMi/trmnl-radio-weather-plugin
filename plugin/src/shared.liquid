@@ -332,14 +332,14 @@ return ('<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + (lc ? ''
 }
 function gauge(gq, W, H) {
 if (!gq) return '';
-var lab = String(gq.label), fs = Math.min((API.lp || 16) * 0.7, W / (lab.length * 0.62)), bh = Math.max(3, H - fs * 1.25 - 2), n = 3, cw = W / n, gp = API.gp || Math.max(2, Math.min(cw, bh) * 0.06), on = '', sh = '', off = '', DK = API.mode && API.mode.dark && API.mode.bits >= 2;
+var lab = String(gq.label), x0 = API.gx0 || 0, bw = W - x0, fs = Math.min((API.lp || 16) * 0.7, x0 / (lab.length * 0.62 + 0.5)), n = 3, cw = bw / n, gp = API.gp || Math.max(2, Math.min(cw, H) * 0.06), on = '', sh = '', off = '', DK = API.mode && API.mode.dark && API.mode.bits >= 2;
 for (var i = 0; i < n; i++) {
-var x = i * cw + gp / 2, w = cw - gp;
-if (i < gq.segs) { on += rect(x, 0, w, bh, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, bh, 2); }
-else off += DK ? rect(x, 0, w, bh, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1, w - 2, bh - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2" data-sw-c="' + i + '"');
+var x = x0 + i * cw + gp / 2, w = cw - gp;
+if (i < gq.segs) { on += rect(x, 0, w, H, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, H, 2); }
+else off += DK ? rect(x, 0, w, H, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1, w - 2, H - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2" data-sw-c="' + i + '"');
 }
 var offc = !API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')));
-return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) + '</g>' + text(W, bh + 2 + fs, lab, fs, 'end', ' data-sw-glabel'));
+return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) + '</g>' + text(x0 / 2, H / 2, lab, fs, 'middle', ' dominant-baseline="central" data-sw-glabel'));
 }
 function tick(v) { return String(v === 0 ? 0 : v); }
 function lfs(sc) { return API.nfs ? (API.lp && API.nfs > API.lp && API.ogfull ? API.lp : Math.max(API.nfs, API.lp || 0)) : Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }
@@ -763,10 +763,10 @@ document.querySelectorAll('[data-sw-part="gauge"]').forEach(function (el) {
 var un = el.previousElementSibling, cal = un && un.querySelector('[data-sw-part="rain"]'); if (!cal) return;
 var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0], lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
 var lab = ((SW.rain || {}).gauge || {}).label || '', rw = (cal.getAttribute('data-sw-rows') || '').split(','), rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || 2, cb = cal.getBoundingClientRect(), ub = un.getBoundingClientRect();
-var cw = cb.width / 3, ch = cb.height / rows, gp = Math.max(2, Math.min(cw, ch) * 0.06), fs = Math.min(lp * 0.7 || 12, cb.width / (lab.length * 0.62));
-el.style.marginLeft = (cb.left - ub.left).toFixed(2) + 'px'; el.style.width = cb.width.toFixed(2) + 'px'; el.style.height = (Math.max(4, ch * 0.3) + 2 + fs * 1.25).toFixed(2) + 'px'; el.setAttribute('data-sw-gp', gp.toFixed(2));
+var cw = cb.width / 3, ch = cb.height / rows, gp = Math.max(2, Math.min(cw, ch) * 0.06), fs = Math.min(lp * 0.7 || 12, (cb.left - ub.left) / (lab.length * 0.62 + 0.5));
+el.style.width = (cb.right - ub.left).toFixed(2) + 'px'; el.style.height = Math.max(4, ch * 0.3).toFixed(2) + 'px'; el.setAttribute('data-sw-gp', gp.toFixed(2)); el.setAttribute('data-sw-x0', (cb.left - ub.left).toFixed(2));
 var rc = el.closest('[data-sw-right]'), pn = rc && rc.closest('[data-sw-panel]'), pb = pn && pn.getBoundingClientRect(), ps = pn && getComputedStyle(pn), rb = rc && rc.getBoundingClientRect();
-if (!cb.width || cw / ch < 0.85 || cw * 0.7 < lp || (rb && pb && (rb.bottom > pb.bottom - parseFloat(ps.paddingBottom) + 0.5 || rb.top < pb.top + parseFloat(ps.paddingTop) - 0.5))) el.classList.add('hidden');
+if (!cb.width || cw / ch < 0.85 || cw * 0.7 < lp || fs < (lp * 0.7 || 12) * 0.6 || (rb && pb && (rb.bottom > pb.bottom - parseFloat(ps.paddingBottom) + 0.5 || rb.top < pb.top + parseFloat(ps.paddingTop) - 0.5))) el.classList.add('hidden');
 });
 var qvm = [].filter.call(document.querySelectorAll('[data-sw-part^="meter"]'), function (q) { return q.getBoundingClientRect().height > 0; }), qhv = qvm.filter(function (q) { return q.getAttribute('data-sw-part') === 'meterin'; })[0];
 if (qhv) { var qcol = qhv.parentElement.parentElement, qpn = qcol.closest('[data-sw-panel]') || qcol.parentElement, qcs = getComputedStyle(qpn), qin = qpn.getBoundingClientRect().height - (parseFloat(qcs.paddingTop) + parseFloat(qcs.paddingBottom)) * ((qpn.offsetHeight && qpn.getBoundingClientRect().height / qpn.offsetHeight) || 1);
@@ -786,7 +786,7 @@ SWDraw.font = (TRMNLPaint.type('title', { el: el }) || {}).fontFamily || null;
 var r = el.getBoundingClientRect();
 if (el.hasAttribute('data-sw-sq') && r.height) { var k0 = (el.offsetHeight && r.height / el.offsetHeight) || 1, tf = el.getAttribute('data-sw-part') === 'tri' ? parseFloat(getComputedStyle(el.parentElement).fontSize) * 0.8 : 0; if (tf) el.style.setProperty('height', tf.toFixed(2) + 'px', 'important'); el.style.setProperty('width', (tf || r.height / k0).toFixed(2) + 'px', 'important'); r = el.getBoundingClientRect(); }
 if (!r.width && !r.height) return;
-SWDraw.gp = +(el.getAttribute('data-sw-gp') || 0); SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
+SWDraw.gp = +(el.getAttribute('data-sw-gp') || 0); SWDraw.gx0 = +(el.getAttribute('data-sw-x0') || 0); SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
 var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
 var ogp = sc.contains('screen--portrait') && (sc.contains('screen--md') || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; SWDraw.ogfull = ogp && sc.contains('screen--md') && / view=1 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'));
 var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;
