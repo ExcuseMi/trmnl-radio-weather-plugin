@@ -453,8 +453,9 @@ var on=e.querySelector('[data-sw-on]');var dg=on&&on.querySelector(':scope > [da
       # Clothing badge (owner): the drawn icons are the model's list (top and up to two extras) in order; one fixed box
       # width on every day row (1 px; the console has its own, larger box); the extras sit right of the top icon, never over its box.
       co = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},bad=[],ws=[];
-function chk(e,want,tag){var gs=[].slice.call(e.querySelectorAll('g[data-sw-cloth]')),got=gs.map(function(g){return g.getAttribute('fill')==='none'?g.getAttribute('data-sw-cloth'):'solid'}).join('+');if(got!==want.slice(0,3).join('+'))bad.push(tag+' '+got+'/'+want.join('+'));
-ws.push(e.getBoundingClientRect().width);var t=gs[0]&&gs[0].getAttribute('data-sw-box').split(',').map(Number);gs.slice(1).forEach(function(g){var x=+g.getAttribute('data-sw-box').split(',')[0];if(x<t[0]+t[2]*0.97)bad.push(tag+' extra over top');});}
+var IT={parka:['top'],jacket:['top'],sweater:['top'],tshirt:['top'],umbrella:['umbrella'],mittens:['mittenL','mittenR'],sunglasses:['glasses'],beanie:['beanie'],scarf:['scarf'],shorts:['shorts']};
+function chk(e,want,tag){var cl=e.querySelector('g[data-sw-cloth]'),exp=[].concat.apply([],want.map(function(k){return IT[k]||[]})).sort().join('+'),its=[].slice.call(e.querySelectorAll('g[data-sw-item]')),got=its.map(function(g){return g.getAttribute('data-sw-item')}).sort().join('+');if(got!==exp)bad.push(tag+' parts '+got+'/'+exp);
+ws.push(e.getBoundingClientRect().width);var E=e.getBoundingClientRect(),sv=cl&&cl.closest('svg'),T=sv&&sv.getBoundingClientRect();its.forEach(function(g){var b=g.getBoundingClientRect();if(!b.width)return;if((tag==='console'&&(b.left<E.left-1||b.right>E.right+1||b.top<E.top-1||b.bottom>E.bottom+1))||b.left<T.left-1||b.right>T.right+1||b.top<T.top-1||b.bottom>T.bottom+1)bad.push(tag+' '+g.getAttribute('data-sw-item')+' overflows its box')});}
 var cn=0;[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){cn++;chk(e,SW.cue||[],'console');});ws=[];   // the console badge has its own box (owner); the day rows share one width
 var rows=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis),n=0;rows.forEach(function(r){var ds=[].filter.call(r.querySelectorAll('[data-sw-part="dcue"]'),vis);if(!ds.length)return;n++;if(ds.length>1)bad.push('badges '+ds.length);var i=+ds[0].getAttribute('data-sw-i');chk(ds[0],SW.days[i].cue||[],'day '+i);});
 if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);if(ws.length&&Math.max.apply(null,ws)-Math.min.apply(null,ws)>1)bad.push('widths '+ws.map(Math.round).join(','));return cn+','+n+'|'+bad.join('; ');})()})
@@ -486,10 +487,8 @@ if(e.getAttribute&&e.tagName!=='IMG'){var cs=getComputedStyle(e);if((cs.fill==='
 if(b.bottom<=R.top||b.top>=R.bottom)return;var d=b.left>x?b.left-x:(b.right<x?x-b.right:-1);
 if(d<g){var p=e.t||((e.closest('[data-sw-part]')||{getAttribute:function(){return e.tagName}}).getAttribute('data-sw-part')+'/'+e.tagName);bad.push(p+' '+d.toFixed(1)+'<'+g.toFixed(1)+' @'+x.toFixed(0));}});});
 var u=[];bad.forEach(function(s){if(u.indexOf(s)<0)u.push(s)});return u.slice(0,8).join('; ');})()})
-      # Mittens (owner 2026-11-13): the two mittens never touch, at least 1 px of paper between the thumbs at every size.
-      mt = s.evaluate(%q{(function(){var bad=[];function ext(g){var bb=g.getBBox(),t=g.transform.baseVal.consolidate(),M=t?t.matrix:{a:1,e:0},x1=M.a*bb.x+M.e,x2=M.a*(bb.x+bb.width)+M.e;return[Math.min(x1,x2),Math.max(x1,x2)]}
-document.querySelectorAll('g[data-sw-cloth="mittens"]').forEach(function(m){var g=m.querySelectorAll(':scope > g');if(g.length<2||!m.getBoundingClientRect().width)return;var A=ext(g[0]),B=ext(g[1]),k=m.getScreenCTM().a,sw=parseFloat(m.getAttribute('stroke-width')),gap=(B[0]-A[1]-sw)*k;
-if(gap<1)bad.push('paper '+gap.toFixed(2)+' px at '+(28*k).toFixed(0)+' px');});return bad.slice(0,3).join('; ');})()})
+      # Mittens (owner 2026-11-13): the two mittens never touch, at least 1 px of paper between them at every size.
+      mt = s.evaluate(%q{(function(){var bad=[],R=function(g){return g.getBoundingClientRect()},gap=function(a,b){return Math.max(a.left-b.right,b.left-a.right,a.top-b.bottom,b.top-a.bottom)};document.querySelectorAll('g[data-sw-cloth]').forEach(function(c){var L=c.querySelector('[data-sw-item="mittenL"]'),M=c.querySelector('[data-sw-item="mittenR"]');if(!L||!M||!R(L).width)return;[[L,M,'L/R']].forEach(function(p){var g=gap(R(p[0]),R(p[1]));if(g<0.9)bad.push('paper '+g.toFixed(2)+' px '+p[2]+' at '+R(c).height.toFixed(0)+' px')})});return bad.slice(0,3).join('; ')})()})
       puts "MITTENS #{c['name']}: #{mt}" unless mt.empty?
       expect(mt).to eq('')
       # Console hairline (owner 2026-11-12, step 12): the same gap above (to the lowest ink of the top part) and below
