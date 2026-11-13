@@ -18,30 +18,15 @@ if (t === 'sweater') { d = B(nr(0)); if (!sm) d += "<path d='" + (pl ? '' : 'M' 
 else { d = B('L' + OP(0, 5)) + (pl ? '' : "<path d='M0 5V" + h + "'/>") + "<path d='M" + OP(-3.2, 0) + 'V3.4L' + OP(-1.3, 2.8) + 'M' + OP(3.2, 0) + 'V3.4L' + OP(1.3, 2.8) + "'/>"; if (!sm && !pl) d += "<path d='M" + OP(-4.3, 10.5) + 'h2.2M' + OP(2.1, 10.5) + 'h2.2' + "' " + OW(1.3) + '/>'; }
 return { d, top: 0, neck: 0, hem: h, half: 10.6, body: 5.5, outline: [[3.2, 0], [7.2, 1.5], [10.6, cy], [8.2, cy], [5.5, 5], [5.5, h]] };
 }
-function obeanie(bg, sm) { return { d: "<path d='M" + OP(-5.2, -2.2) + 'C' + OP(-5.4, -5.2) + ' ' + OP(5.4, -5.2) + ' ' + OP(5.2, -2.2) + "' fill='" + bg + "'/><rect x='-6.2' y='-2.6' width='12.4' height='2.6' rx='1' fill='" + bg + "'/><circle cx='0' cy='" + (sm ? -4.9 : -4.8) + "' r='" + (sm ? 1.1 : .95) + "' fill='currentColor' " + OW(1) + '/>' + (sm ? '' : "<path d='M-3.4 -2.1v1.6M-1.1 -2.1v1.6M1.1 -2.1v1.6M3.4 -2.1v1.6' " + OW(1) + '/>'), top: sm ? -6 : -5.75, half: 6.2 }; }
 function oglass(bg, sm) { var y = -2.6, ln = (x) => 'M' + OP(x, y) + 'H' + OF(x + 5) + 'L' + OP(x + 4.6, y + 1.5) + 'A1.2 1.2 0 0 1 ' + OP(x + 3.4, y + 2.6) + 'H' + OF(x + 1.6) + 'A1.2 1.2 0 0 1 ' + OP(x + .4, y + 1.5) + 'Z';
 return { d: "<path d='" + ln(-6) + ln(1) + "' fill='currentColor'/><path d='M" + OP(-1, y) + 'H1M' + OP(-6, y) + 'L' + OP(-7.3, y + .5) + 'M' + OP(6, y) + 'L' + OP(7.3, y + .5) + "'/>" + (sm ? '' : "<path d='M" + OP(-4.6, y + 1.5) + 'L' + OP(-3.6, y + .6) + 'M' + OP(2.4, y + 1.5) + 'L' + OP(3.4, y + .6) + "' stroke='" + bg + "' " + OW(.7) + '/>'), top: y, half: 7.3 }; }
-// scarf over the collar: loop, a back tail under it, the front tail crossing over to hang on the left
-function oscarf(G, bg, sm) {
-var y0 = G.neck, w = 3.3, e1 = sm ? y0 + 9.5 : G.hem - 2.8, e2 = e1 - (sm ? 1.6 : 2.2), fl = sm ? 'currentColor' : bg, so = .95 * OSW / 1.8;
-var ed = (x) => { var t = (x + 5.5) / 11; return y0 - 1.3 + 7.8 * t * (1 - t); };
-var loop = "<path d='M" + OP(-5.5, y0 - 1.3) + 'Q' + OP(0, y0 + 2.6) + ' ' + OP(5.5, y0 - 1.3) + 'A1.5 1.5 0 0 1 ' + OP(5.7, y0 + 1.7) + 'Q' + OP(0, y0 + 7.4) + ' ' + OP(-5.7, y0 + 1.7) + 'A1.5 1.5 0 0 1 ' + OP(-5.5, y0 - 1.3) + "Z' fill='" + fl + "'/>";
-var bx = .3, back = "<path d='M" + OP(bx, y0 + 3) + 'V' + OF(e2) + 'H' + OF(bx + w) + 'V' + OF(y0 + 3) + "Z' fill='" + fl + "'/>";
-var xl = -4.6, xr = xl + w, yb = y0 + 6.6, sd = 'M' + OP(.2, ed(.2) + so) + 'Q' + OP(xl + .2, y0 + 1.6) + ' ' + OP(xl, yb) + 'V' + OF(e1) + 'H' + OF(xr) + 'V' + OF(yb) + 'Q' + OP(xr + .5, y0 + 2.4) + ' ' + OP(3.5, ed(3.5) + so);
-var d = back + loop + "<path d='" + sd + "Z' fill='" + fl + "' stroke='none'/>" + (sm ? "<path d='" + sd + "Z' fill='none' stroke='" + bg + "' " + OW(.9) + '/>' : "<path d='" + sd + "'/>");
-if (!sm) { var m = 'M' + OP(xl, e1 - 2.2) + 'H' + OF(xr) + 'M' + OP(bx, e2 - 1.8) + 'H' + OF(bx + w); d += "<path d='" + m + "' " + OW(1.1) + '/>'; }
-return { d, top: y0 - 2.2, endY: Math.max(e1, e2), left: -7.2 };
-}
 function olay(ks, bg, sm, s) {
 var k = new Set(ks), t = ['parka', 'jacket', 'sweater', 'tshirt'].find((x) => k.has(x)) || 'tshirt', g = (OCL + OSW) / s + .05, G = ogarm(t, bg, sm, k.has('scarf')), P = [], bb = [-G.half, G.top, G.half, G.hem];
 var add = (n, d, b) => { P.push("<g data-sw-item='" + n + "'>" + d + '</g>'); bb[0] = Math.min(bb[0], b[0]); bb[1] = Math.min(bb[1], b[1]); bb[2] = Math.max(bb[2], b[2]); bb[3] = Math.max(bb[3], b[3]); }, tr = (y, d) => "<g transform='translate(0 " + OF(y) + ")'>" + d + '</g>';
 add('top', G.d, bb.slice());
 var y = G.top - g;
-if (k.has('scarf')) { var S = oscarf(G, bg, sm); add('scarf', S.d, [S.left, S.top, -S.left, S.endY]); y = Math.min(y, S.top - g); }
 if (k.has('sunglasses')) { var q = oglass(bg, sm); add('glasses', tr(y, q.d), [-q.half, y + q.top, q.half, y]); y += q.top - g; }
-if (k.has('beanie')) { var b = obeanie(bg, sm), yb = y + g; add('beanie', tr(yb, b.d), [-b.half, yb + b.top, b.half, yb]); }
-var low = G.hem, sh = k.has('shorts') && t === 'tshirt', right = G.half;
-if (sh) { var y0 = G.hem + g; add('shorts', "<path d='M" + OP(-5.3, y0) + 'L' + OP(-5.7, y0 + 4.8) + 'H-1L' + OP(0, y0 + 2) + 'L' + OP(1, y0 + 4.8) + 'H5.7L' + OP(5.3, y0) + "Z' fill='" + bg + "'/>", [-5.7, y0, 5.7, y0 + 4.8]); low = y0 + 4.8; }
+var low = G.hem, right = G.half;
 if (k.has('umbrella')) {
 var R = 4.6, q = R / 2, by = G.top + 1.2, x = Math.max(ohalf(G.outline, by - 3.6 - g, by + g) + g * 1.2 + R, ohalf(G.outline, by, G.hem) + g + 1.3), en = Math.max(G.hem, low) - 1.4, sc = (i) => 'Q' + OP(x + R - q * i - q / 2, by - 1.2) + ' ' + OP(x + R - q * (i + 1), by);
 add('umbrella', "<path d='M" + OP(x - R, by) + 'A' + R + ' 3.4 0 0 1 ' + OP(x + R, by) + [0, 1, 2, 3].map(sc).join('') + "Z' fill='" + bg + "'/><path d='M" + OP(x, by - 3.4) + 'v-1.1M' + OP(x, by) + 'V' + OF(en) + "a1.4 1.4 0 0 1 -2.8 0'/>", [x - R, by - 4.5, x + R, en + 1.4]);
@@ -49,10 +34,10 @@ add('umbrella', "<path d='M" + OP(x - R, by) + 'A' + R + ' 3.4 0 0 1 ' + OP(x + 
 return { P, bb, gh: G.hem - G.top };
 }
 function ofit(ks, sm, ar) { var s = 1, L, h, w; for (var i = 0; i < 12; i++) { L = olay(ks, '#fff', sm, s); w = L.bb[2] - L.bb[0]; h = L.bb[3] - L.bb[1]; s = Math.min((47.4 - OSW) / h, (47.4 * ar - OSW) / w); } return s; }
-// One scale, one spot (owner 2026-11-13): the box is 48 high and 48*ar wide. The scale is the smallest fit of the four garments drawn with beanie and umbrella (the reserve is only as big as those two items),
+// One scale, one spot (owner 2026-11-13): the box is 48 high and 48*ar wide. The scale is the smallest fit of the four garments drawn with the umbrella (the reserve is only as big as that item),
 // the garments sit on one axis and one top line (parka as the reference), so a column of cues lines up; extras fill their places.
 function outfit(ks, bg, sm, ar) {
-var t = ['parka', 'jacket', 'sweater', 'tshirt'].find((x) => ks.indexOf(x) >= 0) || 'tshirt', ex = ks.filter((x) => x == 'scarf' || x == 'shorts'), RT = (u) => [u, 'beanie', 'umbrella'].concat(ex);
+var t = ['parka', 'jacket', 'sweater', 'tshirt'].find((x) => ks.indexOf(x) >= 0) || 'tshirt', RT = (u) => [u, 'umbrella'];
 var s = Math.min.apply(null, ['parka', 'jacket', 'sweater', 'tshirt'].map((u) => ofit(RT(u), sm, ar))), M = olay(RT('parka'), '#fff', sm, s), L = olay(ks, bg, sm, s);
 var tp = ogarm('parka', '#fff', sm, false).top, tt = ogarm(t, '#fff', sm, false).top;
 return "<g transform='translate(" + OF(24 * ar - s * (M.bb[0] + M.bb[2]) / 2) + ' ' + OF(24 - s * (M.bb[1] + M.bb[3]) / 2 + s * (tp - tt)) + ') scale(' + +s.toFixed(4) + ")' fill='none' stroke='currentColor' stroke-width='" + OF(OSW / s) + "' stroke-linecap='round' stroke-linejoin='round'>" + L.P.join('').replace(/stroke-width='([\d.]+)'/g, (_, v) => "stroke-width='" + OF(v / s) + "'") + '</g>';
