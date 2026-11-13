@@ -435,6 +435,19 @@ test('hours strip: 12 hours from now, stamps per time format, rain only on wet h
   ok(T.buildView(SWModel.build(dry, {}), i, f.daily, null, 0.3, { hours: true }).hours.every((q) => !q.wet), 'dry: no rain stamps');
   eq(T.hourStrip([], String, '°'), null);
 });
+test('console cue window (owner 2026-11-13): garment now to +3 h, umbrella to 19:00 today (at least +3 h), sunglasses from today\'s max UV', () => {
+  const C = (hourly, hours, now, uv) => T.cueFor(T.nowCueInput(hourly, hours, Object.assign({ temp: 15, feels: 15, day: true }, now || {}), uv === undefined ? 2 : uv), false).join('+');
+  const H = (h0, n, wetAt) => Array.from({ length: n }, (_, k) => ({ h: (h0 + k) % 24, p: (h0 + k) % 24 === wetAt ? 80 : 0, wet: false }));
+  eq(C({ apparent_temperature: [15, 15, 15, 15, -10] }, H(7, 25)), 'sweater', 'a cold hour at +4 h does not count');
+  eq(C({ apparent_temperature: [15, 15, 15, 1, 15] }, H(7, 25)), 'parka', 'the coldest felt hour up to +3 h picks the parka');
+  eq(C({ apparent_temperature: [15, 15, 15, -5] }, H(7, 25)), 'parka+mittens', 'mittens from the coldest felt hour in the window');
+  eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25, 15)), 'tshirt+umbrella', 'rain at 15:00 shows the umbrella at 07:30');
+  eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25, 20)), 'tshirt', 'rain at 20:00 is after 19:00: no umbrella in the morning');
+  eq([C({ apparent_temperature: [20, 20, 20, 20] }, H(21, 25, 0)), C({ apparent_temperature: [20, 20, 20, 20] }, H(21, 25, 1))], ['tshirt+umbrella', 'tshirt'], 'evening (21:00): the umbrella looks to +3 h (00:00), not +4 h');
+  eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25), { day: true }, 7), 'tshirt+sunglasses', 'sunglasses from today\'s max UV in daytime');
+  eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25), { day: false }, 7), 'tshirt', 'no sunglasses at night');
+  const fb = T.nowCueInput(null, [], { temp: 15, feels: 1, day: true }, 2); eq([fb.lo, fb.hi, fb.rain], [1, 1, null], 'no hourly data: the current felt temperature; rain falls back to the rain window');
+});
 test('per-day clothing cue: daytime hours 07:00 to 19:00 from the hourly data, daily values where the hours are missing', () => {
   const d = { time: ['2026-11-08', '2026-11-09'], temperature_2m_min: [0, 8], temperature_2m_max: [10, 15], apparent_temperature_min: [-5, 6], apparent_temperature_max: [8, 14], precipitation_probability_max: [90, 10], uv_index_max: [1, 7] };
   const ht = [], at = [], pp = [];
