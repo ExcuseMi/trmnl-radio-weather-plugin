@@ -425,7 +425,7 @@ test('barometer trend over 3 h with +/-1 hPa thresholds; clothing cues for every
   eq([C({}), C({ uv: 8 }), C({ rain: true })], ['', '', 'umbrella'], 'no temperature: no top layer, the umbrella still applies');
   const i = T.buildI18n('nl');
   eq([i.ours.p_steady, i.ours.p_rising, i.ours.p_falling], ['STABIEL', 'STIJGEND', 'DALEND']);
-  eq(T.buildI18n('ja').ours.p_rising, 'RISING', 'missing language falls back to English');
+  eq(T.buildI18n('xx').ours.p_rising, 'RISING', 'unknown language falls back to English');
   const f = fx('mixed');
   const M = SWModel.build(f, {}), calm = T.buildView(M, i, f.daily, null, 0.3, { pressAgo: 1015 }), none = T.buildView(M, i, f.daily, null, 0.3);
   eq([calm.cue, calm.baro.trend], [['parka', 'umbrella'], 'DALEND'], 'mixed has rain in the window, 1013.2 now against 1015');
@@ -719,4 +719,16 @@ test('plugin name translated for the title bar when the instance name is the def
   eq(['en-US', 'de', 'nl', 'fr-CA', 'ja', 'xx'].map((l) => T.buildI18n(l).ours.app), ['Radio Weather', 'Radiowetter', 'Radioweer', 'Radio Météo', 'ラジオ天気', 'Radio Weather']);
   const src = require('fs').readFileSync(require('path').join(__dirname, '../../plugin/src/shared.liquid'), 'utf8');
   ok(/instance_name %\}{% if sw_name == blank or sw_name == 'Radio Weather' %\}{% assign sw_name = i18n\.ours\.app/.test(src), 'title bar uses i18n.ours.app when instance_name is the default');
+});
+
+test('no shown label falls back to English in any locale (item 38.1)', () => {
+  const tsrc = require('fs').readFileSync(require('path').join(__dirname, '../../plugin/src/transform.js'), 'utf8');
+  const KEYS = eval(tsrc.match(/^var OURS_KEYS = (.*);$/m)[1]);
+  const OURS = eval('(' + tsrc.match(/^var OURS = (.*);$/m)[1] + ')');
+  const SHOWN = ['uv', 'pollen', 'm_hum', 'hum', 'baro', 'indoor', 'outdoor', 'p_steady', 'p_rising', 'p_falling', 'temperature', 'app', 'asof', 'no_signal'];
+  const empty = [];
+  Object.keys(OURS).forEach((l) => { const p = OURS[l].split('|'); SHOWN.forEach((k) => { if (!p[KEYS.indexOf(k)]) empty.push(l + ':' + k); }); });
+  eq(empty, [], 'empty slots');
+  ['ja', 'ko', 'zh-CN', 'zh-HK'].forEach((l) => { const p = OURS[l].split('|'); KEYS.forEach((k, i) => { if (!p[i] && !['raining_now'].includes(k)) empty.push(l + ':' + k); }); });
+  eq(empty, [], 'empty CJK slots');
 });
