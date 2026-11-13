@@ -52,6 +52,7 @@
  </div></div>
  <div class="hidden lg:block lg:4bit:hidden dark:lg:4bit:block{{ calm_btw }} w--full px--4" data-sw-between><div class="border--h-60"></div></div>
 {%- endif %}
+{% if calm_q %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% endif %}
 {%- capture c_meters %}
   <div class="flex flex--col {% if view == 3 %}gap--medium pt--3 lg:gap--small lg:pt--0{% else %}gap--small{% endif %} {% if stk %}w--full{% else %}shrink-0 w--[{{ 30 | times: wm | round | at_most: 100 }}cqw] lg:w--[{{ 22 | times: wm | round | at_most: 100 }}cqw] lg:portrait:w--full{% endif %}">
    {%- comment %} owner 2026-11-12: no lamps; the rain unit's icon shows rain, snow or hail {% endcomment %}
@@ -141,6 +142,10 @@
   {{ vr }}
 {{ c_right }}
   </div>
+  {% if calm_q %}<div class="flex flex--col flex--center gap--xsmall w--full lg:hidden">
+   <div class="border--h-60 w--full" data-sw-rule></div>
+{{ c_meters }}
+  </div>{% endif %}
   {%- if calm_q %}<div class="hidden lg:flex flex--col flex--center gap--xsmall w--full">{% endif %}{% comment %} X quadrant (owner step 12): hairline and two meters on lg {% endcomment %}
   <div class="w--full px--4" data-sw-hairwrap><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-hair="console" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner 2026-11-12: block hairline between the top part and the meters; step 12: the same gap above and below (swHair) {% endcomment %}
 {{ c_meters }}
