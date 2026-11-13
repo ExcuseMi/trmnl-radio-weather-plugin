@@ -15,7 +15,7 @@
 {%- comment -%} One console and one days strip for every view; per view: what shows, stacked or side by side, and a size factor for the cqh/cqw values (1 = the full view the values were tuned for). {%- endcomment -%}
 {%- assign stk = false %}{% assign hm = 1 %}{% assign hl = 1 %}{% assign wm = 1 %}{% assign wl = 1 %}{% assign n_md = 9 %}{% assign n_lg = 9 %}{% assign nd_md = 4 %}{% assign nd_lg = 5 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1' %}{% assign pad_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = '' %}{% assign rgw_l = 18 %}
 {%- assign name_w = 'w--[6cqw] lg:w--[5cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw]' %}{% assign num_w = 'w--[6cqw] lg:w--[5cqw]' %}
-{%- if view == 1 %}{% assign name_w = 'w--[10cqw] lg:w--[5cqw] lg:portrait:w--[14cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[8cqh]' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh] lg:portrait:h--[29cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh] lg:portrait:h--[35cqh]' %}
+{%- if view == 1 %}{% assign name_w = 'w--[10cqw] lg:w--[5cqw] lg:portrait:w--[14cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh] lg:portrait:h--[31cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh] lg:portrait:h--[33cqh]' %}
 {%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
 {%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 4 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden' %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% assign name_w = 'w--[26cqw] lg:w--[11cqw] lg:portrait:w--[15cqw]' %}{% assign icon_w = 'w--[7cqw]' %}{% assign num_w = 'w--[9cqw]' %}{% assign rw_m = 6 %}{% assign hh_m = 6 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[60cqh] lg:h--[54cqh] lg:portrait:h--[44cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[44cqh] lg:portrait:h--[54cqh]' %}
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 2.3 %}{% assign n_md = 1 %}{% assign n_lg = 2 %}{% assign con_h = 'h--full' %}{% endif %}
@@ -61,14 +61,14 @@
    <div class="flex flex--row {% if stk %}{% else %}grow{% endif %}{% if view == 2 %} lg:portrait:flex--stretch-y{% endif %} gap--small w--full">
     <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %} shrink-0">
     {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
-     <div class="{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--right flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[5cqh]{% endif %}"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
+     <div class="{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--right flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}"><span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>
     {%- endfor %}
     </div>
     <div class="flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %} grow">
     {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}
-     <div class="{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[5cqh]{% endif %}">
+     <div class="{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y w--full h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}">
       <div class="w--full h--[{{ mb_m | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
-      <div class="hidden lg:block w--full h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[5cqh]{% endif %}" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
+      <div class="hidden lg:block w--full h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}" data-sw-part="meter" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div>
      </div>
     {%- endfor %}
     </div>
@@ -137,7 +137,7 @@
    {%- if ui.rain %}</div>{% endif %}
   </div>
 {%- endcapture %}
- <div data-sw-console class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% if view == 4 %} lg:portrait:flex--evenly{% endif %}{% else %}flex--row lg:portrait:flex--col-reverse{% if view == 2 %} lg:portrait:flex--between{% endif %} {% if view == 1 %}landscape:{% endif %}flex--stretch-y gap--medium lg:gap--large{% if view == 1 %} lg:portrait:gap--small{% endif %}{% endif %} {% if view == 3 %}px--2 pt--5 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
+ <div data-sw-console class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% if view == 4 %} lg:portrait:flex--evenly{% endif %}{% else %}flex--row lg:portrait:flex--col-reverse{% if view == 2 %} lg:portrait:flex--between{% endif %} {% if view == 1 %}landscape:{% endif %}flex--stretch-y gap--medium lg:gap--large{% if view == 1 %} lg:portrait:gap--medium{% endif %}{% endif %} {% if view == 3 %}px--2 pt--5 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
 {%- if stk %}
   <div class="flex flex--row flex--stretch-y gap--medium{% if view == 4 %} lg:portrait:flex--col lg:portrait:gap--small{% endif %} w--full">
 {{ c_temp }}
@@ -164,7 +164,7 @@
  </div>{{ p_close }}</div>
 {%- if days_h %}
  <div class="w--full px--4 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner: no divider between filled panels (light 4-bit); the gap is enough {% endcomment %}
- <div class="{{ days_h }} grow">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full p--2 lg:p--4">
+ <div class="{{ days_h }} grow">{{ p_open_g }}<div class="relative flex flex--col flex--center{% if view == 1 %} lg:portrait:flex--evenly{% endif %} h--full p--2 lg:p--4">
 {%- if ui.hours %}{% comment %} Hours strip (owner): replaces the day rows; columns 8 / 12 (full), 6 / 8 (half vertical) on md / lg {% endcomment %}
   {%- assign nh_md = 8 %}{% assign nh_lg = 12 %}{% if view == 3 %}{% assign nh_md = 6 %}{% assign nh_lg = 8 %}{% endif %}
   <div class="relative z--2 flex flex--row w--full h--full gap--xsmall" data-sw-hours="{{ nh_md }},{{ nh_lg }}">
@@ -358,7 +358,7 @@ var ptH = lfs(sc) * 0.3 * 1.4; // Calm today's pointer: the size of the header t
 if (hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); } // blocks start under it, never cover it
 var k = 1; if (API.nfs) while (k * cw - Math.max(2.5, k * cw * 0.16) < 6 && k < 50) k++; // OG portrait: a block per k degrees, at least 6 px
 var gp = Math.max(2.5, k * cw * 0.16), pc = [], a0 = sc.a + Math.floor((a - sc.a) / k) * k; // gap at least 2 px; too narrow: one solid bar (owner)
-if (API.nfs && bh > (k * cw - gp) * 1.5) { y += (bh - (k * cw - gp) * 1.5) / 2; bh = (k * cw - gp) * 1.5; } // OG portrait: blocks, not slats
+if ((API.nfs || API.port) && k * cw - gp >= 6 && bh > (k * cw - gp) * 1.5) { y += (bh - (k * cw - gp) * 1.5) / 2; bh = (k * cw - gp) * 1.5; } // OG portrait: blocks, not slats
 if (k * cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = k > 1 ? a0 : a; t < b; t += k) pc.push([X(t) + gp / 2, X(t + k) - gp / 2]);
 pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
 body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells' + (API.nfs ? ' data-sw-k="' + k + '" data-sw-r="' + (b - a) + '"' : '') + '>' + g(blk(hi), cells) + '</g>';
@@ -803,7 +803,7 @@ var r = el.getBoundingClientRect();
 if (!r.width && !r.height) return; // the other size's copy (lg:hidden / hidden lg:block)
 SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
 var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
-var ogp = sc.contains('screen--portrait') && sc.contains('screen--md'), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; // rain: 3 rows only at the meter label size or larger (owner)
+var ogp = sc.contains('screen--portrait') && sc.contains('screen--md'), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; SWDraw.port = sc.contains('screen--portrait'); // rain: 3 rows only at the meter label size or larger (owner)
 var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null; // rows the md / lg box was sized for
 var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
 SWDraw.nRows = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; }).length;
