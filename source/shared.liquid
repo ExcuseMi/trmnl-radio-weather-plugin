@@ -143,11 +143,11 @@
 {%- endcapture %}
 {%- comment -%} Small views (owner 2026-11-13, "a tiny view also looks spectacular with the most important info"): quadrant and half vertical
  on every screen, and the full view on a sm or narrow (< 500 px) screen, show their own console instead of a shrunken full one: the big
- temperature first (the largest element), the condition icon and text, the clothing cue, the rain calendar with its rain icon (else today's
+ temperature first (the largest element), the condition icon and text, the clothing cue (half vertical and full only, owner: not in the tiny views), the rain calendar with its rain icon (else today's
  low/high), the meters only when they fit readable. The page script (swSmall) sizes every part from the digit height and drops lower
  items whole. In the full view both consoles are in the markup and the script keeps one (data-sw-big / data-sw-alt). {%- endcomment -%}
 {%- if view != 2 %}
- <div data-sw-console data-sw-small{% if view == 1 %} data-sw-alt{% endif %} class="{{ con_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full w--full p--2 lg:p--4" data-sw-sbox>
+ <div data-sw-console data-sw-small{% if view == 1 %} data-sw-alt{% endif %} class="{{ con_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full w--full p--2 lg:p--4" data-sw-sbox{% if view == 4 %} data-sw-nocue{% endif %}>
   <div class="flex flex--row flex--center-y flex--center-x gap--small w--full" data-sw-srow="cond">
    {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1" data-sw-sicon><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
    <span class="title title--small text--bold" data-sw-cond data-sw-scond>{{ ui.cond }}</span>
@@ -264,6 +264,7 @@ var SW = {{ ui | json }};
 var sm = !!sc && (sc.classList.contains('screen--sm') || sc.offsetWidth < 500 || (sc.offsetHeight > sc.offsetWidth && !sc.classList.contains('screen--lg') && !sc.classList.contains('screen--portrait')));   // native portrait md screens (poke 5) too
 if (!sm) { document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.remove(); }); return; }
 big.remove(); document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.removeAttribute('data-sw-alt'); });
+if (sc.offsetWidth < 500) document.querySelectorAll('[data-sw-sbox]').forEach(function (e) { e.setAttribute('data-sw-nocue', ''); });   // playdate size: a tiny view, no clothing cue (owner)
 if (sc.offsetHeight < 300) { document.querySelectorAll('[data-sw-dstrip]').forEach(function (e) { e.remove(); }); var c = document.querySelector('[data-sw-small]'); if (c) { [].slice.call(c.classList).forEach(function (q) { if (/h--/.test(q)) c.classList.remove(q); }); c.classList.add('h--full'); } }
 })();
 (function () { var sc = document.querySelector('.screen'); if (sc && sc.classList.contains('screen--color-full') && !sc.classList.contains('screen--dark-mode')) document.querySelectorAll('[data-sw-between]').forEach(function (e) { e.classList.add('hidden'); }); })();
@@ -485,10 +486,11 @@ parka: "<g transform='translate(0 -0.70)'><path class='text--gray-65' fill='curr
 jacket: "<path d='M10.5 4.5L5.5 7 4 22h3l1.5-10V24h11V12L21 22h3L22.5 7l-5-2.5'/><path d='M10.5 4.5L14 9l3.5-4.5'/><path d='M14 9v15'/>",
 sweater: "<path d='M10.2 5Q14 8.4 17.8 5L22.5 7 24 22h-3L19.5 12V24h-11V12L7 22H4L5.5 7Z'/><path d='M8.5 21.5h11M8.5 19h11' stroke-width='1.3'/>",
 tshirt: "<path d='M10 5Q14 9.2 18 5L24 8.5 21.5 13 19 11.5V24H9V11.5L6.5 13 4 8.5Z'/>" };
+// Garment strokes (owner 2026-11-13: "milder"): the weight of the weather and rain icons, 1.05 of 28 units, scaling with the size; at least 0.9 px (1.25 px on 1-bit).
 function cue(ks, W, H, mid) {
 ks = (ks || []).filter((k) => CLOTH[k]).slice(0, 2); if (!ks.length) return svg(W, H, '');
 if (!mid) W = Math.max(W, 1.6 * H);
-var s = Math.min(48, 30 * W / H), e = s * 0.55, sw = (z) => n1(Math.max(1.8, 1.5 * 28 / (z * H / 48)) * 100) / 100,
+var s = Math.min(48, 30 * W / H), e = s * 0.55, sw = (z) => n1(Math.max(1.05, (API.mode && API.mode.bits <= 1 ? 1.25 : 0.9) * 28 / (z * H / 48)) * 100) / 100,
 it = (k, x, y, z) => '<g data-sw-item="' + (k === 'umbrella' ? k : 'top') + '" transform="translate(' + n1(x) + ' ' + n1(y) + ') scale(' + n1(z / 28 * 1000) / 1000 + ')" stroke-width="' + sw(z) + '">' + CLOTH[k] + '</g>', y0 = (48 - s) / 2;
 var body = it(ks[0], 0, y0, s) + (ks[1] ? it(ks[1], s * 1.6 - e, y0, e) : '');
 return svg(W, H, '<svg width="' + n1(W) + '" height="' + n1(H) + '" viewBox="0 0 ' + n1(48 * W / H) + ' 48" overflow="visible"><g data-sw-cloth data-sw-box="0,0,' + n1(H) + '"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="' + sw(s) + '">' + body + '</g></g></svg>');
@@ -713,7 +715,7 @@ var box = document.querySelector('[data-sw-sbox]'); if (!box) return;
 var bb = box.getBoundingClientRect(); if (!bb.width || !bb.height) return;
 var bs = getComputedStyle(box), W = box.clientWidth - parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight) - 1, H = box.clientHeight - parseFloat(bs.paddingTop) - parseFloat(bs.paddingBottom) - 1;
 var q = function (s) { return box.querySelector(s); }, cond = q('[data-sw-scond]'), ico = q('[data-sw-sicon]'), tg = q('[data-sw-sgrp="temp"]'), te = q('[data-sw-part="temp"]'), un = q('[data-sw-sunit]');
-var side = q('[data-sw-sgrp="side"]'), cue = q('[data-sw-part="cue"]'), ru = q('[data-sw-unit="rain"]'), cal = q('[data-sw-part="rain"]'), lh = q('[data-sw-slohi]'), main = q('[data-sw-srow="main"]');
+var side = q('[data-sw-sgrp="side"]'), cue = box.hasAttribute('data-sw-nocue') ? null : q('[data-sw-part="cue"]'), ru = q('[data-sw-unit="rain"]'), cal = q('[data-sw-part="rain"]'), lh = q('[data-sw-slohi]'), main = q('[data-sw-srow="main"]');
 var mrows = [].slice.call(box.querySelectorAll('[data-sw-srow="meter"]'));
 var cs = getComputedStyle(cond), fam = cs.fontFamily, wt = cs.fontWeight;
 var ct = cond.getAttribute('data-sw-t0'); if (ct === null) { ct = cond.textContent.trim(); cond.setAttribute('data-sw-t0', ct); }
@@ -746,6 +748,9 @@ return r;
 }
 function best(n) { var b = null; [[true, true], [false, true], [false, false], [true, false]].forEach(function (m) { var lo = 8, hi = H, r = null; for (var i = 0; i < 18; i++) { var mid = (lo + hi) / 2, x = geo(mid, m[0], m[1], n); if (x.fit) { lo = mid; r = x; } else hi = mid; } if (r && (!b || r.D > b.D + 0.5)) b = r; }); return b && n && b.fsM < 11 ? null : b; }
 var R = best(0); if (!R) return;
+// The clothing cue stays only while it costs the temperature under 15 %; otherwise (and in the tiny views) it goes whole.
+var cu0 = q('[data-sw-part="cue"]'); if (cue) { var c0 = cue; cue = null; var Rx = best(0); cue = c0; if (Rx && R.D < 0.85 * Rx.D) { R = Rx; cue = null; } }
+if (cu0) { cu0.classList.toggle('hidden', !cue); }
 for (var n = Math.min(2, mrows.length); n > 0; n--) { var Rn = best(n); if (Rn && Rn.D >= 0.85 * R.D) { R = Rn; break; } }
 // A console limited by its width (narrow columns) gives its spare height to the days or hours strip below it.
 var cw0 = box.closest('[data-sw-console]'), ds = document.querySelector('div[data-sw-dstrip]');
