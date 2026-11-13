@@ -282,6 +282,17 @@ for(var a=0;a<cols.length;a++)for(var b=0;b<cols.length;b++)if(T[a]!==null&&T[b]
 return cols.length+'|'+bad.join('; ');})()})
       puts "HOURS #{c['name']}: cols|bad #{hs}" if c['hcols'] || hs != '0|'
       expect(hs).to eq("#{c['hcols'] || 0}|")
+      # Hours curve (owner 2026-11-13, live OG 1-bit: 4..6 drew one block everywhere): distinct (whole) temperatures of the shown
+      # columns get distinct block counts where the strip has room for a block per degree, a warmer column never fewer blocks, and the warmest column's stack fills at
+      # least 80 % of the block area.
+      hc = s.evaluate(%q{(function(){var bad=[],cs=[].filter.call(document.querySelectorAll('[data-sw-part="hbar"]'),function(e){return e.getBoundingClientRect().height>0});if(!cs.length)return '';
+var v=cs.map(function(e){var q=(SW.hours||[])[+e.getAttribute('data-sw-i')]||{},g=e.querySelector('[data-sw-cells]');return {t:q.tV,n:g?+g.getAttribute('data-sw-cells'):0,e:e,g:g}}).filter(function(o){return o.t!==null&&o.t!==undefined});
+var C0=Math.min.apply(null,cs.map(function(e){return e.getBoundingClientRect().height})),rt=v.map(function(o){return Math.round(o.t)}),room=Math.max.apply(null,rt)-Math.min.apply(null,rt)+1<=Math.min(C0/6,16);   // room for a block per degree (6 px blocks, 16 at most)
+v.forEach(function(a){v.forEach(function(b){if(Math.round(a.t)<Math.round(b.t)&&(a.n>b.n||(room&&a.n>=b.n)))bad.push(a.t+':'+a.n+' vs '+b.t+':'+b.n);});});
+var top=v.reduce(function(m,o){return o.t>m.t?o:m},v[0]);if(top&&top.g){var C=Math.min.apply(null,cs.map(function(e){return e.getBoundingClientRect().height})),r=[].map.call(top.g.querySelectorAll('rect'),function(x){return x.getBoundingClientRect()}),h=r.length?Math.max.apply(null,r.map(function(x){return x.bottom}))-Math.min.apply(null,r.map(function(x){return x.top})):0;if(h<0.8*C-8)bad.push('warmest stack '+h.toFixed(0)+' of '+C.toFixed(0));}
+return bad.slice(0,4).join('; ');})()})
+      puts "HCURVE #{c['name']}: #{hc}" unless hc.empty?
+      expect(hc).to eq('')
       # Clothing badge (owner): the drawn icons are the model's list (top and up to two extras) in order; one fixed box
       # width on every day row (1 px; the console has its own, larger box); the extras sit right of the top icon, never over its box.
       co = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},bad=[],ws=[];

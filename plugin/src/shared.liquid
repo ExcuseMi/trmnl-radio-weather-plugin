@@ -335,9 +335,21 @@ return svg(W, H, body);
 }
 // Hours strip column (owner): the temperature as stacked blocks from the bottom, one shared scale (SW.hscale), so the
 // columns side by side read as a stepped curve; blocks and shadow as the day bars, the current hour in the today ink.
-function hbar(q, hs, W, H, hi) {
+// Scale (owner 2026-11-13, live OG 1-bit: 4..6 drew one block in every column): from one degree under the coldest to the
+// warmest of the SHOWN columns (API.hcols); whole blocks per degree while they stay at least 6 px (16 at most), so every degree
+// step shows, and the warmest column fills the curve area.
+function hscale(all, nc) {
+var ts = (all || []).slice(0, nc || (all || []).length).map((q) => q && q.tV).filter((v) => v !== null && v !== undefined).map(Math.round);   // the shown (whole) degrees
+return ts.length ? { a: Math.min.apply(null, ts) - 1, b: Math.max.apply(null, ts) } : null;
+}
+function hlevels(hs, C) {
+var steps = Math.max(1, hs.b - hs.a), cap = Math.max(1, Math.floor(Math.min(C / 6, 16)));
+return steps <= cap ? steps * Math.floor(cap / steps) : cap;
+}
+function hbar(q, hs0, W, H, hi, all) {
+var hs = hscale(all, API.hcols) || hs0;
 if (!q || q.tV === null || q.tV === undefined || !hs) return svg(W, H, '');
-var C = Math.min(H, API.hbarH || H), L = Math.max(3, Math.min(10, Math.floor(C / 12))), n = Math.max(1, Math.min(L, Math.round((q.tV - hs.a) / (hs.b - hs.a) * L))), Hh = H - SO, lh = (C - SO) / L, gp = Math.max(2, lh * 0.2), bw = W - SO, cells = '', sh = '';
+var C = Math.min(H, API.hbarH || H), L = hlevels(hs, C), n = Math.max(1, Math.min(L, Math.round((Math.round(q.tV) - hs.a) / (hs.b - hs.a) * L))), Hh = H - SO, lh = (C - SO) / L, gp = Math.max(2, lh * 0.2), bw = W - SO, cells = '', sh = '';
 for (var k = 0; k < n; k++) { var y = Hh - (k + 1) * lh + gp / 2; cells += rect(0, y, bw, lh - gp, 2); sh += rect(SO, y + SO, bw, lh - gp, 2); }
 return svg(W, H, g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells="' + n + '">' + g(hi ? 'text--gray-15 dark:text--gray-75' : 'text--gray-40 dark:text--gray-60', cells) + '</g>');
 }
@@ -564,7 +576,7 @@ case 'itemp': return SW.inn ? digits(SW.inn.temp, H) : '';
 case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10, SW.meters[i] && SW.meters[i].zones, SW.meters[i] && SW.meters[i].gust);
 case 'day': return day(SW.days[i], axisFor(SW), W, H, !!(SW.days[i] || {}).today);   // today always highlighted (owner 2026-11-12)
 case 'scale': return scale(scN, W, H);
-case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now);
+case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now, SW.hours);
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
 case 'tri': return tri(i === 0, W, H);
 case 'rule': return rule(W, H);
@@ -581,7 +593,7 @@ return svg(W, H, '<defs><clipPath id="' + cp + '">' + rect(0, 0, W, H, rx) + '</
 }
 return '';
 }
-Object.assign(API, { gustCell: gustCell, part: part, hbar: hbar, glow: glow, icon: icon, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit, hue: hue });
+Object.assign(API, { gustCell: gustCell, part: part, hbar: hbar, hscale: hscale, hlevels: hlevels, glow: glow, icon: icon, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit, hue: hue });
 return API;
 })();
 // ==== DRAW_END ====
@@ -708,7 +720,7 @@ return API;
         var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
         SWDraw.nRows = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; }).length;
         SWDraw.scaleH = rows.length && rows[0].getAttribute('data-sw-part') === 'scale' ? Math.round(rows[0].getBoundingClientRect().height) : null;
-        var hb = [].map.call(document.querySelectorAll('[data-sw-part="hbar"]'), function (q) { return q.getBoundingClientRect().height; }).filter(function (h) { return h > 0; }); SWDraw.hbarH = hb.length ? Math.floor(Math.min.apply(null, hb)) : null;   // hours strip: one block height for every column
+        var hb = [].map.call(document.querySelectorAll('[data-sw-part="hbar"]'), function (q) { return q.getBoundingClientRect().height; }).filter(function (h) { return h > 0; }); SWDraw.hbarH = hb.length ? Math.floor(Math.min.apply(null, hb)) : null; SWDraw.hcols = hb.length || null;   // hours strip: one block height for every column
         SWDraw.extD = k >= 0 && k + 1 < rows.length ? Math.max(0, rows[k + 1].getBoundingClientRect().top - r.bottom + 1) : 0;   // scale and day rows: rules and the now line run on to the next row
         if (/^(baro|tdial)$/.test(el.getAttribute('data-sw-part'))) { SWDraw.caps = {}; document.querySelectorAll('[data-sw-part="baro"], [data-sw-part="tdial"]').forEach(function (d) { var b = d.getBoundingClientRect(); if (!b.width) return; SWDraw.caps[d.getAttribute('data-sw-part')] = [].map.call(d.parentElement.querySelectorAll('[data-sw-cap]'), function (c) { var rg = document.createRange(); rg.selectNodeContents(c); var q = rg.getBoundingClientRect(); return [q.left - b.left, q.top - b.top, q.right - b.left, q.bottom - b.top]; }); }); }   // dial captions' text boxes, in each dial's own box (owner 2026-11-13: the arc keeps clear of them)
         el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.floor(r.width), Math.floor(r.height));   // floor: a drawn part never pokes a pixel past its box
