@@ -428,8 +428,10 @@ return 'M' + top + ' A' + n1(r) + ',' + n1(r) + ' 0 0 ' + (wax ? 1 : 0) + ' ' + 
 function moon(p, H) {
 if (p == null || isNaN(p)) return '';
 var r = H * 0.27, cx = H / 2, f = (1 - Math.cos(2 * Math.PI * p)) / 2, lit = '';
-if (f > 0.01) lit = '<path d="' + moonLit(p, cx, cx, r) + '" data-sw-moon="lit"/>';
-var dk = API.mode && API.mode.dark, bits = API.mode ? API.mode.bits : 4, sw = Math.max(bits <= 2 ? 2.5 : 1.5, H * 0.03), limb = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"/>';
+var dk = API.mode && API.mode.dark, bits = API.mode ? API.mode.bits : 4, sw = Math.max(bits <= 2 ? 2.5 : 1.5, H * 0.03),
+ri = bits <= 1 && !dk ? r - sw * 1.6 : r; // 1-bit light: the lit part inside a paper ring, so ring and lit part read apart (step 18)
+if (f > 0.01) lit = '<path d="' + moonLit(p, cx, cx, ri) + '" data-sw-moon="lit"/>';
+var limb = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"/>';
 // dark: the halo sits OUTSIDE the disk (owner): the whole disk's glow, masked off inside the limb
 var h = dk ? halo('<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '"/>', GPX) : '';
 if (h) { var mid = 'swmk' + (K++); h = '<defs><mask id="' + mid + '" maskUnits="userSpaceOnUse" x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '"><rect x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '" fill="#fff"/><circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r + sw / 2) + '" fill="#000"/></mask></defs><g mask="url(#' + mid + ')" data-sw-moonhalo>' + h + '</g>'; }

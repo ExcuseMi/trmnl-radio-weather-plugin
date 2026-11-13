@@ -97,6 +97,10 @@ return bad.join('; ');})()})
       mo = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-unit="sun"]').forEach(function(u){var m=[].filter.call(u.querySelectorAll('[data-sw-part="moon"]'),function(e){return e.getBoundingClientRect().height>0})[0],ic=[].filter.call(u.querySelectorAll('img[data-sw-icon]'),function(e){return e.getBoundingClientRect().height>0});if(!m||ic.length<2||!u.getBoundingClientRect().height)return;
 var ci=m.querySelector('circle'),b=ci?ci.getBoundingClientRect():m.getBoundingClientRect(),t=ic[0].getBoundingClientRect().top,bo=ic[ic.length-1].getBoundingClientRect().bottom,r=b.height/(bo-t),dc=(b.top+b.bottom)/2-(t+bo)/2;if(r>0.72||Math.abs(dc)>3)bad.push('moon '+b.height.toFixed(0)+' rows '+(bo-t).toFixed(0)+' dc '+dc.toFixed(1))});return bad.join('; ')})()})
       puts "MOON #{c['name']}: #{mo}" unless mo.empty?
+      # 1-bit light (step 18): the moon's lit part sits inside a paper ring, so ring and lit part read apart.
+      m1 = s.evaluate(%q{(function(){var sc=document.querySelector('.screen').classList;if(!sc.contains('screen--1bit')||sc.contains('screen--dark-mode'))return '';var bad=[];document.querySelectorAll('[data-sw-moon="lit"]').forEach(function(l){var c=l.ownerSVGElement.querySelector('circle[stroke-width]');if(!c||!l.getBoundingClientRect().width)return;var r=+c.getAttribute('r'),w=+c.getAttribute('stroke-width'),h=l.getBBox().height;if(h>2*(r-w)-1)bad.push('lit '+h.toFixed(1)+' touches the ring r '+r.toFixed(1))});return bad.join('; ')})()})
+      puts "MOON1 #{c['name']}: #{m1}" unless m1.empty?
+      expect(m1).to eq('')
       expect(mo).to eq('') if c['view'] == 'half_vertical'
       # X quadrant (owner, step 12: big empty bands above and below): the content of each panel (images, drawings,
       # text) leaves no band over 8 % of the panel height at its top or bottom, on X quadrant and full portrait also none between its rows, hairlines counting as ink (step 18).
