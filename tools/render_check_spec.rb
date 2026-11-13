@@ -116,8 +116,9 @@ if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.get
       # pieces squeezed. Icons (condition, rain, moon, sun, day-row clothing) have drawn ink at least 0.8 x the cap height
       # of the text beside them; the days scale's track at least 45 % of the day row width with its first and last labels
       # at the track's ends (within a cell); no empty band over 12 % of the panel height inside the console, the days
-      # panel or the console's right column (ink measured in the screenshot); low/high digits at least 0.85 x the day name size.
-      if c['orientation'] == 'portrait' && (c['device'] || 'v2') != 'v2' && %w[full half_vertical half_horizontal].include?(c['view'] || 'full')
+      # panel or the console's right column (ink measured in the screenshot); low/high digits at least 0.85 x the day name size;
+      # quadrant: the temperature digits at least 13 % of the console height.
+      if c['orientation'] == 'portrait' && (c['device'] || 'v2') != 'v2' && %w[full half_vertical half_horizontal quadrant].include?(c['view'] || 'full')
         require 'chunky_png'
         og = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d'),R=function(b){return [b.left,b.top,b.right,b.bottom]};
 function cap(sp){var b=vis(sp);if(!b)return 0;var cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;return cx.measureText('H').actualBoundingBoxAscent*(b.width/(sp.offsetWidth||b.width));}
@@ -137,8 +138,9 @@ var lb=[].map.call(sv.querySelectorAll('text[data-sw-tick]'),function(t){var b=t
 tr=[(x1-x0)/row.getBoundingClientRect().width,lb.length?lb[0]-x0:1e9,lb.length?lb[lb.length-1]-x1:1e9,cw].map(function(v){return v.toFixed(3)}).join(',')}
 var pn=[];[].filter.call(document.querySelectorAll('[data-sw-panel]'),vis).forEach(function(p){var q=p.getBoundingClientRect(),t=1e9,b=-1e9;p.querySelectorAll('img, svg, span').forEach(function(e){if(e.closest('[data-sw-part="face"]'))return;var r=vis(e);if(!r||(e.tagName==='SPAN'&&!e.textContent.trim()))return;t=Math.min(t,r.top);b=Math.max(b,r.bottom)});if(b>t)pn.push([p.closest('[data-sw-console]')?'console':'days',q.left+10,t,q.right-10,b,q.height]);
 var rt=p.querySelector('[data-sw-right]'),rb=vis(rt);if(rb&&rb.left>q.left+q.width*0.25){var tp=rt.parentElement.getBoundingClientRect();pn.push(['right column',rb.left,tp.top,rb.right,tp.bottom,q.height,1])}});
+var tq=vis(document.querySelector('[data-sw-part="temp"] svg')),pq=vis(document.querySelector('[data-sw-console] [data-sw-panel]'));if(QUAD&&tq&&pq&&tq.height<0.13*pq.height)ic.push(['temperature '+tq.height.toFixed(0)+' under 13 % of the console '+pq.height.toFixed(0),0,0,0,0,1]);
 if([].filter.call(document.querySelectorAll('[data-sw-part="rain"]'),vis).length&&![].filter.call(document.querySelectorAll('[data-sw-unit="rain"] img'),vis).length)ic.push(['rain icon missing beside the calendar',0,0,0,0,1]);
-return JSON.stringify({ic:ic,tr:tr,pn:pn,iw:innerWidth});})()})
+return JSON.stringify({ic:ic,tr:tr,pn:pn,iw:innerWidth});})()}.sub('QUAD', (c['view'] == 'quadrant').to_s))
         og = JSON.parse(og)
         png = ChunkyPNG::Image.from_file(s.png_path)
         k = png.width / og['iw'].to_f
