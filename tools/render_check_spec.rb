@@ -516,7 +516,7 @@ var u=[];bad.forEach(function(s){if(u.indexOf(s)<0)u.push(s)});return u.slice(0,
       # Outfit proportions (owner 2026-11-13, squashed garments): the garment drawn in every cue box (console badge, day rows)
       # keeps the height/width ratio of tools/outfit_ratios.js for its type (within 5 %); stroke taken out, so a non-uniform scale shows.
       pr = s.evaluate(%q{(function(){var out=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0};
-function m(e,keys,tag){var t=keys[0],g=e.querySelector('g[data-sw-cloth]'),it=g&&g.querySelector('[data-sw-item="top"]');if(!it||!vis(it))return;var sw=+g.firstElementChild.getAttribute('stroke-width'),b=it.getBBox(),r=it.getBoundingClientRect();out.push(t+','+(b.height*(r.height/(b.height+sw))/(b.width*(r.width/(b.width+sw)))).toFixed(4)+','+tag+','+(r.width/(b.width+sw)).toFixed(3))}
+function m(e,keys,tag){var t=keys[0],g=e.querySelector('g[data-sw-cloth]'),it=g&&g.querySelector('[data-sw-item="top"]');if(!it||!vis(it))return;var sw=getComputedStyle(it.querySelector('path')).stroke==='none'?0:+it.getAttribute('stroke-width'),b=it.getBBox(),r=it.getBoundingClientRect();out.push(t+','+(b.height*(r.height/(b.height+sw))/(b.width*(r.width/(b.width+sw)))).toFixed(4)+','+tag+','+it.getScreenCTM().a.toFixed(3))}
 [].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){m(e,SW.cue||[],'console')});
 [].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis).forEach(function(r){var d=r.querySelector('[data-sw-part="dcue"]');if(d)m(d,SW.days[+d.getAttribute('data-sw-i')].cue||[],'day')});return out.join(' ')})()})
       unless pr.empty?
