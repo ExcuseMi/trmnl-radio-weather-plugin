@@ -44,7 +44,7 @@
   {%- if k == 2 %}<div class="py--4 shrink-0 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner: hairlines in the gaps {% endcomment %}
   {{ p_open_g }}<div class="relative h--full w--full">
    <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
-   <span class="absolute bottom--4 left--5 title title--base lg:portrait:title--small text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>{% comment %} owner step 13 {% endcomment %}
+   <span class="absolute bottom--3 left--4 title title--base lg:portrait:title--small text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>{% comment %} owner step 13 {% endcomment %}
    {%- capture dv_row %}
     {%- if k == 2 and ui.inn %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="0" data-sw-loc="out"></div>{% endif %}
     {%- if k == 1 %}{% assign arw = ui.baro.arrow %}{% else %}{% assign arw = ui.tdial.arrow %}{% endif %}{% if arw == 'up' or arw == 'down' %}<div class="shrink-0 self--center" data-sw-part="arrow" data-sw-i="{{ k | minus: 1 }}" data-sw-arrow="{{ arw }}"></div>{% endif %}{% comment %} owner 2026-11-13 {% endcomment %}
@@ -475,7 +475,7 @@ return [Math.max(g + hw, Math.min(W - g - hw, x)), y];
 }
 function dialR(D, W, H, nums, py) {
 var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);
-var g = Math.max(4, H * 0.03), r = Math.min(W * 0.42 / Math.sin(A), py - g - 1.3 * mh - bw - lw - 2), rmin = Math.min(r, W * 0.37 / Math.sin(A)), ok = true;
+var g = Math.max(4, H * 0.03), r = Math.min(W * 0.42 / Math.sin(A), H * (W < H * 1.8 ? 0.5893 : 0.639), py - g - 1.3 * mh - bw - lw - 2), rmin = Math.min(r, W * 0.37 / Math.sin(A)), ok = true;
 return [r, ok];
 }
 function dialClash(D, W, H, r, py, nums, kind) {
@@ -695,11 +695,32 @@ dv.style.setProperty('height', (ti.h / sc).toFixed(2) + 'px', 'important'); var 
 dv.style.transform = 'translate(' + (((ur + bl) / 2 - (r.left + r.right) / 2) / sc).toFixed(2) + 'px,' + ((ti.t - r.top) / sc).toFixed(2) + 'px)';
 });
 }
+function swCapBase() {
+function B(e) { var p = document.createElement('span'); p.style.cssText = 'display:inline-block;width:0;height:0'; e.appendChild(p); var y = p.getBoundingClientRect().bottom; e.removeChild(p); return y; }
+document.querySelectorAll('[data-sw-part="baro"],[data-sw-part="tdial"]').forEach(function (d) {
+var w = d.parentElement, cap = w.querySelector('span[data-sw-cap]'), row = [].filter.call(w.querySelectorAll('div[data-sw-cap]:not([data-sw-dialin])'), function (e) { return e.getBoundingClientRect().width > 0; })[0], v = row && row.querySelector('.value');
+if (!cap || !v || !d.getBoundingClientRect().width) return;
+var k = (cap.offsetWidth && cap.getBoundingClientRect().width / cap.offsetWidth) || 1, dl = B(v) - B(cap);
+if (Math.abs(dl) > 0.2) cap.style.bottom = (parseFloat(getComputedStyle(cap).bottom) - dl / k).toFixed(2) + 'px';
+});
+}
+function swBalance() {
+var dbg = (document.querySelector('[data-sw-debug]') || document.body).getAttribute('data-sw-debug') || '', sc = document.querySelector('.screen');
+if (!/view=3/.test(dbg) || (sc && sc.classList.contains('screen--portrait'))) return;
+var pn = document.querySelector('[data-sw-console] [data-sw-panel]'), f = pn && pn.querySelector('[data-sw-part="face"]'), rel = pn && pn.querySelector(':scope > .relative, :scope > * > .relative');
+if (!f || !rel) return;
+var F = f.getBoundingClientRect(), lo = 1e9, hi = -1e9, k = (pn.offsetWidth && pn.getBoundingClientRect().width / pn.offsetWidth) || 1;
+var tl = false, th = false;
+[].forEach.call(rel.querySelectorAll('[data-sw-part]:not([data-sw-part="face"]), [data-sw-unit], [data-sw-cond], [data-sw-mlabel]'), function (e) { var b = e.getBoundingClientRect(); if (!b.width || !b.height) return; var tx = e.hasAttribute('data-sw-cond') || e.hasAttribute('data-sw-mlabel'), bt = b.bottom - (/^meter/.test(e.getAttribute('data-sw-part') || '') ? 0.045 * b.height : 0); if (b.top < lo - 0.5) tl = tx; else if (b.top < lo + 0.5) tl = tl && tx; lo = Math.min(lo, b.top); if (bt > hi + 0.5) th = tx; else if (bt > hi - 0.5) th = th && tx; hi = Math.max(hi, bt); });
+if (lo > hi || tl || th) return;   // the outermost ink is text (a box is taller than its ink): left as laid out
+var a = lo - F.top, b2 = F.bottom - hi;
+if (Math.abs(a - b2) > 0.4) { rel.style.paddingTop = ((parseFloat(getComputedStyle(rel).paddingTop) || 0) + (b2 - a) / 2 / k).toFixed(2) + 'px'; }
+}
 var swN = 0;
 function swAlign() {
 if (++swN > 60) return;
 var cx = document.createElement('canvas').getContext('2d');
-swSeg(cx); swCond(cx); swFit(); swBadge(cx); swFit(); swBadge(cx); swHair();
+swSeg(cx); swCond(cx); swFit(); swBadge(cx); swFit(); swBadge(cx); swHair(); swBalance();
 }
 function swOGPortrait() {
 var screen = document.querySelector('.screen');
@@ -758,7 +779,7 @@ if(big||view===4)[].forEach.call(sun.querySelectorAll('[data-sw-suntime] span.ti
 swOGPortrait();
 whenReady(function () {
 swRepaint = swPaint;
-swArrow(document.createElement('canvas').getContext('2d'));
+swArrow(document.createElement('canvas').getContext('2d')); swCapBase();
 document.querySelectorAll('[data-sw-part="gauge"]').forEach(function (el) {
 var un = el.previousElementSibling, cal = un && un.querySelector('[data-sw-part="rain"]'); if (!cal) return;
 var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0], lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
