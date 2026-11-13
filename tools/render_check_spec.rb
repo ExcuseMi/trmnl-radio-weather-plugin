@@ -24,7 +24,7 @@ RSpec.describe 'renders' do
       now = (Time.utc(*t.split(/[-T:]/).map(&:to_i)) - answer['utc_offset_seconds'].to_i + 600).iso8601
       mocks = { 'https://api.open-meteo.com/*' => { json: answer } }
       mocks['https://air-quality-api.open-meteo.com/*'] = { json: c['aq'] } if c['aq']
-      fields = { 'lat_lon' => '52.52,13.41', 'unit' => 'celsius', 'days_shown' => 'auto', 'dial_span' => '24h', 'hide_title_bar' => 'false', 'language' => 'nl' }.merge(c['fields'] || {})
+      fields = { 'lat_lon' => '52.52,13.41', 'unit' => 'celsius', 'days_shown' => 'auto', 'dial_span' => '24h', 'hide_title_bar' => 'false' }.merge(c['fields'] || {})
       opts = { view: c['view'] || 'full', device: dev, mocks:, custom_fields: fields, now:, wait_for: "document.querySelector('[data-sw-drawn],[data-sw-error]') !== null" }
       opts[:variables] = { 'trmnl' => { 'user' => { 'locale' => c['locale'] } } } if c['locale']
       opts[:variables] = (opts[:variables] || {}).merge(c['vars']) if c['vars']
@@ -269,6 +269,17 @@ nm.forEach(function(e){var b=e.getBoundingClientRect(),k=ax?ax.ownerSVGElement.g
 [].forEach.call(e.ownerSVGElement.querySelectorAll('[data-sw-cells] rect'),function(r){var q=r.getBoundingClientRect();if(q.top<b.bottom-0.5&&q.left<b.right&&q.right>b.left)big=0;});});
 return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.length,tod,big].join(',');})()})
       puts "DAYROW #{c['name']}: rows,minH,screenH,ptr,ptrToday,ptrBigAndClear #{dr}"
+      # Day rows (owner step 17): one name column width, so the icons line up in every row, the name never reaches its icon
+      # (the inverted today label included) and all rows are the same height.
+      al = s.evaluate(%q{(function(){var bad=[],L=[],H=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(e){var q=e.getBoundingClientRect();if(!q.height)return;H.push(q.height);var im=e.querySelector('img'),nm=e.querySelector('[data-sw-today],[data-sw-dname]');if(!im||!nm)return;var a=im.getBoundingClientRect(),b=nm.getBoundingClientRect();L.push(a.left);if(b.right>a.left-3)bad.push('name '+nm.textContent.trim()+' reaches its icon');});
+if(L.length&&Math.max.apply(null,L)-Math.min.apply(null,L)>1)bad.push('icon lefts '+L.map(Math.round));if(H.length&&Math.max.apply(null,H)-Math.min.apply(null,H)>1)bad.push('row heights '+H.map(Math.round));return bad.join('; ')})()})
+      # Rain calendar cells are rectangles with the meter cells' corner radius (owner step 17), in rendered pixels.
+      rx = s.evaluate(%q{(function(){var cal=[].filter.call(document.querySelectorAll('[data-sw-part="rain"] svg rect[rx]'),function(r){return r.getBoundingClientRect().width>0})[0],mc=[].filter.call(document.querySelectorAll('[data-sw-part="meter"] svg rect[rx]'),function(r){return r.getBoundingClientRect().width>0})[0];if(!cal||!mc)return '';
+var px=function(r){var sv=r.ownerSVGElement;return +r.getAttribute('rx')*sv.getBoundingClientRect().height/+sv.getAttribute('height')};var a=px(cal),b=px(mc);return Math.abs(a-b)>0.6?'calendar rx '+a.toFixed(1)+' meter rx '+b.toFixed(1):''})()})
+      puts "RAINRX #{c['name']}: #{rx}" unless rx.empty?
+      expect(rx).to eq('')
+      puts "DAYALIGN #{c['name']}: #{al}" unless al.empty?
+      expect(al).to eq('')
       d = dr.split(',').map(&:to_f)
       expect(d[0]).to eq(0) if c['view'] == 'quadrant'
       expect(d[1]).to be >= (c['device'] == 'v2' ? 53 : 28) if d[0].positive?
