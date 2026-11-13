@@ -421,9 +421,14 @@ test('hours strip: 12 hours from now, stamps per time format, rain only on wet h
   const v = T.buildView(M, i, f.daily, null, 0.3, { hours: true }), d = T.buildView(M, i, f.daily, null, 0.3);
   ok(!('hours' in d) && !('hscale' in d), 'Days (default): no hours keys, the page stays as it was');
   eq(v.hours.length, 12);
-  eq(v.hours.map((q) => q.hl), M.hours.slice(0, 12).map((q) => q.hl), 'stamps from the model hours');
+  eq(v.hours.map((q) => q.hl), M.hours.filter((q, k) => k % 2 === 0).slice(0, 12).map((q) => q.hl), 'stamps every 2 hours from the (even) current hour (owner 2026-11-13)');
+  const H = (h, p) => ({ h: h, hl: String(h).padStart(2, '0'), t: 5, p: p, wet: false, icon: 'cloudy', day: true }), hs13 = Array.from({ length: 25 }, (_, k) => H((13 + k) % 24, k === 2 ? 80 : 0));
+  const s13 = T.hourStrip(hs13, String, '°', H(12, 0));
+  eq(s13.hours.map((q) => q.hl).slice(0, 4), ['12', '14', '16', '18'], 'at 13:30 the slots are 12, 14, 16 (even hours; 12 from the hour before)');
+  eq(s13.hours.map((q) => q.wet).slice(0, 3), [false, true, false], 'wet over the pair: 15:00 wet marks the 14 column');
+  eq(T.hourStrip(hs13, String, '°', null).hours[0].hl, '13', 'no hour before: start at the current hour');
   eq(v.hours.map((q) => q.now), [true].concat(Array(11).fill(false)), 'only the current hour is now');
-  eq(v.hours.map((q) => q.wet), M.hours.slice(0, 12).map((q) => q.p !== null ? q.p >= (q.wet ? 30 : 50) : q.wet), 'wet as the rain window counts it');
+  const W1 = (q) => !!q && (q.p !== null ? q.p >= (q.wet ? 30 : 50) : q.wet); eq(v.hours.map((q) => q.wet), Array.from({ length: 12 }, (_, j) => W1(M.hours[2 * j]) || W1(M.hours[2 * j + 1])), 'wet as the rain window counts it, over each pair of hours');
   ok(v.hours.some((q) => q.wet) && v.hours.some((q) => !q.wet), 'mixed has wet and dry hours');
   ok(v.hours.every((q) => q.tV === null || (q.tV > v.hscale.a && q.tV <= v.hscale.b)), 'every hour above the floor, inside the scale');
   const dry = JSON.parse(JSON.stringify(f)); dry.hourly.precipitation_probability = dry.hourly.precipitation_probability.map(() => 0); dry.hourly.weather_code = dry.hourly.weather_code.map(() => 1);
