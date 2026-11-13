@@ -300,7 +300,8 @@ var b=e.getBoundingClientRect();if(b.width>0&&getComputedStyle(e).display!=='non
       # Meter range (owner 2026-11-13): per meter at most one outlined cell, at today's max (none when it falls in a lit
       # cell), and the lighter cells exactly the ones below today's min cell, as the model's fractions give.
       mr = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="meter"]').forEach(function(e){if(!e.getBoundingClientRect().width)return;var m=SW.meters[+e.getAttribute('data-sw-i')||0],lt=e.querySelector('[data-sw-lit]');if(!m||!lt)return;var n=+lt.getAttribute('data-sw-ncell'),o=e.querySelectorAll('[data-sw-gust]').length,want=SWDraw.gustCell(m.frac,m.gust,n)>=0?1:0,ml=e.querySelector('[data-sw-minlight]'),lc=ml?ml.querySelectorAll('rect').length:0,wl=SWDraw.minCell(m.frac,m.min,n);
-if(o!==want)bad.push(m.key+' outlines '+o+'/'+want);if(lc!==wl)bad.push(m.key+' light '+lc+'/'+wl);});return bad.join('; ');})()})
+if(o!==want)bad.push(m.key+' outlines '+o+'/'+want);var on=e.querySelector('[data-sw-on]');if(!on||on.hasAttribute('fill')||on.querySelector(':scope > g[fill]'))bad.push(m.key+' current cells grey');   // owner 2026-11-13: full ink
+if(lc!==wl)bad.push(m.key+' light '+lc+'/'+wl);});return bad.join('; ');})()})
       puts "MRANGE #{c['name']}: #{mr}" unless mr.empty?
       expect(mr).to eq('')
       expect(sb).to eq('')

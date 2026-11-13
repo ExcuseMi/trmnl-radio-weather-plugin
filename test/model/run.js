@@ -227,11 +227,11 @@ test('meters (owner 2026-11-12): order wind, uv, aqi, humidity, pollen, baro, co
   ok(M0 && keys(0.4, { aqi: 30 }).slice(0, 3).join() === 'wind,aqi,humidity', 'priority: humidity kept before pollen when rows run short: ' + k);
 });
 test('block meter: any reading above zero lights one cell', () => {
-  const lit = (s) => ((s.split('text--gray-40')[1] || '').match(/<rect/g) || []).length;
+  const lit = (s) => ((s.split('<g data-sw-on>')[1] || '').match(/<rect/g) || []).length;   // the current cells (owner 2026-11-13: full ink)
   eq([lit(D.meter(0.01, 300, 40)), lit(D.meter(0, 300, 40))], [1, 0]);
 });
 test('block meter: half lit lights five of ten, no data lights none', () => {
-  const lit = (s) => ((s.split('text--gray-40')[1] || '').match(/<rect/g) || []).length;
+  const lit = (s) => ((s.split('<g data-sw-on>')[1] || '').match(/<rect/g) || []).length;
   eq([lit(D.meter(0.5, 300, 40)), lit(D.meter(null, 300, 40)), lit(D.meter(2, 300, 40))], [5, 0, 10]);
 });
 test('rain calendar: 12 hours from two hours before the rain, rain hours lit', () => {
