@@ -565,3 +565,9 @@ test('2-bit active cells are the native dark grey, not black; 4-bit gray-20 (own
   ok(/gray-30/.test(f({ dark: false, bits: 2 })) && !/<g class="text--black/.test(f({ dark: false, bits: 2 }).split('data-sw-hl')[0].replace(/text--black[^>]*><line/g, '')), '2-bit day blocks gray-30');
   ok(/text--gray-20/.test(f({ dark: false, bits: 4 })), '4-bit day blocks gray-20');
 });
+
+test('plugin name translated for the title bar when the instance name is the default (owner 2026-11-13)', () => {
+  eq(['en-US', 'de', 'nl', 'fr-CA', 'ja', 'xx'].map((l) => T.buildI18n(l).ours.app), ['Radio Weather', 'Radiowetter', 'Radioweer', 'Radio Météo', 'ラジオ天気', 'Radio Weather']);
+  const src = require('fs').readFileSync(require('path').join(__dirname, '../../plugin/src/shared.liquid'), 'utf8');
+  ok(/instance_name %\}{% if sw_name == blank or sw_name == 'Radio Weather' %\}{% assign sw_name = i18n\.ours\.app/.test(src), 'title bar uses i18n.ours.app when instance_name is the default');
+});
