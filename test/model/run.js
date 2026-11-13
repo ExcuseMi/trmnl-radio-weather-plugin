@@ -446,6 +446,22 @@ test('console cue window (owner 2026-11-13): garment now to +3 h, umbrella to 19
   eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25), { day: false }, 7), 'tshirt', 'no sunglasses at night');
   const fb = T.nowCueInput(null, [], { temp: 15, feels: 1, day: true }, 2); eq([fb.lo, fb.hi, fb.rain], [1, 1, null], 'no hourly data: the current felt temperature; rain falls back to the rain window');
 });
+test('meters: today\'s max (outlined cell) and min (lighter cells below it) from today\'s hours (owner 2026-11-13)', () => {
+  const f = fx('mixed'), n = f.hourly.time.length, today = (k) => String(f.hourly.time[k]).slice(0, 10) === '2026-11-08';
+  const g = JSON.parse(JSON.stringify(f)); g.hourly.relative_humidity_2m = f.hourly.time.map((t, k) => today(k) ? (k === 3 ? 35 : (k === 5 ? 98 : 80)) : 10); g.hourly.pressure_msl = f.hourly.time.map((t, k) => today(k) ? (k === 2 ? 1000 : (k === 4 ? 1030 : 1013)) : 900);
+  g.hourly.wind_speed_10m = f.hourly.time.map((t, k) => today(k) ? (k === 1 ? 3 : 12) : 0); g.hourly.wind_gusts_10m = f.hourly.time.map((t, k) => today(k) ? (k === 6 ? 45 : 20) : 90);
+  const v = T.buildView(SWModel.build(g, {}), T.buildI18n('nl'), g.daily), m = (k) => v.meters.find((q) => q.key === k) || {};
+  const r2 = (x) => x === null || x === undefined ? x : Math.round(x * 1000) / 1000;
+  eq([r2(m('humidity').gust), r2(m('humidity').min)], [0.98, 0.35], 'humidity: max 98, min 35 of today (tomorrow\'s 10 not counted)');
+  eq([r2(m('baro').gust), r2(m('baro').min)], [0.75, 0.375], 'baro: 1030 and 1000 of today on 970..1050');
+  eq([r2(m('wind').gust), r2(m('wind').min)], [0.75, 0.05], 'wind: today\'s max gust 45 and min wind 3 (tomorrow\'s 90 gust not counted)');
+  eq([D.gustCell(0.91, 0.98, 10), D.minCell(0.91, 0.35, 10)], [9, 3], 'humidity now 91: outline at cell 9, cells 0..2 lighter (min in cell 3)');
+  eq([D.gustCell(0.5, 0.45, 10), D.minCell(0.3, 0.6, 10), D.minCell(0.5, null, 10), D.gustCell(0.5, null, 10)], [-1, 0, 0, -1], 'max in a lit cell: no outline; min above now or missing: no lighter cells');
+  const none = T.buildView(SWModel.build(f, {}), T.buildI18n('nl'), f.daily);
+  eq([none.meters.find((q) => q.key === 'humidity').min, none.meters.find((q) => q.key === 'humidity').gust], [null, null], 'no hourly humidity: no marks');
+  eq(v.meters.filter((q) => q.key === 'co2' || q.key === 'pollen').filter((q) => q.min !== null || q.gust !== null).length, 0, 'CO2 and pollen: no marks');
+  ok(n > 0);
+});
 test('per-day clothing cue: daytime hours 07:00 to 19:00 from the hourly data, daily values where the hours are missing', () => {
   const d = { time: ['2026-11-08', '2026-11-09'], temperature_2m_min: [0, 8], temperature_2m_max: [10, 15], apparent_temperature_min: [-5, 6], apparent_temperature_max: [8, 14], precipitation_probability_max: [90, 10], uv_index_max: [1, 7] };
   const ht = [], at = [], pp = [];

@@ -293,8 +293,15 @@ var top=v.reduce(function(m,o){return o.t>m.t?o:m},v[0]);if(top&&top.g){var C=Ma
 return bad.slice(0,4).join('; ');})()})
       puts "HCURVE #{c['name']}: #{hc}" unless hc.empty?
       # 1-bit (owner 2026-11-13): block parts (hours and days strip blocks, meter cells) solid ink, no grey (dithered) fill.
-      sb = s.evaluate(%q{(function(){if(!(document.querySelector('.screen')||document.body).classList.contains('screen--1bit'))return '';var bad=[];document.querySelectorAll('[data-sw-part="hbar"] g, [data-sw-part="day"] [data-sw-cells] g, [data-sw-part="meter"] g').forEach(function(e){if(!/text--gray-/.test(e.getAttribute('class')||'')||!e.querySelector('rect,path'))return;var b=e.getBoundingClientRect();if(b.width>0&&getComputedStyle(e).display!=='none')bad.push(e.closest('[data-sw-part]').getAttribute('data-sw-part')+' '+e.getAttribute('class'));});return bad.slice(0,3).join('; ');})()})
+      sb = s.evaluate(%q{(function(){if(!(document.querySelector('.screen')||document.body).classList.contains('screen--1bit'))return '';var bad=[];document.querySelectorAll('[data-sw-part="hbar"] g, [data-sw-part="day"] [data-sw-cells] g, [data-sw-part="meter"] g').forEach(function(e){if(!/text--gray-/.test(e.getAttribute('class')||'')||!e.querySelector('rect,path')||e.closest('[data-sw-minlight]'))return;   // today's min cells: the Framework's lighter grey (owner 2026-11-13)
+var b=e.getBoundingClientRect();if(b.width>0&&getComputedStyle(e).display!=='none')bad.push(e.closest('[data-sw-part]').getAttribute('data-sw-part')+' '+e.getAttribute('class'));});return bad.slice(0,3).join('; ');})()})
       puts "SOLID1 #{c['name']}: #{sb}" unless sb.empty?
+      # Meter range (owner 2026-11-13): per meter at most one outlined cell, at today's max (none when it falls in a lit
+      # cell), and the lighter cells exactly the ones below today's min cell, as the model's fractions give.
+      mr = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="meter"]').forEach(function(e){if(!e.getBoundingClientRect().width)return;var m=SW.meters[+e.getAttribute('data-sw-i')||0],lt=e.querySelector('[data-sw-lit]');if(!m||!lt)return;var n=+lt.getAttribute('data-sw-ncell'),o=e.querySelectorAll('[data-sw-gust]').length,want=SWDraw.gustCell(m.frac,m.gust,n)>=0?1:0,ml=e.querySelector('[data-sw-minlight]'),lc=ml?ml.querySelectorAll('rect').length:0,wl=SWDraw.minCell(m.frac,m.min,n);
+if(o!==want)bad.push(m.key+' outlines '+o+'/'+want);if(lc!==wl)bad.push(m.key+' light '+lc+'/'+wl);});return bad.join('; ');})()})
+      puts "MRANGE #{c['name']}: #{mr}" unless mr.empty?
+      expect(mr).to eq('')
       expect(sb).to eq('')
       expect(hc).to eq('')
       # Clothing badge (owner): the drawn icons are the model's list (top and up to two extras) in order; one fixed box
