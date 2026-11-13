@@ -287,11 +287,11 @@ return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
 function segtime(str, cap) {
 var T = 17, W = 54, G = 13, GP = 1.5, HH = 100, s = String(str).trim();
 if (!s || /[^0-9:\-. ]/.test(s)) return null;
-var adv = (c) => c === ' ' ? 40 : ((c === '1' || c === '.') ? T + G : (c === ':' ? T + G * 2.4 : W + G)), x = 0, body = '';
+var adv = (c) => c === ' ' ? 40 : ((c === '.') ? T + G : (c === ':' ? T + G * 2.4 : W + G)), x = 0, body = '';
 s.split('').forEach((c) => {
 if (c === '.') body += rect(x, HH - T, T, T);
 else if (c === ':') body += rect(x + G * 0.7, 0.3 * HH - T / 2, T, T) + rect(x + G * 0.7, 0.7 * HH - T / 2, T, T);
-else if (c !== ' ') { var on = GLYPH[c] || '', sh = shapes(x, c === '1' ? T : W, HH, T, GP), gb = ''; 'abcdefg'.split('').forEach((q) => { if (on.indexOf(q) >= 0) gb += poly(sh[q]); }); body += '<g data-sw-glyph="' + c + '">' + gb + '</g>'; }
+else if (c !== ' ') { var on = GLYPH[c] || '', sh = shapes(c === '1' ? x + W - T : x, c === '1' ? T : W, HH, T, GP), gb = ''; 'abcdefg'.split('').forEach((q) => { if (on.indexOf(q) >= 0) gb += c === '7' && q === 'a' ? rect(x, 0, W, T) : poly(sh[q]); }); body += '<g data-sw-glyph="' + c + '">' + gb + '</g>'; }
 x += adv(c);
 });
 var vw = x - G - (/[:.]$/.test(s) ? 0 : 0), k = cap * 1.25 / HH;
@@ -433,6 +433,7 @@ var limb = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fi
 var h = dk ? halo('<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '"/>', GPX) : '';
 if (h) { var mid = 'swmk' + (K++); h = '<defs><mask id="' + mid + '" maskUnits="userSpaceOnUse" x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '"><rect x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '" fill="#fff"/><circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r + sw / 2) + '" fill="#000"/></mask></defs><g mask="url(#' + mid + ')" data-sw-moonhalo>' + h + '</g>'; }
 var disk = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" data-sw-moon="disk"/>', fd = !dk && bits >= 3 ? g('text--gray-75', disk) : '';
+if (f < 0.08) return svg(H, H, h + g(dk ? 'text--gray-45' : 'text--gray-10', disk) + limb);   // new moon (owner 2026-11-13): a filled disc, dark by day and the inverse in dark mode, never an empty ring
 return svg(H, H, h + fd + (dk || bits <= 1 ? lit : g('text--gray-45', lit)) + limb);
 }
 var CLOTH = { umbrella: "<path d='M3.5 14a10.5 10.5 0 0 1 21 0c-1.7-1.4-3.5-1.4-5.2 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.5-1.4-5.2 0z'/><path d='M14 14v8.5a2 2 0 0 1-4 0'/><path d='M14 2.5v1'/>",
