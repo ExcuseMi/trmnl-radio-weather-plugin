@@ -292,6 +292,10 @@ v.forEach(function(a){v.forEach(function(b){if(Math.round(a.t)<Math.round(b.t)&&
 var top=v.reduce(function(m,o){return o.t>m.t?o:m},v[0]);if(top&&top.g){var C=Math.min.apply(null,cs.map(function(e){return e.getBoundingClientRect().height})),r=[].map.call(top.g.querySelectorAll('rect'),function(x){return x.getBoundingClientRect()}),h=r.length?Math.max.apply(null,r.map(function(x){return x.bottom}))-Math.min.apply(null,r.map(function(x){return x.top})):0;if(h<0.8*C-8)bad.push('warmest stack '+h.toFixed(0)+' of '+C.toFixed(0));}
 return bad.slice(0,4).join('; ');})()})
       puts "HCURVE #{c['name']}: #{hc}" unless hc.empty?
+      # 1-bit (owner 2026-11-13): block parts (hours and days strip blocks, meter cells) solid ink, no grey (dithered) fill.
+      sb = s.evaluate(%q{(function(){if(!(document.querySelector('.screen')||document.body).classList.contains('screen--1bit'))return '';var bad=[];document.querySelectorAll('[data-sw-part="hbar"] g, [data-sw-part="day"] [data-sw-cells] g, [data-sw-part="meter"] g').forEach(function(e){if(!/text--gray-/.test(e.getAttribute('class')||'')||!e.querySelector('rect,path'))return;var b=e.getBoundingClientRect();if(b.width>0&&getComputedStyle(e).display!=='none')bad.push(e.closest('[data-sw-part]').getAttribute('data-sw-part')+' '+e.getAttribute('class'));});return bad.slice(0,3).join('; ');})()})
+      puts "SOLID1 #{c['name']}: #{sb}" unless sb.empty?
+      expect(sb).to eq('')
       expect(hc).to eq('')
       # Clothing badge (owner): the drawn icons are the model's list (top and up to two extras) in order; one fixed box
       # width on every day row (1 px; the console has its own, larger box); the extras sit right of the top icon, never over its box.
