@@ -303,7 +303,7 @@ var b=e.getBoundingClientRect();if(b.width>0&&getComputedStyle(e).display!=='non
       mr = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="meter"]').forEach(function(e){if(!e.getBoundingClientRect().width)return;var m=SW.meters[+e.getAttribute('data-sw-i')||0],lt=e.querySelector('[data-sw-lit]');if(!m||!lt)return;var n=+lt.getAttribute('data-sw-ncell'),W=SWDraw.cellStates(m,n),got=[];
 e.querySelectorAll('rect[data-sw-c]').forEach(function(r){var i=+r.getAttribute('data-sw-c'),st=r.closest('[data-sw-st]');var sv=st?st.getAttribute('data-sw-st'):'?';if((got[i]||'').indexOf(sv)<0)got[i]=(got[i]||'')+sv;if(st&&st.getAttribute('data-sw-st')==='l'&&!r.getAttribute('stroke-dasharray')&&r.getAttribute('fill')==='none')bad.push(m.key+' later cell neither filled nor dashed');if(st&&st.getAttribute('data-sw-st')==='p'&&r.getAttribute('fill')==='none')bad.push(m.key+' earlier cell not filled');});
 var gs=[];for(var i=0;i<n;i++)gs.push(got[i]||'-');if(gs.join('')!==W.st.join(''))bad.push(m.key+' states '+gs.join('')+'/'+W.st.join(''));
-var pk=[].map.call(e.querySelectorAll('[data-sw-gust]'),function(r){return +r.getAttribute('data-sw-gust')});if(pk.join(',')!==(W.peak>=0?String(W.peak):''))bad.push(m.key+' peak '+pk.join(',')+'/'+W.peak);
+var pk=[].map.call(e.querySelectorAll('[data-sw-gust]'),function(r){return +r.getAttribute('data-sw-gust')});if(pk.join(',')!==(W.peak>=0&&W.st[W.peak]==='e'?String(W.peak):''))bad.push(m.key+' peak '+pk.join(',')+'/'+W.peak);
 var on=e.querySelector('[data-sw-on]');if(!on||on.hasAttribute('fill')||on.querySelector(':scope > g[fill]'))bad.push(m.key+' current cells grey');});return bad.join('; ');})()})
       puts "MRANGE #{c['name']}: #{mr}" unless mr.empty?
       expect(mr).to eq('')
