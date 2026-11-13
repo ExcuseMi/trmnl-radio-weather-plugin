@@ -140,7 +140,7 @@
    {%- if ui.rain %}</div>{% endif %}
   </div>
 {%- endcapture %}
- <div data-sw-console class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col {% if view == 4 and ui.rain == nil %}flex--evenly lg:flex--center{% else %}flex--center{% endif %} gap--xsmall{% if view == 4 %} lg:portrait:flex--evenly{% endif %}{% else %}flex--row lg:portrait:flex--col-reverse{% if view == 2 %} lg:portrait:flex--between{% endif %} {% if view == 1 %}landscape:{% endif %}flex--stretch-y gap--medium lg:gap--large{% if view == 1 %} lg:portrait:gap--medium{% endif %}{% endif %} {% if view == 3 %}px--2 pt--5 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
+ <div data-sw-console class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col {% if view == 4 and ui.rain == nil %}flex--evenly lg:flex--center{% else %}flex--center{% endif %} gap--xsmall{% if view == 4 %} lg:portrait:flex--evenly{% endif %}{% else %}flex--row lg:portrait:flex--col-reverse{% if view == 2 %} lg:portrait:flex--between{% endif %} {% if view == 1 %}landscape:{% endif %}flex--stretch-y gap--medium lg:gap--large{% if view == 1 %} lg:portrait:gap--medium{% endif %}{% endif %} {% if view == 3 %}px--2 pt--3 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
 {%- if stk %}
   <div class="flex flex--row flex--stretch-y gap--medium{% if view == 4 %} lg:portrait:flex--col lg:portrait:gap--small{% endif %} w--full">
 {{ c_temp }}
