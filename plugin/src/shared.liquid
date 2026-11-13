@@ -44,10 +44,15 @@
   {{ p_open_g }}<div class="relative h--full w--full">
    <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
    <span class="absolute bottom--4 left--5 title title--base lg:portrait:title--small text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>{% comment %} owner step 13: name bottom left, value bottom right (trend arrow in front of it) {% endcomment %}
-   <div class="absolute bottom--3 right--4 flex flex--row flex--bottom gap--small" data-sw-cap>
+   {%- capture dv_row %}
     {%- if k == 1 %}{% assign arw = ui.baro.arrow %}{% else %}{% assign arw = ui.tdial.arrow %}{% endif %}{% if arw == 'up' or arw == 'down' %}<div class="shrink-0 self--center" data-sw-part="arrow" data-sw-i="{{ k | minus: 1 }}" data-sw-arrow="{{ arw }}"></div>{% endif %}{% comment %} owner 2026-11-13: the trend arrow in front of the value, so the value never moves {% endcomment %}
     {%- if k == 1 %}<span class="value value--small value--tnums">{{ ui.baro.value }}</span><span class="title title--small text--bold">{{ ui.baro.unit }}</span>{% comment %} owner: the pressure, the trend only as the arrow {% endcomment %}
     {%- else %}<span class="value value--small value--tnums">{{ ui.tdial.value }}</span><span class="title title--small text--bold">{{ ui.tdial.unit }}</span>{% endif -%}
+   {%- endcapture %}
+   <div class="absolute bottom--3 right--4 flex {% if k == 2 and ui.inn %}flex--col flex--end gap--xsmall{% else %}flex--row flex--bottom gap--small{% endif %}"{% unless k == 2 and ui.inn %} data-sw-cap{% endunless %}>
+    {%- if k == 2 and ui.inn %}<div class="flex flex--row flex--bottom gap--small" data-sw-cap>{{ dv_row }}</div>
+    <div class="flex flex--row flex--bottom gap--small" data-sw-dialin data-sw-cap>{% comment %} owner 2026-11-13: the indoor value stacked under the outdoor one, in the indoor grey, house icon and its own arrow {% endcomment %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="1" data-sw-loc="in"></div>{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center text--gray-50 dark:text--gray-45" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}"></div>{% endif %}<span class="value value--small value--tnums text--gray-50 dark:text--gray-45">{{ ui.inn.temp }}</span><span class="title title--small text--bold text--gray-50 dark:text--gray-45">{{ ui.tdial.unit }}</span></div>
+    {%- else %}{{ dv_row }}{% endif %}
    </div>
   </div>{{ p_close }}
   {%- endfor %}
@@ -289,8 +294,8 @@ return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
 }
 var LOC = { out: "<path d='M8 17a4.5 4.5 0 0 1 .5-8.8A5.5 5.5 0 0 1 19.5 8.2 4.5 4.5 0 0 1 20 17z'/><path d='M14 17v8M10.5 25h7'/>", in: "<path d='M3 14L14 4l11 10'/><path d='M6 12v12h16V12'/><path d='M12 24v-7h4v7'/>" };
 function loc(k, W, H) { return svg(W, H, locAt(k, (W - Math.min(W, H)) / 2, (H - Math.min(W, H)) / 2, Math.min(W, H))); }
-function locAt(k, x, y, s) { return g(k === 'in' ? INC : '', '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(s) + '" height="' + n1(s) + '" viewBox="0 0 28 28" overflow="visible"><g fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.8, 1.5 * 28 / Math.max(1, s)) * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-loc="' + k + '">' + LOC[k] + '</g></svg>'); }
-var INC = 'text--gray-50';   // owner 2026-11-13: everything indoor on the dial and the humidity twin meter in this grey (the colour is the legend)
+function locAt(k, x, y, s) { return g(k === 'in' ? inc() : '', '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(s) + '" height="' + n1(s) + '" viewBox="0 0 28 28" overflow="visible"><g fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.8, 1.5 * 28 / Math.max(1, s)) * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-loc="' + k + '">' + LOC[k] + '</g></svg>'); }
+var inc = () => API.mode && API.mode.dark ? 'text--gray-45' : 'text--gray-50';   // owner 2026-11-13: everything indoor on the dial and the humidity twin meter in this grey (the colour is the legend)
 // Block meter: n cells, frac lit.
 function cells(frac, n) { return frac === null || frac === undefined || !(frac > 0) ? 0 : Math.max(1, Math.round(Math.min(1, frac) * n)); }
 // Cell states (owner): a now, p earlier today, l later today, e empty; peak = outlined cell (-1 none).
@@ -302,7 +307,7 @@ return { st: st, peak: k - 1 };
 function meter(m, W, H, n) {
 m = m || {}; if (!m.tw) return svg(W, H, mrow(m, W, H, n));
 var gp = Math.max(2, H * 0.08), h = (H - gp) / 2, lw = h * 1.25;
-return svg(W, H, locAt('out', 0, 0, h) + locAt('in', 0, h + gp, h) + '<g transform="translate(' + n1(lw) + ' 0)">' + mrow(m, W - lw, h, n) + '</g><g data-sw-twrow="in" transform="translate(' + n1(lw) + ' ' + n1(h + gp) + ')">' + mrow(m.tw.m, W - lw, h, n, INC) + '</g>');
+return svg(W, H, locAt('out', 0, 0, h) + locAt('in', 0, h + gp, h) + '<g transform="translate(' + n1(lw) + ' 0)">' + mrow(m, W - lw, h, n) + '</g><g data-sw-twrow="in" transform="translate(' + n1(lw) + ' ' + n1(h + gp) + ')">' + mrow(m.tw.m, W - lw, h, n, inc()) + '</g>');
 }
 function mrow(m, W, H, n, lc) {
 n = n || 10;
@@ -569,7 +574,7 @@ var np = (ox, oy, an, k) => { var vx = an === undefined ? ux : Math.sin(an), vy 
 return [[t[0] + qx * wt / 2, t[1] + qy * wt / 2], [b[0] + qx * wb / 2, b[1] + qy * wb / 2], [q[0] + qx * wb * 1.6, q[1] + qy * wb * 1.6], [q[0] - qx * wb * 1.6, q[1] - qy * wb * 1.6], [b[0] - qx * wb / 2, b[1] - qy * wb / 2], [t[0] - qx * wt / 2, t[1] - qy * wt / 2]]; };
 var hr = Math.max(6, H * 0.035), tw = '';
 if (D.twin !== null && D.twin !== undefined) {
-tw = '<g data-sw-twin="1">' + g(INC, poly(np(0, 0, -A + 2 * A * cl(F(D.twin)), 0.86))) + '</g>';
+tw = '<g data-sw-twin="1">' + g(inc(), poly(np(0, 0, -A + 2 * A * cl(F(D.twin)), 0.86))) + '</g>';
 }
 body += '<g data-sw-needle>' + g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
 body += glow(tw + poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '" data-sw-hub="' + n1(Math.max(hr, tailR + wb * 1.6)) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>') + '</g>';
@@ -603,7 +608,7 @@ case 'scale': return scale(scN, W, H);
 case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now, SW.hours);
 case 'gauge': return SW.rain ? gauge(SW.rain.gauge, W, H) : '';
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
-case 'tri': return tri(i % 2 === 0, W, H, i > 1 ? INC : '');
+case 'tri': return tri(i % 2 === 0, W, H, i > 1 ? inc() : '');
 case 'rule': return rule(W, H);
 case 'moon': return moon(SW.sun && SW.sun.phase, H);
 case 'baro': return dial(SW.baro, W, H, true, SW.tdial);
@@ -794,6 +799,7 @@ TRMNLPaint.watch(el, function () { swPaint(el); });
 });
 function swPaint(el) {
 SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: el }); };
+var di = el.closest('[data-sw-dialin]'); if (di) { var pf = TRMNLPaint.bg(SWDraw.mode.dark ? 'gray-45' : (SWDraw.mode.bits === 2 ? 'gray-55' : 'gray-50'), { el: el }); if (pf && pf.color) di.style.color = pf.color; }   // the indoor grey on the stacked value (a dither pattern cannot colour text: 1-bit keeps black ink)
 var sc = (el.closest('.screen') || document.querySelector('.screen') || document.body).classList;
 var cl = /(^| )screen--color-/.test(sc.value);
 SWDraw.mode = { color: cl, dark: sc.contains('screen--dark-mode'), bits: sc.contains('screen--1bit') || (cl && !sc.contains('screen--color-full')) ? 1 : (sc.contains('screen--2bit') ? 2 : 4) };
