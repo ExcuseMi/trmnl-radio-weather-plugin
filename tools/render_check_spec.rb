@@ -337,6 +337,14 @@ var ic=row.firstElementChild,ib=ic.getBoundingClientRect(),ik=((ic.querySelector
 for(var i=1;i<gl.length;i++){var a=gl[i-1].getBoundingClientRect(),b=gl[i].getBoundingClientRect(),gp=(b.left-a.right)*k;if(gp>30)bad.push(gl[i-1].getAttribute('data-sw-glyph')+gl[i].getAttribute('data-sw-glyph')+' gap '+gp.toFixed(0));}});return bad.join('; ');})()})
       puts "DIGITGAP #{c['name']}: #{sp}" unless sp.empty?
       expect(sp).to eq('')
+      # Dial trend arrows (owner step 13): one outline arrow per dial with a trend (barometer: the trend word; temperature:
+      # +3 h), in the dial's top right quarter, about 1.5 x the name caption's cap height; none without a trend.
+      ar = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d');
+[].filter.call(document.querySelectorAll('[data-sw-part="baro"],[data-sw-part="tdial"]'),vis).forEach(function(d){var k=d.getAttribute('data-sw-part'),want=(k==='baro'?SW.baro:SW.tdial).arrow?1:0,box=d.parentElement,B=box.getBoundingClientRect(),a=[].filter.call(box.querySelectorAll('[data-sw-arrowpoly]'),vis);
+if(a.length!==want){bad.push(k+' arrows '+a.length+'/'+want);return;}if(!a.length)return;var r=a[0].getBoundingClientRect(),c=box.querySelector('[data-sw-cap]'),cs=getComputedStyle(c);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var cap=cx.measureText('H').actualBoundingBoxAscent*(c.getBoundingClientRect().height/(c.offsetHeight||1)),h=Math.max(r.width,r.height);
+if(r.left<(B.left+B.right)/2||r.bottom>(B.top+B.bottom)/2)bad.push(k+' arrow not top right');if(h<1.2*cap||h>1.8*cap)bad.push(k+' arrow '+h.toFixed(0)+' cap '+cap.toFixed(0));});return bad.join('; ');})()})
+      puts "ARROW #{c['name']}: #{ar}" unless ar.empty?
+      expect(ar).to eq('')
       # Sun times (owner 2026-11-12, step 12): one line each, 12 h too (the AM/PM smaller, on the same line).
       st = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-suntime]').forEach(function(e){var rg=document.createRange();rg.selectNodeContents(e);var r=[].filter.call(rg.getClientRects(),function(q){return q.width>0&&q.height>0});if(r.length>1&&r.some(function(q){return q.left<r[0].right-1&&q.top>r[0].top+2}))bad.push(e.textContent.replace(/\s+/g,' ').trim());});return bad.join('; ');})()})
       puts "SUNTIME #{c['name']}: #{st}" unless st.empty?
