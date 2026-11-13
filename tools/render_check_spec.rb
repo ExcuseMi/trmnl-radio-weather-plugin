@@ -579,7 +579,7 @@ return bad.join('; ');})()})
       expect(cr2).to eq('')
       # Condition row (owner 2026-11-13): the badge moved beside the temperature; the condition label at its full size
       # (no step down), no badge in its row.
-      cb = s.evaluate(%q{(function(){var bad=[];[].forEach.call(document.querySelectorAll('[data-sw-cond]'),function(sp){if(!sp.getBoundingClientRect().width)return;if(sp.style.fontSize){var rg=document.createRange();rg.selectNodeContents(sp);var tp=[];[].forEach.call(rg.getClientRects(),function(q){if(q.width>0&&!tp.some(function(t){return Math.abs(t-q.top)<2}))tp.push(q.top)});if(tp.length>1)bad.push('label stepped down to '+sp.style.fontSize+' and still on '+tp.length+' lines');}if(sp.parentElement.querySelector(':scope > [data-sw-part="cue"]'))bad.push('badge in the condition row');});return bad.join('; ');})()})
+      cb = s.evaluate(%q{(function(){var bad=[];[].forEach.call(document.querySelectorAll('[data-sw-cond]'),function(sp){if(!sp.getBoundingClientRect().width)return;if(sp.style.fontSize)bad.push('label stepped down to '+sp.style.fontSize);if(sp.parentElement.querySelector(':scope > [data-sw-part="cue"]'))bad.push('badge in the condition row');});return bad.join('; ');})()})
       puts "CUEROW #{c['name']}: #{cb}" unless cb.empty?
       expect(cb).to eq('')
       # Digit spacing (owner 2026-11-13, "4. 1"): in the seven-segment readouts the ink gap between neighbouring digits
