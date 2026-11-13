@@ -95,9 +95,8 @@
     {%- for tw in (1..2) %}
     {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
     <div class="flex flex--col flex--center gap--xsmall h--full" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
-     <span class="label label--small text--bold">{% if tw == 1 %}{{ ui.inn.out }}{% else %}{{ ui.inn.in }}{% endif %}</span>
-     <div class="flex flex--row flex--top gap--xsmall h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 10 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]">{% if tw == 2 %}{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center h--[3cqh] hidden lg:block" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}" data-sw-inarrow></div>{% endif %}{% endif %}<div class="h--full" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
-     <span class="label label--small">{% if tw == 2 %}{{ ui.inn.hum }}{% if ui.inn.lohi %}<span class="hidden lg:inline" data-sw-inlohi>&nbsp;·&nbsp;{{ ui.inn.lohi }}</span>{% endif %}{% else %}&nbsp;{% endif %}</span>{% comment %} indoor trend (saved state): arrow in front of the digits, today's low/high after the humidity (X only: on OG the column is too narrow for both) {% endcomment %}{% comment %} an empty line under BUITEN keeps both digit rows level {% endcomment %}
+     <div class="flex flex--row flex--top gap--xsmall">{% if tw == 2 %}{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center h--[3cqh] hidden lg:block" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}" data-sw-inarrow></div>{% endif %}{% endif %}<div class="flex flex--col flex--center gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]" data-sw-part="loc" data-sw-sq data-sw-i="{% if tw == 1 %}0{% else %}1{% endif %}" data-sw-loc="{% if tw == 1 %}out{% else %}in{% endif %}" title="{% if tw == 1 %}{{ ui.inn.out }}{% else %}{{ ui.inn.in }}{% endif %}"></div><div class="h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div></div><div class="flex flex--col gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
+     <span class="label label--small flex flex--row flex--center-y gap--xsmall">{% if tw == 2 %}{{ ui.inn.hum }}{% if ui.inn.lohi %}<span class="hidden lg:flex flex--row flex--center-y gap--xsmall" data-sw-inlohi>{% if ui.inn.hum != '' %}·{% endif %}<div class="shrink-0 h--[1cqh] lg:h--[1cqh]" data-sw-part="tri" data-sw-i="2" data-sw-sq></div>{{ ui.inn.lo }}<div class="shrink-0 h--[1cqh] lg:h--[1cqh]" data-sw-part="tri" data-sw-i="3" data-sw-sq></div>{{ ui.inn.hi }}</span>{% endif %}{% else %}&nbsp;{% endif %}</span>{% comment %} indoor trend (saved state): arrow in front of the digits, today's low/high after the humidity (X only: on OG the column is too narrow for both) {% endcomment %}{% comment %} an empty line under BUITEN keeps both digit rows level {% endcomment %}
     </div>
     {%- endfor %}
     {%- else %}
@@ -288,6 +287,10 @@ x += w + (ch === '-' ? G * 0.3 : G);
 var vw = Math.max(1, x - G);
 return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
 }
+var LOC = { out: "<path d='M8 17a4.5 4.5 0 0 1 .5-8.8A5.5 5.5 0 0 1 19.5 8.2 4.5 4.5 0 0 1 20 17z'/><path d='M14 17v8M10.5 25h7'/>", in: "<path d='M3 14L14 4l11 10'/><path d='M6 12v12h16V12'/><path d='M12 24v-7h4v7'/>" };
+function loc(k, W, H) { return svg(W, H, locAt(k, (W - Math.min(W, H)) / 2, (H - Math.min(W, H)) / 2, Math.min(W, H))); }
+function locAt(k, x, y, s) { return g(k === 'in' ? INC : '', '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(s) + '" height="' + n1(s) + '" viewBox="0 0 28 28" overflow="visible"><g fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.8, 1.5 * 28 / Math.max(1, s)) * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-loc="' + k + '">' + LOC[k] + '</g></svg>'); }
+var INC = 'text--gray-50';   // owner 2026-11-13: everything indoor on the dial and the humidity twin meter in this grey (the colour is the legend)
 // Block meter: n cells, frac lit.
 function cells(frac, n) { return frac === null || frac === undefined || !(frac > 0) ? 0 : Math.max(1, Math.round(Math.min(1, frac) * n)); }
 // Cell states (owner): a now, p earlier today, l later today, e empty; peak = outlined cell (-1 none).
@@ -297,7 +300,12 @@ for (var i = 0; i < n; i++) st.push(i < a ? 'a' : (i < p ? 'p' : (i < l ? 'l' : 
 return { st: st, peak: k - 1 };
 }
 function meter(m, W, H, n) {
-n = n || 10; m = m || {};
+m = m || {}; if (!m.tw) return svg(W, H, mrow(m, W, H, n));
+var gp = Math.max(2, H * 0.08), h = (H - gp) / 2, lw = h * 1.25;
+return svg(W, H, locAt('out', 0, 0, h) + locAt('in', 0, h + gp, h) + '<g transform="translate(' + n1(lw) + ' 0)">' + mrow(m, W - lw, h, n) + '</g><g data-sw-twrow="in" transform="translate(' + n1(lw) + ' ' + n1(h + gp) + ')">' + mrow(m.tw.m, W - lw, h, n, INC) + '</g>');
+}
+function mrow(m, W, H, n, lc) {
+n = n || 10;
 var CS = cellStates(m, n), zones = m.zones, lit = cells(m.frac, n), gk = '', pv = '', lt = '',
 cw = (W - SO) / n, gp = cw * 0.12, ch = H - SO, on = '', sh = '', off = '', zc = ['', '', ''], ZT = [null, hue('yellow') && 'yellow', hue('red') && 'red'];
 var DK = API.mode && API.mode.dark && API.mode.bits >= 2;
@@ -313,7 +321,7 @@ else off += DK ? rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1,
 }
 var PV = API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bits <= 1 ? 'text--gray-50' : (API.mode && API.mode.bits <= 2 ? 'text--gray-65' : 'text--gray-70'));
 var LT = PV;
-return svg(W, H, '<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + g(LT, lt) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) +   /* owner: dark grey for the value now on 2-bit+ light; 1-bit black, dark mode white */ (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);
+return ('<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + g(LT, lt) + '</g><g data-sw-on data-sw-st="a">' + (lc ? g(lc, on) : API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) +   /* owner: dark grey for the value now on 2-bit+ light; 1-bit black, dark mode white */ (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);
 }
 // Rain gauge (owner): 5-segment tube filled from the bottom, amount under it.
 function gauge(gq, W, H) {
@@ -561,16 +569,17 @@ var np = (ox, oy, an, k) => { var vx = an === undefined ? ux : Math.sin(an), vy 
 return [[t[0] + qx * wt / 2, t[1] + qy * wt / 2], [b[0] + qx * wb / 2, b[1] + qy * wb / 2], [q[0] + qx * wb * 1.6, q[1] + qy * wb * 1.6], [q[0] - qx * wb * 1.6, q[1] - qy * wb * 1.6], [b[0] - qx * wb / 2, b[1] - qy * wb / 2], [t[0] - qx * wt / 2, t[1] - qy * wt / 2]]; };
 var hr = Math.max(6, H * 0.035), tw = '';
 if (D.twin !== null && D.twin !== undefined) {
-tw = '<g data-sw-twin="1">' + poly(np(0, 0, -A + 2 * A * cl(F(D.twin)), 0.86), ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.5, H * 0.005)) + '" stroke-linejoin="round"') + '</g>';
+tw = '<g data-sw-twin="1">' + g(INC, poly(np(0, 0, -A + 2 * A * cl(F(D.twin)), 0.86))) + '</g>';
 }
 body += '<g data-sw-needle>' + g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
 body += glow(tw + poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '" data-sw-hub="' + n1(Math.max(hr, tailR + wb * 1.6)) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>') + '</g>';
 }
 return svg(W, H, body);
 }
-function tri(down, W, H) {
+function tri(down, W, H, c) {
 var s = Math.min(W, H), x0 = (W - s) / 2, y0 = (H - s) / 2, p = down ? [[x0 + s * 0.1, y0 + s * 0.12], [x0 + s * 0.9, y0 + s * 0.12], [x0 + s / 2, y0 + s * 0.9]] : [[x0 + s * 0.1, y0 + s * 0.9], [x0 + s * 0.9, y0 + s * 0.9], [x0 + s / 2, y0 + s * 0.12]];
-return svg(W, H, poly(p, down ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(2, s * 0.1)) + '" stroke-linejoin="round"' : ''));
+var pl = poly(p, down ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(2, s * 0.1)) + '" stroke-linejoin="round"' : '');
+return svg(W, H, c ? g(c, pl) : pl);
 }
 // Trend arrow (owner): 28x28 strokes; down mirrored; level: none.
 function arrow(dir, W, H) {
@@ -586,6 +595,7 @@ case 'arrow': return arrow((i === 2 ? SW.inn : (i ? SW.tdial : SW.baro) || {}).a
 case 'cue': return cue(SW.cue, W, H);
 case 'dcue': return cue((SW.days[i] || {}).cue, W, H);
 case 'temp': return digits(SW.temp, H);
+case 'loc': return loc(['out', 'in'][i] || API.loc || 'out', W, H);
 case 'itemp': return SW.inn ? digits(SW.inn.temp, H) : '';
 case 'meter': return meter(SW.meters[i], W, H, API.n || 10);
 case 'day': return day(SW.days[i], axisFor(SW), W, H, !!(SW.days[i] || {}).today);
@@ -593,7 +603,7 @@ case 'scale': return scale(scN, W, H);
 case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now, SW.hours);
 case 'gauge': return SW.rain ? gauge(SW.rain.gauge, W, H) : '';
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
-case 'tri': return tri(i === 0, W, H);
+case 'tri': return tri(i % 2 === 0, W, H, i > 1 ? INC : '');
 case 'rule': return rule(W, H);
 case 'moon': return moon(SW.sun && SW.sun.phase, H);
 case 'baro': return dial(SW.baro, W, H, true, SW.tdial);
@@ -645,7 +655,7 @@ ic.setAttribute('data-sw-condicon', tops.length + ',' + h.toFixed(1) + ',' + mid
 var swRepaint = null;
 function swFit() {
 document.querySelectorAll('[data-sw-part="temp"]').forEach(function (t) {
-var g = t.parentElement, row = g.parentElement; if (row.hasAttribute('data-sw-twin')) return;
+var g = t.parentElement, row = g.parentElement; if (t.closest('[data-sw-twin]')) return;
 var rb = row.getBoundingClientRect(); if (!rb.width) return;
 var k = (row.offsetWidth && rb.width / row.offsetWidth) || 1, w = function (e) { return e ? e.getBoundingClientRect().width / k : 0; };
 var kids = [].filter.call(row.children, function (c) { return c.getBoundingClientRect().width > 0; }), rs = getComputedStyle(row), gap = parseFloat(rs.columnGap) || 0;
@@ -789,6 +799,7 @@ var cl = /(^| )screen--color-/.test(sc.value);
 SWDraw.mode = { color: cl, dark: sc.contains('screen--dark-mode'), bits: sc.contains('screen--1bit') || (cl && !sc.contains('screen--color-full')) ? 1 : (sc.contains('screen--2bit') ? 2 : 4) };
 SWDraw.font = (TRMNLPaint.type('title', { el: el }) || {}).fontFamily || null;
 var r = el.getBoundingClientRect();
+if (el.hasAttribute('data-sw-sq') && r.height) { var k0 = (el.offsetHeight && r.height / el.offsetHeight) || 1, tf = el.getAttribute('data-sw-part') === 'tri' ? parseFloat(getComputedStyle(el.parentElement).fontSize) * 0.8 : 0; if (tf) el.style.setProperty('height', tf.toFixed(2) + 'px', 'important'); el.style.setProperty('width', (tf || r.height / k0).toFixed(2) + 'px', 'important'); r = el.getBoundingClientRect(); }   // a square tile
 if (!r.width && !r.height) return;
 SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
 var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;

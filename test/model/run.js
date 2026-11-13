@@ -167,7 +167,9 @@ test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 me
   const none = view({});
   eq([none.inn, none.tdial.twin, none.meters.some((m) => m.key === 'co2')], [null, null, false], 'no sensor: nothing changes');
   const v = view({ temp: 21.6, hum: 48, co2: 900 });
-  eq([v.inn.temp, v.inn.out, v.inn.in, v.inn.hum, v.tdial.twin, 'feels' in v, 'felt' in v.inn], ['21.6', 'BUITEN', 'BINNEN', 'VOCHT 48 %', 21.6, false, false], 'owner 2026-11-13: no felt readout, no felt line under BUITEN');
+  eq([v.inn.temp, v.inn.out, v.inn.in, v.inn.hum, v.tdial.twin, 'feels' in v, 'felt' in v.inn], ['21.6', 'BUITEN', 'BINNEN', '', 21.6, false, false], 'owner 2026-11-13: no felt readout, no felt line under BUITEN; the humidity is in the meter now');
+  const hmt = v.meters.filter((m) => m.key === 'humidity')[0];
+  eq([hmt && hmt.tw.out, hmt && hmt.tw.in, hmt && hmt.tw.m.frac > 0.4 && hmt.tw.m.frac < 0.6, none.meters.some((m) => m.tw), view({ temp: 21.6 }).meters.some((m) => m.tw)], ['BUITEN', 'BINNEN', true, false, false], 'owner 2026-11-13: indoor humidity is a second block set on the humidity row, one set without the sensor or without a humidity reading');
   ok(v.tdial.b >= 21.6, 'dial scale holds the indoor needle');
   const out = view({}), M0 = SWModel.build(raw, {}), cold = Object.assign({}, M0, { now: Object.assign({}, M0.now, { temp: 15, feels: 1 }) });
   eq(['feels' in out, T.buildView(cold, T.buildI18n('nl'), raw.daily).cue[0]], [false, 'parka'], 'owner 2026-11-13: no felt readout without a sensor either; the felt temperature (1) still picks the top layer (parka, not the air temperature 15)');
