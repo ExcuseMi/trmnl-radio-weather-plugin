@@ -99,6 +99,7 @@
     {%- endfor %}
     {%- else %}
     <div class="flex flex--row flex--top gap--xsmall shrink-0 {{ tg_h }}"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
+    {%- if ui.cue and ui.cue.size > 0 %}<div data-sw-div class="border--v-60 shrink-0 h--full{% if view == 3 %} hidden lg:block lg:portrait:hidden{% endif %}"></div>{% endif %}{% comment %} owner 2026-11-13: the thin divider between the temperature and the badge, as tall as the digits, midway in the gap (swBadge) {% endcomment %}
     {{ cbadge }}
     {%- endif %}
    </div>
@@ -623,17 +624,16 @@ return API;
       var rb = row.getBoundingClientRect(); if (!rb.width) return;
       var k = (row.offsetWidth && rb.width / row.offsetWidth) || 1, w = function (e) { return e ? e.getBoundingClientRect().width / k : 0; };
       var kids = [].filter.call(row.children, function (c) { return c.getBoundingClientRect().width > 0; }), rs = getComputedStyle(row), gap = parseFloat(rs.columnGap) || 0;
-      var col = rs.flexDirection.indexOf('column') === 0, need = col ? kids.reduce(function (a, c) { return Math.max(a, w(c)); }, 0) : kids.reduce(function (a, c) { return a + w(c); }, 0) + gap * (kids.length - 1), avail = Math.min(row.clientWidth - parseFloat(rs.paddingLeft) - parseFloat(rs.paddingRight), row.parentElement.clientWidth);   // OG half vertical's row is as wide as its content: its column is the limit
+      var col = rs.flexDirection.indexOf('column') === 0, need = col ? kids.reduce(function (a, c) { return Math.max(a, w(c)); }, 0) : kids.reduce(function (a, c) { return a + w(c); }, 0) + gap * (kids.length - 1), avail = Math.min(row.clientWidth - parseFloat(rs.paddingLeft) - parseFloat(rs.paddingRight), row.parentElement.clientWidth) - (row.querySelector(':scope > [data-sw-part="cue"]') ? gap : 0);   // with the badge: half a gap more on each side, so the row's ends keep the normal gap to the column dividers. OG half vertical's row is as wide as its content: its column is the limit
       var h = function (e) { return e.getBoundingClientRect().height / k; };
       var cu = row.querySelector(':scope > [data-sw-part="cue"]'); if (cu && !cu.getBoundingClientRect().width) cu = null;
-      if (!g.hasAttribute('data-sw-h0')) { if (need <= avail + 0.5) return; g.setAttribute('data-sw-h0', h(g)); if (cu) { cu.setAttribute('data-sw-h0', h(cu)); cu.setAttribute('data-sw-w0', w(cu)); } }   // natural sizes, before the first shrink
+      if (!g.hasAttribute('data-sw-h0')) { if (need <= avail + 0.5) return; g.setAttribute('data-sw-h0', h(g)); }   // natural sizes, before the first shrink
       var hs = function (e) { var v = e && e.querySelector('svg'); return v ? h(v) : 0; }, gr = +g.getAttribute('data-sw-h0') / (hs(t) || 1);   // natural / drawn now: every pass sizes from the natural readout, never from its own last shrink
-      var tw = w(t.querySelector('svg')) * gr, bw = cu && !col ? +cu.getAttribute('data-sw-w0') : 0; need += tw - w(t.querySelector('svg')) + (bw ? bw - w(cu) : 0);
+      var tw = w(t.querySelector('svg')) * gr, bw = cu && !col ? w(cu) * gr : 0; need += tw - w(t.querySelector('svg')) + (bw ? bw - w(cu) : 0);
       if (!tw) return;
-      var ex = w(g) - w(t.querySelector('svg')), f = col ? Math.min(1, Math.max(0.4, (avail - 1 - ex) / tw)) : Math.min(1, Math.max(0.4, (tw + bw - (need - avail) - 1) / (tw + bw)));   // stacked (portrait half vertical): the temperature with its unit (ex); in a row the badge shrinks with the digits (owner 2026-11-13: about their cap height)
+      var ex = w(g) - w(t.querySelector('svg')), f = col ? Math.min(1, Math.max(0.4, (avail - 1 - ex) / tw)) : Math.min(1, Math.max(0.4, (tw + bw - (need - avail) - 1) / (tw + bw)));   // stacked (portrait half vertical): the temperature with its unit (ex); in a row the badge shrinks with the digits (swBadge sizes it to their ink)
       function set(e, v, p) { if (Math.abs(h(e) - v) > 0.3) { e.style.setProperty('height', v.toFixed(1) + 'px', 'important'); if (swRepaint) swRepaint(p); } }   // the paint watcher does not see a height-only change: draw again here
       set(g, +g.getAttribute('data-sw-h0') * f, t);
-      if (bw && Math.abs(w(cu) - bw * f) > 0.3) { cu.style.setProperty('width', (bw * f).toFixed(1) + 'px', 'important'); cu.style.setProperty('height', (+cu.getAttribute('data-sw-h0') * f).toFixed(1) + 'px', 'important'); }   // the badge's svg follows its box (100 %, meet): no repaint
       row.setAttribute('data-sw-fit', f.toFixed(3));
     });
   }
@@ -659,9 +659,34 @@ return API;
       var v = 1.5 * cx.measureText('H').actualBoundingBoxAscent; e.style.width = v.toFixed(1) + 'px'; e.style.height = v.toFixed(1) + 'px';
     });
   }
+  // Console badge anchored on the big temperature (owner 2026-11-13, "kinda floating"): its top layer exactly the
+  // digits' ink height (cap top to baseline) and on their line, the extras at its right from the digit top; the thin
+  // divider as tall as the digits, midway between the unit's ink and the badge. Sized from the drawn badge (its svg
+  // follows its box), so no repaint.
+  function swInk(e) { var r = e.getBoundingClientRect(), vb = e.viewBox.baseVal, b = e.getBBox(), kx = r.width / (vb.width || r.width), ky = r.height / (vb.height || r.height); return { l: r.left + (b.x - vb.x) * kx, r: r.left + (b.x - vb.x + b.width) * kx, t: r.top + (b.y - vb.y) * ky, h: b.height * ky }; }
+  function swBadge(cx) {
+    document.querySelectorAll('[data-sw-part="cue"]').forEach(function (cu) {
+      var cb = cu.getBoundingClientRect(), sv = cu.querySelector('svg'), g = cu.querySelector('g[data-sw-cloth]'), t = cu.parentElement.querySelector('[data-sw-part="temp"] svg');
+      if (!cb.width || !sv || !g || !t || !t.getBoundingClientRect().height) return;
+      var sc = (cu.offsetWidth && cb.width / cu.offsetWidth) || 1, ti = swInk(t), vb = sv.viewBox.baseVal, bx = g.getAttribute('data-sw-box').split(',').map(Number), kk = ti.h / bx[2];
+      if (Math.abs(cb.height - vb.height * kk) > 0.3) { cu.style.setProperty('height', (vb.height * kk / sc).toFixed(2) + 'px', 'important'); cu.style.setProperty('width', (Math.min(vb.width, bx[2] * 1.6) * kk / sc).toFixed(2) + 'px', 'important'); sv.setAttribute('preserveAspectRatio', 'xMinYMid slice'); }   // as wide as the drawing (top layer and extras, 1.6 x its size): slice keeps the height scale, the cut part is empty
+      cu.style.transform = ''; cb = cu.getBoundingClientRect();
+      var top = cb.top + (cb.height - vb.height * kk) / 2 + (bx[1] - vb.y) * kk;   // xMinYMid meet: the drawing centred in its box
+      cu.style.transform = 'translateY(' + ((ti.t - top) / sc).toFixed(2) + 'px)';
+      var dv = cu.previousElementSibling; if (!dv || !dv.hasAttribute('data-sw-div')) return;
+      var u = cu.parentElement.querySelector('[data-sw-unit]'); dv.style.transform = '';
+      if (!u || !dv.getBoundingClientRect().height) return;
+      var cs = getComputedStyle(u); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+      var ub = u.getBoundingClientRect(), us = (u.offsetWidth && ub.width / u.offsetWidth) || 1, ur = ub.left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight * us, bl = cu.getBoundingClientRect().left;
+      dv.style.setProperty('height', (ti.h / sc).toFixed(2) + 'px', 'important'); var r = dv.getBoundingClientRect();
+      dv.style.transform = 'translate(' + (((ur + bl) / 2 - (r.left + r.right) / 2) / sc).toFixed(2) + 'px,' + ((ti.t - r.top) / sc).toFixed(2) + 'px)';
+    });
+  }
+  var swN = 0;
   function swAlign() {
+    if (++swN > 60) return;   // a resize feedback loop never hangs the page: at most 60 passes between the timed ones
     var cx = document.createElement('canvas').getContext('2d');
-    swCond(cx); swFit(); swHair();
+    swCond(cx); swFit(); swBadge(cx); swFit(); swBadge(cx); swHair();   // the anchored badge changes the row width: fit again
   }
   whenReady(function () {
     swRepaint = swPaint;
@@ -708,7 +733,7 @@ return API;
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(swAlign);   // the unit's ink width needs the real font
     if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-cond]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
     if (window.MutationObserver) { var mo = new MutationObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-cond]').forEach(function (q) { mo.observe(q, { attributes: true, childList: true, characterData: true, subtree: true }); }); }   // the Framework's clamp rewrites the condition
-    [200, 800, 2000].forEach(function (ms) { setTimeout(swAlign, ms); });   // the Framework refits text after first paint
+    [200, 800, 2000].forEach(function (ms) { setTimeout(function () { swN = 0; swAlign(); }, ms); });   // the Framework refits text after first paint
     document.body.setAttribute('data-sw-drawn', '1');
   });
 })();
