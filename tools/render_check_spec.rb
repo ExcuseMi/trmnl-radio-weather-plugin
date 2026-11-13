@@ -41,8 +41,16 @@ RSpec.describe 'renders' do
       puts "ERR #{c['name']}: #{err}" if err
       expect(err).to be_nil
       tf = s.evaluate(%q{(function(){var v=function(q){var e=document.querySelector(q);if(!e)return 0;var r=e.getBoundingClientRect();return r.width>0?r.height:0};var t=v('[data-sw-part="temp"] svg'),f=v('[data-sw-part="feels"] svg');return f&&!(t>f)?'temp '+t.toFixed(0)+' felt '+f.toFixed(0):''})()})   # owner step 12: the main temperature is the largest number in the console
-      arc = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0}),bad=[],rs=[];a.forEach(function(g){var sv=g.ownerSVGElement,k=sv.getBoundingClientRect().width/+sv.getAttribute('width'),v=g.getAttribute('data-sw-arc').split(',').map(Number),r=v[0]*k,w=v[1]*k;rs.push(r);var SB=sv.getBoundingClientRect(),T=1e9;[].forEach.call(sv.querySelectorAll('path,polygon,circle,line,text'),function(e){var b=e.getBoundingClientRect();if(b.width||b.height)T=Math.min(T,b.top)});var hb=sv.querySelector('[data-sw-hub]').getBoundingClientRect();if((T-SB.top)/SB.height>0.2||(SB.bottom-hb.bottom)/SB.height>0.05)bad.push('dial not filling its panel: top '+((T-SB.top)/SB.height*100).toFixed(0)+'% hub '+((SB.bottom-hb.bottom)/SB.height*100).toFixed(0)+'%');var d=sv.closest('[data-sw-part]').getAttribute('data-sw-part'),D=d==='baro'?SW.baro:SW.tdial;if(D&&D.lo!=null&&D.hi!=null&&sv.querySelectorAll('[data-sw-markt]').length!==2)bad.push(d+' marks '+sv.querySelectorAll('[data-sw-markt]').length);});if(rs.length===2&&Math.abs(rs[0]-rs[1])>2)bad.push('radius '+rs.map(function(x){return x.toFixed(1)}).join('/'));return a.length+'|'+bad.join('; ');})()})   # owner step 13: both dials one radius, filling the panel height (ink within 20 % of the top: 3-digit low/high numbers and the twin needle shrink both; hub within 5 % of the bottom), low/high marks on both
+      arc = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0}),bad=[],rs=[];a.forEach(function(g){var sv=g.ownerSVGElement,k=sv.getBoundingClientRect().width/+sv.getAttribute('width'),v=g.getAttribute('data-sw-arc').split(',').map(Number),r=v[0]*k,w=v[1]*k;rs.push(r);var SB=sv.getBoundingClientRect(),T=1e9;[].forEach.call(sv.querySelectorAll('path,polygon,circle,line,text'),function(e){var b=e.getBoundingClientRect();if(b.width||b.height)T=Math.min(T,b.top)});var hb=sv.querySelector('[data-sw-hub]').getBoundingClientRect();if((T-SB.top)/SB.height>0.2||(SB.bottom-hb.bottom)/SB.height>0.2)bad.push('dial not filling its panel: top '+((T-SB.top)/SB.height*100).toFixed(0)+'% hub '+((SB.bottom-hb.bottom)/SB.height*100).toFixed(0)+'%');var d=sv.closest('[data-sw-part]').getAttribute('data-sw-part'),D=d==='baro'?SW.baro:SW.tdial;if(D&&D.lo!=null&&D.hi!=null&&sv.querySelectorAll('[data-sw-markt]').length!==2)bad.push(d+' marks '+sv.querySelectorAll('[data-sw-markt]').length);});if(rs.length===2&&Math.abs(rs[0]-rs[1])>2)bad.push('radius '+rs.map(function(x){return x.toFixed(1)}).join('/'));return a.length+'|'+bad.join('; ');})()})   # owner step 13: both dials one radius, filling the panel height (ink within 20 % of the top: 3-digit low/high numbers and the twin needle shrink both; hub within 5 % of the bottom), low/high marks on both
       puts "ARC #{c['name']}: #{arc}"
+      # Dial clearance (owner 2026-11-13, live X full): no dial ink (arc, ticks, numbers, zone icons, band, marks, labels;
+      # not the needle) within the gap (3 % of the dial height, at least 3 px) of the caption text boxes or the panel edges.
+      dc = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="baro"],[data-sw-part="tdial"]').forEach(function(d){var B=d.getBoundingClientRect();if(!B.width)return;var k=d.getAttribute('data-sw-part'),g=Math.max(3,B.height*0.03)-1,P=(d.closest('[data-sw-panel]')||d).getBoundingClientRect(),caps=[].map.call(d.parentElement.querySelectorAll('[data-sw-cap]'),function(c){var rg=document.createRange();rg.selectNodeContents(c);return rg.getBoundingClientRect()}).filter(function(q){return q.width>0});
+var n=0;[].forEach.call(d.querySelectorAll('svg path, svg line, svg text, svg polygon, svg image, svg circle'),function(e){if(e.closest('[data-sw-needle],defs,[data-sw-twin]'))return;var b=e.getBoundingClientRect();if(!b.width&&!b.height)return;var w=(e.getAttribute('stroke-width')||0)/2*(B.width/(+d.querySelector('svg').getAttribute('width')||B.width));
+var x0=b.left-w,y0=b.top-w,x1=b.right+w,y1=b.bottom+w,tag=e.tagName+(e.textContent?' '+e.textContent:'');
+if(x0<P.left+g||y0<P.top+g||x1>P.right-g||y1>P.bottom-g){if(n++<3)bad.push(k+' '+tag+' at the panel edge');return;}
+caps.forEach(function(c){if(x0<c.right+g&&x1>c.left-g&&y0<c.bottom+g&&y1>c.top-g&&n++<3)bad.push(k+' '+tag+' within '+g.toFixed(0)+' of caption');});});});return bad.join('; ');})()})
+      puts "DIALCLEAR #{c['name']}: #{dc}" unless dc.empty?
       geo = s.evaluate("(function(){var r=[].slice.call(document.querySelectorAll('[data-sw-part=\\'day\\']')).map(function(e){return e.getBoundingClientRect()}).filter(function(b){return b.width>0});return r.filter(function(b){return Math.abs(b.height-r[0].height)>0.5||Math.abs(b.left-r[0].left)>0.5||Math.abs(b.width-r[0].width)>0.5}).length+'/'+r.length})()")
       div = s.evaluate(%q{(function(){var out=[];document.querySelectorAll('[data-sw-div]').forEach(function(dv){var d=dv.getBoundingClientRect();if(!d.height)return;var row=dv.parentElement,u=row.querySelector('[data-sw-unit=\'\']'),t=row.querySelector('[data-sw-part=\'temp\'] svg'),p=row.querySelector('[data-sw-felt]');function k(e){var r=e.getBoundingClientRect(),v=e.viewBox.baseVal,b=e.getBBox(),x=r.width/v.width,y=r.height/v.height;return{l:r.left+(b.x-v.x)*x,t:r.top+(b.y-v.y)*y,h:b.height*y}}var c=document.createElement('canvas').getContext('2d'),cs=getComputedStyle(u);c.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var ub=u.getBoundingClientRect(),sc=(u.offsetWidth&&ub.width/u.offsetWidth)||1;var ur=ub.left+c.measureText(u.textContent.trim()).actualBoundingBoxRight*sc,pi={l:p.getBoundingClientRect().left},ti=k(t),mid=(d.left+d.right)/2;out.push([(mid-ur).toFixed(1),(pi.l-mid).toFixed(1),(d.height-ti.h).toFixed(1),(d.top-ti.t).toFixed(1),sc.toFixed(3),ur.toFixed(1),pi.l.toFixed(1),d.left.toFixed(1),d.right.toFixed(1)].join(','))});return out.join(' ')})()})
       puts "DIV #{c['name']}: gapL,gapR,dH,dTop #{div}"
@@ -125,11 +133,11 @@ return n+(bad.length?' '+bad.slice(0,4).join('; '):'');})()})
       puts "POLLEN #{c['name']}: #{po}" unless po.empty?
       expect(po).to eq('')
       # Indoor sensor (as live): with a reading, BUITEN and BINNEN twin readouts side by side (digits drawn, no overlap,
-      # a line under each), and the temperature dial (when shown) carries the twin needle; without one, none of it.
+      # the humidity under BINNEN, no felt line under BUITEN, owner 2026-11-13), and the temperature dial (when shown) carries the twin needle; without one, none of it.
       sn = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},bad=[];
 var tw=[].filter.call(document.querySelectorAll('[data-sw-twin="out"],[data-sw-twin="in"]'),vis),nd=[].filter.call(document.querySelectorAll('svg [data-sw-twin="1"] line'),function(l){return vis(l.ownerSVGElement)&&!l.closest('[data-sw-glow]')});
 if(tw.length){if(tw.length!==2)bad.push('twins '+tw.length);else{var a=tw[0].getBoundingClientRect(),b=tw[1].getBoundingClientRect();if(a.right>b.left+1)bad.push('twins overlap');
-tw.forEach(function(t){var d=t.querySelector('[data-sw-part] svg'),sp=t.querySelectorAll(':scope > span');if(!d||!vis(d)||!d.querySelector('path,rect,polygon'))bad.push(t.getAttribute('data-sw-twin')+' no digits');if(sp.length<2||!sp[0].textContent.trim()||!sp[1].textContent.trim())bad.push(t.getAttribute('data-sw-twin')+' label/line missing');});}}
+tw.forEach(function(t){var d=t.querySelector('[data-sw-part] svg'),sp=t.querySelectorAll(':scope > span');if(!d||!vis(d)||!d.querySelector('path,rect,polygon'))bad.push(t.getAttribute('data-sw-twin')+' no digits');var o=t.getAttribute('data-sw-twin')==='out';if(sp.length<2||!sp[0].textContent.trim()||(!o&&!sp[1].textContent.trim()))bad.push(t.getAttribute('data-sw-twin')+' label/line missing');if(o&&sp[1]&&sp[1].textContent.trim())bad.push('line under BUITEN '+sp[1].textContent.trim());});}}
 var td=[].filter.call(document.querySelectorAll('[data-sw-part="tdial"]'),vis).length;
 return tw.length+','+nd.length+','+td+(bad.length?' '+bad.join('; '):'');})()})
       puts "SENSOR #{c['name']}: #{sn}"
@@ -211,7 +219,7 @@ var dial=n('[data-sw-part="baro"]');return [1,dial,n('[data-sw-part="baro"] ~ .l
         expect(q[3]).to eq(0)   # owner 2026-11-13: no trend word on the dial (the pressure shows; the trend is the arrow)
         expect(q[4]).to eq(q[1] * 2)
         expect(q[5..7]).to eq([0, 0, 0])
-        expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && !(c['view'] == 'half_vertical' && (c['device'] != 'v2' || c['orientation'] == 'portrait')))   # owner step 13 item 2: in the condition row, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) and X half_vertical portrait (the label ran under it)
+        expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && !(c['view'] == 'half_vertical' && (c['device'] != 'v2' || c['orientation'] == 'portrait')))   # owner 2026-11-13: beside the temperature, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) and X half_vertical portrait (the label ran under it)
       end
       # Calm (owner): 1-bit and 2-bit panels stay paper (no grey fill); the dial's low/high numbers clear their triangles by 2 px
       # and are at least the size of the dial's scale numbers.
@@ -248,12 +256,12 @@ return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.len
       expect(d[1]).to be >= (c['device'] == 'v2' ? 53 : 28) if d[0].positive?
       expect([d[3], d[4]]).to eq(d[0].positive? ? [1, 1] : [0, 0])
       expect(d[5]).to eq(1)
-      # Felt temperature (owner decision change: the person icon is gone): the inverted felt word as today's day label,
-      # above the felt digits and left-aligned with them, on every view that shows a felt temperature; no person icon.
+      # Felt temperature (owner decision 2026-11-13): no felt readout anywhere (no felt digits, no felt word, no person
+      # icon); the felt temperature only drives the clothing badge.
       fi = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null};if(document.querySelector('[data-sw-part="person"]'))bad.push('person icon');
-[].forEach.call(document.querySelectorAll('[data-sw-part="feels"]'),function(f){var a=vis(f.querySelector('svg'));if(!a)return;var w=f.closest('[data-sw-felt]'),l=w&&w.querySelector('[data-sw-feltlabel]'),b=vis(l);
-if(!b){bad.push('no felt label');return;}if(!l.classList.contains('label--inverted')||l.textContent.trim()!==SW_I18N_FEELS)bad.push('label '+l.className+' '+l.textContent);if(b.bottom>a.top+1)bad.push('label not above digits '+b.bottom.toFixed(0)+'>'+a.top.toFixed(0));if(Math.abs(b.left-a.left)>2)bad.push('left '+b.left.toFixed(0)+' digits '+a.left.toFixed(0));});
-var n=[].filter.call(document.querySelectorAll('[data-sw-feltlabel]'),vis).length,m=[].filter.call(document.querySelectorAll('[data-sw-part="feels"] svg'),vis).length;if(n!==m)bad.push('labels '+n+' felt '+m);return bad.join('; ');})()}.sub('SW_I18N_FEELS', (c['locale'] == 'nl' || c['locale'].nil? ? "'GEVOEL'" : "document.querySelector('[data-sw-feltlabel]').textContent.trim()")))
+[].forEach.call(document.querySelectorAll('[data-sw-part="feels"],[data-sw-feltlabel],[data-sw-felt]'),function(e){if(vis(e))bad.push('felt readout '+(e.getAttribute('data-sw-part')||'label'));});
+[].forEach.call(document.querySelectorAll('span,div'),function(e){if(e.children.length||!vis(e))return;var t=e.textContent;if(t.indexOf('GEVOEL')>=0||/(^| )(VOELT|FEELS)( |$)/i.test(t))bad.push('felt text '+t.trim());});
+return bad.join('; ');})()})
       puts "FEELS #{c['name']}: #{fi}" unless fi.empty?
       expect(fi).to eq('')
       # Hours strip (owner): column count per view, an inverted stamp exactly on the current and the wet hours, the block
@@ -314,23 +322,22 @@ var a=H.top-ink(up,true),b=ink(dn,false)-H.bottom,g=parseFloat(getComputedStyle(
         puts "HAIR #{c['name']}: above,below,gap #{hg}"
         expect([(ha - hb).abs <= [3, 0.25 * [ha, hb].max].max, [ha, hb].min >= 0.5 * hgap]).to eq([true, true])
       end
-      # Console readouts (owner screenshots 107-109, OG 2026-11-13): temperature digits, the felt label and the felt digits
-      # never overlap; felt digits at least the label's height; the temperature the largest readout; the clothing badge
-      # never below or over the temperature digits; the last day row inside its panel.
+      # Console readouts (owner screenshots 107-109; owner 2026-11-13: the badge took the felt reading's place): the
+      # clothing badge beside the big temperature, right of the digits and unit, its ink centred on the digits' ink
+      # (within 15 % of their height) and about their cap height (0.7 to 1.25); the last day row inside its panel.
       cr2 = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},all=function(q){return [].map.call(document.querySelectorAll(q),vis).filter(Boolean)},ov=function(a,b){return Math.min(a.right,b.right)-Math.max(a.left,b.left)>0.5&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>0.5};
-var t=all('[data-sw-part="temp"] svg')[0],f=all('[data-sw-part="feels"] svg'),l=all('[data-sw-feltlabel]'),cu=all('[data-sw-part="cue"]');
-if(t){f.forEach(function(b){if(ov(t,b))bad.push('temp over felt');if(b.height>t.height+0.5)bad.push('felt '+b.height.toFixed(0)+' > temp '+t.height.toFixed(0))});l.forEach(function(b){if(ov(t,b))bad.push('temp over label')});
-cu.forEach(function(b){if(ov(t,b))bad.push('badge over temp');if(b.top>=t.bottom-0.5)bad.push('badge below temp '+b.top.toFixed(0)+'>='+t.bottom.toFixed(0))});}
-f.forEach(function(b,i){var a=l[i];if(!a)return;if(ov(a,b))bad.push('label over felt');if(b.height<a.height-0.5)bad.push('felt '+b.height.toFixed(0)+' < label '+a.height.toFixed(0))});
+var te=[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg'),vis)[0];
+[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){if(!te){bad.push('badge without temperature');return;}var r=te.getBoundingClientRect(),vb=te.viewBox.baseVal,bb=te.getBBox(),ky=r.height/(vb.height||r.height),kx=r.width/(vb.width||r.width),tt=r.top+(bb.y-vb.y)*ky,th=bb.height*ky,tr=r.left+(bb.x-vb.x+bb.width)*kx;
+var u=te.closest('[data-sw-part]').parentElement.querySelector('[data-sw-unit]'),ur=u?vis(u).right:tr,g=e.querySelector('g[data-sw-cloth]'),sv=e.querySelector('svg'),sr=vis(sv);if(!g||!sr){bad.push('badge not drawn');return;}var sb=sv.viewBox.baseVal,sk=Math.min(sr.width/sb.width,sr.height/sb.height),oy=sr.top+(sr.height-sb.height*sk)/2,bx=g.getAttribute('data-sw-box').split(',').map(Number),gb={left:sr.left+(bx[0]-sb.x)*sk,top:oy+(bx[1]-sb.y)*sk,height:bx[2]*sk};gb.right=gb.left+bx[2]*sk;gb.bottom=gb.top+gb.height;   // the top layer's box (xMinYMid: a T-shirt draws shorter than a parka in the same box)
+if(gb.left<Math.max(tr,ur)-0.5)bad.push('badge not right of the temperature '+gb.left.toFixed(0)+'<'+Math.max(tr,ur).toFixed(0));if(ov(gb,{left:r.left,right:tr,top:tt,bottom:tt+th}))bad.push('badge over temp');
+var dc=(gb.top+gb.bottom)/2-(tt+th/2);if(Math.abs(dc)>0.15*th)bad.push('badge centre off the digits by '+dc.toFixed(1)+' of '+th.toFixed(1));if(gb.height<0.7*th||gb.height>1.25*th)bad.push('badge '+gb.height.toFixed(1)+' vs digits '+th.toFixed(1));});
 document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=vis(p);if(!q)return;var r=[].map.call(p.querySelectorAll('[data-sw-row="day"]'),vis).filter(Boolean);if(r.length&&r[r.length-1].bottom>q.bottom+0.5)bad.push('day row '+r.length+' past the panel '+(r[r.length-1].bottom-q.bottom).toFixed(0))});
 return bad.join('; ');})()})
       puts "READOUT #{c['name']}: #{cr2}" unless cr2.empty?
       expect(cr2).to eq('')
-      # Console badge (owner step 13 item 2): in the condition row, its top icon at least 0.8 x the condition icon's ink
-      # height, the row gap between the label text and the badge ink (owner 2026-11-13, live OG full); none on OG half vertical (owner 2026-11-13: too narrow there).
-      cb = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null};
-[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){var row=e.parentElement,sp=row.querySelector(':scope > [data-sw-cond]');if(!sp){bad.push('badge not in the condition row');return;}
-var ic=row.firstElementChild,ib=ic.getBoundingClientRect(),ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),ih=ik[1]*ib.height,g=e.querySelector('g[data-sw-cloth]'),gh=g?g.getBoundingClientRect().height:0;if(gh<0.8*ih-0.5)bad.push('badge '+gh.toFixed(1)+' < 0.8 x icon '+ih.toFixed(1));var eb=e.getBoundingClientRect(),gb=g?g.getBoundingClientRect():eb,kk=(row.offsetWidth&&row.getBoundingClientRect().width/row.offsetWidth)||1,gp=(parseFloat(getComputedStyle(row).columnGap)||8)*kk,cx2=document.createElement('canvas').getContext('2d'),cs2=getComputedStyle(sp),rg=document.createRange();cx2.font=cs2.fontWeight+' '+cs2.fontSize+' '+cs2.fontFamily;rg.selectNodeContents(sp);[].forEach.call(rg.getClientRects(),function(q){if(q.width>0&&q.right>gb.left-gp+0.5&&q.left<gb.right&&q.bottom>gb.top&&q.top<gb.bottom)bad.push('label within the gap of the badge '+(q.right-gb.left+gp).toFixed(1));});});return bad.join('; ');})()})
+      # Condition row (owner 2026-11-13): the badge moved beside the temperature; the condition label at its full size
+      # (no step down), no badge in its row.
+      cb = s.evaluate(%q{(function(){var bad=[];[].forEach.call(document.querySelectorAll('[data-sw-cond]'),function(sp){if(!sp.getBoundingClientRect().width)return;if(sp.style.fontSize)bad.push('label stepped down to '+sp.style.fontSize);if(sp.parentElement.querySelector(':scope > [data-sw-part="cue"]'))bad.push('badge in the condition row');});return bad.join('; ');})()})
       puts "CUEROW #{c['name']}: #{cb}" unless cb.empty?
       expect(cb).to eq('')
       # Digit spacing (owner 2026-11-13, "4. 1"): in the seven-segment readouts the ink gap between neighbouring digits
@@ -356,6 +363,7 @@ if(r.left<(B.left+B.right)/2||r.bottom>(B.top+B.bottom)/2)bad.push(k+' arrow not
       puts "GEO #{c['name']}: unequal day rows #{geo}"
       expect(tf).to eq('')
       expect(arc.split('|', 2)[1]).to eq('')
+      expect(dc).to eq('')
       expect(geo).to start_with('0/')
       puts "#{c['name']}: #{s.evaluate("document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug')")[0, 300]}"
     end
