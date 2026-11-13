@@ -450,9 +450,9 @@ function buildView(M, i18n, daily, moon, phase, opt) {
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
 var R = M.rain, wetIn12 = !!R && R.from < 12;
-// REGEN (owner 2026-11-13): the precipitation over the rain calendar's 12 hours, scale 0..10 mm (0..0.4 in); only with rain in the calendar. No today's range / peak states (a sum over the window has none).
+// REGEN (owner 2026-11-13): the precipitation over the rain calendar's 12 hours, scale 0..10 mm (0..0.4 in); only with rain in the calendar and a amount above 0 (missing hourly precipitation hides it, like pollen). No today's range / peak states (a sum over the window has none).
 var rs0 = R ? Math.max(0, Math.min(R.from - 2, M.hours.length - 12)) : 0, regenMm = wetIn12 ? M.hours.slice(rs0, rs0 + 12).reduce((a, q) => a + (q.mm || 0), 0) : null;
-var RO = { regen: [O.rain, bar(regenMm, 0, F_ ? 0.4 : 10), wetIn12], wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
+var RO = { regen: [O.rain, bar(regenMm, 0, F_ ? 0.4 : 10), wetIn12 && regenMm > 0], wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
 aqi: ['AQI', bar(n.aqi, 0, 100), n.aqi !== null], pollen: [O.pollen, n.pollen, n.pollen !== null && n.pollen > 0], humidity: [O.m_hum, bar(n.hum, 0, 100), n.hum !== null],
 baro: ['BARO', bar(n.press, 970, 1050), n.press !== null], co2: ['CO2', bar(M.inn.co2, 400, 2000), M.inn.co2 !== null] };
 var relevant = { uv: n.day !== false && t.uvMax !== null && t.uvMax >= 3, baro: false };
