@@ -117,6 +117,7 @@
    <div class="flex {{ ru_cls }} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full pr--1" data-sw-unit="rain">
     <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
     <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | times: kw | round | at_most: 100 }}cqw] lg:portrait:w--[{% if view == 3 %}28{% elsif view == 4 %}24{% else %}18{% endif %}cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"></div>
+    {%- if ui.rain.gauge %}<div class="shrink-0 lg:portrait:hidden h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh]" data-sw-part="gauge"></div>{% endif %}
    </div>
    <div class="h--[{% if view == 3 %}2{% else %}{{ rc_m }}{% endif %}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
    {%- endif %}
@@ -314,6 +315,19 @@ else off += DK ? rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1,
 var PV = API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bits <= 1 ? 'text--gray-50' : (API.mode && API.mode.bits <= 2 ? 'text--gray-65' : 'text--gray-70'));   // today's range (earlier or later), one light Framework grey (owner)
 var LT = PV;
 return svg(W, H, '<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + g(LT, lt) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g('text--gray-40', on) + '</g>' : glow(on, GPX)) +   /* owner 2026-11-13: dark grey for the value now on 2-bit+ light; 1-bit black, dark mode white */ (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);   // active cells (now) in full ink, black or white in dark mode (owner 2026-11-13)
+}
+// Rain gauge (owner 2026-11-13, replaces the REGEN meter row): a narrow vertical tube of 5 segments filled from the
+// bottom (segs from the transform), the amount under it. Same fill as the meter's active cells.
+function gauge(gq, W, H) {
+if (!gq) return '';
+var lab = String(gq.label), fs = Math.min((API.lp || H * 0.2) * 0.7, W / (lab.length * 0.6)), lh = fs * 1.25, th = H - lh - 2, n = 5, tw = Math.min(W * 0.75, th / n * 2), x0 = (W - tw) / 2, sg = th / n, gp = Math.max(2, sg * 0.14), on = '', sh = '', off = '', DK = API.mode && API.mode.dark && API.mode.bits >= 2;
+for (var i = 0; i < n; i++) {
+var y = th - (i + 1) * sg + gp / 2, h = sg - gp;
+if (i < gq.segs) { on += rect(x0, y, tw, h, 2, ' data-sw-c="' + i + '"'); sh += rect(x0 + SO, y + SO, tw, h, 2); }
+else off += DK ? rect(x0, y, tw, h, 2, ' data-sw-c="' + i + '"') : rect(x0 + 1, y + 1, tw - 2, h - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2" data-sw-c="' + i + '"');
+}
+var offc = !API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')));
+return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g('text--gray-40', on) + '</g>' : glow(on, GPX)) + '</g>' + text(W / 2, th + 2 + fs, lab, fs, 'middle', ' data-sw-glabel'));
 }
 // Days strip x mapping, one for the header and every row (owner 2026-11-12): each grid line runs through the centre of
 // its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.
@@ -601,6 +615,7 @@ case 'meter': return meter(SW.meters[i], W, H, API.n || 10);
 case 'day': return day(SW.days[i], axisFor(SW), W, H, !!(SW.days[i] || {}).today);   // today always highlighted (owner 2026-11-12)
 case 'scale': return scale(scN, W, H);
 case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now, SW.hours);
+case 'gauge': return SW.rain ? gauge(SW.rain.gauge, W, H) : '';
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
 case 'tri': return tri(i === 0, W, H);
 case 'rule': return rule(W, H);
@@ -765,6 +780,15 @@ return API;
   whenReady(function () {
     swRepaint = swPaint;
     swArrow(document.createElement('canvas').getContext('2d'));
+    document.querySelectorAll('[data-sw-part="gauge"]').forEach(function (el) {   // rain gauge (owner 2026-11-13): sized by its label; shown only where the calendar keeps its size checks (cells squarish, digits at least the meter label size); before any part is painted.
+      var cal = el.parentElement.querySelector('[data-sw-part="rain"]'), ub = el.parentElement.getBoundingClientRect(), pr = parseFloat(getComputedStyle(el.parentElement).paddingRight) || 0;
+      var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0], lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
+      var lab = ((SW.rain || {}).gauge || {}).label || '', fs = lp * 0.7 || 12, rw = (cal.getAttribute('data-sw-rows') || '').split(','), rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || 2;
+      el.classList.add('hidden'); var cb = cal.getBoundingClientRect(), w0 = cb.width; el.classList.remove('hidden');
+      el.style.width = Math.ceil(lab.length * 0.62 * fs) + 4 + 'px';
+      var gb = el.getBoundingClientRect(), cw = cal.getBoundingClientRect().width / 3, ch = cb.height / rows, over = gb.right > ub.right - pr + 0.5;
+      if (!gb.width || over || cw / ch < 0.85 || cw * 0.7 < lp) el.classList.add('hidden');
+    });
     document.querySelectorAll('[data-sw-part]').forEach(function (el) {
       TRMNLPaint.watch(el, function () { swPaint(el); });
     });

@@ -69,7 +69,7 @@ caps.forEach(function(c){if(x0<c.right+g&&x1>c.left-g&&y0<c.bottom+g&&y1>c.top-g
       div.split.each { |q| a = q.split(',').map(&:to_f); expect((a[0] - a[1]).abs).to be <= 1.5; expect(a[2].abs).to be <= 1.5; expect(a[3].abs).to be <= 1.5 }
       if c['og_quadrant_console']
         console = s.evaluate(%q{(function(){function vis(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0}var labels=[].filter.call(document.querySelectorAll('[data-sw-mlabel]'),vis).map(function(e){return e.textContent.trim()});var moon=[].filter.call(document.querySelectorAll('[data-sw-part="moon"]'),vis)[0];var ring=moon&&moon.querySelector('circle[stroke]');return {labels:labels,ring:!!ring,lit:!!(moon&&moon.querySelector('[data-sw-moon="lit"]'))}})()})
-        expect(console['labels']).to eq([c['name'] == 'og-q-calm' ? 'REGEN' : 'WIND'])
+        expect(console['labels']).to eq(['WIND'])
         expect(console['ring']).to eq(true) unless c['hourly'].nil?
         expect(console['lit']).to eq(true) unless c['hourly'].nil?
       end
@@ -282,8 +282,18 @@ return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.len
 return bad.join('; ');})()})
       puts "FEELS #{c['name']}: #{fi}" unless fi.empty?
       expect(fi).to eq('')
-      # REGEN (owner 2026-11-13): a REGEN meter row never shows with no lit cell (missing or zero amount hides it).
-      rg0 = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part="meter"][data-sw-key="regen"]').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width)return;var lg=e.querySelector('[data-sw-lit]');if(!lg||!(+lg.getAttribute('data-sw-lit')>0))bad.push('regen without a lit cell');});return bad.join('; ')})()})
+      # Rain gauge (owner 2026-11-13, replaces the REGEN meter row): no REGEN meter anywhere; a visible gauge has as many lit
+      # segments as the transform says (of 5) and its amount label; none without a calendar or an amount; on the X full view
+      # (room beside the calendar) a wet case with an amount shows it; it stays inside its rain unit.
+      rg0 = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0},G=SW.rain&&SW.rain.gauge;
+document.querySelectorAll('[data-sw-key="regen"]').forEach(function(e){if(vis(e))bad.push('REGEN meter row');});
+var gs=[].filter.call(document.querySelectorAll('[data-sw-part="gauge"]'),vis);
+if(gs.length&&!G)bad.push('gauge without data');
+gs.forEach(function(e){var m=e.querySelector('[data-sw-gauge]'),lit=Object.keys([].reduce.call(e.querySelectorAll('[data-sw-st="a"] rect'),function(o,r){o[r.getAttribute('data-sw-c')]=1;return o},{})).length,t=e.querySelector('[data-sw-glabel]'),u=e.closest('[data-sw-unit]').getBoundingClientRect(),b=e.getBoundingClientRect();
+if(!m||+m.getAttribute('data-sw-gauge')!==G.segs||lit!==G.segs||Object.keys([].reduce.call(e.querySelectorAll('[data-sw-c]'),function(o,r){o[r.getAttribute('data-sw-c')]=1;return o},{})).length!==5)bad.push('gauge segments '+lit+' want '+(G&&G.segs));
+if(!t||t.textContent!==G.label)bad.push('gauge label');if(b.right>u.right+0.5||b.left<u.left)bad.push('gauge outside the rain unit');});
+if(G&&!gs.length&&INNER_X_FULL)bad.push('no gauge on a wet X full case');
+return bad.join('; ')})()}.sub('INNER_X_FULL', (c['device'] == 'v2' && (c['view'] || 'full') == 'full' && !c['orientation'] && !c['fixture']) ? 'true' : 'false'))
       expect(rg0).to eq('')
       # Hours strip (owner): column count per view, an inverted stamp exactly on the current and the wet hours, the block
       # curve inside its column and its panel, stamp, temperature and icon ink centred on the column axis (2 px; every
