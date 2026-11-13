@@ -199,22 +199,18 @@ test('the X view: meters in owner order, rain calendar on a wet day, seven days 
   eq(v.days.map((d) => d.name), ['ZO', 'MA', 'DI', 'WO', 'DO', 'VR', 'ZA'], 'seven days from today'); eq(v.days.map((d) => d.today), [true, false, false, false, false, false, false]);
   ok(!JSON.stringify(v).includes('<svg'), 'the transform builds no SVG (owner 2026-11-12)');
 });
-test('rain gauge (owner 2026-11-13): mm over the calendar hours to 5 segments of 2 mm (0.08 in), label, only with rain in the calendar', () => {
+test('rain gauge (owner 2026-11-13): 3 blocks by the peak hourly rain (1 under 1 mm/h, 2 from 1, 3 from 4; 0.04 and 0.16 in/h), label the 12 h total capped 10+ mm / 0.4+ in', () => {
   const raw = fx('mixed'), mk = (f) => { const M = SWModel.build(raw, {}); if (f) f(M); const v = T.buildView(M, T.buildI18n('nl'), raw.daily); ok(!v.meters.some((m) => m.key === 'regen'), 'no REGEN meter'); return v.rain; };
-  const amt = (a) => mk((M) => { M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = a / 2; M.hours[M.rain.to].mm += a / 2; }).gauge;
-  eq([amt(8).segs, amt(8).label], [4, '8 mm'], '8 mm is 4 segments');
-  eq([amt(2).segs, amt(4).segs, amt(10).segs, amt(0.3).segs], [1, 2, 5, 1], 'segments from the bottom, one for a trace');
-  eq(mk((M) => { M.hours[M.rain.from].mm = 40; }).gauge.segs, 5, 'clamped at 5');
+  const hrs = (M, a) => { M.hours.forEach((q) => { q.mm = 0; }); a.forEach((x, k) => { M.hours[M.rain.from + k].mm = x; }); };
+  const g = (a, u) => mk((M) => { if (u) M.unit = u; hrs(M, a); }).gauge;
+  eq([g([0.9]).segs, g([1]).segs, g([3.9]).segs, g([4]).segs, g([40]).segs], [1, 2, 2, 3, 3], 'blocks from the peak hour: 1 / 2 from 1 mm/h / 3 from 4 mm/h');
+  eq([g([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]).segs, g([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]).label], [1, '4 mm'], 'a long light rain is 1 block, the label is the total');
+  eq([g([2, 2]).segs, g([2, 2]).label, g([3, 3, 3, 3]).label], [2, '4 mm', '10+ mm'], 'total label, capped at 10+ mm');
+  eq([g([0.03], 'F').segs, g([0.04], 'F').segs, g([0.15], 'F').segs, g([0.16], 'F').segs], [1, 2, 2, 3], 'inch thresholds 0.04 and 0.16 per hour');
+  eq([g([0.1, 0.1, 0.1], 'F').label, g([0.5], 'F').label, g([0.01], 'F').label], ['0.3 in', '0.4+ in', '<0.1 in'], 'inch labels, capped');
   eq(mk((M) => { M.hours.forEach((q) => { q.mm = null; }); }).gauge, null, 'hidden without an amount');
   eq(mk((M) => { M.hours.forEach((q) => { q.mm = 0; }); }).gauge, null, 'hidden at 0');
   ok(!T.buildView((() => { const M = SWModel.build(raw, {}); M.rain = null; return M; })(), T.buildI18n('nl'), raw.daily).rain, 'no calendar, no gauge');
-  const fm = mk((M) => { M.unit = 'F'; M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = 0.3; }).gauge; eq([fm.segs, fm.label], [4, '0.3 in'], 'inch scale 0.4');
-  // mm and inch inputs at the same amounts (0.2, 3, 12 mm): the inch run gets inches from Open-Meteo, so 12 mm is 0.47 in, not 12 in
-  const one = (u, v) => mk((M) => { M.unit = u; M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = v; }).gauge, I = (mm) => mm / 25.4;
-  eq([0.2, 3, 12].map((a) => one('C', a).label), ['0 mm', '3 mm', '10+ mm'], 'mm labels');
-  eq([0.2, 3, 12].map((a) => one('F', I(a)).label), ['<0.1 in', '0.1 in', '0.4+ in'], 'inch labels, capped');
-  eq([0.2, 3, 12].map((a) => one('F', I(a)).segs), [1, 1, 5], 'inch segments (3 mm is 1.48 of 5)');
-  eq(one('F', 8.2).label, '0.4+ in', 'a mm number fed as inches caps, never reads 8.2 in');
 });
 test('the X view: a dry day shows sun times and the moon, no calendar', () => {
   const raw = fx('mixed'), n = raw.hourly.time.length;
@@ -324,7 +320,7 @@ test('days strip in narrow views: X half vertical 7 days without numbers, OG hal
 });
 test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 segments, 5 days', () => {
   ok(/<div class="hidden lg:block h--\[30cqh\][^"]*"><div class="flex flex--row/.test(sh), 'dials only on lg');
-  ok(/lg:hidden" data-sw-part="meter" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="meter" data-sw-n="10"/.test(sh), 'meter copies per size');
+  ok(/lg:hidden" data-sw-part="\{\{ pk \}\}" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="\{\{ pk \}\}" data-sw-n="10"/.test(sh), 'meter copies per size');
   ok(/data-sw-row="day"/.test(sh) && !/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'every day row in the same full-width wrapper (no half-width fifth row)');
   ok(/{%- if d.today %}<span class="label label--inverted[^"]*" data-sw-today>/.test(sh), 'OG: today a lit lamp on the day name (owner 2026-11-12)');
   D.mode = { bits: 1 }; ok(/data-sw-st="e"><g><rect/.test(D.meter({ frac: 0 }, 200, 30, 5)), '1-bit: unlit cells drawn in full colour'); D.mode = null;
@@ -420,19 +416,19 @@ test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter,
 test('barometer trend over 3 h with +/-1 hPa thresholds; clothing cues for every rule and limit', () => {
   eq([T.pressTrend(1011, 1010), T.pressTrend(1010.9, 1010), T.pressTrend(1009, 1010), T.pressTrend(1009.1, 1010), T.pressTrend(1010, null), T.pressTrend(null, 1010)], ['rising', 'steady', 'falling', 'steady', null, null]);
   const C = (o, F) => T.cueFor(Object.assign({ rain: false, wind: null, gust: null, lo: null, hi: null, uv: null, day: true }, o), F).join('+');
-  eq([C({ rain: true, lo: 15 }), C({ rain: true, lo: 15, wind: 80, gust: 120 }), C({ rain: true, lo: 1 })], ['sweater+umbrella', 'sweater+umbrella', 'parka+umbrella+beanie'], 'rain: always the umbrella extra, the top by felt temperature; no raincoat (owner)');
-  eq([C({ lo: -2.1, hi: 25 }), C({ lo: 2.9, hi: 25 }), C({ lo: 3, hi: 25 }), C({ lo: 4.9, hi: 25 }), C({ lo: 5, hi: 25 })], ['parka+beanie', 'parka+beanie', 'tshirt+beanie', 'tshirt+beanie', 'tshirt'], 'parka under 3 from the coldest, beanie under 5 as an extra');
-  eq([C({ lo: 40.8 }, true), C({ lo: 41 }, true), C({ lo: 37.3 }, true), C({ lo: 37.4 }, true)], ['jacket+beanie', 'jacket', 'parka+beanie', 'jacket+beanie'], 'Fahrenheit: 5 C = 41 F, 3 C = 37.4 F');
-  eq([C({ lo: 5, hi: 15, uv: 6 }), C({ lo: 5, hi: 15, uv: 5.9 }), C({ lo: 5, hi: 15, uv: 8, day: false }), C({ lo: 1, uv: 9 })], ['sweater+sunglasses', 'sweater', 'sweater', 'parka+beanie+sunglasses'], 'sunglasses by day from UV 6, as an extra');
+  eq([C({ rain: true, lo: 15 }), C({ rain: true, lo: 15, wind: 80, gust: 120 }), C({ rain: true, lo: 1 })], ['sweater+umbrella', 'sweater+umbrella', 'parka+umbrella'], 'rain: always the umbrella extra, the top by felt temperature; no raincoat (owner)');
+  eq([C({ lo: -2.1, hi: 25 }), C({ lo: 2.9, hi: 25 }), C({ lo: 3, hi: 25 }), C({ lo: 4.9, hi: 25 }), C({ lo: 5, hi: 25 })], ['parka', 'parka', 'tshirt', 'tshirt', 'tshirt'], 'parka under 3 from the coldest, no beanie (owner)');
+  eq([C({ lo: 40.8 }, true), C({ lo: 41 }, true), C({ lo: 37.3 }, true), C({ lo: 37.4 }, true)], ['jacket', 'jacket', 'parka', 'jacket'], 'Fahrenheit: 5 C = 41 F, 3 C = 37.4 F');
+  eq([C({ lo: 5, hi: 15, uv: 6 }), C({ lo: 5, hi: 15, uv: 5.9 }), C({ lo: 5, hi: 15, uv: 8, day: false }), C({ lo: 1, uv: 9 })], ['sweater', 'sweater', 'sweater', 'parka'], 'no sunglasses at any UV (owner)');
   eq([C({ hi: 11.9 }), C({ hi: 12 }), C({ hi: 17.9 }), C({ hi: 18 }), C({ hi: 53.5 }, true), C({ hi: 53.6 }, true), C({ hi: 64.3 }, true), C({ hi: 64.4 }, true)], ['jacket', 'sweater', 'sweater', 'tshirt', 'jacket', 'sweater', 'sweater', 'tshirt'], 'tops from the warmest: jacket under 12, sweater under 18, t-shirt; F 53.6 and 64.4');
-  eq([C({ rain: true, lo: -5, uv: 7 }), C({ rain: true, wind: 40, lo: -5, uv: 7 })], ['parka+umbrella+beanie+sunglasses', 'parka+umbrella+beanie+sunglasses'], 'every extra in order: umbrella, beanie, sunglasses');
-  eq([C({}), C({ uv: 8 }), C({ rain: true })], ['', 'sunglasses', 'umbrella'], 'no temperature: no top layer, extras still apply');
+  eq([C({ rain: true, lo: -5, uv: 7 }), C({ rain: true, wind: 40, lo: -5, uv: 7 })], ['parka+umbrella', 'parka+umbrella'], 'top layer and umbrella only');
+  eq([C({}), C({ uv: 8 }), C({ rain: true })], ['', '', 'umbrella'], 'no temperature: no top layer, the umbrella still applies');
   const i = T.buildI18n('nl');
   eq([i.ours.p_steady, i.ours.p_rising, i.ours.p_falling], ['STABIEL', 'STIJGEND', 'DALEND']);
   eq(T.buildI18n('ja').ours.p_rising, 'RISING', 'missing language falls back to English');
   const f = fx('mixed');
   const M = SWModel.build(f, {}), calm = T.buildView(M, i, f.daily, null, 0.3, { pressAgo: 1015 }), none = T.buildView(M, i, f.daily, null, 0.3);
-  eq([calm.cue, calm.baro.trend], [['parka', 'umbrella', 'beanie'], 'DALEND'], 'mixed has rain in the window, 1013.2 now against 1015');
+  eq([calm.cue, calm.baro.trend], [['parka', 'umbrella'], 'DALEND'], 'mixed has rain in the window, 1013.2 now against 1015');
   eq(none.baro.trend, null, 'no pressure 3 h ago: no trend');
 });
 test('past_hours=3: the past hours are cut so every hourly list starts at the current hour; the pressure 3 h ago is kept', () => {
@@ -467,16 +463,15 @@ test('hours strip: 12 hours from now, stamps per time format, rain only on wet h
   ok(T.buildView(SWModel.build(dry, {}), i, f.daily, null, 0.3, { hours: true }).hours.every((q) => !q.wet), 'dry: no rain stamps');
   eq(T.hourStrip([], String, '°'), null);
 });
-test('console cue window (owner 2026-11-13): garment now to +3 h, umbrella to 19:00 today (at least +3 h), sunglasses from today\'s max UV', () => {
+test('console cue window (owner 2026-11-13): garment now to +3 h, umbrella to 19:00 today (at least +3 h)', () => {
   const C = (hourly, hours, now, uv) => T.cueFor(T.nowCueInput(hourly, hours, Object.assign({ temp: 15, feels: 15, day: true }, now || {}), uv === undefined ? 2 : uv), false).join('+');
   const H = (h0, n, wetAt) => Array.from({ length: n }, (_, k) => ({ h: (h0 + k) % 24, p: (h0 + k) % 24 === wetAt ? 80 : 0, wet: false }));
   eq(C({ apparent_temperature: [15, 15, 15, 15, -10] }, H(7, 25)), 'sweater', 'a cold hour at +4 h does not count');
-  eq(C({ apparent_temperature: [15, 15, 15, 1, 15] }, H(7, 25)), 'parka+beanie', 'the coldest felt hour up to +3 h picks the parka');
-  eq(C({ apparent_temperature: [15, 15, 15, -5] }, H(7, 25)), 'parka+beanie', 'beanie from the coldest felt hour in the window');
-  eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25, 15)), 'tshirt+umbrella', 'rain at 15:00 shows the umbrella at 07:30');
+  eq(C({ apparent_temperature: [15, 15, 15, 1, 15] }, H(7, 25)), 'parka', 'the coldest felt hour up to +3 h picks the parka');
+    eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25, 15)), 'tshirt+umbrella', 'rain at 15:00 shows the umbrella at 07:30');
   eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25, 20)), 'tshirt', 'rain at 20:00 is after 19:00: no umbrella in the morning');
   eq([C({ apparent_temperature: [20, 20, 20, 20] }, H(21, 25, 0)), C({ apparent_temperature: [20, 20, 20, 20] }, H(21, 25, 1))], ['tshirt+umbrella', 'tshirt'], 'evening (21:00): the umbrella looks to +3 h (00:00), not +4 h');
-  eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25), { day: true }, 7), 'tshirt+sunglasses', 'sunglasses from today\'s max UV in daytime');
+  eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25), { day: true }, 7), 'tshirt', 'no sunglasses (owner), whatever the UV');
   eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25), { day: false }, 7), 'tshirt', 'no sunglasses at night');
   const fb = T.nowCueInput(null, [], { temp: 15, feels: 1, day: true }, 2); eq([fb.lo, fb.hi, fb.rain], [1, 1, null], 'no hourly data: the current felt temperature; rain falls back to the rain window');
 });
@@ -505,16 +500,16 @@ test('per-day clothing cue: daytime hours 07:00 to 19:00 from the hourly data, d
   const H = { time: ht, apparent_temperature: at, precipitation_probability: pp };
   const a = T.dayCueInput(H, d, 0);
   eq([a.lo, a.hi, a.rain, a.uv], [4, 13, false, 1], 'only 07..19: the night cold and the 20:00 rain do not count');
-  eq(T.cueFor(a, false), ['sweater', 'beanie']);
+  eq(T.cueFor(a, false), ['sweater']);
   const at7 = at.slice(); at7[19] = 2.5; eq(T.dayCueInput(Object.assign({}, H, { apparent_temperature: at7 }), d, 0).lo, 2.5, '19:00 is in the window');
   const b = T.dayCueInput(H, d, 1);
   eq([b.lo, b.hi, b.rain, b.uv], [6, 14, false, 7], 'no hours for the day: daily fields');
-  eq(T.cueFor(b, false), ['sweater', 'sunglasses']);
+  eq(T.cueFor(b, false), ['sweater']);
   const c = T.dayCueInput(null, { time: ['2026-11-08'], temperature_2m_min: [1], temperature_2m_max: [9], precipitation_probability_max: [60] }, 0);
-  eq([c.lo, c.hi, c.rain, T.cueFor(c, false)], [1, 9, true, ['parka', 'umbrella', 'beanie']], 'no felt fields: air temperature; rain from the daily value');
+  eq([c.lo, c.hi, c.rain, T.cueFor(c, false)], [1, 9, true, ['parka', 'umbrella']], 'no felt fields: air temperature; rain from the daily value');
   const f = fx('mixed'), M = SWModel.build(f, {}), i = T.buildI18n('nl');
   const v = T.buildView(M, i, f.daily, null, 0.3, { hourly: f.hourly });
-  ok(v.days.every((q) => Array.isArray(q.cue) && q.cue.length >= 1 && q.cue.length <= 3), 'top and up to two extras on every day');
+  ok(v.days.every((q) => Array.isArray(q.cue) && q.cue.length >= 1 && q.cue.length <= 2), 'top layer and at most the umbrella on every day');
   eq(v.days.map((q) => q.cue), v.days.map((q, k) => T.cueFor(T.dayCueInput(f.hourly, f.daily, k), false).slice(0, 3)), 'days: the list capped at 3');
 });
 test('days axis (owner bug): from the values as shown (rounded, -0 as 0) and only the days a view shows; the current temperature counts', () => {
@@ -577,7 +572,7 @@ function bigAnswer() {   // every hourly and daily field the transform asks for,
   D.sunrise = f.daily.sunrise; D.sunset = f.daily.sunset;
   return Object.assign({}, f, { hourly: H, daily: D });
 }
-test('clothing hysteresis (owner 2026-11-13): the top layer and the beanie stay until 1 C (2 F) past the threshold, then flip', () => {
+test('clothing hysteresis (owner 2026-11-13): the top layer stays until 1 C (2 F) past the threshold, then flip', () => {
   const c = (lo, hi, prev, F) => T.cueFor({ lo: lo, hi: hi, rain: false, day: true }, !!F, prev);
   eq(c(5, 12.5, null)[0], 'sweater', 'no memory: threshold as before');
   eq(c(5, 12.5, { top: 'jacket' })[0], 'jacket', 'warmer by 0.5: stays');
@@ -590,13 +585,8 @@ test('clothing hysteresis (owner 2026-11-13): the top layer and the beanie stay 
   eq(c(-5, 0, { top: 'tshirt' })[0], 'parka', 'a big change skips levels');
   eq(c(55, 54.6, { top: 'jacket' }, true)[0], 'jacket', 'F: 53.6 threshold + 1 F stays');
   eq(c(55, 55.7, { top: 'jacket' }, true)[0], 'sweater', 'F: past by 2 F flips');
-  ok(c(5.5, 20, { top: 'tshirt', bn: true }).includes('beanie'), 'beanie stays at 5.5');
-  ok(!c(6.1, 20, { top: 'tshirt', bn: true }).includes('beanie'), 'beanie off past 6');
-  ok(!c(4.5, 20, { top: 'tshirt', bn: false }).includes('beanie'), 'beanie not on at 4.5');
-  ok(c(3.9, 20, { top: 'tshirt', bn: false }).includes('beanie'), 'beanie on past 4');
-  ok(c(5.5, 20, { top: 'tshirt', mit: true }).includes('beanie'), 'an old saved {mit} is accepted and acts as bn');
-  ok(c(4.5, 20, { top: 'tshirt', bn: false }, false).every((k) => k !== 'mittens'), 'no mittens any more');
-  ok(c(41.5, 68, { top: 'tshirt', bn: true }, true).includes('beanie') && !c(43.1, 68, { top: 'tshirt', bn: true }, true).includes('beanie'), 'F: stays at 41.5, off past 43');
+  ok(c(5.5, 20, { top: 'tshirt', bn: true, mit: true }).every((k) => k === 'tshirt' || k === 'umbrella'), 'an old saved {bn} or {mit} is accepted and ignored: no beanie, no mittens');
+  eq(c(2.5, 8, { top: 'jacket', bn: true, mit: true })[0], 'jacket', 'old flags do not disturb the top layer');
 });
 test('meter flags with a margin (owner 2026-11-13): UV from today\'s max 3 (+/-0.5), high CO2 first past 1400 (+/-50)', () => {
   const f = fx('mixed'), view = (uvMax, co2, prevMt) => { const m = SWModel.build(f, {}); m.now.day = true; m.today.uvMax = uvMax; m.now.uv = 1; m.inn.co2 = co2; return T.buildView(m, T.buildI18n('en'), f.daily, null, 0.3, { prevMt: prevMt }); };
@@ -680,7 +670,7 @@ async function stateTests() {
     await check('state: the clothing cue and meter flags are remembered run to run; bad shapes ignored', async () => {
       answer = fx('mixed');
       const r = await run({});
-      eq(r.trmnl_state.cue, { top: r.ui.cue[0], bn: r.ui.cue.includes('beanie') });
+      eq(r.trmnl_state.cue, { top: r.ui.cue[0] }, 'only the top layer is saved');
       ok(!('keep' in r.ui), 'memory not in the merge variables');
       const other = r.ui.cue[0] === 'parka' ? 'jacket' : 'parka';
       ok((await run({ cue: { top: other, bn: false } })).ui.cue[0] !== undefined);
