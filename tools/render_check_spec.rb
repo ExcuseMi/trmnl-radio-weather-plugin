@@ -87,7 +87,7 @@ var ci=m.querySelector('circle'),b=ci?ci.getBoundingClientRect():m.getBoundingCl
       expect(mo).to eq('') if c['view'] == 'half_vertical'
       # X quadrant (owner, step 12: big empty bands above and below): the content of each panel (images, drawings,
       # text) leaves no band over 8 % of the panel height at its top or bottom.
-      if c['view'] == 'quadrant' && (c['device'] || 'v2') == 'v2'
+      if (c['view'] == 'quadrant' && (c['device'] || 'v2') == 'v2') || c['portrait_console']
         band = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=p.getBoundingClientRect();if(!q.height)return;var t=1e9,b=-1e9;
 p.querySelectorAll('img, svg, span').forEach(function(e){if(e.closest('[data-sw-part="face"]'))return;var r=e.getBoundingClientRect();if(!r.width||!r.height||(e.tagName==='SPAN'&&!e.textContent.trim()))return;t=Math.min(t,r.top);b=Math.max(b,r.bottom)});
 var a=(t-q.top)/q.height,z=(q.bottom-b)/q.height;if(a>0.08||z>0.08)bad.push('top '+(a*100).toFixed(0)+'% bottom '+(z*100).toFixed(0)+'%')});return bad.join('; ')})()})

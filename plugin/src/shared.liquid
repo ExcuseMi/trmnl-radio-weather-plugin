@@ -112,7 +112,7 @@
   {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% if view == 3 %}{% assign k_m = 5.6 %}{% if rr_m == 3 %}{% assign k_m = 4 %}{% endif %}{% endif %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.75 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}
   {%- assign ib_m = cal_m %}{% if stk and view != 3 %}{% assign ib_m = rc_m | times: 0.7 | round %}{% endif %}
   {%- capture ib_cls %}aspect--1/1 h--[{{ ib_m }}cqh] lg:h--[{{ cal_l }}cqh] {% if view == 3 %}lg:portrait:h--[6cqh]{% else %}lg:portrait:h--[3cqh]{% endif %} shrink-0{% endcapture %}{% comment %} X half vertical portrait (owner step 12): rain icon and moon as tall as the smaller sun rows {% endcomment %}{% if calm_q %}{% assign ib_cls = ib_cls | append: ' hidden lg:block' %}{% endif %}{% comment %} Calm quadrant: the calendar alone, its moon hidden with the sun unit {% endcomment %}
-  <div class="flex flex--col flex--center gap--xsmall lg:gap--small shrink-0 {{ rc_w }}">
+  <div data-sw-right class="flex flex--col flex--center gap--xsmall lg:gap--small shrink-0 {{ rc_w }}">
    {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small">
    <div class="flex {{ ru_cls }} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full pr--1" data-sw-unit="rain">
     <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
@@ -135,7 +135,7 @@
    {%- if ui.rain %}</div>{% endif %}
   </div>
 {%- endcapture %}
- <div class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% else %}flex--row lg:portrait:flex--col-reverse flex--stretch-y gap--medium lg:gap--large{% endif %} {% if view == 3 %}px--2 pt--5 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
+ <div data-sw-console class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col flex--center gap--xsmall{% else %}flex--row lg:portrait:flex--col-reverse flex--stretch-y gap--medium lg:gap--large{% endif %} {% if view == 3 %}px--2 pt--5 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
 {%- if stk %}
   <div class="flex flex--row flex--stretch-y gap--medium w--full">
 {{ c_temp }}
@@ -719,6 +719,44 @@ return API;
     var cx = document.createElement('canvas').getContext('2d');
     swCond(cx); swFit(); swBadge(cx); swFit(); swBadge(cx); swHair();   // the anchored badge changes the row width: fit again
   }
+  // OG portrait uses the same stacked console with Framework classes, at OG type sizes.
+  function swOGPortrait() {
+    var screen = document.querySelector('.screen');
+    if (!screen || !screen.classList.contains('screen--portrait') || !screen.classList.contains('screen--md')) return;
+    var panel = document.querySelector('[data-sw-console]'), view = +document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug').match(/view=(\d)/)[1];
+    // Keep the verified compact views; full, half horizontal and rainy half vertical still need fitting.
+    if(view < 3 || (view === 3 && panel.querySelector('[data-sw-part="rain"]'))) return;
+    var narrow = view >= 3, short = view === 2 || view === 4;
+    function set(el, re, cls) { if (!el) return; [].slice.call(el.classList).forEach(function(c) { if (re.test(c)) el.classList.remove(c); }); cls.split(' ').forEach(function(c) { if(c) el.classList.add(c); }); }
+    var outer = panel.querySelector('[data-sw-panel] > .relative'), cond = panel.querySelector('[data-sw-cond]'), temp = cond.parentElement.parentElement, top = temp.parentElement, right = panel.querySelector('[data-sw-right]');
+    set(outer, /^(flex--(?:row|col|col-reverse|center)|gap--\w+)$/, 'flex--col-reverse flex--between gap--small');
+    if (narrow) set(outer, /^flex--col-reverse$/, 'flex--col');
+    set(top, /^flex--(?:row|stretch-y)$/, (narrow ? 'flex--col' : 'flex--row') + ' w--full');
+    set(right, /^w--/, narrow ? 'w--full' : 'w--[44cqw]');
+    if(narrow) [].forEach.call(top.querySelectorAll('[data-sw-rule]'),function(e){set(e,/^hidden$/, 'hidden');});
+    set(cond.parentElement, /^h--/, 'h--[7cqh]');
+    var digits = panel.querySelector('[data-sw-part="temp"]'), tr = digits.parentElement.parentElement;
+    set(tr, /^h--/, 'h--[10cqh]');
+    set(digits.parentElement, /^h--/, 'h--full');
+    set(tr, /^flex--col$/, 'flex--row');
+    if(narrow) set(temp, /^w--/, 'w--full');
+    [].forEach.call(panel.querySelectorAll('[data-sw-mlabel]'),function(e){set(e,/^title--/, 'title--small');set(e.parentElement,/^h--/,short?'h--[8cqh]':'h--[6cqh]');set(e.parentElement.parentElement.parentElement.parentElement,/^w--/, 'w--full');});
+    [].forEach.call(panel.querySelectorAll('[data-sw-part="meter"]'),function(e){set(e,/^h--/,short?'h--[6cqh]':'h--[4cqh]');set(e.parentElement,/^h--/,short?'h--[8cqh]':'h--[6cqh]');});
+    var rain = panel.querySelector('[data-sw-part="rain"]'), sun = panel.querySelector('[data-sw-unit="sun"]');
+    if(rain) {
+      set(rain,/^w--/,narrow?'w--[52cqw]':'w--[26cqw]'); set(rain,/^h--/,'h--[12cqh]');
+      set(rain.parentElement,/^flex--col$/, 'flex--row');
+      set(rain.parentElement.querySelector('img'),/^h--/,'h--[6cqh]');
+      set(panel.querySelector('[data-sw-gap="rain-sun"]'),/^h--/,'h--[1cqh]');
+    }
+    if(sun) {
+      set(sun,/^hidden$/, 'flex');
+      [].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,'h--[3cqh]');});
+      [].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,'h--[6cqh]');}});
+    }
+
+  }
+  swOGPortrait();
   whenReady(function () {
     swRepaint = swPaint;
     swArrow(document.createElement('canvas').getContext('2d'));
