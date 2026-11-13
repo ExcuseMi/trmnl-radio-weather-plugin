@@ -725,15 +725,16 @@ set(right, /^w--/, narrow ? 'w--full' : (view === 1 ? 'w--[38cqw]' : 'w--[44cqw]
 if(narrow) [].forEach.call(top.querySelectorAll('[data-sw-rule]'),function(e){set(e,/^hidden$/, 'hidden');});
 set(cond.parentElement, /^h--/, 'h--[7cqh]');
 var digits = panel.querySelector('[data-sw-part="temp"]'), tr = digits.parentElement.parentElement;
-var dry3 = view === 3 && !panel.querySelector('[data-sw-part="rain"]'); if (dry3) { set(temp, /^gap--/, 'gap--xsmall'); set(cond.parentElement.nextElementSibling, /^h--/, 'h--[0cqh]'); }   // OG half vertical portrait without rain: taller meter rows fill the console
-set(tr, /^h--/, (view === 1 ? 'h--[13cqh]' : 'h--[10cqh]') + ' shrink-0'); if (view === 3) { set(tr, /^w--/, 'w--full'); if (panel.querySelector('[data-sw-part="rain"]')) set(tr, /^h--\[10cqh\]$/, 'h--[9cqh]'); }
+var dry3 = view === 3 && !panel.querySelector('[data-sw-part="rain"]'); if (view === 2) { var mb2 = panel.querySelector('[data-sw-part="meter"]'); mb2 = mb2 && mb2.parentElement.parentElement.parentElement; if (mb2) set(mb2, /^flex--stretch-y$/, 'flex--stretch-y'); }   // OG half horizontal portrait: meter rows spread over their block, no band under them
+if (dry3) { set(temp, /^gap--/, 'gap--xsmall'); set(cond.parentElement.nextElementSibling, /^h--/, 'h--[0cqh]'); }   // OG half vertical portrait without rain: taller meter rows fill the console
+set(tr, /^h--/, (view === 1 ? 'h--[13cqh]' : (view === 2 ? 'h--[21cqh]' : 'h--[10cqh]')) + ' shrink-0'); if (view === 3) { set(tr, /^w--/, 'w--full'); if (panel.querySelector('[data-sw-part="rain"]')) set(tr, /^h--\[10cqh\]$/, 'h--[9cqh]'); }
 if(narrow) set(temp, /^grow$/, 'grow shrink-0');
 set(digits.parentElement, /^h--/, 'h--full');
 set(tr, /^flex--col$/, 'flex--row');
 if(narrow) set(temp, /^w--/, 'w--full');
-[].forEach.call(panel.querySelectorAll('[data-sw-mlabel]'),function(e){set(e,/^title--/, 'title--small');set(e.parentElement,/^h--/,short||dry3?'h--[8cqh]':(view===1?'h--[5cqh]':'h--[6cqh]'));set(e.parentElement.parentElement.parentElement.parentElement,/^w--/, 'w--full');});
-[].forEach.call(panel.querySelectorAll('[data-sw-part="meter"]'),function(e){set(e,/^h--/,short?'h--[6cqh]':(dry3?'h--[5cqh]':'h--[4cqh]'));set(e.parentElement,/^h--/,short||dry3?'h--[8cqh]':(view===1?'h--[5cqh]':'h--[6cqh]'));});
-var rain = panel.querySelector('[data-sw-part="rain"]'), sun = panel.querySelector('[data-sw-unit="sun"]'), hv = view === 3, ib = hv ? 'h--[8cqh]' : 'h--[6cqh]';
+[].forEach.call(panel.querySelectorAll('[data-sw-mlabel]'),function(e){set(e,/^title--/, 'title--small');set(e.parentElement,/^h--/,view===2?'h--[7cqh]':short||dry3?'h--[8cqh]':(view===1?'h--[5cqh]':'h--[6cqh]'));set(e.parentElement.parentElement.parentElement.parentElement,/^w--/, 'w--full');});
+[].forEach.call(panel.querySelectorAll('[data-sw-part="meter"]'),function(e){set(e,/^h--/,view===2?'h--[5cqh]':short?'h--[6cqh]':(dry3?'h--[5cqh]':'h--[4cqh]'));set(e.parentElement,/^h--/,view===2?'h--[7cqh]':short||dry3?'h--[8cqh]':(view===1?'h--[5cqh]':'h--[6cqh]'));});
+var rain = panel.querySelector('[data-sw-part="rain"]'), sun = panel.querySelector('[data-sw-unit="sun"]'), hv = view === 3, ib = hv ? 'h--[8cqh]' : (view === 2 ? 'h--[15cqh]' : 'h--[6cqh]');
 if(full) {
 [].forEach.call(outer.children,function(e){if(!e.querySelector('[data-sw-part]')&&!e.hasAttribute('data-sw-part'))set(e,/^flex$/,'hidden');});
 [].forEach.call(panel.querySelectorAll('[data-sw-part="gauge"]'),function(e){e.parentNode.removeChild(e);});
@@ -748,17 +749,17 @@ if(tpx) [].forEach.call(document.querySelectorAll('[data-sw-part="tri"]'),functi
 if(hv) [].forEach.call(panel.querySelectorAll('[data-sw-part="cue"], [data-sw-div]'),function(e){set(e,/^hidden$/,'');});
 if(hv && rain) { set(top,/^gap--/,'gap--xsmall'); set(outer,/^gap--/,'gap--xsmall'); set(temp,/^gap--/,'gap--small'); }
 if(rain) {
-set(rain,/^w--/,narrow?'w--[52cqw]':'w--[26cqw]'); set(rain,/^h--/,hv?'h--[8cqh]':'h--[12cqh]');
+set(rain,/^w--/,narrow?'w--[52cqw]':'w--[26cqw]'); set(rain,/^h--/,hv?'h--[8cqh]':(view===2?'h--[15cqh]':'h--[12cqh]'));
 set(rain.parentElement,/^flex--col$/, 'flex--row');
 set(rain.parentElement.querySelector('img'),/^h--/,ib);
 set(panel.querySelector('[data-sw-gap="rain-sun"]'),/^h--/,'h--[1cqh]');
 }
 if(sun) {
 set(sun,/^hidden$/, 'flex');
-var big = (view === 1 || view === 3) && !rain;   // OG full portrait without rain (owner 2026-11-13): the sun unit fills the right column
-[].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,hv&&rain?'h--[5cqh]':(big?(hv?'h--[4cqh]':'h--[5cqh]'):(view===1?'h--[4cqh]':'h--[3cqh]')));});
-if(big){if(view===1)set(sun,/^flex--(?:row|left)$/,'flex--col flex--center');else{set(sun,/^flex--left$/,'flex--center');set(sun,/^gap--/,'gap--small');}set(sun.children[1]||sun,/^gap--/,'gap--medium');[].forEach.call(sun.querySelectorAll('[data-sw-suntime] span.title'),function(e){set(e,/^title--/,'title--large');});}
-[].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,rain?ib:(big?(hv?'h--[7cqh]':'h--[8cqh]'):'h--[6cqh]'));}});
+var big = (view === 1 || view === 3 || view === 2) && !rain;   // OG full portrait without rain (owner 2026-11-13): the sun unit fills the right column
+[].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,hv&&rain?'h--[5cqh]':(big?(hv?'h--[4cqh]':(view===2?'h--[8cqh]':'h--[5cqh]')):(view===1?'h--[4cqh]':(view===2?'h--[7cqh]':'h--[3cqh]'))));});
+if(big){if(view===1||view===2)set(sun,/^flex--(?:row|left)$/,'flex--col flex--center');else{set(sun,/^flex--left$/,'flex--center');set(sun,/^gap--/,'gap--small');}set(sun.children[1]||sun,/^gap--/,'gap--medium');[].forEach.call(sun.querySelectorAll('[data-sw-suntime] span.title'),function(e){set(e,/^title--/,'title--large');});}
+[].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,rain?ib:(big?(hv?'h--[7cqh]':(view===2?'h--[11cqh]':'h--[8cqh]')):'h--[6cqh]'));}});
 }
 
 }
