@@ -13,14 +13,21 @@ python3 - "$log" "$cases" <<'P'
 import json, re, sys
 log, cases = open(sys.argv[1]).read(), json.loads(sys.argv[2])
 bad = set(re.findall(r'# renders (\S+)', log))
+# Failures raised in after(:all) hooks (spread checks over several cases of one device) name no case: "<what> differs across ["<device>", ...]"
+hook = {}
+for what, dev in re.findall(r'(dial radius|condition/temperature ratio) differs across \["([^"]+)"', log):
+    hook.setdefault(dev, set()).add({'dial radius': 'DIALR', 'condition/temperature ratio': 'CONDRATIO'}[what])
+nhook = sum(len(v) for v in hook.values())
 rows = {}
 for c in cases:
     r = rows.setdefault(c['device'], [0, 0, []])
     r[0] += 1
     if c['name'] in bad: r[1] += 1; r[2].append(c['name'].split('__')[1])
+for d, w in hook.items():
+    if d in rows: rows[d][2].extend(sorted(w))
 print('%-48s %5s %5s  failing' % ('device', 'cases', 'fail'))
 for d, (n, f, l) in sorted(rows.items()): print('%-48s %5d %5d  %s' % (d, n, f, ' '.join(l)))
-print('TOTAL %d cases, %d failing' % (len(cases), sum(r[1] for r in rows.values())))
-sys.exit(1 if bad else 0)
+print('TOTAL %d cases, %d failing, %d spread checks failing (after-all hooks: DIALR, CONDRATIO)' % (len(cases), sum(r[1] for r in rows.values()), nhook))
+sys.exit(1 if bad or nhook else 0)
 P
 rc=$?; echo "log: $log"; exit $rc
