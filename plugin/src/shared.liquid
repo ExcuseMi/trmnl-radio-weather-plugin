@@ -287,11 +287,11 @@ return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
 function segtime(str, cap) {
 var T = 17, W = 54, G = 13, GP = 1.5, HH = 100, s = String(str).trim();
 if (!s || /[^0-9:\-. ]/.test(s)) return null;
-var adv = (c) => c === ' ' ? 40 : ((c === '.') ? T + G : (c === ':' ? T + G * 2.4 : W + G)), x = 0, body = '';
+var adv = (c) => c === ' ' ? 40 : ((c === '.') ? T + G : (c === '1' ? W * 0.58 + G : (c === ':' ? T + G * 2.4 : W + G))), x = 0, body = '';
 s.split('').forEach((c) => {
 if (c === '.') body += rect(x, HH - T, T, T);
 else if (c === ':') body += rect(x + G * 0.7, 0.3 * HH - T / 2, T, T) + rect(x + G * 0.7, 0.7 * HH - T / 2, T, T);
-else if (c !== ' ') { var on = GLYPH[c] || '', sh = shapes(c === '1' ? x + W - T : x, c === '1' ? T : W, HH, T, GP), gb = ''; 'abcdefg'.split('').forEach((q) => { if (on.indexOf(q) >= 0) gb += c === '7' && q === 'a' ? rect(x, 0, W, T) : poly(sh[q]); }); body += '<g data-sw-glyph="' + c + '">' + gb + '</g>'; }
+else if (c !== ' ') { var on = GLYPH[c] || '', sh = shapes(c === '1' ? x + (W * 0.58 - T) / 2 : x, c === '1' ? T : W, HH, T, GP), gb = ''; 'abcdefg'.split('').forEach((q) => { if (on.indexOf(q) >= 0) gb += c === '7' && q === 'a' ? poly(hseg(x + GP, x + W - GP, T / 2, T)) : poly(sh[q]); }); body += '<g data-sw-glyph="' + c + '">' + gb + '</g>'; }
 x += adv(c);
 });
 var vw = x - G - (/[:.]$/.test(s) ? 0 : 0), k = cap * 1.25 / HH;
