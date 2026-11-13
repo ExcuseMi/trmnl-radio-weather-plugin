@@ -287,18 +287,20 @@ return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
 function cells(frac, n) { return frac === null || frac === undefined || !(frac > 0) ? 0 : Math.max(1, Math.round(Math.min(1, frac) * n)); }   // any reading above zero lights one cell
 // Gust (owner 2026-11-12): the cell where the gust peaks, -1 when there is no gust or it falls inside the lit cells.
 function gustCell(frac, gust, n) { var k = cells(gust, n); return k > cells(frac, n) ? k - 1 : -1; }
-function meter(frac, W, H, n, zones, gust) {
+// Today's min (owner 2026-11-13): the lit cells below the min's cell in a lighter Framework grey; none when the min is above now.
+function minCell(frac, mn, n) { var k = cells(mn, n) - 1; return mn === null || mn === undefined || k < 0 || k >= cells(frac, n) ? 0 : k; }
+function meter(frac, W, H, n, zones, gust, mn) {
 n = n || 10;
-var lit = cells(frac, n), gi = gustCell(frac, gust, n), gk = '',
+var lit = cells(frac, n), gi = gustCell(frac, gust, n), mi = minCell(frac, mn, n), lo = '', gk = '',
  cw = (W - SO) / n, gp = cw * 0.12, ch = H - SO, on = '', sh = '', off = '', zc = ['', '', ''], ZT = [null, hue('yellow') && 'yellow', hue('red') && 'red'];
 for (var i = 0; i < n; i++) {
 var x = i * cw + gp / 2, w = cw - gp;
 var DK = API.mode && API.mode.dark && API.mode.bits >= 2;   // owner: in dark mode the empty cells are dark grey blocks, as live
 var zi = zones ? ((i + 0.5) / n >= zones[1] ? 2 : ((i + 0.5) / n >= zones[0] ? 1 : 0)) : 0;   // warning zone of this cell
 if (i === gi) { var sw = Math.max(3, Math.min(w, ch) * 0.14), gr = rect(x + sw / 2, sw / 2, w - sw, ch - sw, 2, ' fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '" data-sw-gust'); gk = ZT[zi] ? hg(ZT[zi], gr) : gr; }   // crisp outline in full ink (white in dark), empty inside
-else if (i < lit && ZT[zi]) { zc[zi] += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += DK ? rect(x, 0, w, ch, 2) : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
+else if (i < lit && ZT[zi]) { zc[zi] += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else if (i < mi) { lo += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else if (i < lit) { on += rect(x, 0, w, ch, 2); sh += rect(x + SO, SO, w, ch, 2); } else off += DK ? rect(x, 0, w, ch, 2) : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2"');
 }
-return svg(W, H, '<g data-sw-lit="' + lit + '"></g>' + g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && (API.mode.dark || API.mode.bits <= 1) ? '' : 'text--gray-40', glow(on, GPX)) + (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + gk);   // dark: lit cells in full ink, as live
+return svg(W, H, '<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + g(SHADOW + ' text--gray-65', sh) + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + g(API.mode && (API.mode.dark || API.mode.bits <= 1) ? '' : 'text--gray-40', glow(on, GPX)) + (lo ? '<g data-sw-minlight="' + mi + '">' + g(API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bits <= 1 ? 'text--gray-50' : 'text--gray-60'), lo) + '</g>' : '') + (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + gk);   // dark: lit cells in full ink, as live
 }
 // Days strip x mapping, one for the header and every row (owner 2026-11-12): each grid line runs through the centre of
 // its label's digits (the degree sign hangs outside), so both ends are inset by the end labels' half width.
@@ -493,7 +495,7 @@ if (baro) { var zri = r - H * 0.135, isz = r * 0.34; [0, 1, 2, 3].forEach((i) =>
 else for (var v = D.a; v <= D.b + 1e-9; v += D.step) { var fs = H * 0.085; bx(at(F(v), r - H * 0.07 - fs * 0.8), fs * 0.62 * String(v).length, fs * 1.25); }   // a text's box is its em box, not its ink
 if (D.lo !== null && D.lo !== undefined && D.hi !== null && D.hi !== undefined) {
 var r0 = r + lw + bw + 2, r1 = r0 + mh, f0 = F(D.lo), f1 = F(D.hi);
-for (var k = 0; k <= 20; k++) pt(at(f0 + (f1 - f0) * k / 20, r + lw + bw), lw / 2);
+for (var k = 0; k <= 20; k++) pt(at(f0 + (f1 - f0) * k / 20, r + lw / 2 + bw / 2), bw);   // the band's centre line with its full stroke width around it
 [D.lo, D.hi].forEach((m) => { var f = F(m); pt(at(f, r1), mh * 0.3); if (nums) { var an = -A + 2 * A * cl(f), lt = String(Math.round(m)) + '°', ext = Math.abs(Math.sin(an)) * mfs * 0.62 * lt.length / 2 + Math.abs(Math.cos(an)) * mfs * 0.4 + r1 * 0.022 * 2 * A; bx(at(f, r1 + mg + ext), mfs * 0.62 * lt.length, mfs * 1.25); } });
 }
 return out;
@@ -575,7 +577,7 @@ case 'cue': return cue(SW.cue, W, H);
 case 'dcue': return cue((SW.days[i] || {}).cue, W, H);
 case 'temp': return digits(SW.temp, H);
 case 'itemp': return SW.inn ? digits(SW.inn.temp, H) : '';
-case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10, SW.meters[i] && SW.meters[i].zones, SW.meters[i] && SW.meters[i].gust);
+case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10, SW.meters[i] && SW.meters[i].zones, SW.meters[i] && SW.meters[i].gust, SW.meters[i] && SW.meters[i].min);
 case 'day': return day(SW.days[i], axisFor(SW), W, H, !!(SW.days[i] || {}).today);   // today always highlighted (owner 2026-11-12)
 case 'scale': return scale(scN, W, H);
 case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now, SW.hours);
@@ -595,7 +597,7 @@ return svg(W, H, '<defs><clipPath id="' + cp + '">' + rect(0, 0, W, H, rx) + '</
 }
 return '';
 }
-Object.assign(API, { gustCell: gustCell, part: part, hbar: hbar, hscale: hscale, hlevels: hlevels, glow: glow, icon: icon, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit, hue: hue });
+Object.assign(API, { gustCell: gustCell, minCell: minCell, part: part, hbar: hbar, hscale: hscale, hlevels: hlevels, glow: glow, icon: icon, digits: digits, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit, hue: hue });
 return API;
 })();
 // ==== DRAW_END ====
