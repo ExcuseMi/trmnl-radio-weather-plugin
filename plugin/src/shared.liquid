@@ -645,9 +645,24 @@ return API;
       var v = 1.5 * cx.measureText('H').actualBoundingBoxAscent; e.style.width = v.toFixed(1) + 'px'; e.style.height = v.toFixed(1) + 'px';
     });
   }
+  // Console badge in the condition row (owner 2026-11-13, live OG full: the parka in "BEWOLKT"): its ink keeps the row
+  // gap to the label's ink; the label steps down (to 70 %) first, then the badge is left out.
+  function swCueFit(cx) {
+    var again = false;
+    document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
+      var row = sp.parentElement, cu = row.querySelector(':scope > [data-sw-part="cue"]'); if (!cu || !cu.getBoundingClientRect().width) return;
+      var k = (row.offsetWidth && row.getBoundingClientRect().width / row.offsetWidth) || 1, gap = (parseFloat(getComputedStyle(row).columnGap) || 8) * k;
+      function clash() { var g = cu.querySelector('g[data-sw-cloth]'), b = (g || cu).getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(sp); return [].some.call(rg.getClientRects(), function (q) { return q.width > 0 && q.bottom > b.top && q.top < b.bottom && q.right > b.left - gap + 0.5; }); }
+      if (!clash()) return;
+      var f0 = parseFloat(sp.getAttribute('data-sw-fs0') || getComputedStyle(sp).fontSize); sp.setAttribute('data-sw-fs0', f0);
+      for (var f = 0.9; f >= 0.69 && clash(); f -= 0.1) { sp.style.setProperty('font-size', (f0 * f).toFixed(1) + 'px', 'important'); again = true; }
+      if (clash()) { cu.style.setProperty('display', 'none', 'important'); cu.setAttribute('data-sw-cueout', ''); }
+    });
+    if (again) swCond(cx);
+  }
   function swAlign() {
     var cx = document.createElement('canvas').getContext('2d');
-    swCond(cx); swFit(); swHair();
+    swCond(cx); swCueFit(cx); swFit(); swHair();
     document.querySelectorAll('[data-sw-div]').forEach(function (dv) {
       var row = dv.parentElement, u = row.querySelector('[data-sw-unit=""]'), t = row.querySelector('[data-sw-part="temp"] svg'), p = row.querySelector('[data-sw-felt]');
       dv.style.transform = ''; dv.style.removeProperty('height');
