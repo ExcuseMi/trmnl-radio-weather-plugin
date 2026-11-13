@@ -2,7 +2,15 @@
 require 'json'
 require 'fileutils'
 # SW_CASES: JSON list of {name, view, device, fields, fixture, patch (json merged into current), mocks_extra, palette, orientation}
+DIAL_R = Hash.new { |h, k| h[k] = [] }
 RSpec.describe 'renders' do
+  after(:all) do
+    DIAL_R.each do |k, v|
+      lo, hi = v.map { |q| q[1] }.minmax
+      puts "DIALR-SPREAD #{k.inspect}: #{v.inspect}" if hi / lo > 1.02
+      expect(hi / lo).to be <= 1.02, "dial radius differs across #{k.inspect}: #{v.inspect}"
+    end
+  end
   cases = JSON.parse(ENV.fetch('SW_CASES'))
   out = ENV.fetch('SW_OUT')
   fx = File.join(TRMNLP::Testing.plugin_dir, 'tests', 'fixtures')
@@ -78,6 +86,10 @@ RSpec.describe 'renders' do
       expect(it4).to eq('')
       tf = s.evaluate(%q{(function(){var v=function(q){var e=document.querySelector(q);if(!e)return 0;var r=e.getBoundingClientRect();return r.width>0?r.height:0};var t=v('[data-sw-part="temp"] svg'),f=v('[data-sw-part="feels"] svg');return f&&!(t>f)?'temp '+t.toFixed(0)+' felt '+f.toFixed(0):''})()})   # owner step 12: the main temperature is the largest number in the console
       arc = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0}),bad=[],rs=[];a.forEach(function(g){var sv=g.ownerSVGElement,k=sv.getBoundingClientRect().width/+sv.getAttribute('width'),v=g.getAttribute('data-sw-arc').split(',').map(Number),r=v[0]*k,w=v[1]*k;rs.push(r);var SB=sv.getBoundingClientRect(),T=1e9;[].forEach.call(sv.querySelectorAll('path,polygon,circle,line,text'),function(e){var b=e.getBoundingClientRect();if(b.width||b.height)T=Math.min(T,b.top)});var hb=sv.querySelector('[data-sw-hub]').getBoundingClientRect();if((T-SB.top)/SB.height>0.2||(SB.bottom-hb.bottom)/SB.height>0.2)bad.push('dial not filling its panel: top '+((T-SB.top)/SB.height*100).toFixed(0)+'% hub '+((SB.bottom-hb.bottom)/SB.height*100).toFixed(0)+'%');var d=sv.closest('[data-sw-part]').getAttribute('data-sw-part'),D=d==='baro'?SW.baro:SW.tdial;if(D&&D.lo!=null&&D.hi!=null&&sv.querySelectorAll('[data-sw-markt]').length!==2)bad.push(d+' marks '+sv.querySelectorAll('[data-sw-markt]').length);});if(rs.length===2&&Math.abs(rs[0]-rs[1])>2)bad.push('radius '+rs.map(function(x){return x.toFixed(1)}).join('/'));return a.length+'|'+bad.join('; ');})()})   # owner step 13: both dials one radius, filling the panel height (ink within 20 % of the top: 3-digit low/high numbers and the twin needle shrink both; hub within 5 % of the bottom), low/high marks on both
+      # Dial radius (owner 2026-11-13): the arc radius, as a share of the dial width, is the same in every case of one device and view (within 2 %).
+      rw = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0});return a.map(function(g){var v=g.getAttribute('data-sw-arc').split(',').map(Number);return (v[0]/v[1]).toFixed(4)}).join(' ')})()})
+      DIAL_R[[dev.is_a?(Hash) ? dev[:model] : dev, c['view'] || 'full', c['orientation'], c['text_scale']]] << [c['name'], rw.split.map(&:to_f).min] unless rw.empty?
+      puts "DIALR #{c['name']}: #{rw}"
       puts "ARC #{c['name']}: #{arc}"
       # Dial clearance (owner 2026-11-13, live X full): no dial ink (arc, ticks, numbers, zone icons, band, marks, labels;
       # not the needle) within the gap (3 % of the dial height, at least 3 px) of the caption text boxes or the panel edges.
@@ -85,7 +97,9 @@ RSpec.describe 'renders' do
 var n=0;[].forEach.call(d.querySelectorAll('svg path, svg line, svg text, svg polygon, svg image, svg circle'),function(e){if(e.closest('[data-sw-needle],defs,[data-sw-twin]'))return;var b=e.getBoundingClientRect();if(!b.width&&!b.height)return;var w=(e.getAttribute('stroke-width')||0)/2*(B.width/(+d.querySelector('svg').getAttribute('width')||B.width));
 var x0=b.left-w,y0=b.top-w,x1=b.right+w,y1=b.bottom+w,tag=e.tagName+(e.textContent?' '+e.textContent:'');
 if(x0<P.left+g||y0<P.top+g||x1>P.right-g||y1>P.bottom-g){if(n++<3)bad.push(k+' '+tag+' at the panel edge');return;}
-caps.forEach(function(c){if(x0<c.right+g&&x1>c.left-g&&y0<c.bottom+g&&y1>c.top-g&&n++<3)bad.push(k+' '+tag+' within '+g.toFixed(0)+' of caption');});});});return bad.join('; ');})()})
+// a curved path is tested along its length (150 points), not by its box: the box of an arc covers the empty corner above its ends
+var bx=[[x0,y0,x1,y1]];if(e.tagName==='path'&&e.getTotalLength){var Lg=e.getTotalLength(),M=e.getScreenCTM();bx=[];for(var i=0;i<=150;i++){var q=e.getPointAtLength(Lg*i/150),X=M.a*q.x+M.c*q.y+M.e,Y=M.b*q.x+M.d*q.y+M.f;bx.push([X-w,Y-w,X+w,Y+w])}}
+caps.forEach(function(c){if(bx.some(function(b){return b[0]<c.right+g&&b[2]>c.left-g&&b[1]<c.bottom+g&&b[3]>c.top-g})&&n++<3)bad.push(k+' '+tag+' within '+g.toFixed(0)+' of caption');});});});return bad.join('; ');})()})
       puts "DIALCLEAR #{c['name']}: #{dc}" unless dc.empty?
       geo = s.evaluate("(function(){var r=[].slice.call(document.querySelectorAll('[data-sw-part=\\'day\\']')).map(function(e){return e.getBoundingClientRect()}).filter(function(b){return b.width>0});return r.filter(function(b){return Math.abs(b.height-r[0].height)>0.5||Math.abs(b.left-r[0].left)>0.5||Math.abs(b.width-r[0].width)>0.5}).length+'/'+r.length})()")
       div = s.evaluate(%q{(function(){var out=[];document.querySelectorAll('[data-sw-div]').forEach(function(dv){var d=dv.getBoundingClientRect();if(!d.height)return;var row=dv.parentElement,u=row.querySelector('[data-sw-unit=\'\']'),t=row.querySelector('[data-sw-part=\'temp\'] svg'),p=row.querySelector(':scope > [data-sw-part=\'cue\']');function k(e){var r=e.getBoundingClientRect(),v=e.viewBox.baseVal,b=e.getBBox(),x=r.width/v.width,y=r.height/v.height;return{l:r.left+(b.x-v.x)*x,t:r.top+(b.y-v.y)*y,h:b.height*y}}var c=document.createElement('canvas').getContext('2d'),cs=getComputedStyle(u);c.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var ub=u.getBoundingClientRect(),sc=(u.offsetWidth&&ub.width/u.offsetWidth)||1;var ur=ub.left+c.measureText(u.textContent.trim()).actualBoundingBoxRight*sc,pi={l:p.getBoundingClientRect().left},ti=k(t),mid=(d.left+d.right)/2;out.push([(mid-ur).toFixed(1),(pi.l-mid).toFixed(1),(d.height-ti.h).toFixed(1),(d.top-ti.t).toFixed(1),sc.toFixed(3),ur.toFixed(1),pi.l.toFixed(1),d.left.toFixed(1),d.right.toFixed(1)].join(','))});return out.join(' ')})()})
