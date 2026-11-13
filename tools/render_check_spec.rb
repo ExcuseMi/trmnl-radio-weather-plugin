@@ -3,8 +3,23 @@ require 'json'
 require 'fileutils'
 # SW_CASES: JSON list of {name, view, device, fields, fixture, patch (json merged into current), mocks_extra, palette, orientation}
 DIAL_R = Hash.new { |h, k| h[k] = [] }
+COND_R = Hash.new { |h, k| h[k] = [] }
 RSpec.describe 'renders' do
   after(:all) do
+    # Condition text proportion (owner 2026-11-13, "the same size relative"): the condition label's font size over the big temperature
+    # digit height is, in every layout of one device (and orientation), within 15 % of the full view's ratio.
+    aggregate_failures do
+      COND_R.each do |k, v|
+        ref = v.find { |q| q[2] == 'full' }
+        next unless ref
+        v.each do |q|
+          next if q.equal?(ref)
+          rel = q[1] / ref[1]
+          puts "CONDRATIO #{q[0]}: #{q[1].round(3)} vs full #{ref[1].round(3)} = #{rel.round(2)}" if rel > 1.15 || rel < 1 / 1.15
+          expect(rel).to be_between(1 / 1.15, 1.15), "condition/temperature ratio differs across #{k.inspect}: #{q[0]} #{q[1].round(3)} vs full #{ref[1].round(3)}"
+        end
+      end
+    end
     DIAL_R.each do |k, v|
       lo, hi = v.map { |q| q[1] }.minmax
       puts "DIALR-SPREAD #{k.inspect}: #{v.inspect}" if hi / lo > 1.02
@@ -92,6 +107,9 @@ RSpec.describe 'renders' do
       arc = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0}),bad=[],rs=[];a.forEach(function(g){var sv=g.ownerSVGElement,k=sv.getBoundingClientRect().width/+sv.getAttribute('width'),v=g.getAttribute('data-sw-arc').split(',').map(Number),r=v[0]*k,w=v[1]*k;rs.push(r);var SB=sv.getBoundingClientRect(),T=1e9;[].forEach.call(sv.querySelectorAll('path,polygon,circle,line,text'),function(e){var b=e.getBoundingClientRect();if(b.width||b.height)T=Math.min(T,b.top)});var hb=sv.querySelector('[data-sw-hub]').getBoundingClientRect();if((T-SB.top)/SB.height>0.2||(SB.bottom-hb.bottom)/SB.height>0.2)bad.push('dial not filling its panel: top '+((T-SB.top)/SB.height*100).toFixed(0)+'% hub '+((SB.bottom-hb.bottom)/SB.height*100).toFixed(0)+'%');var d=sv.closest('[data-sw-part]').getAttribute('data-sw-part'),D=d==='baro'?SW.baro:SW.tdial;if(D&&D.lo!=null&&D.hi!=null&&sv.querySelectorAll('[data-sw-markt]').length!==2)bad.push(d+' marks '+sv.querySelectorAll('[data-sw-markt]').length);});if(rs.length===2&&Math.abs(rs[0]-rs[1])>2)bad.push('radius '+rs.map(function(x){return x.toFixed(1)}).join('/'));return a.length+'|'+bad.join('; ');})()})   # owner step 13: both dials one radius, filling the panel height (ink within 20 % of the top: 3-digit low/high numbers and the twin needle shrink both; hub within 5 % of the bottom), low/high marks on both
       # Dial radius (owner 2026-11-13): the arc radius, as a share of the dial width, is the same in every case of one device and view (within 2 %).
       rw = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0});return a.map(function(g){var v=g.getAttribute('data-sw-arc').split(',').map(Number);return (v[0]/v[1]).toFixed(4)}).join(' ')})()})
+      cr0 = s.evaluate(%q{(function(){var v=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},c=[].filter.call(document.querySelectorAll('[data-sw-cond]'),v)[0],te=[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg'),v)[0];if(!c||!te)return '';var ti=te.getBBox().height*te.getBoundingClientRect().height/(te.viewBox.baseVal.height||1),fz=parseFloat(getComputedStyle(c).fontSize)*(c.getBoundingClientRect().width/(c.offsetWidth||1));return String(fz/ti)})()})
+      puts "CONDR #{c[%q(name)]}: #{cr0}"
+      COND_R[[dev.is_a?(Hash) ? dev[:model] : dev, c['orientation'], c['text_scale'], c['fixture'], c['dark'] ? 1 : 0]] << [c['name'], cr0.to_f, c['view'] || 'full'] unless cr0.empty? || (c['fields'] || {})['unit'] == 'fahrenheit'
       DIAL_R[[dev.is_a?(Hash) ? dev[:model] : dev, c['view'] || 'full', c['orientation'], c['text_scale']]] << [c['name'], rw.split.map(&:to_f).min] unless rw.empty?
       puts "DIALR #{c['name']}: #{rw}"
       puts "ARC #{c['name']}: #{arc}"
@@ -136,7 +154,7 @@ caps.forEach(function(c){if(bx.some(function(b){return b[0]<c.right+g&&b[2]>c.le
         expect(console['ring']).to eq(true) unless c['hourly'].nil?
         expect(console['lit']).to eq(true) unless c['hourly'].nil?
       end
-      clip = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part]:not([data-sw-part="face"]), [data-sw-part]:not([data-sw-part="face"]) > svg, [data-sw-unit] img, [data-sw-unit] span').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;var ci=e.closest('[data-sw-condicon]'),ik=ci&&(ci.querySelector('[data-sw-ink]')||{getAttribute:function(){return null}}).getAttribute('data-sw-ink');if(ik){var iy=+ik.split(',')[0],ih=+ik.split(',')[1]||1;b={left:b.left,right:b.right,top:b.top+iy*b.height,bottom:b.top+(iy+ih)*b.height,width:b.width,height:ih*b.height};}var p=e.closest('[data-sw-panel]');if(!p)return;var q=p.getBoundingClientRect(),cs=getComputedStyle(p),k=q.width/(p.offsetWidth||q.width);q={left:q.left+parseFloat(cs.paddingLeft)*k,right:q.right-parseFloat(cs.paddingRight)*k,top:q.top+parseFloat(cs.paddingTop)*k,bottom:q.bottom-parseFloat(cs.paddingBottom)*k};var un=e.closest('[data-sw-unit]');if(un){var cb=un.parentElement.getBoundingClientRect();q={left:Math.max(q.left,cb.left),right:Math.min(q.right,cb.right),top:Math.max(q.top,cb.top),bottom:Math.min(q.bottom,cb.bottom)}}if(b.left<q.left-1||b.right>q.right+1||b.top<q.top-1||b.bottom>q.bottom+1)bad.push((e.getAttribute('data-sw-part')||e.tagName)+'@'+[b.left,b.right,b.top,b.bottom].map(function(v){return v.toFixed(0)}).join(':')+'/'+[q.left,q.right,q.top,q.bottom].map(function(v){return v.toFixed(0)}).join(':'))});return bad.join(' ')})()})
+      clip = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part]:not([data-sw-part="face"]), [data-sw-part]:not([data-sw-part="face"]) > svg, [data-sw-unit] img, [data-sw-unit] span').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;var ci=e.closest('[data-sw-condicon]'),ik=ci&&(ci.querySelector('[data-sw-ink]')||{getAttribute:function(){return null}}).getAttribute('data-sw-ink');if(ik){var iy=+ik.split(',')[0],ih=+ik.split(',')[1]||1;b={left:b.left,right:b.right,top:b.top+iy*b.height,bottom:b.top+(iy+ih)*b.height,width:b.width,height:ih*b.height};}var p=e.closest('[data-sw-panel]');if(!p)return;var q=p.getBoundingClientRect(),cs=getComputedStyle(p),k=q.width/(p.offsetWidth||q.width);var pm=e.closest('[data-sw-suntime]')?1:0;q={left:q.left+pm*parseFloat(cs.paddingLeft)*k,right:q.right-pm*parseFloat(cs.paddingRight)*k,top:q.top+pm*parseFloat(cs.paddingTop)*k,bottom:q.bottom-pm*parseFloat(cs.paddingBottom)*k};var un=e.closest('[data-sw-unit]');if(un){var cb=un.parentElement.getBoundingClientRect();q={left:Math.max(q.left,cb.left),right:Math.min(q.right,cb.right),top:Math.max(q.top,cb.top),bottom:Math.min(q.bottom,cb.bottom)}}if(b.left<q.left-1||b.right>q.right+1||b.top<q.top-1||b.bottom>q.bottom+1)bad.push((e.getAttribute('data-sw-part')||e.tagName)+'@'+[b.left,b.right,b.top,b.bottom].map(function(v){return v.toFixed(0)}).join(':')+'/'+[q.left,q.right,q.top,q.bottom].map(function(v){return v.toFixed(0)}).join(':'))});return bad.join(' ')})()})
       puts "CLIP #{c['name']}: #{clip}" unless clip.empty?
       expect(clip).to eq('')
       # Rain unit (owner 2026-11-12): calendar cells square-ish and readable (numbers at least the meter label size),
