@@ -36,7 +36,7 @@
 {%- if stk %}{% assign ms = ui.meters | sort: 'rank' %}{% else %}{% assign ms = ui.meters %}{% endif %}
 {%- assign st_h = cf.hide_title_bar | append: '' %}{% if ui.stale %}{% if view != 1 or st_h == 'true' or st_h == 'yes' %}{% assign st_on = true %}{% endif %}{% endif %}
 <div class="layout layout--col layout--stretch-x gap--base relative" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
-{%- if st_on %}{% for sp in (1..2) %}{% if sp == 1 %}{% assign sp_c = 'top--5' %}{% if view == 4 %}{% assign sp_c = 'top--5 lg:hidden' %}{% endif %}{% elsif view == 4 %}{% assign sp_c = 'bottom--1 hidden lg:block' %}{% else %}{% break %}{% endif %}<span class="absolute {{ sp_c }} right--10 z--10 label label--small" data-sw-stale>{{ ui.stale }}</span>{% endfor %}{% endif %}{% comment %} offline, no title bar: a small "as of" in the panel corner {% endcomment %}
+{%- if st_on %}{% for sp in (1..2) %}{% if sp == 1 %}{% assign sp_c = 'top--5 right--10' %}{% if view == 4 %}{% assign sp_c = 'top--5 right--10 lg:hidden' %}{% endif %}{% elsif view == 4 %}{% assign sp_c = 'top--5 left--10 hidden lg:block' %}{% else %}{% break %}{% endif %}<span class="absolute {{ sp_c }} z--10 label label--small" data-sw-stale>{{ ui.stale }}</span>{% endfor %}{% endif %}{% comment %} offline, no title bar: a small "as of" in the panel corner {% endcomment %}
 {%- if view == 1 %}
  <div class="hidden lg:block h--[30cqh] lg:portrait:h--[22cqh]"><div class="flex flex--row flex--stretch-y gap--base h--full">
   {%- for k in (1..2) %}
