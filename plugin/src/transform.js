@@ -367,7 +367,7 @@ if (tab) return tab.split(' ')[new Date(iso + 'T12:00:00Z').getUTCDay()];
 try { return new Intl.DateTimeFormat(loc, { weekday: 'short', timeZone: 'UTC' }).format(new Date(iso + 'T12:00:00Z')).replace(/\.$/, '').toLocaleUpperCase(loc); } catch (e) { return null; }
 });
 }
-var RO_ORDER = ['wind', 'uv', 'aqi', 'humidity', 'pollen', 'baro', 'co2'];   // owner 2026-11-12: wind before humidity, humidity before pollen
+var RO_ORDER = ['regen', 'wind', 'uv', 'aqi', 'humidity', 'pollen', 'baro', 'co2'];   // owner 2026-11-12: wind before humidity, humidity before pollen
 // Rain calendar (owner 2026-11-12): 12 hours from two hours before the rain starts, never before the first forecast hour.
 function rainHours(hours, R) {
 var s = Math.max(0, Math.min(R.from - 2, hours.length - 12));
@@ -449,7 +449,10 @@ return { hours: hs.map((q, i) => ({ hl: q.hl, icon: wiUrl(q.icon, q.day), t: fmt
 function buildView(M, i18n, daily, moon, phase, opt) {
 var O = i18n.ours, F_ = M.unit === 'F', deg = '°', n = M.now, t = M.today;
 var bar = (v, lo, hi) => v === null || v === undefined ? null : Math.max(0, Math.min(1, (v - lo) / (hi - lo)));
-var RO = { wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
+var R = M.rain, wetIn12 = !!R && R.from < 12;
+// REGEN (owner 2026-11-13): the precipitation over the rain calendar's 12 hours, scale 0..10 mm (0..0.4 in); only with rain in the calendar. No today's range / peak states (a sum over the window has none).
+var rs0 = R ? Math.max(0, Math.min(R.from - 2, M.hours.length - 12)) : 0, regenMm = wetIn12 ? M.hours.slice(rs0, rs0 + 12).reduce((a, q) => a + (q.mm || 0), 0) : null;
+var RO = { regen: [O.rain, bar(regenMm, 0, F_ ? 0.4 : 10), wetIn12], wind: [i18n.wind, bar(n.wind, 0, F_ ? 40 : 60), n.wind !== null], uv: [O.uv, bar(n.uv, 0, 11), n.day !== false && n.uv !== null],
 aqi: ['AQI', bar(n.aqi, 0, 100), n.aqi !== null], pollen: [O.pollen, n.pollen, n.pollen !== null && n.pollen > 0], humidity: [O.m_hum, bar(n.hum, 0, 100), n.hum !== null],
 baro: ['BARO', bar(n.press, 970, 1050), n.press !== null], co2: ['CO2', bar(M.inn.co2, 400, 2000), M.inn.co2 !== null] };
 var relevant = { uv: n.day !== false && t.uvMax !== null && t.uvMax >= 3, baro: false };
@@ -467,7 +470,7 @@ var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], past
 var t1 = (v) => { var s = (Math.round(v * 10) / 10).toFixed(1), r = Math.round(v); return s.split('.')[0].length >= 3 ? String(r === 0 ? 0 : r) : s; };   // owner (step 12): no decimal once the whole part has 3+ characters (104°, -12°)
 var tv = n.temp, tStr = tv === null ? '--.-' : t1(tv);
 var fmt = (v) => v === null || v === undefined ? '--' : String(Math.round(v) === 0 ? 0 : Math.round(v));
-var R = M.rain, wetIn12 = !!R && R.from < 12;
+
 var d0 = 0, days = (M.days || []).slice(d0, d0 + 7), dates = ((daily || {}).time || []).slice(d0, d0 + 7), names = dayNames(dates, i18n.loc);   // from today at any hour; views with the temperature dial hide today (owner 2026-11-12)
 // Days axis (owner bug 2026-11-12): from the values as shown (rounded, -0 as 0) of the first n days and the current
 // temperature; one scale per row count a view can show (scales[n]), so a hidden day never widens the axis.

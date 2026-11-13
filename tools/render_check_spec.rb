@@ -69,7 +69,7 @@ caps.forEach(function(c){if(x0<c.right+g&&x1>c.left-g&&y0<c.bottom+g&&y1>c.top-g
       div.split.each { |q| a = q.split(',').map(&:to_f); expect((a[0] - a[1]).abs).to be <= 1.5; expect(a[2].abs).to be <= 1.5; expect(a[3].abs).to be <= 1.5 }
       if c['og_quadrant_console']
         console = s.evaluate(%q{(function(){function vis(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0}var labels=[].filter.call(document.querySelectorAll('[data-sw-mlabel]'),vis).map(function(e){return e.textContent.trim()});var moon=[].filter.call(document.querySelectorAll('[data-sw-part="moon"]'),vis)[0];var ring=moon&&moon.querySelector('circle[stroke]');return {labels:labels,ring:!!ring,lit:!!(moon&&moon.querySelector('[data-sw-moon="lit"]'))}})()})
-        expect(console['labels']).to eq(['WIND'])
+        expect(console['labels']).to eq([c['name'] == 'og-q-calm' ? 'REGEN' : 'WIND'])
         expect(console['ring']).to eq(true) unless c['hourly'].nil?
         expect(console['lit']).to eq(true) unless c['hourly'].nil?
       end

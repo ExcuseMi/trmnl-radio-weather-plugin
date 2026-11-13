@@ -192,10 +192,18 @@ test('sun: the next sunrise and sunset, tomorrow flagged (owner 2026-11-12)', ()
 // v2 X full view: the parts the layout places (buildView in transform.js)
 test('the X view: meters in owner order, rain calendar on a wet day, seven days from today (X half vertical shows 7), today flagged', () => {
   const raw = fx('mixed'), M = SWModel.build(raw, {}), v = T.buildView(M, T.buildI18n('nl'), raw.daily, 'wi-moon-full');
-  eq(v.meters.map((m) => m.key), ['wind', 'humidity', 'baro']);
+  eq(v.meters.map((m) => m.key), ['regen', 'wind', 'humidity', 'baro'].slice(0, 4), 'REGEN first on a wet day');
   ok(v.rain && !v.dry && v.rain.hours.length === 12, 'rain calendar on a wet day');
   eq(v.days.map((d) => d.name), ['ZO', 'MA', 'DI', 'WO', 'DO', 'VR', 'ZA'], 'seven days from today'); eq(v.days.map((d) => d.today), [true, false, false, false, false, false, false]);
   ok(!JSON.stringify(v).includes('<svg'), 'the transform builds no SVG (owner 2026-11-12)');
+});
+test('REGEN meter (owner 2026-11-13): mm over the calendar hours on 0..10 mm (0..0.4 in), first, only with rain in the calendar', () => {
+  const raw = fx('mixed'), mk = (f) => { const M = SWModel.build(raw, {}); if (f) f(M); return T.buildView(M, T.buildI18n('nl'), raw.daily).meters; };
+  const wet = mk((M) => { M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = 2.5; M.hours[M.rain.to].mm += 2.5; });
+  eq([wet[0].key, wet[0].label, Math.round(wet[0].frac * 100)], ['regen', 'REGEN', 50], '5 mm of 10');
+  const big = mk((M) => { M.hours[M.rain.from].mm = 40; }); eq(big[0].frac, 1, 'clamped');
+  const dry = mk((M) => { M.rain = null; }); ok(!dry.some((m) => m.key === 'regen'), 'hidden when the calendar shows no rain');
+  const fm = mk((M) => { M.unit = 'F'; M.hours.forEach((q) => { q.mm = 0; }); M.hours[M.rain.from].mm = 0.2; }); eq(Math.round(fm[0].frac * 100), 50, 'inch scale 0.4');
 });
 test('the X view: a dry day shows sun times and the moon, no calendar', () => {
   const raw = fx('mixed'), n = raw.hourly.time.length;
@@ -223,7 +231,7 @@ test('segment digits: the minus is narrow, no digit-wide gap before the 2', () =
 });
 test('meters (owner 2026-11-12): order wind, uv, aqi, humidity, pollen, baro, co2; pollen only above zero', () => {
   const raw = fx('mixed'), M0 = SWModel.build(raw, {});
-  const keys = (pol, extra) => { const M = SWModel.build(raw, {}); M.now.pollen = pol; Object.assign(M.now, extra || {}); return T.buildView(M, T.buildI18n('nl'), raw.daily).meters.map((m) => m.key); };
+  const keys = (pol, extra) => { const M = SWModel.build(raw, {}); M.rain = null; M.now.pollen = pol; Object.assign(M.now, extra || {}); return T.buildView(M, T.buildI18n('nl'), raw.daily).meters.map((m) => m.key); };
   eq([keys(0).includes('pollen'), keys(null).includes('pollen'), keys(undefined).includes('pollen'), keys(0.05).includes('pollen')], [false, false, false, true], 'zero, null, missing hide pollen; low pollen shows');
   const k = keys(0.4, { aqi: 30 }); ok(k.indexOf('humidity') >= 0 && k.indexOf('pollen') > k.indexOf('humidity'), 'humidity before pollen: ' + k);
   ok(M0 && keys(0.4, { aqi: 30 }).slice(0, 3).join() === 'wind,aqi,humidity', 'priority: humidity kept before pollen when rows run short: ' + k);
