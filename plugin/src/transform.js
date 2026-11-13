@@ -496,11 +496,13 @@ async function run(input) {
   var weather = past.weather ? past.weather : { error: true, reason: String(got[0].reason && got[0].reason.message || got[0].reason).slice(0, 160) };
   var aq = got[1].status === 'fulfilled' && got[1].value && got[1].value.current ? got[1].value : null;
   var sensors = (input && (input.sensor_readings || (input.trmnl && input.trmnl.sensor_readings))) || null;
+  if (field(input, 'sensor_show', 'show') === 'hide') sensors = null;
   var sunO = sunTimes(weather), pollenV = pollenLevel(aq), w = weather || {};
   var raw = { current: w.current || null, hourly: w.hourly || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
   var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
+  if (field(input, 'sensor_co2', 'show') === 'hide') model.inn.co2 = null;
   return { ui: buildView(model, i18n, w.daily, moon, phase, { pressAgo: past.ago, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'days'), w.current && w.current.time) }), model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 

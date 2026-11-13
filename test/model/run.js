@@ -129,7 +129,9 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   eq([T.timeIs12(null, '12'), T.timeIs12(null, 12), T.timeIs12(null, '24'), T.timeIs12(null, T.field({}, 'time_format', '24'))], [true, true, false, false], 'missing field: 24 h');
   eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
-  ok(/- keyname: author_info\n[\s\S]*- keyname: lat_lon\n[\s\S]*- keyname: unit\n[\s\S]*- keyname: time_format\n[\s\S]*- keyname: bottom\n[\s\S]*- keyname: hide_title_bar\n/.test(y), 'settings in the owner order: about, location, unit, time format, bottom strip, title bar (owner 2026-11-13)');
+  const fields = y.split(/^- keyname: /m).slice(1).map((part) => ({ key: part.split('\n')[0], group: (/^  group: (.+)$/m.exec(part) || [])[1] || null }));
+  eq(fields.map((f) => f.key), ['author_info', 'lat_lon', 'unit', 'time_format', 'bottom', 'hide_title_bar', 'sensor_show', 'sensor_co2'], 'settings in owner order');
+  eq(fields.map((f) => f.group), [null, null, 'Display', 'Display', 'Display', 'Display', 'Sensor', 'Sensor'], 'settings groups');
   ok(/- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n/.test(y) && /- Days: days\n  - Hours: hours\n  - Hours, days after 18:00: auto\n  default: days\n/.test(y), 'time format 24 by default, bottom strip Days by default');
 });
 
@@ -456,5 +458,40 @@ test('days axis (owner bug): from the values as shown (rounded, -0 as 0) and onl
   eq([v.scales[5].a, v.scales[6].a], [0, -5], '5 rows: the hidden 6th day at -3 does not widen the axis; 6 rows: it does');
   f.current.temperature_2m = -1; eq(T.buildView(SWModel.build(f, {}), T.buildI18n('nl'), f.daily, null, 0.3, {}).scales[5].a, -5, 'the current temperature still counts');
 });
-console.log(passed + ' passed, ' + failed + ' failed');
-process.exit(failed ? 1 : 0);
+async function sensorSettingsTests() {
+  const originalFetch = global.fetch;
+  global.fetch = async (url) => ({ ok: true, json: async () => url.includes('air-quality') ? {} : fx('mixed') });
+  const sensor = { device_1: { temperature: [{ '2026-11-08 05:30:00 UTC': 21.6 }], humidity: [{ '2026-11-08 05:30:00 UTC': 48 }], carbon_dioxide: [{ '2026-11-08 05:30:00 UTC': 1600 }], pressure: [{ '2026-11-08 05:30:00 UTC': 1010 }] } };
+  const run = (values, nested = false, readings = sensor) => T.run({ sensor_readings: nested ? undefined : readings, trmnl: { user: { locale: 'nl' }, sensor_readings: nested ? readings : undefined, plugin_settings: { custom_fields_values: values } } });
+  async function check(name, fn) {
+    try { await fn(); passed++; } catch (e) { failed++; console.log('FAIL ' + name + ': ' + e.message); }
+  }
+  try {
+    await check('sensor_show: hide removes every sensor part, show and default keep them', async () => {
+      const baseline = await run({}, false, null);
+      for (const nested of [false, true]) {
+        for (const values of [{}, { sensor_show: 'show' }]) {
+          const v = (await run(values, nested)).ui;
+          eq([v.inn.temp, v.inn.out, v.inn.in, v.tdial.twin, v.meters.some((m) => m.key === 'co2')], ['21.6', 'BUITEN', 'BINNEN', 21.6, true]);
+        }
+        const hidden = await run({ sensor_show: 'hide', sensor_co2: 'show' }, nested);
+        eq(hidden.ui, baseline.ui, 'hide matches the complete no-sensor view');
+        eq(hidden.model.inn, baseline.model.inn, 'hide removes all model readings');
+      }
+    });
+    await check('sensor_co2: hide removes only CO2, show and default keep it', async () => {
+      const shown = await run({ sensor_co2: 'show' });
+      eq(shown.ui, (await run({})).ui, 'show is the default');
+      ok(shown.ui.meters.some((m) => m.key === 'co2'), 'show keeps CO2');
+      const hidden = await run({ sensor_co2: 'hide' }, true);
+      ok(!hidden.ui.meters.some((m) => m.key === 'co2'), 'hide removes CO2');
+      eq(hidden.ui.inn, shown.ui.inn, 'indoor readout unchanged');
+      eq(hidden.ui.tdial, shown.ui.tdial, 'twin needle unchanged');
+      eq(hidden.model.inn, Object.assign({}, shown.model.inn, { co2: null }), 'other readings unchanged');
+    });
+  } finally { global.fetch = originalFetch; }
+}
+sensorSettingsTests().then(() => {
+  console.log(passed + ' passed, ' + failed + ' failed');
+  process.exit(failed ? 1 : 0);
+});
