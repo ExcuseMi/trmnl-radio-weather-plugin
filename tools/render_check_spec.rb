@@ -273,6 +273,11 @@ return [r.length,r.length?Math.min.apply(null,r).toFixed(1):0,innerHeight,nm.len
       # (the inverted today label included) and all rows are the same height.
       al = s.evaluate(%q{(function(){var bad=[],L=[],H=[];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(e){var q=e.getBoundingClientRect();if(!q.height)return;H.push(q.height);var im=e.querySelector('img'),nm=e.querySelector('[data-sw-today],[data-sw-dname]');if(!im||!nm)return;var a=im.getBoundingClientRect(),b=nm.getBoundingClientRect();L.push(a.left);if(b.right>a.left-3)bad.push('name '+nm.textContent.trim()+' reaches its icon');});
 if(L.length&&Math.max.apply(null,L)-Math.min.apply(null,L)>1)bad.push('icon lefts '+L.map(Math.round));if(H.length&&Math.max.apply(null,H)-Math.min.apply(null,H)>1)bad.push('row heights '+H.map(Math.round));return bad.join('; ')})()})
+      # Rain calendar cells are rectangles with the meter cells' corner radius (owner step 17), in rendered pixels.
+      rx = s.evaluate(%q{(function(){var cal=[].filter.call(document.querySelectorAll('[data-sw-part="rain"] svg rect[rx]'),function(r){return r.getBoundingClientRect().width>0})[0],mc=[].filter.call(document.querySelectorAll('[data-sw-part="meter"] svg rect[rx]'),function(r){return r.getBoundingClientRect().width>0})[0];if(!cal||!mc)return '';
+var px=function(r){var sv=r.ownerSVGElement;return +r.getAttribute('rx')*sv.getBoundingClientRect().height/+sv.getAttribute('height')};var a=px(cal),b=px(mc);return Math.abs(a-b)>0.6?'calendar rx '+a.toFixed(1)+' meter rx '+b.toFixed(1):''})()})
+      puts "RAINRX #{c['name']}: #{rx}" unless rx.empty?
+      expect(rx).to eq('')
       puts "DAYALIGN #{c['name']}: #{al}" unless al.empty?
       expect(al).to eq('')
       d = dr.split(',').map(&:to_f)
