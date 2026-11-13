@@ -290,7 +290,7 @@ test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none 
 test('moon glow outside the disk in dark mode, none in light or 1-bit (owner 2026-11-12)', () => {
   const at = (m) => { D.mode = m; const v = D.moon(0.3, 100); D.mode = null; return v; };
   const d = at({ dark: true, bits: 4 });
-  ok(/<mask [^>]*>.*<circle cx="50" cy="50" r="4[4-9][\d.]*" fill="#000"\/><\/mask>/.test(d), 'mask cuts out the disk');
+  ok(/<mask [^>]*>.*<circle cx="50" cy="50" r="2[7-9][\d.]*" fill="#000"\/><\/mask>/.test(d), 'mask cuts out the disk');
   ok(/<g mask="url\(#swmk\d+\)" data-sw-moonhalo><defs>.*<g filter="url\(#swgl\d+\)" data-sw-glow="4"><circle[^>]*\/><\/g><\/g>/.test(d), 'the halo is the whole disk, under the mask');
   ok(!/data-sw-glow[^>]*><path/.test(d), 'no halo on the lit part itself');
   [{ dark: false, bits: 4 }, { dark: true, bits: 1 }].forEach((m) => ok(!/swmk|swgl/.test(at(m)), 'no halo ' + JSON.stringify(m)));
@@ -368,7 +368,7 @@ test('wind gust cell (owner 2026-11-12): the cell where the gust peaks, none whe
   ok(/data-sw-gust/.test(D.meter(0.19, 300, 30, 10, null, 0.47)) && !/data-sw-gust/.test(D.meter(0.19, 300, 30, 10, null, null)), 'one outlined gust cell, none without a gust');
 });
 test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter, gibbous and full, light and dark, lit side right while waxing', () => {
-  const H = 100, r = H * 0.44, disk = Math.PI * r * r;
+  const H = 100, r = H * 0.27, disk = Math.PI * r * r;
   [0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9].forEach((p) => {
     const want = (1 - Math.cos(2 * Math.PI * p)) / 2;
     [false, true].forEach((dark) => {

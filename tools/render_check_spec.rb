@@ -73,10 +73,10 @@ sv.closest('.relative').querySelectorAll('[data-sw-cap]').forEach(function(c){va
 return bad.join('; ');})()})
       puts "RAINUNIT #{c['name']}: #{ru}" unless ru.empty?
       expect(ru).to eq('')
-      # Moon beside the sun rows (owner, step 12, X half vertical): as tall as the two rows (first sun icon top to last
-      # sun icon bottom, 0.8 to 1.15) and centred on them.
+      # Moon beside the sun rows (owner 2026-11-13: moon data is not that important): the disc at most 0.72 of the two
+      # rows (first sun icon top to last sun icon bottom) and centred on them.
       mo = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-unit="sun"]').forEach(function(u){var m=[].filter.call(u.querySelectorAll('[data-sw-part="moon"]'),function(e){return e.getBoundingClientRect().height>0})[0],ic=[].filter.call(u.querySelectorAll('img[data-sw-icon]'),function(e){return e.getBoundingClientRect().height>0});if(!m||ic.length<2||!u.getBoundingClientRect().height)return;
-var b=m.getBoundingClientRect(),t=ic[0].getBoundingClientRect().top,bo=ic[ic.length-1].getBoundingClientRect().bottom,r=b.height/(bo-t),dc=(b.top+b.bottom)/2-(t+bo)/2;if(r<0.8||r>1.15||Math.abs(dc)>3)bad.push('moon '+b.height.toFixed(0)+' rows '+(bo-t).toFixed(0)+' dc '+dc.toFixed(1))});return bad.join('; ')})()})
+var ci=m.querySelector('circle'),b=ci?ci.getBoundingClientRect():m.getBoundingClientRect(),t=ic[0].getBoundingClientRect().top,bo=ic[ic.length-1].getBoundingClientRect().bottom,r=b.height/(bo-t),dc=(b.top+b.bottom)/2-(t+bo)/2;if(r>0.72||Math.abs(dc)>3)bad.push('moon '+b.height.toFixed(0)+' rows '+(bo-t).toFixed(0)+' dc '+dc.toFixed(1))});return bad.join('; ')})()})
       puts "MOON #{c['name']}: #{mo}" unless mo.empty?
       expect(mo).to eq('') if c['view'] == 'half_vertical'
       # X quadrant (owner, step 12: big empty bands above and below): the content of each panel (images, drawings,
@@ -289,6 +289,7 @@ return cols.length+'|'+bad.join('; ');})()})
 var v=cs.map(function(e){var q=(SW.hours||[])[+e.getAttribute('data-sw-i')]||{},g=e.querySelector('[data-sw-cells]');return {t:q.tV,n:g?+g.getAttribute('data-sw-cells'):0,e:e,g:g}}).filter(function(o){return o.t!==null&&o.t!==undefined});
 var C0=Math.min.apply(null,cs.map(function(e){return e.getBoundingClientRect().height})),rt=v.map(function(o){return Math.round(o.t)}),room=Math.max.apply(null,rt)-Math.min.apply(null,rt)+1<=Math.min(C0/6,16);   // room for a block per degree (6 px blocks, 16 at most)
 v.forEach(function(a){v.forEach(function(b){if(Math.round(a.t)<Math.round(b.t)&&(a.n>b.n||(room&&a.n>=b.n)))bad.push(a.t+':'+a.n+' vs '+b.t+':'+b.n);});});
+v.forEach(function(o){if(o.n<1)bad.push(o.t+': no block');var P=o.e.closest('[data-sw-panel]'),pb=P&&P.getBoundingClientRect();if(pb&&o.g)[].forEach.call(o.g.querySelectorAll('rect'),function(x){if(x.getBoundingClientRect().bottom>pb.bottom+0.5)bad.push(o.t+': block past the panel')});});   // owner 2026-11-13, live X hv dark
 var top=v.reduce(function(m,o){return o.t>m.t?o:m},v[0]);if(top&&top.g){var C=Math.min.apply(null,cs.map(function(e){return e.getBoundingClientRect().height})),r=[].map.call(top.g.querySelectorAll('rect'),function(x){return x.getBoundingClientRect()}),h=r.length?Math.max.apply(null,r.map(function(x){return x.bottom}))-Math.min.apply(null,r.map(function(x){return x.top})):0;if(h<0.8*C-8)bad.push('warmest stack '+h.toFixed(0)+' of '+C.toFixed(0));}
 return bad.slice(0,4).join('; ');})()})
       puts "HCURVE #{c['name']}: #{hc}" unless hc.empty?
@@ -353,6 +354,7 @@ var te=[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg'),vis
 var u=te.closest('[data-sw-part]').parentElement.querySelector('[data-sw-unit]'),ur=u?vis(u).right:tr,g=e.querySelector('g[data-sw-cloth]'),sv=e.querySelector('svg'),sr=vis(sv);if(!g||!sr){bad.push('badge not drawn');return;}var sb=sv.viewBox.baseVal,sk=(/slice/.test(sv.getAttribute('preserveAspectRatio')||'')?Math.max:Math.min)(sr.width/sb.width,sr.height/sb.height),oy=sr.top+(sr.height-sb.height*sk)/2,bx=g.getAttribute('data-sw-box').split(',').map(Number),gb={left:sr.left+(bx[0]-sb.x)*sk,top:oy+(bx[1]-sb.y)*sk,height:bx[2]*sk};gb.right=gb.left+bx[2]*sk;gb.bottom=gb.top+gb.height;   // the top layer's box (xMinYMid: a T-shirt draws shorter than a parka in the same box)
 if(gb.left<Math.max(tr,ur)-0.5)bad.push('badge not right of the temperature '+gb.left.toFixed(0)+'<'+Math.max(tr,ur).toFixed(0));if(ov(gb,{left:r.left,right:tr,top:tt,bottom:tt+th}))bad.push('badge over temp');
 if(Math.abs(gb.top-tt)>3||Math.abs(gb.bottom-tt-th)>3)bad.push('badge '+gb.top.toFixed(1)+'-'+gb.bottom.toFixed(1)+' not on the digits '+tt.toFixed(1)+'-'+(tt+th).toFixed(1));var dv=e.previousElementSibling;if(!e.closest('[data-sw-twin]')&&!(dv&&dv.hasAttribute('data-sw-div')&&dv.getBoundingClientRect().height>0))bad.push('no divider before the badge');});
+if(te){var ti2=te.getBBox().height*te.getBoundingClientRect().height/(te.viewBox.baseVal.height||1),fz=function(e){return parseFloat(getComputedStyle(e).fontSize)*(e.getBoundingClientRect().width/(e.offsetWidth||1))},mx=0;[].forEach.call(document.querySelectorAll('[data-sw-suntime],[data-sw-cond]'),function(e){if(vis(e))mx=Math.max(mx,fz(e))});if(mx&&ti2<1.2*mx)bad.push('temperature digits '+ti2.toFixed(0)+' not the largest readout (text '+mx.toFixed(0)+')');}   // owner 2026-11-13 (live X hv dark, 4.4 smaller than the sun times)
 document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=vis(p);if(!q)return;var r=[].map.call(p.querySelectorAll('[data-sw-row="day"]'),vis).filter(Boolean);if(r.length&&r[r.length-1].bottom>q.bottom+0.5)bad.push('day row '+r.length+' past the panel '+(r[r.length-1].bottom-q.bottom).toFixed(0))});
 return bad.join('; ');})()})
       puts "READOUT #{c['name']}: #{cr2}" unless cr2.empty?
