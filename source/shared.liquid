@@ -525,7 +525,7 @@ return svg(W, H, '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"
 function mlp(f, r1, lt, W, H, py) {
 var A = 75 * Math.PI / 180, mfs = H * 0.1, mg = Math.max(2.5, H * 0.008), g = Math.max(4, H * 0.03), hw = mfs * 0.62 * lt.length / 2, an = -A + 2 * A * Math.max(-0.03, Math.min(1.03, f));
 var rr = r1 + mg + Math.abs(Math.sin(an)) * hw + Math.abs(Math.cos(an)) * mfs * 0.4 + r1 * 0.022 * 2 * A, x = W / 2 + rr * Math.sin(an), y = py - rr * Math.cos(an), t = g + mfs * 0.625 + 0.5;
-if (y < t) { y = t; x += (an < 0 ? 1 : -1) * (hw + r1 * 0.03 + H * 0.04 + 2); }
+if (y < t) { y = t; x += (an < 0 ? 1 : -1) * (hw + r1 * 0.03 + H * 0.06 + 2); }
 return [Math.max(g + hw, Math.min(W - g - hw, x)), y];
 }
 function dialR(D, W, H, nums, py) {
