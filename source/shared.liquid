@@ -84,7 +84,7 @@
   <div class="flex flex--col flex--center gap--medium grow w--min-0">{% comment %} owner step 12 {% endcomment %}
    <div class="flex flex--row flex--center-y flex--center-x w--full {% if view == 3 %}gap--small lg:gap--medium lg:portrait:gap--small{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[{% if view == 3 %}3{% elsif view == 4 %}7{% else %}5{% endif %}cqh]">
     {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
-    <span class="title {% if view == 3 %}title--small lg:portrait:title--small{% elsif view == 4 %}title--small lg:title--base lg:portrait:title--small{% elsif view == 2 %}title--small lg:title--large{% else %}title--medium lg:title--xlarge{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
+    <span class="title {% if view == 3 %}title--small lg:portrait:title--small{% elsif view == 4 %}title--small lg:title--base lg:portrait:title--small{% elsif view == 2 %}title--base lg:title--xlarge lg:portrait:title--base{% else %}title--medium lg:title--xlarge{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner: a gap, no rule {% endcomment %}
    {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}
@@ -99,8 +99,8 @@
     {%- if ui.inn %}{% comment %} Indoor sensor (as live) {% endcomment %}
     {%- for tw in (1..2) %}
     {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
-    <div class="flex flex--col flex--center gap--xsmall h--full" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
-     <div class="flex flex--row flex--top gap--xsmall">{% if tw == 2 %}{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center h--[3cqh] hidden lg:block" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}" data-sw-inarrow></div>{% endif %}{% endif %}<div class="flex flex--col flex--center gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]" data-sw-part="loc" data-sw-sq data-sw-i="{% if tw == 1 %}0{% else %}1{% endif %}" data-sw-loc="{% if tw == 1 %}out{% else %}in{% endif %}"></div>{% assign it_l = 8 %}{% if view == 1 %}{% assign it_l = 11 %}{% endif %}<div class="h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ it_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div></div><div class="flex flex--col gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
+    <div class="flex flex--col flex--center gap--xsmall h--full shrink-0" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
+     <div class="flex flex--row flex--top gap--xsmall">{% if tw == 2 %}{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center h--[3cqh] hidden lg:block" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}" data-sw-inarrow></div>{% endif %}{% endif %}<div class="flex flex--col flex--center gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]" data-sw-part="loc" data-sw-sq data-sw-i="{% if tw == 1 %}0{% else %}1{% endif %}" data-sw-loc="{% if tw == 1 %}out{% else %}in{% endif %}"></div>{% assign it_l = 8 %}{% if view == 1 %}{% assign it_l = 8 %}{% endif %}<div class="h--[{{ 8 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ it_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div></div><div class="flex flex--col gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
      <span class="label label--small flex flex--row flex--center-y gap--xsmall">{% if tw == 2 %}{{ ui.inn.hum }}{% if ui.inn.lohi %}<span class="hidden lg:flex flex--row flex--center-y gap--xsmall" data-sw-inlohi>{% if ui.inn.hum != '' %}·{% endif %}<div class="shrink-0 h--[1cqh] lg:h--[1cqh]" data-sw-part="tri" data-sw-i="2" data-sw-sq></div>{{ ui.inn.lo }}<div class="shrink-0 h--[1cqh] lg:h--[1cqh]" data-sw-part="tri" data-sw-i="3" data-sw-sq></div>{{ ui.inn.hi }}</span>{% endif %}{% else %}&nbsp;{% endif %}</span>{% comment %} indoor trend (saved state) {% endcomment %}{% comment %} an empty line under BUITEN keeps {% endcomment %}
     </div>
     {%- endfor %}
@@ -320,14 +320,17 @@ function digits(str, H) {
 var W = 56, HH = 100, T = 13, G = 14, x = 0, body = '', dec = '', post = false;
 // Owner 2026-11-14: the point and the decimal digit after it are drawn in a dark grey (light grey on black in dark mode), black stays on 1-bit.
 function put(t) { if (post) dec += t; else body += t; }
+// Owner 2026-11-14: fixed-width digit cells like an LCD: the 1 sits in a full cell and the integer part always reserves two cells (a minus takes the empty one), so 1.6 and 21.6 have the same width.
+var ip = (/^-?\d*/.exec(str) || [''])[0], idg = ip.replace('-', '').length, neg = ip.charAt(0) === '-';
+if (idg < 2 && !neg) x += W + G;
 for (var i = 0; i < str.length; i++) {
 var ch = str.charAt(i);
-if (ch === '.') { post = true; put(rect(x - G + 3, HH - T, T, T)); x += 20 - G + (str.charAt(i + 1) === '1' ? 6 : 0); continue; }
+if (ch === '.') { post = true; put(rect(x - G + 3, HH - T, T, T)); x += 20 - G; continue; }
 if (ch === '°') { post = false; body += '<circle cx="' + (x + 9) + '" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="5"/>'; x += 22 + G; continue; }
-var w = ch === '-' ? 46 : (ch === '1' ? T : W), on = GLYPH[ch] || '', sh = shapes(x, w, HH, T), gb = '';
+var w = ch === '-' ? 46 : W, on = GLYPH[ch] || '', sh = shapes(x, w, HH, T), gb = '';
 'abcdefg'.split('').forEach((s) => { if (on.indexOf(s) >= 0) gb += poly(sh[s]); });
 put('<g data-sw-glyph="' + ch + '">' + gb + '</g>');
-x += w + (ch === '-' ? G * 0.3 : G);
+x += ch === '-' ? (idg < 2 ? W + G : w + G * 0.3) : w + G;
 }
 if (dec) body += '<g data-sw-dec>' + g(API.mode && API.mode.bits <= 1 ? '' : (API.mode && API.mode.dark ? 'text--gray-30 dark:text--gray-30' : 'text--gray-30'), dec) + '</g>';
 var vw = Math.max(1, x - G);
@@ -714,7 +717,7 @@ im.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + ((0.5 - iy - ih / 2)
 // view), its icon 2.3 cap heights, unit 0.3 D, clothing cue and rain calendar 0.55 D each. The layout (temperature beside or above the cue
 // and rain column, that column stacked or side by side) that allows the largest D wins; a meter row is added only while D keeps 85 % and its
 // label stays readable; nothing is shrunk below its share, lower items are dropped whole.
-var SWR = 0.33;
+var SWR = (document.querySelector('.screen--lg') ? (document.querySelector('.screen--portrait') ? 0.455 : 0.385) : 0.356);   // the full view's condition/temperature ratio per device class (render check CONDRATIO)
 function swSmall(cx) {
 var box = document.querySelector('[data-sw-sbox]'); if (!box) return;
 var bb = box.getBoundingClientRect(); if (!bb.width || !bb.height) return;
@@ -764,8 +767,8 @@ var key = [W.toFixed(0), H.toFixed(0), R.D.toFixed(1), R.n, R.mainRow, R.sideCol
 if (box.getAttribute('data-sw-sk') === key) return; box.setAttribute('data-sw-sk', key);
 function sz(e, w, h) { if (!e) return; if (w !== null) e.style.setProperty('width', w.toFixed(1) + 'px', 'important'); if (h !== null) e.style.setProperty('height', h.toFixed(1) + 'px', 'important'); }
 function stext(lines, fs, w) { var lh2 = 1.15 * fs, h = lh2 * (lines.length - 1) + 1.25 * fs, y1 = (h - lh2 * (lines.length - 1)) / 2 + CK * fs / 2; return { h: h, html: '<svg class="block" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" viewBox="0 0 ' + w.toFixed(1) + ' ' + h.toFixed(1) + '" role="img" aria-label="' + lines.join(' ').replace(/"/g, '&quot;') + '">' + lines.map(function (l, j) { return '<text x="0" y="' + (y1 + j * lh2).toFixed(2) + '" font-size="' + fs.toFixed(2) + '" font-family="' + fam.replace(/"/g, "'") + '" font-weight="' + wt + '" fill="currentColor">' + l.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>'; }).join('') + '</svg>' }; }
-box.style.rowGap = R.g.toFixed(1) + 'px';
-var cr = q('[data-sw-srow="cond"]'); cr.style.columnGap = (0.3 * R.fsC).toFixed(1) + 'px'; sz(cr, null, R.condH);
+box.style.rowGap = (R.g + (!ds && H - R.tH > 0.06 * H ? Math.min(0.35 * R.D, 0.9 * (H - R.tH) / (R.n + 1)) : 0)).toFixed(1) + 'px';   // width-limited quadrant (a wide -13): the spare height goes between the rows, not into empty bands
+var cr = q('[data-sw-srow="cond"]'); cr.style.columnGap = (0.3 * R.fsC).toFixed(1) + 'px'; sz(cr, null, R.condH); cr.style.marginTop = (-0.62 * Math.max(0, R.condH - Math.max(R.ic * IH, (R.ln.length - 1) * 1.15 * R.fsC + CK * R.fsC)) / 2).toFixed(1) + 'px';   // the text block's own air above the first cap line does not count as top padding (render check HVPAD: ink equal above and below)
 sz(ico, R.ic, R.ic); if (ico) { ico.style.margin = (-(R.ic - R.ic * IH) / 2).toFixed(1) + 'px 0'; ico.style.transform = 'translateY(' + ((0.5 - IY - IH / 2) * R.ic).toFixed(1) + 'px)'; ico.setAttribute('data-sw-condicon', R.ln.length + ',' + R.ic.toFixed(1)); }
 var cwid = Math.max.apply(null, R.ln.map(function (l) { return mw(l, R.fsC); })) + 2, st = stext(R.ln, R.fsC, cwid);
 cond.innerHTML = st.html; cond.setAttribute('data-sw-fs', R.fsC.toFixed(2)); cond.setAttribute('data-sw-lines', R.ln.length);
