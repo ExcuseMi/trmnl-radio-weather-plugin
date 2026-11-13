@@ -556,7 +556,87 @@ async function sensorSettingsTests() {
     });
   } finally { global.fetch = originalFetch; }
 }
-sensorSettingsTests().then(() => {
+// Saved state (owner 2026-11-13): the offline copy, the clothing/meter memory and the indoor trend.
+const AT = Date.UTC(2026, 10, 8, 5, 0) / 1000;   // mixed.json: 2026-11-08T06:00 local, UTC+1
+function bigAnswer() {   // every hourly and daily field the transform asks for, 24 past + 48 hours, 14 days, long decimals
+  const f = fx('mixed'), t0 = Date.UTC(2026, 10, 7, 6), H = {}, D = {};
+  H.time = Array.from({ length: 72 }, (_, i) => new Date(t0 + i * 3600e3).toISOString().slice(0, 16));
+  ['temperature_2m', 'apparent_temperature', 'precipitation_probability', 'precipitation', 'pressure_msl', 'weather_code', 'is_day', 'wind_speed_10m', 'wind_gusts_10m', 'uv_index', 'relative_humidity_2m']
+    .forEach((k, j) => { H[k] = H.time.map((_, i) => k === 'pressure_msl' ? 1013.25 + i / 7 : (k === 'weather_code' ? 61 : (k === 'is_day' ? i % 2 : -12.345 + i * 1.111 + j))); });
+  D.time = f.daily.time;
+  ['weather_code', 'temperature_2m_max', 'temperature_2m_min', 'apparent_temperature_max', 'apparent_temperature_min', 'precipitation_probability_max', 'uv_index_max', 'wind_gusts_10m_max', 'precipitation_sum']
+    .forEach((k, j) => { D[k] = D.time.map((_, i) => k === 'weather_code' ? 95 : -10.123 + i * 1.234 + j); });
+  D.sunrise = f.daily.sunrise; D.sunset = f.daily.sunset;
+  return Object.assign({}, f, { hourly: H, daily: D });
+}
+async function stateTests() {
+  const originalFetch = global.fetch;
+  let answer = null, aq = {};
+  global.fetch = async (url) => { if (url.includes('air-quality')) return { ok: true, json: async () => aq }; if (!answer) throw new Error('offline'); return { ok: true, json: async () => answer }; };
+  const run = (state, at = AT + 600, fields = {}, extra = {}) => T.run(Object.assign({ trmnl: { user: { locale: 'en' }, state: state, system: { timestamp_utc: at }, plugin_settings: { custom_fields_values: fields } } }, extra));
+  async function check(name, fn) { try { await fn(); passed++; } catch (e) { failed++; console.log('FAIL ' + name + ': ' + e.message); } }
+  try {
+    await check('state, first run: no state (missing, empty object) still renders and writes the copy', async () => {
+      answer = fx('mixed');
+      for (const st of [undefined, {}]) {
+        const r = await run(st);
+        eq(r.ui.ok, true); ok(!r.ui.stale, 'a good fetch is not stale');
+        ok(r.trmnl_state && !Array.isArray(r.trmnl_state) && typeof r.trmnl_state === 'object', 'trmnl_state is an object');
+        eq([r.trmnl_state.snap.at, r.trmnl_state.snap.ct, r.trmnl_state.snap.d0], [AT, '2026-11-08T06:00', '2026-11-08']);
+      }
+    });
+    await check('state size: the full trmnl_state stays under 7000 bytes on the biggest answer', async () => {
+      answer = bigAnswer(); aq = { current: { time: '2026-11-08T06:00', european_aqi: 33 }, hourly: { time: answer.hourly.time, european_aqi: answer.hourly.time.map((_, i) => 20 + i) } };
+      const r = await run({}), n = Buffer.byteLength(JSON.stringify(r.trmnl_state));
+      ok(n < 7000, 'state is ' + n + ' bytes');
+      eq(r.trmnl_state.snap.h.temperature_2m.length, 28, '3 past hours, the current one and 24 ahead');
+      aq = {};
+    });
+    await check('offline: a failed fetch shows the saved copy at the current hour, stale "as of", the copy written back unchanged', async () => {
+      answer = fx('mixed'); const good = await run({}), snap = good.trmnl_state.snap;
+      answer = null;
+      const r = await run({ snap: snap }, AT + 4 * 3600 + 600);   // 10:10 local
+      eq(r.ui.ok, true, 'renders from the copy');
+      eq(r.ui.stale, 'as of 06:00');
+      eq(r.model.hours[0].h, '10', 'past hours dropped');
+      eq(r.clock, '10:10');
+      eq(r.ui.temp, (Math.round(fx('mixed').hourly.temperature_2m[4] * 10) / 10).toFixed(1), 'the temperature of the current hour');
+      eq(r.trmnl_state.snap, snap, 'copy unchanged');
+      const p = await run({ snap: snap }, AT + 4 * 3600 + 600, { time_format: '12' });
+      eq(p.ui.stale, 'as of 6:00 AM', 'time format setting');
+    });
+    await check('offline: older than 24 h, under 6 hours left, or no copy gives NO SIGNAL', async () => {
+      answer = fx('mixed'); const snap = (await run({})).trmnl_state.snap;
+      answer = null;
+      const long = JSON.parse(JSON.stringify(snap)); Object.keys(long.h).forEach((k) => { long.h[k] = long.h[k].concat(long.h[k]); });   // 50 hours: only the age stops it
+      eq((await run({ snap: long }, AT + 86400 - 60)).ui.ok, true, 'just under 24 h');
+      eq((await run({ snap: long }, AT + 86400 + 60)).ui.ok, false, 'older than 24 h');
+      const short = JSON.parse(JSON.stringify(snap)); Object.keys(short.h).forEach((k) => { short.h[k] = short.h[k].slice(0, 9); });
+      eq((await run({ snap: short }, AT + 3 * 3600 + 600)).ui.ok, true, '6 hours left (09:00 to 14:00)');
+      eq((await run({ snap: short }, AT + 4 * 3600 + 600)).ui.ok, false, '5 hours left');
+      eq((await run({})).ui.ok, false, 'no copy');
+      eq((await run({}, AT, {})).trmnl_state, { v: 1 }, 'nothing to keep');
+    });
+    await check('state shapes: a string, an array, a number, bad or missing keys never crash; a failed fetch then shows NO SIGNAL', async () => {
+      answer = fx('mixed'); const snap = (await run({})).trmnl_state.snap;
+      const bad = ['x', [1, 2], 7, null, { snap: 'x' }, { snap: [] }, { snap: {} }, { snap: Object.assign({}, snap, { h: 'x' }) }, { snap: Object.assign({}, snap, { h0: 5 }) },
+        { snap: Object.assign({}, snap, { at: 'now' }) }, { snap: Object.assign({}, snap, { d: [], sr: 'x', aq: 'x', c: {} }) }, { snap: Object.assign({}, snap, { h: { temperature_2m: 'abc' } }) }, { snap: Object.assign({}, snap, { h: null, c: null, d: null }) }];
+      for (const st of bad) {
+        answer = fx('mixed'); const g = await run(st); eq(g.ui.ok, true, 'good fetch with state ' + JSON.stringify(st).slice(0, 40));
+        answer = null; const f = await run(st); ok(f.ui && typeof f.trmnl_state === 'object', 'failed fetch with ' + JSON.stringify(st).slice(0, 40));
+      }
+      answer = null; const r = await run({ snap: Object.assign({}, snap, { d: [], sr: 'x', aq: 'x' }) });
+      eq(r.ui.ok, true, 'a copy without days still shows now');
+    });
+    await check('state size guard: an oversize state drops the indoor points, then the copy, and always stays an object under 8000 bytes', () => {
+      const big = { v: 1, snap: { pad: 'x'.repeat(5000) }, inn: { p: Array.from({ length: 900 }, () => [1, 2, 3]) } };
+      const a = T.fitState(big); ok(Buffer.byteLength(JSON.stringify(a)) <= 8000); eq(a.snap, big.snap, 'copy kept'); eq(a.inn.p, []);
+      const b = T.fitState({ v: 1, snap: { pad: 'x'.repeat(9000) } }); eq(b, { v: 1 });
+      const c = { v: 1, snap: { a: 1 } }; eq(T.fitState(c), c, 'small state unchanged');
+    });
+  } finally { global.fetch = originalFetch; }
+}
+sensorSettingsTests().then(stateTests).then(() => {
   console.log(passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 });

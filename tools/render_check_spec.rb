@@ -33,6 +33,12 @@ RSpec.describe 'renders' do
       opts[:orientation] = c['orientation'].to_sym if c['orientation']
       opts[:dark_mode] = true if c['dark']
       opts[:text_scale] = c['text_scale'] if c['text_scale']
+      if c['offline_h']   # saved state (owner 2026-11-13): a good run writes the copy, then Open-Meteo is down offline_h hours later
+        pre = trmnl.transform(**{ device: dev, mocks:, custom_fields: fields, now:, variables: opts[:variables] }.compact)
+        opts[:state] = pre.state
+        opts[:mocks] = { 'https://api.open-meteo.com/*' => { status: 503, json: { error: true, reason: 'Service unavailable' } } }
+        opts[:now] = (Time.iso8601(now) + c['offline_h'] * 3600).iso8601
+      end
       s = trmnl.render(**opts)
       puts "SCREEN #{c['name']}: #{s.evaluate("document.querySelector('.screen').className+' '+innerWidth")}" if ENV['SW_SCREEN']
       FileUtils.mkdir_p(out)
@@ -52,6 +58,10 @@ RSpec.describe 'renders' do
       err = s.evaluate("(document.querySelector('[data-sw-error]')||{getAttribute:function(){return null}}).getAttribute('data-sw-error')")
       puts "ERR #{c['name']}: #{err}" if err
       expect(err).to be_nil
+      # Offline (saved state, owner 2026-11-13): a stale view shows its "as of" once, inside the view, clear of every other ink box.
+      sl = s.evaluate(%q{(function(){var st=SW.stale||null,ls=[].filter.call(document.querySelectorAll('[data-sw-stale]'),function(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0});if(!st)return ls.length?'label without stale data':'';if(ls.length!==1)return 'labels '+ls.length;var L=ls[0].getBoundingClientRect(),V=(document.querySelector('.view')||document.body).getBoundingClientRect(),bad=[];if(ls[0].textContent.trim()!==st)bad.push('text '+ls[0].textContent);if(L.left<V.left||L.right>V.right||L.top<V.top||L.bottom>V.bottom)bad.push('outside the view');[].forEach.call(document.querySelectorAll('img,svg,.value,.title,.label,.instance,[data-sw-rule]'),function(e){if(e===ls[0]||ls[0].contains(e)||e.contains(ls[0])||e.closest('[data-sw-part="face"]'))return;var b=e.getBoundingClientRect();if(b.width>0&&b.height>0&&b.left<L.right-1&&b.right>L.left+1&&b.top<L.bottom-1&&b.bottom>L.top+1)bad.push('overlaps '+((e.closest('[data-sw-part]')||e).getAttribute('data-sw-part')||e.tagName+' '+(e.textContent||'').trim().slice(0,12)))});return bad.join('; ');})()})
+      puts "STALE #{c['name']}: #{sl}" unless sl.empty?
+      expect(sl).to eq('')
       tf = s.evaluate(%q{(function(){var v=function(q){var e=document.querySelector(q);if(!e)return 0;var r=e.getBoundingClientRect();return r.width>0?r.height:0};var t=v('[data-sw-part="temp"] svg'),f=v('[data-sw-part="feels"] svg');return f&&!(t>f)?'temp '+t.toFixed(0)+' felt '+f.toFixed(0):''})()})   # owner step 12: the main temperature is the largest number in the console
       arc = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0}),bad=[],rs=[];a.forEach(function(g){var sv=g.ownerSVGElement,k=sv.getBoundingClientRect().width/+sv.getAttribute('width'),v=g.getAttribute('data-sw-arc').split(',').map(Number),r=v[0]*k,w=v[1]*k;rs.push(r);var SB=sv.getBoundingClientRect(),T=1e9;[].forEach.call(sv.querySelectorAll('path,polygon,circle,line,text'),function(e){var b=e.getBoundingClientRect();if(b.width||b.height)T=Math.min(T,b.top)});var hb=sv.querySelector('[data-sw-hub]').getBoundingClientRect();if((T-SB.top)/SB.height>0.2||(SB.bottom-hb.bottom)/SB.height>0.2)bad.push('dial not filling its panel: top '+((T-SB.top)/SB.height*100).toFixed(0)+'% hub '+((SB.bottom-hb.bottom)/SB.height*100).toFixed(0)+'%');var d=sv.closest('[data-sw-part]').getAttribute('data-sw-part'),D=d==='baro'?SW.baro:SW.tdial;if(D&&D.lo!=null&&D.hi!=null&&sv.querySelectorAll('[data-sw-markt]').length!==2)bad.push(d+' marks '+sv.querySelectorAll('[data-sw-markt]').length);});if(rs.length===2&&Math.abs(rs[0]-rs[1])>2)bad.push('radius '+rs.map(function(x){return x.toFixed(1)}).join('/'));return a.length+'|'+bad.join('; ');})()})   # owner step 13: both dials one radius, filling the panel height (ink within 20 % of the top: 3-digit low/high numbers and the twin needle shrink both; hub within 5 % of the bottom), low/high marks on both
       puts "ARC #{c['name']}: #{arc}"
