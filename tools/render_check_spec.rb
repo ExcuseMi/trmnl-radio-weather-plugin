@@ -97,14 +97,18 @@ return bad.join('; ');})()})
       mo = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-unit="sun"]').forEach(function(u){var m=[].filter.call(u.querySelectorAll('[data-sw-part="moon"]'),function(e){return e.getBoundingClientRect().height>0})[0],ic=[].filter.call(u.querySelectorAll('img[data-sw-icon]'),function(e){return e.getBoundingClientRect().height>0});if(!m||ic.length<2||!u.getBoundingClientRect().height)return;
 var ci=m.querySelector('circle'),b=ci?ci.getBoundingClientRect():m.getBoundingClientRect(),t=ic[0].getBoundingClientRect().top,bo=ic[ic.length-1].getBoundingClientRect().bottom,r=b.height/(bo-t),dc=(b.top+b.bottom)/2-(t+bo)/2;if(r>0.72||Math.abs(dc)>3)bad.push('moon '+b.height.toFixed(0)+' rows '+(bo-t).toFixed(0)+' dc '+dc.toFixed(1))});return bad.join('; ')})()})
       puts "MOON #{c['name']}: #{mo}" unless mo.empty?
+      # 1-bit light (step 18): the moon's lit part sits inside a paper ring, so ring and lit part read apart.
+      m1 = s.evaluate(%q{(function(){var sc=document.querySelector('.screen').classList;if(!sc.contains('screen--1bit')||sc.contains('screen--dark-mode'))return '';var bad=[];document.querySelectorAll('[data-sw-moon="lit"]').forEach(function(l){var c=l.ownerSVGElement.querySelector('circle[stroke-width]');if(!c||!l.getBoundingClientRect().width)return;var r=+c.getAttribute('r'),w=+c.getAttribute('stroke-width'),h=l.getBBox().height;if(h>2*(r-w)-1)bad.push('lit '+h.toFixed(1)+' touches the ring r '+r.toFixed(1))});return bad.join('; ')})()})
+      puts "MOON1 #{c['name']}: #{m1}" unless m1.empty?
+      expect(m1).to eq('')
       expect(mo).to eq('') if c['view'] == 'half_vertical'
       # X quadrant (owner, step 12: big empty bands above and below): the content of each panel (images, drawings,
-      # text) leaves no band over 8 % of the panel height at its top or bottom, on X quadrant portrait also none between its rows, hairlines counting as ink (step 18).
+      # text) leaves no band over 8 % of the panel height at its top or bottom, on X quadrant and full portrait also none between its rows, hairlines counting as ink (step 18).
       if (c['view'] == 'quadrant' && (c['device'] || 'v2') == 'v2') || c['portrait_console']
         band = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=p.getBoundingClientRect();if(!q.height)return;var t=1e9,b=-1e9;
 var iv=[];p.querySelectorAll('img, svg, span').forEach(function(e){if(e.closest('[data-sw-part="face"]'))return;var r=e.getBoundingClientRect();if(!r.width||!r.height||(e.tagName==='SPAN'&&!e.textContent.trim()))return;t=Math.min(t,r.top);b=Math.max(b,r.bottom);iv.push([r.top,r.bottom])});
 var a=(t-q.top)/q.height,z=(q.bottom-b)/q.height;if(a>0.08||z>0.08)bad.push('top '+(a*100).toFixed(0)+'% bottom '+(z*100).toFixed(0)+'%');
-if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&getComputedStyle(e).display!=='none')iv.push([r.top,Math.max(r.bottom,r.top+1)])});iv.sort(function(x,y){return x[0]-y[0]});var e0=t;iv.forEach(function(v){if((v[0]-e0)/q.height>0.08)bad.push('band '+((v[0]-e0)/q.height*100).toFixed(0)+'% at '+Math.round(e0-q.top));e0=Math.max(e0,v[1]);})}});return bad.join('; ')})()}.sub('BETWEEN', (c['view'] == 'quadrant' && (c['device'] || 'v2') == 'v2' && c['orientation'] == 'portrait').to_s))
+if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&getComputedStyle(e).display!=='none')iv.push([r.top,Math.max(r.bottom,r.top+1)])});iv.sort(function(x,y){return x[0]-y[0]});var e0=t;iv.forEach(function(v){if((v[0]-e0)/q.height>0.08)bad.push('band '+((v[0]-e0)/q.height*100).toFixed(0)+'% at '+Math.round(e0-q.top));e0=Math.max(e0,v[1]);})}});return bad.join('; ')})()}.sub('BETWEEN', (%w[quadrant full].include?(c['view']) && (c['device'] || 'v2') == 'v2' && c['orientation'] == 'portrait').to_s))
         puts "BAND #{c['name']}: #{band}" unless band.empty?
         expect(band).to eq('')
       end
@@ -431,6 +435,10 @@ for(var i=1;i<gl.length;i++){var a=gl[i-1].getBoundingClientRect(),b=gl[i].getBo
 if(a.length!==want){bad.push(k+' arrows '+a.length+'/'+want);return;}if(!a.length)return;if(a[0].getAttribute('data-sw-arrowpoly')!==aw)bad.push(k+' arrow '+a[0].getAttribute('data-sw-arrowpoly')+' for '+aw);var r=a[0].ownerSVGElement.getBoundingClientRect(),c=box.querySelector('[data-sw-cap]'),cs=getComputedStyle(c);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var cap=cx.measureText('H').actualBoundingBoxAscent*(c.getBoundingClientRect().height/(c.offsetHeight||1)),h=Math.max(r.width,r.height);
 if(r.left<(B.left+B.right)/2||r.bottom>(B.top+B.bottom)/2)bad.push(k+' arrow not top right');if(h<1.2*cap||h>1.8*cap)bad.push(k+' arrow '+h.toFixed(0)+' cap '+cap.toFixed(0));});return bad.join('; ');})()})
       puts "ARROW #{c['name']}: #{ar}" unless ar.empty?
+      # Barometer low/high (step 18): with a day's pressure range of 5 hPa or more the two marks stand apart.
+      bm = s.evaluate(%q{(function(){var b=SW.baro||{};if(b.lo==null||b.hi-b.lo<5)return '';var bad=[];document.querySelectorAll('[data-sw-part="baro"]').forEach(function(d){if(!d.getBoundingClientRect().width)return;var m=[].map.call(d.querySelectorAll('[data-sw-markt]'),function(e){var r=e.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2]});if(m.length!==2)bad.push('baro marks '+m.length);else if(Math.hypot(m[0][0]-m[1][0],m[0][1]-m[1][1])<4)bad.push('baro marks overlap')});return bad.join('; ')})()})
+      puts "BAROMARK #{c['name']}: #{bm}" unless bm.empty?
+      expect(bm).to eq('')
       expect(ar).to eq('')
       # Sun times (owner 2026-11-12, step 12): one line each, 12 h too (the AM/PM smaller, on the same line).
       st = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-suntime]').forEach(function(e){var rg=document.createRange();rg.selectNodeContents(e);var r=[].filter.call(rg.getClientRects(),function(q){return q.width>0&&q.height>0});if(r.length>1&&r.some(function(q){return q.left<r[0].right-1&&q.top>r[0].top+2}))bad.push(e.textContent.replace(/\s+/g,' ').trim());});return bad.join('; ');})()})
