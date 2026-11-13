@@ -361,7 +361,7 @@ var gp = Math.max(2.5, k * cw * 0.16), pc = [], a0 = sc.a + Math.floor((a - sc.a
 if (API.nfs && bh > (k * cw - gp) * 1.5) { y += (bh - (k * cw - gp) * 1.5) / 2; bh = (k * cw - gp) * 1.5; } // OG portrait: blocks, not slats
 if (k * cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = k > 1 ? a0 : a; t < b; t += k) pc.push([X(t) + gp / 2, X(t + k) - gp / 2]);
 pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
-body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells>' + g(blk(hi), cells) + '</g>';
+body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells' + (API.nfs ? ' data-sw-k="' + k + '" data-sw-r="' + (b - a) + '"' : '') + '>' + g(blk(hi), cells) + '</g>';
 }
 if (hi && nowV !== null && nowV !== undefined) { var pxn = X(nowV), pr2 = ptH / 1.4, py0 = API.nfs && y !== undefined ? Math.max(0, y - ptH - 2) : 0, ptr = poly([[pxn - pr2, py0], [pxn + pr2, py0], [pxn, py0 + ptH]], ' data-sw-nowmark'); body += hue('red') ? hg('red', ptr) : ptr; } // py0: OG portrait, right above the blocks
 if (hi) body += '<g data-sw-hl="1"></g>';
@@ -760,6 +760,7 @@ if(view === 1) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"]
 if(hv) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'),function(e){var c=e.parentElement.children[1];if(c)c.parentNode.removeChild(c);set(e.parentElement.children[0],/^w--/,'w--[30cqw]');}); // hv: no day icons, bars at least 4 px
 var dn = [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'),function(q){return q.getBoundingClientRect().width>0;})[0], tpx = dn ? Math.round(parseFloat(getComputedStyle(dn).fontSize)*0.85) : 0;
 if(tpx) [].forEach.call(document.querySelectorAll('[data-sw-part="tri"]'),function(e){set(e,/^[hw]--/,'h--['+tpx+'px] w--['+tpx+'px]');});
+if(hv) [].forEach.call(panel.querySelectorAll('[data-sw-part="cue"], [data-sw-div]'),function(e){set(e,/^hidden$/,'');}); // hv: the badge beside the temperature (owner)
 if(hv && rain) { set(top,/^gap--/,'gap--xsmall'); set(outer,/^gap--/,'gap--xsmall'); set(temp,/^gap--/,'gap--small'); } // the rain unit needs the room (step 15)
 if(rain) {
 set(rain,/^w--/,narrow?'w--[52cqw]':'w--[26cqw]'); set(rain,/^h--/,hv?'h--[8cqh]':'h--[12cqh]');
