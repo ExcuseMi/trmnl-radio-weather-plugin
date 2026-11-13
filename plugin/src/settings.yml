@@ -37,6 +37,7 @@ custom_fields:
   placeholder: 52.52,13.41
   default: 52.52,13.41
 - keyname: unit
+  group: Display
   field_type: select
   name: Temperature unit
   description: 'Celsius or Fahrenheit for every temperature on the screen.'
@@ -50,6 +51,7 @@ custom_fields:
   - Fahrenheit: fahrenheit
   default: celsius
 - keyname: time_format
+  group: Display
   field_type: select
   name: Time format
   description: How times show on the screen (sunrise, sunset, rain hours).
@@ -63,6 +65,7 @@ custom_fields:
   - 12 hours (5:00 PM): '12'
   default: '24'
 - keyname: bottom
+  group: Display
   field_type: select
   name: Bottom strip
   description: The coming days, or the coming hours with their temperature; or both by the clock (hours until 18:00, days from 18:00).
@@ -77,6 +80,7 @@ custom_fields:
   - Hours, days after 18:00: auto
   default: days
 - keyname: hide_title_bar
+  group: Display
   field_type: boolean
   name: Hide title bar
   description: 'Hide the bar with the plugin name and update time at the bottom.'
@@ -86,6 +90,34 @@ custom_fields:
   description-nl: 'De balk onderaan met de pluginnaam en de update-tijd verbergen.'
   description-ja: '下部のプラグイン名と更新時刻のバーを非表示にします。'
   default: false
+- keyname: sensor_show
+  group: Sensor
+  field_type: select
+  name: Indoor readings
+  description: 'Show the indoor temperature and the room needle when a TRMNL sensor reports.'
+  description-de: 'Innentemperatur und Raumzeiger anzeigen, wenn ein TRMNL-Sensor Werte meldet.'
+  description-fr: 'Afficher la température intérieure et l’aiguille de la pièce lorsqu’un capteur TRMNL transmet des mesures.'
+  description-es-ES: 'Mostrar la temperatura interior y la aguja de la habitación cuando un sensor TRMNL envía lecturas.'
+  description-nl: 'Toon de binnentemperatuur en de kamerwijzer wanneer een TRMNL-sensor meetwaarden doorgeeft.'
+  description-ja: 'TRMNLセンサーが測定値を送信すると、室内温度と室内の針を表示します。'
+  options:
+  - Show: show
+  - Hide: hide
+  default: show
+- keyname: sensor_co2
+  group: Sensor
+  field_type: select
+  name: CO2 meter
+  description: 'Show the CO2 meter from a TRMNL sensor.'
+  description-de: 'Den CO2-Messer eines TRMNL-Sensors anzeigen.'
+  description-fr: 'Afficher la jauge de CO2 d’un capteur TRMNL.'
+  description-es-ES: 'Mostrar el medidor de CO2 de un sensor TRMNL.'
+  description-nl: 'Toon de CO2-meter van een TRMNL-sensor.'
+  description-ja: 'TRMNLセンサーのCO2メーターを表示します。'
+  options:
+  - Show: show
+  - Hide: hide
+  default: show
 name: Radio Weather
 description: Weather as a vintage radio receiver
 refresh_interval: 5
