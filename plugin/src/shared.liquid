@@ -77,36 +77,29 @@
   <div class="flex flex--col flex--center gap--medium grow w--min-0">{% comment %} owner step 12: the column keeps its share; big readouts shrink to it (swFit) instead of pushing past the divider {% endcomment %}
    <div class="flex flex--row flex--center-y flex--center-x w--full {% if view == 3 %}gap--small lg:gap--medium lg:portrait:gap--small{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[{% if view == 3 %}3{% else %}5{% endif %}cqh]">
     {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
-    {% assign cue_on = false %}{% if ui.cue and ui.cue.size > 0 %}{% assign cue_on = true %}{% endif %}<span class="title {% if view == 3 %}title--small {% unless cue_on %}lg:title--base {% endunless %}lg:portrait:title--small{% elsif view == 4 %}title--small{% unless cue_on %} lg:title--base{% endunless %}{% elsif view == 2 and cue_on %}title--small lg:title--large{% else %}title--base lg:title--large{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
-    {%- if ui.cue and ui.cue.size > 0 %}{% assign cr_m = 13 | times: hm | times: tf %}{% assign cr_l = 8 | times: hl | times: tf %}{% assign cr_p = 5 %}{% if view == 3 %}{% assign cr_p = 3 %}{% endif %}{% assign ca_m = 0.6 %}{% assign ca_l = 0.75 %}{% if view == 2 %}{% assign ca_m = 0.3 %}{% assign ca_l = 0.375 %}{% elsif view == 3 %}{% assign ca_m = 1.2 %}{% assign ca_l = 1.5 %}{% endif %}<div class="shrink-0 h--full w--[{{ cr_m | times: ca_m | times: 1.6 | round }}cqw] lg:w--[{{ cr_l | times: ca_l | times: 1.6 | round }}cqw] lg:portrait:w--[{% if view == 3 %}13{% else %}{{ cr_p | times: 2.4 | round }}{% endif %}cqw]{% if view == 3 %} hidden lg:block lg:portrait:hidden{% endif %}" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}{% comment %} owner step 13 item 2: the console badge in the condition row, about the condition icon's height (left out where the row is too narrow: OG half vertical, owner 2026-11-13, and X half vertical in portrait) {% endcomment %}
+    <span class="title {% if view == 3 %}title--small lg:title--base lg:portrait:title--small{% elsif view == 4 %}title--small lg:title--base{% else %}title--base lg:title--large{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner 2026-11-12: a gap, no rule {% endcomment %}
-   {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}{% assign dv_x = '' %}{% assign pf_m = 10 %}{% assign fe_m = 9 %}
-   {%- if calm_q and ui.inn == nil %}{% assign th_m = 21 %}{% assign pf_m = 11 %}{% assign fe_m = 10 %}{% endif %}
-   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line, the felt temperature under it {% endcomment %}{% assign th_m = 26 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y lg:portrait:flex--col' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full lg:portrait:h--[7cqh]' %}{% assign tp_h = 'lg:portrait:h--[15cqh]' %}{% comment %} X half vertical portrait (owner step 12): the felt reading under the temperature as on OG, the row taller {% endcomment %}{% assign dv_x = ' hidden lg:block lg:portrait:hidden' %}{% assign pf_m = 7 %}{% assign fe_m = 7 %}{% endif %}
+   {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}
+   {%- if calm_q and ui.inn == nil %}{% assign th_m = 21 %}{% endif %}
+   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner 2026-11-12): the big temperature on its own line {% endcomment %}{% assign th_m = 26 %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y lg:portrait:flex--col' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full lg:portrait:h--[7cqh]' %}{% assign tp_h = 'lg:portrait:h--[15cqh]' %}{% endif %}
    {%- assign bw_m = 9 | times: wm | round %}{% assign bw_l = 6 | times: wl | round %}{% capture badge_w %}w--[{{ bw_m }}cqw] lg:w--[{{ bw_l }}cqw]{% if view == 1 %} lg:portrait:w--[12cqw]{% endif %}{% endcapture %}{% comment %} Calm (owner): the clothing badge has one fixed width in the console and every day row {% endcomment %}
    {%- assign ar_m = 0.6 %}{% assign ar_l = 0.75 %}{% if view == 2 %}{% assign ar_m = 0.3 %}{% assign ar_l = 0.375 %}{% elsif view == 3 %}{% assign ar_m = 1.2 %}{% assign ar_l = 1.5 %}{% endif %}
-   {%- assign ch_m = th_m | times: hm | times: tm | times: 0.85 | round %}{% assign ch_l = th_l | times: hl | times: tf | times: 0.85 | round %}{% if view == 3 %}{% assign ch_m = pf_m | times: hm | times: tm | times: 1.3 | round %}{% endif %}{% assign cw_m = ch_m | times: ar_m | times: 1.6 | round %}{% assign cw_l = ch_l | times: ar_l | times: 1.6 | round %}{% comment %} owner: the console badge in its own fixed box, its main icon about the big digits' cap height {% endcomment %}
+   {%- assign dh_m = th_m %}{% assign dh_l = th_l %}{% assign ch_p = 7 %}{% if ui.inn %}{% assign dh_m = 12 %}{% assign dh_l = 10 %}{% assign ch_p = 3.5 %}{% endif %}{% assign ch_m = dh_m | times: hm | times: tm | times: 0.85 | round %}{% assign ch_l = dh_l | times: hl | times: tf | times: 0.85 | round %}{% assign cw_m = ch_m | times: ar_m | times: 1.6 | round %}{% assign cw_l = ch_l | times: ar_l | times: 1.6 | round %}{% assign cw_p = ch_p | times: 2.1 | round %}{% if view == 2 %}{% assign cw_p = ch_p | times: 1.1 | round %}{% endif %}{% comment %} owner 2026-11-13: the console badge beside the big temperature, in its own fixed box, about the digits' cap height (portrait: X 1404 wide, 1.33 cqw per cqh; half horizontal 0.67) {% endcomment %}
+   {%- capture cbadge %}{% if ui.cue and ui.cue.size > 0 %}<div class="shrink-0 h--[{{ ch_m }}cqh] lg:h--[{{ ch_l }}cqh] lg:portrait:h--[{{ ch_p }}cqh] w--[{{ cw_m }}cqw] lg:w--[{{ cw_l }}cqw] lg:portrait:w--[{{ cw_p }}cqw]{% if view == 3 %} hidden lg:block lg:portrait:hidden{% endif %}" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}{% endcapture %}{% comment %} left out on OG half vertical and X half vertical portrait (too narrow, owner 2026-11-13) {% endcomment %}
    <div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] {{ tp_h | default: 'lg:portrait:h--[8cqh]' }}">
-    {%- if ui.inn %}{% comment %} Indoor sensor (as live): BUITEN and BINNEN twin readouts, the felt temperature under the outdoor one, the indoor humidity under the indoor one. {% endcomment %}
+    {%- if ui.inn %}{% comment %} Indoor sensor (as live): BUITEN and BINNEN twin readouts, the indoor humidity under the indoor one (owner 2026-11-13: no felt line), the badge beside the outdoor digits. {% endcomment %}
     {%- for tw in (1..2) %}
     {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
     <div class="flex flex--col flex--center gap--xsmall h--full" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
      <span class="label label--small text--bold">{% if tw == 1 %}{{ ui.inn.out }}{% else %}{{ ui.inn.in }}{% endif %}</span>
-     <div class="flex flex--row flex--top gap--xsmall h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 10 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]"><div class="h--full" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>
-     <span class="label label--small">{% if tw == 1 %}{{ ui.inn.felt }}{% else %}{{ ui.inn.hum }}{% endif %}</span>
+     <div class="flex flex--row flex--top gap--xsmall h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 10 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]"><div class="h--full" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
+     <span class="label label--small">{% if tw == 2 %}{{ ui.inn.hum }}{% else %}&nbsp;{% endif %}</span>{% comment %} an empty line under BUITEN keeps both digit rows level {% endcomment %}
     </div>
     {%- endfor %}
     {%- else %}
     <div class="flex flex--row flex--top gap--xsmall shrink-0 {{ tg_h }}"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
-    {%- endif %}
-    {%- assign felt_on = false %}{% if ui.feels and view != 4 %}{% assign felt_on = true %}{% endif %}{% assign felt_v = '' %}{% if view == 3 %}{% assign felt_v = ' hidden lg:block' %}{% endif %}{% comment %} owner: the felt reading (label and digits) only where it fits: never in the quadrant, half vertical on lg only {% endcomment %}
-    {%- if felt_on %}
-    <div data-sw-div class="border--v-60{{ dv_x }}{{ felt_v }} h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 9 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[6cqh]"></div>
-    {%- if view == 3 %}<div class="flex flex--row flex--center-y gap--small lg:gap--medium">{% endif %}
-    <div class="shrink-0{{ felt_v }}"><div class="flex flex--col flex--left gap--xsmall" data-sw-felt><span class="label label--inverted label--large lg:portrait:label--xxlarge text--bold" data-sw-feltlabel>{{ i18n.ours.feels }}</span>{% comment %} owner: the felt word over the felt digits, as today's day label {% endcomment %}
-<div class="shrink-0 h--[{{ fe_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 7 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="feels"></div></div></div>
-{%- if view == 3 %}</div>{% endif %}
+    {{ cbadge }}
     {%- endif %}
    </div>
   </div>
@@ -541,7 +534,6 @@ case 'cue': return cue(SW.cue, W, H);
 case 'dcue': return cue((SW.days[i] || {}).cue, W, H);
 case 'temp': return digits(SW.temp, H);
 case 'itemp': return SW.inn ? digits(SW.inn.temp, H) : '';
-case 'feels': return SW.feels === null ? '' : digits(SW.feels + '°', H);
 case 'meter': return meter(SW.meters[i] && SW.meters[i].frac, W, H, API.n || 10, SW.meters[i] && SW.meters[i].zones, SW.meters[i] && SW.meters[i].gust);
 case 'day': return day(SW.days[i], axisFor(SW), W, H, !!(SW.days[i] || {}).today);   // today always highlighted (owner 2026-11-12)
 case 'scale': return scale(scN, W, H);
@@ -568,10 +560,6 @@ return API;
 // ==== DRAW_END ====
 (function () {
   function whenReady(cb) { var tries = 0; (function attempt() { if (window.TRMNLPaint) return cb(); if (++tries > 200) return; setTimeout(attempt, 50); })(); }
-  // Temperature row divider (owner 2026-11-12): midway between the drawn right edge of the unit and the drawn left edge of
-  // the person, as tall as the drawn digits and centred on them. Measured on the ink, so it needs the page.
-  function ink(svgEl) { var r = svgEl.getBoundingClientRect(), vb = svgEl.viewBox.baseVal, b = svgEl.getBBox(), kx = r.width / (vb.width || r.width), ky = r.height / (vb.height || r.height);
-    return { l: r.left + (b.x - vb.x) * kx, r: r.left + (b.x - vb.x + b.width) * kx, t: r.top + (b.y - vb.y) * ky, h: b.height * ky }; }
   // Weather icon next to the condition (owner 2026-11-12, revised): its drawn ink about twice the cap height (the label's
   // line), centred on the capitals; two lines: the block (first cap top to last baseline, plus one cap), centred on it. Measured on the real font, so it needs the page.
   function swCond(cx) {
@@ -600,8 +588,8 @@ return API;
       ic.setAttribute('data-sw-condicon', tops.length + ',' + h.toFixed(1) + ',' + mid.toFixed(1));
     });
   }
-  // Big readouts (owner 2026-11-12, step 12): the temperature row keeps its width; when the digits, unit, felt reading
-  // and badge are wider, the temperature and felt digits shrink together (the labels and unit keep their size).
+  // Big readout (owner 2026-11-12, step 12; 2026-11-13 the felt reading is gone): the temperature row keeps its width;
+  // when the digits, unit and badge are wider, the digits and the badge shrink together (the unit keeps its size).
   var swRepaint = null;
   function swFit() {
     document.querySelectorAll('[data-sw-part="temp"]').forEach(function (t) {
@@ -610,16 +598,16 @@ return API;
       var k = (row.offsetWidth && rb.width / row.offsetWidth) || 1, w = function (e) { return e ? e.getBoundingClientRect().width / k : 0; };
       var kids = [].filter.call(row.children, function (c) { return c.getBoundingClientRect().width > 0; }), rs = getComputedStyle(row), gap = parseFloat(rs.columnGap) || 0;
       var col = rs.flexDirection.indexOf('column') === 0, need = col ? kids.reduce(function (a, c) { return Math.max(a, w(c)); }, 0) : kids.reduce(function (a, c) { return a + w(c); }, 0) + gap * (kids.length - 1), avail = Math.min(row.clientWidth - parseFloat(rs.paddingLeft) - parseFloat(rs.paddingRight), row.parentElement.clientWidth);   // OG half vertical's row is as wide as its content: its column is the limit
-      var fe = row.querySelector('[data-sw-part="feels"]'), h = function (e) { return e.getBoundingClientRect().height / k; };
-      if (!g.hasAttribute('data-sw-h0')) { if (need <= avail + 0.5) return; g.setAttribute('data-sw-h0', h(g)); if (fe) fe.setAttribute('data-sw-h0', h(fe)); }   // natural sizes, before the first shrink
-      var hs = function (e) { var v = e && e.querySelector('svg'); return v ? h(v) : 0; }, gr = +g.getAttribute('data-sw-h0') / (hs(t) || 1), fr = fe ? +fe.getAttribute('data-sw-h0') / (hs(fe) || 1) : 1;   // natural / drawn now (the svg, which may still be the last size): every pass sizes from the natural readout, never from its own last shrink
-      var tw = w(t.querySelector('svg')) * gr, fw = w(fe && fe.querySelector('svg')) * fr, lw = w(row.querySelector('[data-sw-feltlabel]'));
-      need += tw - w(t.querySelector('svg')) + (fe ? Math.max(fw, lw) - Math.max(w(fe.querySelector('svg')), lw) : 0);
-      if (fw <= lw) fw = 0;
-      if (!(tw + fw)) return;
-      var ex = w(g) - w(t.querySelector('svg')), f = col ? Math.min(1, Math.max(0.4, Math.min((avail - 1 - ex) / tw, fw ? (avail - 1) / fw : 1))) : Math.min(1, Math.max(0.4, (tw + fw - (need - avail) - 1) / (tw + fw)));   // stacked (portrait half vertical): the widest readout sets the factor, the temperature with its unit and badge (ex)
+      var h = function (e) { return e.getBoundingClientRect().height / k; };
+      var cu = row.querySelector(':scope > [data-sw-part="cue"]'); if (cu && !cu.getBoundingClientRect().width) cu = null;
+      if (!g.hasAttribute('data-sw-h0')) { if (need <= avail + 0.5) return; g.setAttribute('data-sw-h0', h(g)); if (cu) { cu.setAttribute('data-sw-h0', h(cu)); cu.setAttribute('data-sw-w0', w(cu)); } }   // natural sizes, before the first shrink
+      var hs = function (e) { var v = e && e.querySelector('svg'); return v ? h(v) : 0; }, gr = +g.getAttribute('data-sw-h0') / (hs(t) || 1);   // natural / drawn now: every pass sizes from the natural readout, never from its own last shrink
+      var tw = w(t.querySelector('svg')) * gr, bw = cu && !col ? +cu.getAttribute('data-sw-w0') : 0; need += tw - w(t.querySelector('svg')) + (bw ? bw - w(cu) : 0);
+      if (!tw) return;
+      var ex = w(g) - w(t.querySelector('svg')), f = col ? Math.min(1, Math.max(0.4, (avail - 1 - ex) / tw)) : Math.min(1, Math.max(0.4, (tw + bw - (need - avail) - 1) / (tw + bw)));   // stacked (portrait half vertical): the temperature with its unit (ex); in a row the badge shrinks with the digits (owner 2026-11-13: about their cap height)
       function set(e, v, p) { if (Math.abs(h(e) - v) > 0.3) { e.style.setProperty('height', v.toFixed(1) + 'px', 'important'); if (swRepaint) swRepaint(p); } }   // the paint watcher does not see a height-only change: draw again here
-      set(g, +g.getAttribute('data-sw-h0') * f, t); if (fe && fw) set(fe, +fe.getAttribute('data-sw-h0') * f, fe);
+      set(g, +g.getAttribute('data-sw-h0') * f, t);
+      if (bw && Math.abs(w(cu) - bw * f) > 0.3) { cu.style.setProperty('width', (bw * f).toFixed(1) + 'px', 'important'); cu.style.setProperty('height', (+cu.getAttribute('data-sw-h0') * f).toFixed(1) + 'px', 'important'); }   // the badge's svg follows its box (100 %, meet): no repaint
       row.setAttribute('data-sw-fit', f.toFixed(3));
     });
   }
@@ -645,37 +633,9 @@ return API;
       var v = 1.5 * cx.measureText('H').actualBoundingBoxAscent; e.style.width = v.toFixed(1) + 'px'; e.style.height = v.toFixed(1) + 'px';
     });
   }
-  // Console badge in the condition row (owner 2026-11-13, live OG full: the parka in "BEWOLKT"): its ink keeps the row
-  // gap to the label's ink; the label steps down (to 70 %) first, then the badge is left out.
-  function swCueFit(cx) {
-    var again = false;
-    document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
-      var row = sp.parentElement, cu = row.querySelector(':scope > [data-sw-part="cue"]'); if (!cu || !cu.getBoundingClientRect().width) return;
-      var k = (row.offsetWidth && row.getBoundingClientRect().width / row.offsetWidth) || 1, gap = (parseFloat(getComputedStyle(row).columnGap) || 8) * k;
-      function clash() { var g = cu.querySelector('g[data-sw-cloth]'), b = (g || cu).getBoundingClientRect(), rg = document.createRange(); rg.selectNodeContents(sp); return [].some.call(rg.getClientRects(), function (q) { return q.width > 0 && q.bottom > b.top && q.top < b.bottom && q.right > b.left - gap + 0.5; }); }
-      if (!clash()) return;
-      var f0 = parseFloat(sp.getAttribute('data-sw-fs0') || getComputedStyle(sp).fontSize); sp.setAttribute('data-sw-fs0', f0);
-      for (var f = 0.9; f >= 0.69 && clash(); f -= 0.1) { sp.style.setProperty('font-size', (f0 * f).toFixed(1) + 'px', 'important'); again = true; }
-      if (clash()) { cu.style.setProperty('display', 'none', 'important'); cu.setAttribute('data-sw-cueout', ''); }
-    });
-    if (again) swCond(cx);
-  }
   function swAlign() {
     var cx = document.createElement('canvas').getContext('2d');
-    swCond(cx); swCueFit(cx); swFit(); swHair();
-    document.querySelectorAll('[data-sw-div]').forEach(function (dv) {
-      var row = dv.parentElement, u = row.querySelector('[data-sw-unit=""]'), t = row.querySelector('[data-sw-part="temp"] svg'), p = row.querySelector('[data-sw-felt]');
-      dv.style.transform = ''; dv.style.removeProperty('height');
-      if (!u || !t || !p || !dv.getBoundingClientRect().height) return;
-      var cs = getComputedStyle(u); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-      // The preview may scale the page: screen boxes are scaled, the canvas text width and the translate are CSS px.
-      var ub = u.getBoundingClientRect(), sc = (u.offsetWidth && ub.width / u.offsetWidth) || 1;
-      var ur = ub.left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight * sc, pi = { l: p.getBoundingClientRect().left }, ti = ink(t);
-      dv.style.setProperty('height', Math.round(ti.h / sc) + 'px', 'important'); dv.style.setProperty('flex-shrink', '0');
-      var r = dv.getBoundingClientRect(); sc = (dv.offsetHeight && r.height / dv.offsetHeight) || sc;   // the divider's own scale: the unit's rounded offsetWidth is off by up to 1 % (104.6 F: 1.8 px short)
-      dv.style.setProperty('height', (ti.h / sc).toFixed(2) + 'px', 'important'); r = dv.getBoundingClientRect();
-      dv.style.transform = 'translate(' + (((ur + pi.l) / 2 - (r.left + r.right) / 2) / sc).toFixed(1) + 'px,' + ((ti.t - r.top) / sc).toFixed(1) + 'px)';
-    });
+    swCond(cx); swFit(); swHair();
   }
   whenReady(function () {
     swRepaint = swPaint;
@@ -719,7 +679,7 @@ return API;
     });
     swAlign();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(swAlign);   // the unit's ink width needs the real font
-    if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-felt], [data-sw-part="feels"], [data-sw-div], [data-sw-cond]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
+    if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-cond]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
     if (window.MutationObserver) { var mo = new MutationObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-cond]').forEach(function (q) { mo.observe(q, { attributes: true, childList: true, characterData: true, subtree: true }); }); }   // the Framework's clamp rewrites the condition
     [200, 800, 2000].forEach(function (ms) { setTimeout(swAlign, ms); });   // the Framework refits text after first paint
     document.body.setAttribute('data-sw-drawn', '1');

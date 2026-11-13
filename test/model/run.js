@@ -165,9 +165,10 @@ test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 me
   const none = view({});
   eq([none.inn, none.tdial.twin, none.meters.some((m) => m.key === 'co2')], [null, null, false], 'no sensor: nothing changes');
   const v = view({ temp: 21.6, hum: 48, co2: 900 });
-  eq([v.inn.temp, v.inn.out, v.inn.in, v.inn.hum, v.tdial.twin, v.feels], ['21.6', 'BUITEN', 'BINNEN', 'VOCHT 48 %', 21.6, null]);
-  ok(v.inn.felt.indexOf('°') > 0, 'felt temperature under the outdoor readout');
+  eq([v.inn.temp, v.inn.out, v.inn.in, v.inn.hum, v.tdial.twin, 'feels' in v, 'felt' in v.inn], ['21.6', 'BUITEN', 'BINNEN', 'VOCHT 48 %', 21.6, false, false], 'owner 2026-11-13: no felt readout, no felt line under BUITEN');
   ok(v.tdial.b >= 21.6, 'dial scale holds the indoor needle');
+  const out = view({}), M0 = SWModel.build(raw, {}), cold = Object.assign({}, M0, { now: Object.assign({}, M0.now, { temp: 15, feels: 1 }) });
+  eq(['feels' in out, T.buildView(cold, T.buildI18n('nl'), raw.daily).cue[0]], [false, 'parka'], 'owner 2026-11-13: no felt readout without a sensor either; the felt temperature (1) still picks the top layer (parka, not the air temperature 15)');
   const hi = view({ temp: 21.6, co2: 1500 }).meters.map((m) => m.key), lo = view({ temp: 21.6, co2: 900 }).meters.map((m) => m.key);
   eq(hi.slice(0, 2), ['wind', 'co2'], 'CO2 above 1400 ppm moves up');
   ok(lo.indexOf('co2') < 0 || lo.indexOf('co2') === lo.length - 1, 'normal CO2 stays last');
@@ -274,8 +275,8 @@ test('dial light: backlight in light mode (2-bit up), glow in dark (blur 4-bit, 
   ok(/<circle[^>]*\/><\/g><\/svg>$/.test(t({ dark: true, bits: 4 })), 'needle hub still last');
 });
 test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none in light mode or 1-bit (owner 2026-11-12)', () => {
-  const SWv = { temp: '12', feels: '9', meters: [{ frac: 0.5 }], rain: { hours: [{ h: '14', wet: true }, { h: '15', wet: false }] }, sun: { phase: 0.3 } };
-  const parts = (m) => { D.mode = m; D.src = 'x.svg'; const r = ['temp', 'feels', 'meter', 'rain', 'moon', 'icon'].map((k) => [k, D.part(SWv, k, 0, 200, 60)]); D.mode = null; return r; };
+  const SWv = { temp: '12', meters: [{ frac: 0.5 }], rain: { hours: [{ h: '14', wet: true }, { h: '15', wet: false }] }, sun: { phase: 0.3 } };
+  const parts = (m) => { D.mode = m; D.src = 'x.svg'; const r = ['temp', 'meter', 'rain', 'moon', 'icon'].map((k) => [k, D.part(SWv, k, 0, 200, 60)]); D.mode = null; return r; };
   parts({ dark: true, bits: 4 }).forEach(([k, s]) => ok(/<g filter="url\(#swgl\d+\)" data-sw-glow="4">/.test(s) && /feGaussianBlur stdDeviation/.test(s) && /slope="0.75"/.test(s), k + ': dark 4-bit halo'));
   parts({ dark: true, bits: 2 }).forEach(([k, s]) => ok(/data-sw-glow="2"/.test(s) && /feMorphology/.test(s) && !/feGaussianBlur/.test(s), k + ': dark 2-bit crisp halo'));
   [{ dark: false, bits: 4 }, { dark: false, bits: 2 }, { dark: true, bits: 1 }, { dark: false, bits: 1 }].forEach((m) => parts(m).forEach(([k, s]) => ok(!/data-sw-glow|swgl/.test(s), k + ': no glow ' + JSON.stringify(m))));
