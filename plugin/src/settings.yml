@@ -104,22 +104,6 @@ custom_fields:
   - Show: show
   - Hide: hide
   default: show
-  conditional_validation:
-  - when: hide
-    hidden:
-    - sensor_device
-- keyname: sensor_device
-  group: Sensor
-  field_type: string
-  name: Show another device's sensor
-  description: 'Optional. Empty: this screen shows its own sensor. To show another device''s sensor instead (for example on a screen without one), enter that device''s number: the number in its trmnl.com/devices/.../edit address.'
-  description-de: 'Optional. Leer: dieser Bildschirm zeigt seinen eigenen Sensor. Um stattdessen den Sensor eines anderen Geräts zu zeigen (etwa auf einem Bildschirm ohne Sensor), dessen Nummer eingeben: die Zahl in seiner Adresse trmnl.com/devices/.../edit.'
-  description-fr: 'Facultatif. Vide : cet écran affiche son propre capteur. Pour afficher plutôt le capteur d’un autre appareil (par exemple sur un écran sans capteur), indique le numéro de cet appareil : le nombre dans son adresse trmnl.com/devices/.../edit.'
-  description-es-ES: 'Opcional. Vacío: esta pantalla muestra su propio sensor. Para mostrar el sensor de otro dispositivo (por ejemplo en una pantalla sin sensor), introduce el número de ese dispositivo: el número en su dirección trmnl.com/devices/.../edit.'
-  description-nl: 'Optioneel. Leeg: dit scherm toont zijn eigen sensor. Om in plaats daarvan de sensor van een ander toestel te tonen (bijvoorbeeld op een scherm zonder sensor), vul het nummer van dat toestel in: het getal in zijn adres trmnl.com/devices/.../edit.'
-  description-ja: '任意。空欄：この画面は自身のセンサーを表示します。別のデバイスのセンサーを表示する場合（センサーのない画面など）は、そのデバイスの番号を入力します：trmnl.com/devices/.../edit のアドレスにある数字です。'
-  placeholder: '8920'
-  optional: true
 - keyname: sensor_co2
   group: Sensor
   field_type: select

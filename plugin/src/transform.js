@@ -332,16 +332,7 @@ var sdW = side(th, day0, cur0), sdA = aq ? side(aq.hourly || {}, aqD, String(aq.
 var gh = maxOf([mx(th, 'wind_gusts_10m', sdW.l), num(c.wind_gusts_10m)].filter((v) => v !== null));
 model.range = { wind: Object.assign(rg2(th, 'wind_speed_10m', sdW), { hi: gh !== null ? gh : model.today.gustMax }), uv: rg2(th, 'uv_index', sdW), humidity: rg2(th, 'relative_humidity_2m', sdW), baro: rg2(th, 'pressure_msl', sdW), aqi: aq ? rg2(aq.hourly || {}, 'european_aqi', sdA) : { past: null, later: null } };
 model.inn = { temp: null, hum: null, co2: null, press: null };
-var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;
-var sw = String(cfg && cfg.sensorDevice || '').replace('device_', '').trim(), dk = sd ? Object.keys(sd).sort().filter((k) => (!sw || k === 'device_' + sw) && sd[k] && typeof sd[k] === 'object' && Object.keys(sd[k]).some((q) => Array.isArray(sd[k][q]) && sd[k][q].length))[0] : null;   // owner 2026-11-14: sensor_device picks one device's sensor (one instance per device)
-if (dk) {
-var latest = (arr) => { var best = null, bt = ''; (arr || []).forEach((e) => { var ts = Object.keys(e || {})[0]; if (ts && ts > bt) { bt = ts; best = num(e[ts]); } });
-var m3 = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(bt);
-if (best !== null && raw.renderedAt && m3 && raw.renderedAt - Date.UTC(+m3[1], +m3[2] - 1, +m3[3], +m3[4], +m3[5], +m3[6]) / 1000 > 10800) best = null;
-return best; };
-model.inn = { temp: latest(sd[dk].temperature), hum: latest(sd[dk].humidity), co2: latest(sd[dk].carbon_dioxide), press: latest(sd[dk].pressure) };
-if (model.now.press === null) model.now.press = model.inn.press;
-}
+/* The indoor reading is the markup's job (it reads sensor_readings itself; TRMNL never hands it to this transform). model.inn stays as the slot buildView fills for the stand-in view (see run). */
 var any = false;
 for (var i = 0; i < model.slots.length; i++) if (!model.slots[i].missing) any = true;
 model.ok = any || model.now.temp !== null;
@@ -542,6 +533,12 @@ out.keep = { cue: { top: tp }, mt: { uv: t.uvMax === null ? pm.uv : uvOn, co2: M
 return out;
 }
 
+// The parts of a view that differ when an indoor reading exists (the view built with a stand-in reading): the markup merges them into ui.
+function phOverlay(v) {
+  var m = v.meters.filter((q) => q.tw)[0];
+  return { inn: v.inn, twin: v.tdial.twin, tw: m ? { k: m.key, out: m.tw.out, in: m.tw.in } : null };
+}
+
 function timeIs12(over, set) { return String(over === null || over === undefined ? set : over) === '12'; }
 
 // Saved state (owner 2026-11-13): TRMNL hands the last run's trmnl_state in as input.trmnl.state; whatever a run does not
@@ -594,21 +591,9 @@ function fromSnap(sn, nowS) {
     return { weather: { current: cur, hourly: hourly, daily: daily, utc_offset_seconds: off }, aq: aq, pollen: rd(sn.pol, 1000), asOf: hmOf(sn.ct) };
   } catch (e) { return null; }
 }
-// Indoor trend (owner 2026-11-13, saved state inn): one point per 30 min ([slot, C, ppm]) for the last 6 h, today's
-// low/high (local date d). Returns the new state and the point nearest to 3 h ago (within 30 min), or null.
-function innTrack(prev, t, co2, nowS, day) {
-  prev = stObj(prev) || {};
-  var slot = Math.floor(nowS / 1800), ok = (q) => Array.isArray(q) && typeof q[0] === 'number' && typeof q[1] === 'number' && q[0] > slot - 13 && q[0] < slot;
-  var pts = (Array.isArray(prev.p) ? prev.p : []).filter(ok).map((q) => [q[0], q[1], typeof q[2] === 'number' ? q[2] : null]).slice(-12).concat([[slot, rd(t, 10), co2 === null ? null : Math.round(co2)]]);
-  var same = prev.d === day && typeof prev.lo === 'number' && typeof prev.hi === 'number';
-  var ago = pts.filter((q) => Math.abs(q[0] - (slot - 6)) <= 1).sort((a, b) => Math.abs(a[0] - slot + 6) - Math.abs(b[0] - slot + 6))[0] || null;
-  return { st: { d: day, lo: rd(same ? Math.min(prev.lo, t) : t, 10), hi: rd(same ? Math.max(prev.hi, t) : t, 10), p: pts }, ago: ago };
-}
-// The size guard: never hand TRMNL a state it would refuse; the indoor points go first, then the copy.
+// The size guard: never hand TRMNL a state it would refuse; the copy goes first.
 function fitState(st) {
   var size = (o) => new TextEncoder().encode(JSON.stringify(o)).length;
-  if (size(st) <= ST_MAX) return st;
-  if (st.inn) st = Object.assign({}, st, { inn: Object.assign({}, st.inn, { p: [] }) });
   if (size(st) <= ST_MAX) return st;
   st = Object.assign({}, st); delete st.snap;
   if (size(st) <= ST_MAX) return st;
@@ -648,34 +633,25 @@ async function run(input) {
   else if ((fb = fromSnap(st0.snap, nowS))) { wr = fb.weather; aq = fb.aq; }   // offline: the saved copy at the current hour, marked stale
   var past = dropPast(wr);
   var weather = past.weather ? past.weather : { error: true, reason: String(got[0].reason && got[0].reason.message || got[0].reason).slice(0, 160) };
-  var sensors = (input && (input.sensor_readings || (input.trmnl && input.trmnl.sensor_readings))) || null;
-  if (field(input, 'sensor_show', 'show') === 'hide') sensors = null;
   var sunO = sunTimes(weather), pollenV = fb ? fb.pollen : pollenLevel(aq), w = weather || {};
-  var raw = { current: w.current || null, hourly: w.hourly || null, todayHourly: past.today || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
+  var raw = { current: w.current || null, hourly: w.hourly || null, todayHourly: past.today || null, daily: w.daily || null, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
-  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius', sensorDevice: field(input, 'sensor_device', '') || ((((input || {}).trmnl || {}).device || {}).id || '') /* owner 2026-11-14: TRMNL may add the numeric trmnl.device.id; then this device's own sensor */ }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time, w.utc_offset_seconds);
-  if (field(input, 'sensor_co2', 'show') === 'hide') model.inn.co2 = null;
+  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time, w.utc_offset_seconds);
   var pc = stObj(st0.cue), pmt = stObj(st0.mt);
   var vo = { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time), limb: moonLimb(Date.parse(((w.current || {}).time || '') + 'Z') - (w.utc_offset_seconds || 0) * 1000, w.latitude, w.longitude) };
   var ui = buildView(model, i18n, w.daily, moon, phase, vo);
   if (fb && fb.asOf) ui.stale = i18n.ours.asof + ' ' + clk(fb.asOf.slice(0, 2), fb.asOf.slice(3, 5));
   var st = { v: 1, cue: ui.keep.cue, mt: ui.keep.mt }, keep = snap || stObj(st0.snap); delete ui.keep;
-  if (sensors && model.inn.temp !== null && ui.inn) {   // sensor_show hide: sensors null, no indoor state
-    var cv = (c) => fahrenheit ? c * 1.8 + 32 : c, iv = innTrack(st0.inn, model.inn.temp, model.inn.co2, nowS, String((w.current || {}).time || msIso((nowS + (w.utc_offset_seconds || 0)) * 1000)).slice(0, 10));
-    st.inn = iv.st;
-    ui.inn.arrow = iv.ago ? tempTrend(cv(iv.ago[1]), cv(model.inn.temp), fahrenheit) : null;
-    ui.inn.co2arrow = iv.ago && iv.ago[2] !== null && model.inn.co2 !== null ? (model.inn.co2 - iv.ago[2] >= 100 ? 'up' : (model.inn.co2 - iv.ago[2] <= -100 ? 'down' : 'level')) : null;
-    if (iv.st.p.length > 1) ui.inn.lohi = i18n.lo + ' ' + SWModel.fmt(cv(iv.st.lo)) + '° ' + i18n.hi + ' ' + SWModel.fmt(cv(iv.st.hi)) + '°';
-    if (ui.inn.lohi) { ui.inn.lo = SWModel.fmt(cv(iv.st.lo)) + '°'; ui.inn.hi = SWModel.fmt(cv(iv.st.hi)) + '°'; }   // owner: shown with the plugin's triangle marks (hollow down low, filled up high)
+  // Real devices: the transform input has no sensor_readings (TRMNL adds them for the markup only). So the payload carries
+  // ph, only the parts of the view that differ when an indoor reading exists: the markup merges them into ui and its page
+  // script puts the real values in. Built from the view with a stand-in reading (the outdoor temperature, humidity 50).
+  var phTemp = model.now.temp, ph = null;
+  if (field(input, 'sensor_show', 'show') !== 'hide' && phTemp !== null && phTemp !== undefined) {
+    ph = phOverlay(buildView(Object.assign({}, model, { inn: { temp: phTemp, hum: 50, co2: null, press: null } }), i18n, w.daily, moon, phase, vo));
   }
-  // Real devices: the transform input has no sensor_readings (TRMNL adds them for the markup only). So the markup gets the view
-  // twice more, built with a stand-in indoor reading (the outdoor temperature, humidity 50 or none); it picks one when
-  // the merge variable holds a reading and its page script puts the real values in (ph: true marks these views).
-  var phTemp = model.now.temp, wantPh = !sensors && field(input, 'sensor_show', 'show') !== 'hide' && phTemp !== null && phTemp !== undefined;
-  var phView = (hum) => { var v = buildView(Object.assign({}, model, { inn: { temp: phTemp, hum: hum, co2: null, press: null } }), i18n, w.daily, moon, phase, vo); delete v.keep; v.ph = true; if (fb && fb.asOf) v.stale = ui.stale; return v; };
   if (keep) st.snap = keep;   // a failed fetch writes the old copy back as it was
-  return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, sens_in: !!sensors, ui_in: wantPh ? phView(50) : null, ui_in_t: wantPh ? phView(null) : null, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
+  return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, ph: ph, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, omUrls: omUrls, WMO_TO_WAPI: WMO_TO_WAPI, snapOf: snapOf, fromSnap: fromSnap, innTrack: innTrack, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase, moonLimb: moonLimb, moonSky: moonSky };
+if (typeof module !== 'undefined') module.exports = { run: run, phOverlay: phOverlay, omUrls: omUrls, WMO_TO_WAPI: WMO_TO_WAPI, snapOf: snapOf, fromSnap: fromSnap, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase, moonLimb: moonLimb, moonSky: moonSky };
