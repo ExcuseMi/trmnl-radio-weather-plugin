@@ -159,7 +159,7 @@ test('air quality: the current index at any hour (no evening mode)', () => {
 });
 
 // removed 'indoor sensor: latest reading, dropped when older than 3 hours': the input never carries sensor_readings on TRMNL (owner's live payload), so the transform no longer parses readings; the markup path is the render cases x-sens* (x-sens-stale: over 3 h shows nothing)
-test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 meter and high CO2 first (as live)', () => {
+test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 meter and the indoor meters first (owner 2026-11-14)', () => {
   const raw = fx('mixed'), view = (inn) => { const M = SWModel.build(raw, {}); M.inn = Object.assign({ temp: null, hum: null, co2: null, press: null }, inn); return T.buildView(M, T.buildI18n('nl'), raw.daily); };
   const none = view({});
   eq([none.inn, none.tdial.twin, none.meters.some((m) => m.key === 'co2')], [null, null, false], 'no sensor: nothing changes');
@@ -170,9 +170,13 @@ test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 me
   ok(v.tdial.b >= 21.6, 'dial scale holds the indoor needle');
   const out = view({}), M0 = SWModel.build(raw, {}), cold = Object.assign({}, M0, { now: Object.assign({}, M0.now, { temp: 15, feels: 1 }) });
   eq(['feels' in out, T.buildView(cold, T.buildI18n('nl'), raw.daily).cue[0]], [false, 'parka'], 'owner 2026-11-13: no felt readout without a sensor either; the felt temperature (1) still picks the top layer (parka, not the air temperature 15)');
-  const hi = view({ temp: 21.6, co2: 1500 }).meters.map((m) => m.key), lo = view({ temp: 21.6, co2: 900 }).meters.map((m) => m.key);
-  eq(hi.slice(0, 2), ['wind', 'co2'], 'CO2 above 1400 ppm moves up');
-  ok(lo.indexOf('co2') < 0 || lo.indexOf('co2') === lo.length - 1, 'normal CO2 stays last');
+  // owner 2026-11-14 (replaces 'CO2 above 1400 ppm moves up to second place, a normal reading stays last'): with an indoor reading the indoor group comes first, CO2 then the indoor humidity row (the outdoor humidity right after it), then the other outdoor meters in the usual order; no indoor reading: the usual order
+  const ks = (inn) => view(inn).meters.map((m) => m.key);
+  eq(ks({ temp: 21.6, hum: 48, co2: 900 }).slice(0, 2), ['co2', 'humidity'], 'CO2, then the humidity twin first');
+  eq(ks({ temp: 21.6, co2: 1500 }).slice(0, 2), ['co2', 'wind'], 'CO2 first at any reading, without an indoor humidity the outdoor meters follow in the usual order');
+  eq(ks({ temp: 21.6, hum: 48 })[0], 'humidity', 'no CO2 reading: the humidity twin first');
+  eq(ks({})[0], 'wind', 'no indoor reading: the usual order');
+  eq(ks({ temp: 21.6, hum: 48, co2: 900 }).filter((k) => k !== 'co2' && k !== 'humidity'), ks({}).filter((k) => k !== 'humidity').slice(0, 2), 'the other outdoor meters keep their usual order');
 });
 
 test('temperature readout: no decimal once the whole part has 3+ characters (owner, step 12: 104.6 F touched the divider)', () => {
@@ -611,28 +615,27 @@ async function sensorSettingsTests() {
       eq([both.ph, both.ui.inn], [null, null], 'both hidden: no overlay');
       for (const values of [{}, { sensor_show: 'show' }]) { const r = await run(values, false, null); eq([r.ph.inn.out, r.ph.inn.in, r.ph.tw.k, r.ui.inn], ['BUITEN', 'BINNEN', 'humidity', null]); }
     });
-    await check('CO2 overlay (owner 2026-11-14): sensor_co2 show carries both meter lists, hide carries none, independent of the indoor setting', async () => {
+    await check('CO2 overlay (owner 2026-11-14): sensor_co2 show carries the meter list, hide carries none, independent of the indoor setting', async () => {
       const on = await run({}, false, null), off = await run({ sensor_co2: 'hide' }, false, null), only = await run({ sensor_show: 'hide' }, false, null);
       const slim = (l) => l.map((m) => Object.keys(m).sort().join());
-      ok(Array.isArray(on.ph.mn) && Array.isArray(on.ph.mu) && on.ph.mn.length > 0, 'show: both lists');
-      ok(slim(on.ph.mn).every((k) => k === 'idx,key,label,rank') && slim(on.ph.mu).every((k) => k === 'idx,key,label,rank'), 'lists hold key, label, idx, rank only (no view copies)');
-      eq(on.ph.mu[1].key, 'co2', 'a high reading moves CO2 to second place');
-      ok(on.ph.mn.map((m) => m.key).indexOf('co2') < 0 || on.ph.mn[on.ph.mn.length - 1].key === 'co2', 'a normal reading keeps CO2 last');
-      eq([off.ph.mn, off.ph.mu, off.ph.cz, off.ph.inn.in], [undefined, undefined, undefined, 'BINNEN'], 'hide: no CO2 lists, indoor stays');
+      ok(Array.isArray(on.ph.mn) && on.ph.mn.length > 0 && Array.isArray(on.ph.hn), 'show: the CO2 list and the list without CO2');
+      ok(slim(on.ph.mn).every((k) => k === 'idx,key,label,rank') && slim(on.ph.hn).every((k) => k === 'idx,key,label,rank'), 'lists hold key, label, idx, rank only (no view copies)');
+      eq([on.ph.mn[0].key, on.ph.hn[0].key, on.ph.mu], ['co2', 'humidity', undefined], 'owner 2026-11-14: CO2 first at any reading (one list, no high-reading variant), the humidity twin first without CO2');
+      eq([off.ph.mn, off.ph.cz, off.ph.inn.in], [undefined, undefined, 'BINNEN'], 'hide: no CO2 list, indoor stays');
       ok(Array.isArray(only.ph.mn) && only.ph.inn === undefined, 'co2 shown with the indoor readings hidden');
       eq(on.ui.meters.some((m) => m.key === 'co2'), false, 'the plain view never carries CO2');
     });
-    await check('CO2 overlay parity: the meters of the view with a stand-in reading equal the page script merge of the lists, with and without the other meters', async () => {
+    await check('CO2 overlay parity: the meters of the view with a stand-in reading equal the page script merge of the list, with and without the other meters', async () => {
       const raw = fx('mixed'), i18n = T.buildI18n('nl');
       const mk = (co2, tweak) => { const M = SWModel.build(raw, {}); if (tweak) tweak(M); M.inn = { temp: null, hum: null, co2, press: null }; return T.buildView(M, i18n, raw.daily); };
       const slim = (l) => l.map((m) => ({ key: m.key, label: m.label, idx: m.idx, rank: m.rank }));
       // the page script's merge (source/shared.liquid, SWP): the meters already in the view plus the CO2 one, in the list's order
-      const merge = (base, ph, co2) => (co2 >= 1401 ? ph.mu : ph.mn).map((e) => { const b = base.filter((m) => m.key === e.key)[0] || { key: e.key, label: e.label, frac: Math.max(0, Math.min(1, (co2 - 400) / 1600)), past: null, later: null, peak: null, zones: ph.cz }; return Object.assign({}, b, { idx: e.idx, rank: e.rank }); });
+      const merge = (base, ph, co2) => ph.mn.map((e) => { const b = base.filter((m) => m.key === e.key)[0] || { key: e.key, label: e.label, frac: Math.max(0, Math.min(1, (co2 - 400) / 1600)), past: null, later: null, peak: null, zones: ph.cz }; return Object.assign({}, b, { idx: e.idx, rank: e.rank }); });
       const tweaks = [null, (M) => { M.now.aqi = null; M.now.hum = null; }, (M) => { M.now.pollen = 0; M.now.wind = null; M.today.uvMax = 5; M.now.day = true; }, (M) => { M.now.aqi = null; M.now.hum = null; M.now.pollen = 0; M.now.wind = null; M.now.press = null; }];
       tweaks.forEach((tw, ti) => {
-        const base = mk(null, tw), mn = mk(800, tw), mu = mk(1800, tw);
-        const ph = { mn: slim(mn.meters), mu: slim(mu.meters), cz: mu.meters.concat(mn.meters).filter((m) => m.key === 'co2').map((m) => m.zones)[0] || null };
-        [[800, mn], [1800, mu], [1401, mu], [1400, mn]].forEach(([c, want]) => {
+        const base = mk(null, tw), mn = mk(800, tw);
+        const ph = { mn: slim(mn.meters), cz: mn.meters.filter((m) => m.key === 'co2').map((m) => m.zones)[0] || null };
+        [[800, mn], [1800, mn], [1401, mn], [1400, mn]].forEach(([c, want]) => {
           const got = merge(base.meters, ph, c);
           eq(got.map((m) => m.key + m.idx + m.rank), want.meters.map((m) => m.key + m.idx + m.rank), 'order, idx, rank (variant ' + ti + ', ' + c + ' ppm)');
           const g = got.filter((m) => m.key === 'co2')[0], w = want.meters.filter((m) => m.key === 'co2')[0];
@@ -643,11 +646,13 @@ async function sensorSettingsTests() {
     });
     await check('overlay: the view with a stand-in reading equals the view plus the overlay, with and without a humidity meter', async () => {
       const raw = fx('mixed'), i18n = T.buildI18n('nl');
-      const merge = (u, o) => { const v = JSON.parse(JSON.stringify(u)); v.inn = o.inn; v.tdial.twin = o.twin; if (o.tw) v.meters.forEach((m) => { if (m.key === o.tw.k) m.tw = { out: o.tw.out, in: o.tw.in, m: { frac: 0.5 } }; }); return v; };
+      const slimL = (l) => l.map((m) => ({ key: m.key, label: m.label, idx: m.idx, rank: m.rank }));
+      // the page script's merge (source/shared.liquid, SWP): the overlay, and the indoor order of the list ph.hn (owner 2026-11-14: the humidity twin first)
+      const merge = (u, o, hn) => { const v = JSON.parse(JSON.stringify(u)); v.inn = o.inn; v.tdial.twin = o.twin; if (o.tw) v.meters.forEach((m) => { if (m.key === o.tw.k) m.tw = { out: o.tw.out, in: o.tw.in, m: { frac: 0.5 } }; }); if (hn) v.meters = hn.map((e) => Object.assign({}, v.meters.filter((m) => m.key === e.key)[0], { idx: e.idx, rank: e.rank })); return v; };
       for (const noHum of [false, true]) {
         const mk = (inn) => { const M = SWModel.build(raw, {}); if (noHum) M.now.hum = null; M.inn = Object.assign({ temp: null, hum: null, co2: null, press: null }, inn); return T.buildView(M, i18n, raw.daily); };
         const a = mk({}), b = mk({ temp: a.tdial.now, hum: 50 }), o = T.phOverlay(b);
-        eq(merge(a, o), JSON.parse(JSON.stringify(b)), 'overlay complete' + (noHum ? ' (no humidity meter)' : ''));
+        eq(merge(a, o, slimL(b.meters)), JSON.parse(JSON.stringify(b)), 'overlay complete' + (noHum ? ' (no humidity meter)' : ''));
         eq(!!o.tw, !noHum, 'the twin meter key only with a humidity meter');
       }
     });

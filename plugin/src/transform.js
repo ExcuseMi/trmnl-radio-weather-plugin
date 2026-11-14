@@ -479,7 +479,8 @@ baro: ['BARO', bar(n.press, 970, 1050), n.press !== null], co2: ['CO2', bar(M.in
 var pm = (opt && opt.prevMt) || {}, flag = (v, th, mg, was) => v === null || v === undefined ? false : (typeof was === 'boolean' ? (was ? v >= th - mg : v >= th + mg) : v >= th);
 var uvOn = n.day !== false && flag(t.uvMax, 3, 0.5, pm.uv), co2Up = flag(M.inn.co2, 1401, 50, pm.co2);
 var relevant = { uv: uvOn, baro: false };
-var ORD = co2Up ? ['wind', 'co2'].concat(RO_ORDER.filter((k) => k !== 'wind' && k !== 'co2')) : RO_ORDER;   // as live: high indoor CO2 moves up
+var inUp = M.inn.temp !== null && M.inn.temp !== undefined, hum2 = inUp && M.inn.hum !== null && M.inn.hum !== undefined ? ['humidity'] : [];
+var ORD = inUp ? ['co2'].concat(hum2, RO_ORDER.filter((k) => k !== 'co2' && k !== hum2[0])) : co2Up ? ['wind', 'co2'].concat(RO_ORDER.filter((k) => k !== 'wind' && k !== 'co2')) : RO_ORDER;   // owner 2026-11-14: with an indoor reading the indoor group first (CO2, then indoor humidity with the outdoor humidity right after it), then the outdoor meters in the usual order; else as live: high indoor CO2 moves up
 var keys = ORD.filter((k) => RO[k][2] && relevant[k] !== false);
 ORD.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k !== 'uv') keys.push(k); });
 keys = ORD.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
@@ -534,6 +535,7 @@ return out;
 }
 
 // The parts of a view that differ when an indoor reading exists (the view built with a stand-in reading): the markup merges them into ui.
+function slimL(v) { return v.meters.map((m) => ({ key: m.key, label: m.label, idx: m.idx, rank: m.rank })); }
 function phOverlay(v) {
   var m = v.meters.filter((q) => q.tw)[0];
   return { inn: v.inn, twin: v.tdial.twin, tw: m ? { k: m.key, out: m.tw.out, in: m.tw.in } : null };
@@ -648,12 +650,13 @@ async function run(input) {
   // script puts the real values in. Built from the view with a stand-in reading (the outdoor temperature, humidity 50).
   var phTemp = model.now.temp, ph = null, showIn = field(input, 'sensor_show', 'show') !== 'hide', showCo = field(input, 'sensor_co2', 'show') !== 'hide';
   if ((showIn || showCo) && phTemp !== null && phTemp !== undefined) {
-    var stand = (co2) => buildView(Object.assign({}, model, { inn: { temp: phTemp, hum: 50, co2: co2, press: null } }), i18n, w.daily, moon, phase, vo);
+    var stand = (co2, hum) => buildView(Object.assign({}, model, { inn: { temp: phTemp, hum: hum === undefined ? 50 : hum, co2: co2, press: null } }), i18n, w.daily, moon, phase, vo);
     ph = showIn ? phOverlay(stand(null)) : {};
+    if (showIn) ph.hn = slimL(stand(null));   // the indoor order without CO2 (indoor humidity first)
     if (showCo) {   // the CO2 meter (B9): the meter list with a normal and with a high reading (key, label, idx, rank), the markup picks one by the real reading
-      var lo = stand(800), hi = stand(1800), slim = (v) => v.meters.map((m) => ({ key: m.key, label: m.label, idx: m.idx, rank: m.rank }));
-      var cm = hi.meters.concat(lo.meters).filter((m) => m.key === 'co2')[0];
-      ph.mn = slim(lo); ph.mu = slim(hi); ph.cz = cm ? cm.zones : null;
+      var lo = stand(800, showIn ? 50 : null), slim = slimL;
+      var cm = lo.meters.filter((m) => m.key === 'co2')[0];
+      ph.mn = slim(lo); ph.cz = cm ? cm.zones : null;
     }
   }
   if (keep) st.snap = keep;   // a failed fetch writes the old copy back as it was

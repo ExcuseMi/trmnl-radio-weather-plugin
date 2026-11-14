@@ -43,7 +43,7 @@ async function build(src) {
   js = js.replace(/\{\{[^}]*\}\}|\{%[^%]*%\}/g, (m) => { lq.push(m); return '__LQ' + (lq.length - 1) + '__'; });
   js = alias(js);
   const r = await minify(js, {
-    ecma: 2020, compress: { passes: 3, toplevel: true, pure_getters: true, unsafe_arrows: true },
+    ecma: 2020, compress: { passes: 4, toplevel: true, pure_getters: true, unsafe_arrows: true, unsafe: true, keep_fargs: false, unsafe_comps: true },
     mangle: { toplevel: true, reserved: ['SW', 'SWDraw'] },
     format: { comments: /==== (DRAW|I18N)/, max_line_len: false },
   });
