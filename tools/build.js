@@ -15,11 +15,13 @@ function alias(js) {
   const dom = Object.keys(DOM_ALIAS).filter(hit);
   dom.forEach((k) => { js = js.replace(new RegExp('\\.' + k + '\\b', 'g'), '.' + DOM_ALIAS[k]); });
   js = js.replace(/\.parentElement\b/g, '.$p').replace(/\bgetComputedStyle\(/g, '$C(').replace(/\bdocument\./g, '$d.');
-  js = js.replace(/\.setProperty\(/g, '.$P(').replace(/\.toFixed\(/g, '.$f(').replace(/\bMath\.(max|min|round|abs)\(/g, (m, f) => 'M' + f + '(');
+  js = js.replace(/\.setProperty\(/g, '.$P(').replace(/\.toFixed\(/g, '.$f(');
   const on = (P, ks) => ks.filter((k) => dom.includes(k)).map((k) => P + '.' + DOM_ALIAS[k] + '=' + P + '.' + k + ';').join('');
   const domPre = 'var $d=document,$C=getComputedStyle;(function(){Object.defineProperty(Node.prototype,"$p",{get(){return this.parentElement}});var E=Element.prototype,D=Document.prototype;' + on('E', ['getBoundingClientRect', 'querySelectorAll', 'querySelector', 'getAttribute', 'setAttribute', 'hasAttribute', 'removeAttribute', 'closest'])
-    + on('D', ['querySelectorAll', 'querySelector']) + 'CSSStyleDeclaration.prototype.$P=CSSStyleDeclaration.prototype.setProperty;})();';
+    + on('D', ['querySelectorAll', 'querySelector']) + (dom.includes('getBoundingClientRect') ? 'Range.prototype.$b=Range.prototype.getBoundingClientRect;' : '') + 'CSSStyleDeclaration.prototype.$P=CSSStyleDeclaration.prototype.setProperty;})();';
   const drawPre = '\nvar ' + MATH_ALIAS.map((f) => 'M' + f + '=Math.' + f).join(',') + ';Number.prototype.$f=Number.prototype.toFixed;\n';
+  const cut = js.indexOf('// ==== DRAW_BEGIN ====');   // the Math aliases are defined inside the DRAW block: only code after it may use them
+  js = js.slice(0, cut) + js.slice(cut).replace(/\bMath\.(max|min|round|abs)\(/g, (m, f) => 'M' + f + '(');
   js = js.replace('// ==== DRAW_BEGIN ====', '// ==== DRAW_BEGIN ====' + drawPre);
   return domPre + '\n' + js;
 }
