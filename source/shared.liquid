@@ -338,7 +338,8 @@ function lfs(sc) { return API.nfs ? (API.lp && API.nfs > API.lp && API.ogfull ? 
 function ticks(sc, W) {
 var fs = lfs(sc), st = sc.major, w = (v) => fs * 0.62 * (tick(v).length + 1.2) + fs * 0.6, n = 0, out = [];
 for (var v = sc.a; v <= sc.b + 1e-9; v += st) n += w(v);
-if (n > W * 0.75) { st = sc.major * 2; if (API.nfs) { var m = 2; while (m * sc.major < sc.b - sc.a && Math.abs((sc.b - sc.a) / (m * sc.major) % 1) > 1e-9) m++; st = m * sc.major; } }
+if (n > W * 0.75) { st = sc.major * 2; if (API.nfs) { var m = 2, R = sc.b - sc.a, ok = function (s) { var t = 0, mx = 0; for (var v = sc.a; v <= sc.b + 1e-9; v += s) { t += w(v); mx = Math.max(mx, w(v)); } return t <= W * 0.75 && mx <= s / R * W; };
+for (;;) { while (m * sc.major < R && Math.abs(R / (m * sc.major) % 1) > 1e-9) m++; st = m * sc.major; if (st >= R || ok(st)) break; m++; } } }   // B5: portrait rows widen the step until each label fits its spacing ("-25°-15°" ran together; render check TICKS)
 for (var v = API.nfs && st > sc.major ? sc.a : Math.ceil(sc.a / st - 1e-9) * st; v <= sc.b + 1e-9; v += st) out.push(v);   // a widened step (portrait rows) starts at the track's first value, so the labels sit at both track ends
 return out;
 }
