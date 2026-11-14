@@ -232,9 +232,11 @@ test('segment digits: lit segments only, no ghost segments (owner 2026-11-12)', 
   eq((D.digits('1', 100).match(/<polygon/g) || []).length, 2, 'a 1 is two segments');
   eq((D.digits('8.8', 100).match(/<polygon/g) || []).length, 14); ok(/<rect/.test(D.digits('8.8', 100)), 'decimal point');
 });
-test('segment digits: the minus is narrow, no digit-wide gap before the 2', () => {
+test('segment digits: LCD cells (owner 2026-11-14): the minus takes the empty integer cell, narrow minus glyph, no extra gap', () => {
   const w = (s) => +/viewBox="0 0 ([\d.]+)/.exec(D.digits(s, 100))[1];
-  ok(w('-2') < w('22') * 0.9, 'minus width ' + w('-2') + ' vs ' + w('22'));
+  eq(w('-2'), w('22'), 'a minus in the reserved cell: same width as two digits');
+  ok(w('-12') < w('-2') + w('2') * 0.9, 'a minus before two digits is narrow, not digit-wide: ' + w('-12') + ' vs ' + w('-2'));
+  ok(w('-') < w('2') * 0.9, 'minus glyph narrower than a digit cell');
 });
 test('meters (owner 2026-11-12): order wind, uv, aqi, humidity, pollen, baro, co2; pollen only above zero', () => {
   const raw = fx('mixed'), M0 = SWModel.build(raw, {});
@@ -270,11 +272,13 @@ test('dials: needle drawn last, low mark hollow, high mark solid, baro zone icon
 test('right column: no rule between the rain calendar and the sun times (owner 2026-11-12, later decision)', () => {
   ok(sh.indexOf('data-sw-sep="rain-sun"') < 0, 'no rain-sun separator');
 });
-test('days strip: 5-degree lines faint, blocks at least half the row, now line dark', () => {
-  const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40);
+test('days strip: 5-degree lines faint, other days thin mid-grey bars (at least 40 % of the row), today at least half the row in dark ink (owner 2026-11-14)', () => {
+  const day = (hi) => D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40, hi);
+  const s = day(false);
   ok(/^<svg[^>]*>(<defs>.*<\/defs>)?<g class="text--gray-7\d"/.test(s), 'grid lines light grey');
-  const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-20')[1])[1];
-  ok(h >= 20, 'block height ' + h + ' of 40');
+  const hOf = (str, tok) => +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(str.split(tok)[1])[1];
+  ok(hOf(s, 'text--gray-45') >= 16, 'other days: mid-grey block height ' + hOf(s, 'text--gray-45') + ' of 40');
+  ok(hOf(day(true), 'text--gray-10') >= 20, 'today: dark block at least half the row');
 });
 test('panel face (owner 2026-11-12): a plain fill on 4-bit light, no backlight lamps; none on 2-bit, in dark or 1-bit', () => {
   const f = (m, W, H) => { D.mode = m; const s = D.part({}, 'face', 0, W, H); D.mode = null; return s; };
@@ -300,7 +304,7 @@ test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none 
   D.mode = { dark: true, bits: 4 }; const r = D.rain([{ h: '14', wet: true }], 120, 40); D.mode = null;
   ok(r.indexOf('data-sw-glow') < r.lastIndexOf('<rect'), 'halo under the lit cell, not over it');
   D.mode = { dark: true, bits: 4 }; ok(!/text--gray-40/.test(D.meter({ frac: 0.5 }, 200, 30, 10)), 'dark: lit meter cells in full ink, as live'); D.mode = null;
-  ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 4, 'weather, rain and sun icons marked to glow');
+  ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 5, 'weather (full and small console), rain and sun rise/set icons marked to glow');
 });
 test('moon glow outside the disk in dark mode, none in light or 1-bit (owner 2026-11-12)', () => {
   const at = (m) => { D.mode = m; const v = D.moon(0.3, 100); D.mode = null; return v; };
@@ -319,7 +323,7 @@ test('days strip in narrow views: X half vertical 7 days without numbers, OG hal
   ok(/<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}/.test(sh) && /{{ icon_x }}" src="{{ d.icon }}"/.test(sh), 'row markup uses the per-view sizes');
 });
 test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 segments, 5 days', () => {
-  ok(/<div class="hidden lg:block h--\[30cqh\][^"]*"><div class="flex flex--row/.test(sh), 'dials only on lg');
+  ok(/<div class="hidden lg:block h--\[\d+cqh\][^"]*"><div class="flex flex--row/.test(sh), 'dials only on lg');
   ok(/lg:hidden" data-sw-part="\{\{ pk \}\}" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="\{\{ pk \}\}" data-sw-n="10"/.test(sh), 'meter copies per size');
   ok(/data-sw-row="day"/.test(sh) && !/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'every day row in the same full-width wrapper (no half-width fifth row)');
   ok(/{%- if d.today %}<span class="label label--inverted[^"]*" data-sw-today>/.test(sh), 'OG: today a lit lamp on the day name (owner 2026-11-12)');
@@ -720,10 +724,12 @@ sensorSettingsTests().then(stateTests).then(() => {
   console.log(passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 });
-test('2-bit active cells are the native dark grey, not black; 4-bit gray-20 (owner 2026-11-13)', () => {
-  const f = (m) => { D.mode = m; const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40); D.mode = null; return s; };
-  ok(/gray-30/.test(f({ dark: false, bits: 2 })) && !/<g class="text--black/.test(f({ dark: false, bits: 2 }).split('data-sw-hl')[0].replace(/text--black[^>]*><line/g, '')), '2-bit day blocks gray-30');
-  ok(/text--gray-20/.test(f({ dark: false, bits: 4 })), '4-bit day blocks gray-20');
+test('2-bit active cells are the native dark grey, not black; 4-bit mid grey, today dark (owner 2026-11-13, bars lightened 2026-11-14)', () => {
+  const f = (m, hi) => { D.mode = m; const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40, hi); D.mode = null; return s; };
+  const cells = (s) => s.split('data-sw-cells')[1];
+  ok(/gray-30/.test(cells(f({ dark: false, bits: 2 }))) && !/text--black/.test(cells(f({ dark: false, bits: 2 }))), '2-bit day blocks gray-30, not black');
+  ok(/text--gray-45/.test(cells(f({ dark: false, bits: 4 }))), '4-bit day blocks gray-45');
+  ok(/text--gray-10/.test(cells(f({ dark: false, bits: 4 }, true))), '4-bit today block dark');
 });
 
 test('plugin name translated for the title bar when the instance name is the default (owner 2026-11-13)', () => {
