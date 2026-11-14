@@ -600,12 +600,46 @@ async function sensorSettingsTests() {
       }
       const size = Buffer.byteLength(JSON.stringify(none));
       ok(size < 22000, 'payload ' + size + ' bytes, the sensor path adds only a small overlay');
-      ok(Buffer.byteLength(JSON.stringify(none.ph)) < 400, 'overlay ' + Buffer.byteLength(JSON.stringify(none.ph)) + ' bytes');
+      const io = { inn: none.ph.inn, twin: none.ph.twin, tw: none.ph.tw };
+      ok(Buffer.byteLength(JSON.stringify(io)) < 400, 'indoor overlay ' + Buffer.byteLength(JSON.stringify(io)) + ' bytes');
+      ok(Buffer.byteLength(JSON.stringify(none.ph)) < 1200, 'overlay with the CO2 meter lists ' + Buffer.byteLength(JSON.stringify(none.ph)) + ' bytes');
     });
-    await check('sensor_show: hide leaves no overlay, show and default carry it', async () => {
+    await check('sensor_show: hide leaves no indoor overlay, show and default carry it; both hidden: no overlay', async () => {
       const hid = await run({ sensor_show: 'hide' }, false, null);
-      eq([hid.ph, hid.ui.inn], [null, null], 'sensor_show hide: no overlay');
+      eq([hid.ph.inn, hid.ph.tw, hid.ph.twin, hid.ui.inn], [undefined, undefined, undefined, null], 'sensor_show hide: no indoor overlay');
+      const both = await run({ sensor_show: 'hide', sensor_co2: 'hide' }, false, null);
+      eq([both.ph, both.ui.inn], [null, null], 'both hidden: no overlay');
       for (const values of [{}, { sensor_show: 'show' }]) { const r = await run(values, false, null); eq([r.ph.inn.out, r.ph.inn.in, r.ph.tw.k, r.ui.inn], ['BUITEN', 'BINNEN', 'humidity', null]); }
+    });
+    await check('CO2 overlay (owner 2026-11-14): sensor_co2 show carries both meter lists, hide carries none, independent of the indoor setting', async () => {
+      const on = await run({}, false, null), off = await run({ sensor_co2: 'hide' }, false, null), only = await run({ sensor_show: 'hide' }, false, null);
+      const slim = (l) => l.map((m) => Object.keys(m).sort().join());
+      ok(Array.isArray(on.ph.mn) && Array.isArray(on.ph.mu) && on.ph.mn.length > 0, 'show: both lists');
+      ok(slim(on.ph.mn).every((k) => k === 'idx,key,label,rank') && slim(on.ph.mu).every((k) => k === 'idx,key,label,rank'), 'lists hold key, label, idx, rank only (no view copies)');
+      eq(on.ph.mu[1].key, 'co2', 'a high reading moves CO2 to second place');
+      ok(on.ph.mn.map((m) => m.key).indexOf('co2') < 0 || on.ph.mn[on.ph.mn.length - 1].key === 'co2', 'a normal reading keeps CO2 last');
+      eq([off.ph.mn, off.ph.mu, off.ph.cz, off.ph.inn.in], [undefined, undefined, undefined, 'BINNEN'], 'hide: no CO2 lists, indoor stays');
+      ok(Array.isArray(only.ph.mn) && only.ph.inn === undefined, 'co2 shown with the indoor readings hidden');
+      eq(on.ui.meters.some((m) => m.key === 'co2'), false, 'the plain view never carries CO2');
+    });
+    await check('CO2 overlay parity: the meters of the view with a stand-in reading equal the page script merge of the lists, with and without the other meters', async () => {
+      const raw = fx('mixed'), i18n = T.buildI18n('nl');
+      const mk = (co2, tweak) => { const M = SWModel.build(raw, {}); if (tweak) tweak(M); M.inn = { temp: null, hum: null, co2, press: null }; return T.buildView(M, i18n, raw.daily); };
+      const slim = (l) => l.map((m) => ({ key: m.key, label: m.label, idx: m.idx, rank: m.rank }));
+      // the page script's merge (source/shared.liquid, SWP): the meters already in the view plus the CO2 one, in the list's order
+      const merge = (base, ph, co2) => (co2 >= 1401 ? ph.mu : ph.mn).map((e) => { const b = base.filter((m) => m.key === e.key)[0] || { key: e.key, label: e.label, frac: Math.max(0, Math.min(1, (co2 - 400) / 1600)), past: null, later: null, peak: null, zones: ph.cz }; return Object.assign({}, b, { idx: e.idx, rank: e.rank }); });
+      const tweaks = [null, (M) => { M.now.aqi = null; M.now.hum = null; }, (M) => { M.now.pollen = 0; M.now.wind = null; M.today.uvMax = 5; M.now.day = true; }, (M) => { M.now.aqi = null; M.now.hum = null; M.now.pollen = 0; M.now.wind = null; M.now.press = null; }];
+      tweaks.forEach((tw, ti) => {
+        const base = mk(null, tw), mn = mk(800, tw), mu = mk(1800, tw);
+        const ph = { mn: slim(mn.meters), mu: slim(mu.meters), cz: mu.meters.concat(mn.meters).filter((m) => m.key === 'co2').map((m) => m.zones)[0] || null };
+        [[800, mn], [1800, mu], [1401, mu], [1400, mn]].forEach(([c, want]) => {
+          const got = merge(base.meters, ph, c);
+          eq(got.map((m) => m.key + m.idx + m.rank), want.meters.map((m) => m.key + m.idx + m.rank), 'order, idx, rank (variant ' + ti + ', ' + c + ' ppm)');
+          const g = got.filter((m) => m.key === 'co2')[0], w = want.meters.filter((m) => m.key === 'co2')[0];
+          if (w) { eq([g.label, g.zones], [w.label, w.zones], 'co2 label and zones'); ok(Math.abs(g.frac - (c - 400) / 1600) < 1e-9, 'co2 frac'); }
+          got.filter((m) => m.key !== 'co2').forEach((m) => { const o = want.meters.filter((q) => q.key === m.key)[0]; eq(Object.assign({}, m, { idx: o.idx, rank: o.rank }), Object.assign({}, o, { idx: o.idx, rank: o.rank }), 'other meters unchanged: ' + m.key); });
+        });
+      });
     });
     await check('overlay: the view with a stand-in reading equals the view plus the overlay, with and without a humidity meter', async () => {
       const raw = fx('mixed'), i18n = T.buildI18n('nl');

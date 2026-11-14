@@ -195,6 +195,13 @@ caps.forEach(function(c){if(bx.some(function(b){return b[0]<c.right+g&&b[2]>c.le
         puts "INDOOR #{c['name']}: #{inr}" unless inr == c['want_in']
         expect(inr).to eq(c['want_in'])
       end
+      # Owner 2026-11-14 (B9): the CO2 meter is drawn exactly when the case says (co2 'yes'): a fresh reading of this screen's own
+      # device, sensor_co2 not hidden, a place in the view's meter rows (a half vertical with a normal reading shows only two
+      # rows, CO2 last, so no). Whatever is drawn is also in SW.meters (the list the page script draws from).
+      co2 = s.evaluate(%q{document.querySelectorAll('[data-sw-key="co2"]').length + ',' + (window.SW ? SW.meters.some(function(m){return m.key==='co2'}) : false)})
+      puts "CO2 #{c['name']}: #{co2}"
+      expect(co2.split(',')[0].to_i.positive?).to eq(c['co2'] == 'yes')
+      expect(co2.split(',')[1]).to eq('true') if c['co2'] == 'yes'
       # Owner 2026-11-14 (B1 guards, each seen red on a mutation): (1) a rain calendar always has its rain/snow icon beside it, in every
       # view; (2) in a small console the big temperature is the largest text; (3) wide numbers (-20.5 C, 104 F, -13 F, 100 F) stay inside their
       # panel with a 2 px margin and overlap no unit, badge, calendar, low/high, condition or location icon of that panel.

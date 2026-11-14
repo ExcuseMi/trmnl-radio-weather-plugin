@@ -7,9 +7,10 @@
 {%- capture vr -%}<div class="border--v-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--v-black" data-sw-rule></div>{%- endcapture -%}
 {%- capture p_close -%}</div></div></div>{%- endcapture -%}
 {%- comment -%} Indoor sensor from the markup's own merge variable sensor_readings (TRMNL adds it at render time, the transform never sees it): the newest reading of temperature and humidity of this screen's own device (device_<trmnl.device.id>, no other device's sensor; no id: no indoor reading), none when over 3 h older than the render time. Then ph (the payload's small overlay: the BINNEN readout, the humidity twin meter's key) applies: inn is its readout, ph_tw the key of the meter that gets a twin; the page script merges the same overlay into SW and puts the real values in. {%- endcomment -%}
-{%- if ph %}{% assign i_w = trmnl.device.id | append: '' %}{% if i_w != '' %}{% assign i_k = 'device_' | append: i_w %}{% for d in sensor_readings %}{% if d[0] == i_k and d[1].temperature.size > 0 %}{% assign i_d = d[1] %}{% endif %}{% endfor %}{% endif %}
-{%- assign i_q = 'temperature,humidity' | split: ',' %}{% for q in i_q %}{% assign i_m = 0 %}{% assign i_v = nil %}{% assign i_l = i_d[q] %}{% for e in i_l %}{% assign kv = e | first %}{% assign s = kv[0] | date: '%s' | plus: 0 %}{% if s > i_m %}{% assign i_m = s %}{% assign i_v = kv[1] %}{% endif %}{% endfor %}{% assign i_a = trmnl.system.timestamp_utc | minus: i_m %}{% if i_a > 10800 %}{% assign i_v = nil %}{% endif %}{% if forloop.first %}{% assign i_t = i_v %}{% else %}{% assign i_h = i_v %}{% endif %}{% endfor %}
-{%- if i_t != nil %}{% assign inn = ph.inn %}{% assign inn_hum = ph.inn.hum %}{% if i_h != nil %}{% assign ph_tw = ph.tw.k %}{% else %}{% assign inn_hum = '' %}{% endif %}{% endif %}{% endif %}
+{%- assign ml = ui.meters %}{% if ph %}{% assign i_w = trmnl.device.id | append: '' %}{% if i_w != '' %}{% assign i_k = 'device_' | append: i_w %}{% for d in sensor_readings %}{% if d[0] == i_k and d[1].temperature.size > 0 %}{% assign i_d = d[1] %}{% endif %}{% endfor %}{% endif %}
+{%- assign i_q = 'temperature,humidity,carbon_dioxide' | split: ',' %}{% for q in i_q %}{% assign i_m = 0 %}{% assign i_v = nil %}{% assign i_l = i_d[q] %}{% for e in i_l %}{% assign kv = e | first %}{% assign s = kv[0] | date: '%s' | plus: 0 %}{% if s > i_m %}{% assign i_m = s %}{% assign i_v = kv[1] %}{% endif %}{% endfor %}{% assign i_a = trmnl.system.timestamp_utc | minus: i_m %}{% if i_a > 10800 %}{% assign i_v = nil %}{% endif %}{% if forloop.index == 1 %}{% assign i_t = i_v %}{% elsif forloop.index == 2 %}{% assign i_h = i_v %}{% else %}{% assign i_c = i_v %}{% endif %}{% endfor %}
+{%- if i_t != nil and ph.inn %}{% assign inn = ph.inn %}{% assign inn_hum = ph.inn.hum %}{% if i_h != nil %}{% assign ph_tw = ph.tw.k %}{% else %}{% assign inn_hum = '' %}{% endif %}{% endif %}
+{%- if i_c != nil and ph.mn %}{% assign ml = ph.mn %}{% if i_c >= 1401 %}{% assign ml = ph.mu %}{% endif %}{% endif %}{% endif %}
 {%- if ui == nil or ui.ok != true -%}
 <div class="layout layout--col layout--center" data-sw-error="{{ model.reason | default: 'NO SIGNAL' | escape }}">
  <span class="title title--xlarge">{{ i18n.ours.no_signal | default: 'NO SIGNAL' }}</span>
@@ -29,7 +30,7 @@
 {%- assign nd_mp = nd_md %}{% if view == 1 %}{% assign nd_mp = 4 %}{% elsif view == 3 %}{% assign nd_mp = 5 %}{% endif %}{% comment %} native portrait md screens (OG): one or two more day rows, no empty bands {% endcomment %}{% comment %} Calm half view (owner) {% endcomment %}
 {%- if view == 1 %}{% assign rw_m = 9 %}{% assign rh_l = 6 %}{% assign nd_md = 3 %}{% assign nd_lg = 4 %}{% endif %}{% comment %} Calm (owner): airier day rows {% endcomment %}
 {%- if mr_m == nil %}{% assign mr_m = 9 %}{% assign mb_m = 7 %}{% endif %}
-{%- if view == 1 %}{% for m in ui.meters %}{% if m.tw or m.key == ph_tw %}{% assign mr_m = 7.4 %}{% endif %}{% endfor %}{% endif %}
+{%- if view == 1 %}{% for m in ml %}{% if m.tw or m.key == ph_tw %}{% assign mr_m = 7.4 %}{% endif %}{% endfor %}{% endif %}
 {%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
 {%- comment -%} Right column {%- endcomment -%}
 {%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3w = 26 %}{% if ui.rain %}{% assign q3w = 23 %}{% endif %}{% assign q3 = q3w | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign su_cls = 'flex--row' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6b = 20 %}{% if stk %}{% assign q6b = 15 %}{% assign ru_cls = 'flex--col lg:flex--row' %}{% endif %}{% assign q6 = q6b | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
@@ -40,9 +41,9 @@
 {%- if rh_l == nil %}{% assign rh_l = 4 | times: hl | round | at_most: 100 %}{% endif %}
 {%- if tf == nil %}{% assign tf = 1 %}{% endif %}{% assign tm = tf %}{% if view == 3 %}{% assign tm = 1 %}{% endif %}
 {%- if view == 4 and ui.rain == nil %}{% assign n_lg = 3 %}{% endif %}{% comment %} X quadrant without rain {% endcomment %}
-{%- if stk %}{% assign ms = ui.meters | sort: 'rank' %}{% else %}{% assign ms = ui.meters %}{% endif %}
+{%- if stk %}{% assign ms = ml | sort: 'rank' %}{% else %}{% assign ms = ml %}{% endif %}
 {%- assign st_h = cf.hide_title_bar | append: '' %}{% if ui.stale %}{% if view != 1 or st_h == 'true' or st_h == 'yes' %}{% assign st_on = true %}{% endif %}{% endif %}
-<div class="layout layout--col layout--stretch-x gap--base relative" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
+<div class="layout layout--col layout--stretch-x gap--base relative" data-sw-debug="v2 view={{ view }} meters={{ ml | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
 {%- if st_on %}{% for sp in (1..2) %}{% if sp == 1 %}{% assign sp_c = 'top--5 right--10' %}{% if view == 4 %}{% assign sp_c = 'top--5 right--10 lg:hidden' %}{% endif %}{% elsif view == 4 %}{% assign sp_c = 'top--5 left--10 hidden lg:block' %}{% else %}{% break %}{% endif %}<span class="absolute {{ sp_c }} z--10 label label--small" data-sw-stale>{{ ui.stale }}</span>{% endfor %}{% endif %}{% comment %} offline, no title bar {% endcomment %}
 {%- if view == 1 %}
  <div class="hidden lg:block h--[28cqh] lg:portrait:h--[22cqh]"><div class="flex flex--row flex--stretch-y gap--base h--full">
@@ -123,7 +124,7 @@
     {%- elsif ui.days[0] %}<span class="title title--small text--bold shrink-0" data-sw-slohi="{{ ui.days[0].lo }}|{{ ui.days[0].hi }}">{{ ui.days[0].lo }} {{ ui.days[0].hi }}</span>{% endif %}
    </div>
   </div>
-  {%- assign sms = ui.meters | sort: 'rank' %}
+  {%- assign sms = ml | sort: 'rank' %}
   {%- assign smx = 2 %}{% if view == 4 %}{% assign smx = 4 %}{% endif %}{% comment %} tall quadrants (portrait) may show up to four {% endcomment %}
   {%- for m in sms %}{% if forloop.index > smx %}{% break %}{% endif %}
   <div class="hidden flex--row flex--center-y gap--small w--full" data-sw-srow="meter"><span class="title title--small text--bold shrink-0" data-sw-mlabel>{{ m.label }}</span><div class="grow" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div></div>
@@ -203,10 +204,22 @@ var SW = {{ ui | json }};
 // Indoor overlay (ph, only the parts of the view that differ with an indoor reading): merged into SW, then the real
 // reading from the merge variable replaces the stand-in's values: the BINNEN readout, the humidity under it and the twin
 // needle (the dial scale widens to hold it) and the humidity twin meter. The trend arrows, today's low and high and the
-// CO2 meter need the transform's saved state: not in this path.
-var SWP = {% if ph and i_t != nil %}{{ ph | json }}{% else %}null{% endif %};
+// trend arrows need the transform's saved state: not in this path. The CO2 meter (ph.mn / ph.mu: the meter list with a normal
+// and with a high reading, key, label, idx and rank only) is rebuilt from the meters already in SW plus the CO2 one, in the
+// same list the markup used (ml).
+var SWP = {% assign swp = false %}{% if ph.inn and i_t != nil %}{% assign swp = true %}{% endif %}{% if ph.mn and i_c != nil %}{% assign swp = true %}{% endif %}{% if swp %}{{ ph | json }}{% else %}null{% endif %};
 if (SWP) {
-  var SWI = [{{ i_t | default: 'null' }}, {{ i_h | default: 'null' }}], fh = /F$/.test(SW.tdial.unit), D = SW.tdial, I = SW.inn = SWP.inn;
+  var SWI = [{{ i_t | default: 'null' }}, {{ i_h | default: 'null' }}, {{ i_c | default: 'null' }}];
+  if (SWI[2] !== null && SWP.mn) {
+    var cL = SWI[2] >= 1401 ? SWP.mu : SWP.mn, cO = SW.meters;
+    SW.meters = cL.map(function (e) {
+      var b = cO.filter(function (m) { return m.key === e.key; })[0] || { key: e.key, label: e.label, frac: Math.max(0, Math.min(1, (SWI[2] - 400) / 1600)), past: null, later: null, peak: null, zones: SWP.cz };
+      b.idx = e.idx; b.rank = e.rank; return b;
+    });
+  }
+}
+if (SWP && SWI[0] !== null && SWP.inn) {
+  var fh = /F$/.test(SW.tdial.unit), D = SW.tdial, I = SW.inn = SWP.inn;
   if (SWI[1] === null) I.hum = '';
   else if (SWP.tw) SW.meters.forEach(function (m) { if (m.key === SWP.tw.k) m.tw = { out: SWP.tw.out, in: SWP.tw.in, m: { frac: 0 } }; });
   var iv = fh ? SWI[0] * 1.8 + 32 : SWI[0], is = String(Math.round(iv * 10) / 10);
