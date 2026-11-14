@@ -70,9 +70,13 @@ test('format: rounding, no negative zero', () => {
 test('icon kinds follow the WMO code; the worst of a slot wins', () => {
   // owner: hail is its own kind (WMO 96, 99, a thunderstorm with hail), freezing rain is sleet, 71-77 and 85-86 snow
   eq([0, 1, 2, 3, 45, 51, 56, 61, 65, 66, 67, 71, 73, 75, 77, 80, 82, 85, 86, 95, 96, 99, null].map(SWModel.kind),
-    ['clear', 'clear', 'partly', 'cloud', 'fog', 'drizzle', 'sleet', 'rain', 'heavy', 'sleet', 'sleet', 'snow', 'snow', 'snow', 'snow',
+    ['clear', 'partly', 'partly', 'cloud', 'fog', 'drizzle', 'sleet', 'rain', 'heavy', 'sleet', 'sleet', 'snow', 'snow', 'snow', 'snow',
       'rain', 'heavy', 'snow', 'snow', 'storm', 'hail', 'hail', null]);
   eq(SWModel.worstKind([0, 2, 61, 3]), 'rain');
+  // owner 2026-11-14: the condition text and the icon agree (code 1 read 'partly cloudy' under a full sun)
+  const TXT_KIND = { 1000: 'clear', 1003: 'partly', 1006: 'cloud', 1009: 'cloud' }, W2 = T.WMO_TO_WAPI || {};
+  ok(Object.keys(W2).length > 10, 'WMO_TO_WAPI exported');
+  Object.keys(W2).forEach((c) => { if (TXT_KIND[W2[c]]) eq(SWModel.kind(+c), TXT_KIND[W2[c]], 'WMO ' + c + ' text ' + W2[c] + ' vs icon'); });
   const m = SWModel.build(fx('mixed'), {});
   eq(m.days[0].icon, 'rain');
   eq(m.now.day, false, '06:00 in November is night');
