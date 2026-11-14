@@ -786,6 +786,15 @@ async function stateTests() {
     });
   } finally { global.fetch = originalFetch; }
 }
+test('location icons (owner 2026-11-14, B10): the outdoor icon is ink on 1-bit (grey dithers away), grey on 2 bit; readout icons are sized by the script from the unit font', () => {
+  const m0 = D.mode;
+  D.mode = { bits: 1 }; const o1 = D.part({}, 'loc', 0, 40, 40), i1 = D.part({}, 'loc', 1, 40, 40);
+  D.mode = { bits: 2 }; const o2 = D.part({}, 'loc', 0, 40, 40);
+  D.mode = m0;
+  ok(!/text--gray/.test(o1) && !/text--gray/.test(i1), '1-bit: no grey class on either icon');
+  ok(/text--gray-30/.test(o2), '2-bit: the outdoor icon stays grey');
+  ok(/data-sw-part="loc"[^>]*data-sw-lz/.test(sh) && /data-sw-lsp/.test(sh) && /1\.4 \* parseFloat\(getComputedStyle\(lzu\)\.fontSize\)/.test(sh), 'twin readout icons: marked, spacer marked, 1.4 unit fonts in swPaint');
+});
 async function aTest(name, fn) { try { await fn(); passed++; } catch (e) { failed++; console.log('FAIL ' + name + ': ' + e.message); } }
 sensorSettingsTests().then(stateTests).then(() => aTest('a hanging request ends within TRMNL\'s 5 s', hangTest)).then(() => aTest('a request deaf to its abort signal', deafTest)).then(() => aTest('no polling URLs; IDX data used when present', pollTest)).then(() => {
   console.log(passed + ' passed, ' + failed + ' failed');
