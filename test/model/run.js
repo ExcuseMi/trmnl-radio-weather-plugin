@@ -134,8 +134,8 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
   const fields = y.split(/^- keyname: /m).slice(1).map((part) => ({ key: part.split('\n')[0], group: (/^  group: (.+)$/m.exec(part) || [])[1] || null }));
-  eq(fields.map((f) => f.key), ['author_info', 'lat_lon', 'unit', 'time_format', 'bottom', 'hide_title_bar', 'sensor_show', 'sensor_co2'], 'settings in owner order');
-  eq(fields.map((f) => f.group), [null, null, 'Display', 'Display', 'Display', 'Display', 'Sensor', 'Sensor'], 'settings groups');
+  eq(fields.map((f) => f.key), ['author_info', 'lat_lon', 'unit', 'time_format', 'bottom', 'hide_title_bar', 'sensor_show', 'sensor_device', 'sensor_co2'], 'settings in owner order');
+  eq(fields.map((f) => f.group), [null, null, 'Display', 'Display', 'Display', 'Display', 'Sensor', 'Sensor', 'Sensor'], 'settings groups');
   ok(/- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n/.test(y) && /- Days: days\n  - Hours: hours\n  - Hours, days after 18:00: auto\n  default: auto\n/.test(y), 'time format 24 by default, bottom strip Days by default');
 });
 
@@ -414,6 +414,11 @@ test('sensor readings in the shape TRMNL shows (owner screenshot 2026-11-14): ne
   eq([m.inn.temp, m.inn.hum], [19.700001, 49.400002], 'the newest reading of each list');
   const old = SWModel.build(Object.assign({}, f, { sens: sens, renderedAt: Date.UTC(2026, 10, 8, 9, 0) / 1000 }), {});
   eq(old.inn.temp, null, 'over 3 h old: not shown');
+});
+test('sensor_device picks one device of several (owner 2026-11-14: the X showed the OG\'s sensor)', () => {
+  const f = fx('mixed'), r = (v) => [{ '2026-11-08 05:00:00 UTC': v }], sens = { device_100: { temperature: r(21.6), humidity: r(40) }, device_8920: { temperature: r(13), humidity: r(63) } };
+  const m = (dev) => SWModel.build(Object.assign({}, f, { sens: sens, renderedAt: Date.UTC(2026, 10, 8, 5, 10) / 1000 }), { sensorDevice: dev }).inn.temp;
+  eq([m(''), m('8920'), m('device_8920'), m(' 8920 '), m('77')], [21.6, 13, 13, 13, null], 'empty: the first; a number or device_N: that one; unknown: none');
 });
 test('moon tilt: bright limb as the observer sees it (owner 2026-11-14, true tilt)', () => {
   const L = (t, la, lo) => T.moonLimb(Date.parse(t), la, lo), near = (a, b, tol) => Math.abs(((a - b + 540) % 360) - 180) <= tol;

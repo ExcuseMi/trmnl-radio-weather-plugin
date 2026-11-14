@@ -187,6 +187,12 @@ caps.forEach(function(c){if(bx.some(function(b){return b[0]<c.right+g&&b[2]>c.le
       mlab = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-mlabel]').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;var g=document.createRange();g.selectNodeContents(e);var t=g.getBoundingClientRect(),cs=getComputedStyle(e),k=b.width/(e.offsetWidth||b.width);if(t.left<b.left+parseFloat(cs.paddingLeft)*k-0.5||t.right>b.right-parseFloat(cs.paddingRight)*k+0.5)bad.push(e.textContent.trim()+' text '+Math.round(t.left)+'..'+Math.round(t.right)+' box '+Math.round(b.left)+'..'+Math.round(b.right));});return bad.join('; ');})()})
       puts "MLAB #{c['name']}: #{mlab}" unless mlab.empty?
       expect(mlab).to eq('')
+      # Owner 2026-11-14: with several devices, sensor_device picks whose indoor reading shows (the X showed the OG's).
+      if c['want_in']
+        inr = s.evaluate("(window.SW && SW.inn && SW.inn.temp) || ''").to_s
+        puts "INDOOR #{c['name']}: #{inr}" unless inr == c['want_in']
+        expect(inr).to eq(c['want_in'])
+      end
       # Owner 2026-11-14 (B1 guards, each seen red on a mutation): (1) a rain calendar always has its rain/snow icon beside it, in every
       # view; (2) in a small console the big temperature is the largest text; (3) wide numbers (-20.5 C, 104 F, -13 F, 100 F) stay inside their
       # panel with a 2 px margin and overlap no unit, badge, calendar, low/high, condition or location icon of that panel.
