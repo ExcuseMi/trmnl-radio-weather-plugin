@@ -326,9 +326,9 @@ model.now.pollen = num(raw.pollen);
 var day0 = String(c.time || '').slice(0, 10), cur0 = String(c.time || ''), th = raw.todayHourly || raw.hourly || {};
 var side = (o, d, cu) => { var ts = list(o, 'time'), p = [], l = []; ts.forEach((t, i) => { t = String(t); if (t.slice(0, 10) !== d) return; if (t < cu) p.push(i); else if (t > cu) l.push(i); }); return { p: p, l: l }; };
 var mx = (o, key, idx) => maxOf(idx.map((i) => num(list(o, key)[i])).filter((v) => v !== null));
-var rg2 = (o, key, sd) => ({ past: mx(o, key, sd.p), later: mx(o, key, sd.l) });
+var rg2 = (o, key, sd) => ({ past: null, later: mx(o, key, sd.l) });   // owner 2026-11-14: forecast only, earlier hours of today are not shown
 var sdW = side(th, day0, cur0), sdA = aq ? side(aq.hourly || {}, aqD, String(aq.current.time || '')) : { p: [], l: [] };
-var gh = maxOf([mx(th, 'wind_gusts_10m', sdW.p.concat(sdW.l)), num(c.wind_gusts_10m)].filter((v) => v !== null));
+var gh = maxOf([mx(th, 'wind_gusts_10m', sdW.l), num(c.wind_gusts_10m)].filter((v) => v !== null));
 model.range = { wind: Object.assign(rg2(th, 'wind_speed_10m', sdW), { hi: gh !== null ? gh : model.today.gustMax }), uv: rg2(th, 'uv_index', sdW), humidity: rg2(th, 'relative_humidity_2m', sdW), baro: rg2(th, 'pressure_msl', sdW), aqi: aq ? rg2(aq.hourly || {}, 'european_aqi', sdA) : { past: null, later: null } };
 model.inn = { temp: null, hum: null, co2: null, press: null };
 var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;

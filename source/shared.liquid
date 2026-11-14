@@ -318,7 +318,7 @@ else if (s === 'p') pv += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"');
 else if (s === 'l') lt += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"');
 else off += DK ? rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2" data-sw-c="' + i + '"');
 }
-var PV = API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bits <= 1 ? 'text--gray-50' : (API.mode && API.mode.bits <= 2 ? 'text--gray-65' : 'text--gray-70'));
+var PV = API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bits <= 1 ? 'text--gray-75' : (API.mode && API.mode.bits <= 2 ? 'text--gray-65' : 'text--gray-75'));   // owner 2026-11-14: lighter grey for the forecast cells
 var LT = PV;
 return ('<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + (lc ? '' : g(SHADOW + ' text--gray-65', sh)) + '<g data-sw-st="e">' + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + g(LT, lt) + '</g><g data-sw-on data-sw-st="a">' + (lc ? g(lc, on) : API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) +   /* owner: 2-bit+ light dark grey, 1-bit black, dark white */ (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);
 }
