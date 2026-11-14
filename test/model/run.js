@@ -407,6 +407,14 @@ test('forecast cells: a light grey (owner 2026-11-14 "maybe a lighter gray")', (
   const lc = (m) => { D.mode = m; const s = D.meter({ frac: 0.3, past: null, later: 0.9, peak: 0.9 }, 300, 30, 10); D.mode = null; return (s.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1]; };
   eq([lc({ dark: false, bits: 1 }), lc({ dark: false, bits: 4 })], ['text--gray-75', 'text--gray-75'], '1-bit and X light: gray-75 (was gray-50 / gray-70)');
 });
+test('sensor readings in the shape TRMNL shows (owner screenshot 2026-11-14): newest of several readings, float noise', () => {
+  const f = fx('mixed'), sens = { device_8920: { temperature: [{ '2026-11-08 05:32:43 UTC': 18.9 }, { '2026-11-08 05:34:37 UTC': 18.299999 }, { '2026-11-08 05:34:48 UTC': 18.5 }, { '2026-11-08 05:37:01 UTC': 19.700001 }],
+    humidity: [{ '2026-11-08 05:32:43 UTC': 51 }, { '2026-11-08 05:37:01 UTC': 49.400002 }] } };
+  const m = SWModel.build(Object.assign({}, f, { sens: sens, renderedAt: Date.UTC(2026, 10, 8, 5, 40) / 1000 }), {});
+  eq([m.inn.temp, m.inn.hum], [19.700001, 49.400002], 'the newest reading of each list');
+  const old = SWModel.build(Object.assign({}, f, { sens: sens, renderedAt: Date.UTC(2026, 10, 8, 9, 0) / 1000 }), {});
+  eq(old.inn.temp, null, 'over 3 h old: not shown');
+});
 test('moon tilt: bright limb as the observer sees it (owner 2026-11-14, true tilt)', () => {
   const L = (t, la, lo) => T.moonLimb(Date.parse(t), la, lo), near = (a, b, tol) => Math.abs(((a - b + 540) % 360) - 180) <= tol;
   ok(near(L('2026-11-14T18:00Z', 50.85, 3.35), 242, 6), 'Deerlijk 2026-11-14 19h: waxing crescent lit low on the right (reference site), ' + L('2026-11-14T18:00Z', 50.85, 3.35));
