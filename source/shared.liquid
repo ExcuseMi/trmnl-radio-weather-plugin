@@ -732,7 +732,7 @@ x += tw + 0.2 * f; b += '<text x="' + x.toFixed(1) + '" y="' + (0.5 * f + CK * f
 lh.innerHTML = '<svg class="block" width="' + R.lW.toFixed(1) + '" height="' + (1.2 * f + 0.5 * f).toFixed(1) + '" viewBox="0 0 ' + R.lW.toFixed(1) + ' ' + (1.7 * f).toFixed(1) + '" role="img" aria-label="' + lht.join(' ') + '">' + b + '</svg>'; }
 var mwid = Math.min(W, Math.max(R.condW, R.mainRow ? R.tW + 1.6 * R.g + R.sW : Math.max(R.tW, R.sW)));
 mrows.forEach(function (r, i) { var on = i < R.n; r.classList.toggle('hidden', !on); r.classList.toggle('flex', on); if (!on) return; sz(r, mwid, R.mh); r.style.gap = (0.3 * R.mh).toFixed(1) + 'px';
-var l = r.querySelector('[data-sw-mlabel]'), t = l.getAttribute('data-sw-t0'); if (t === null) { t = l.textContent.trim(); l.setAttribute('data-sw-t0', t); } var fsM = R.fsM, lw = Math.max.apply(null, mlabT.map(function (x) { return mw(x, fsM); })) + 2 + HP, sl = stext([t], fsM, lw); l.innerHTML = sl.html; sz(l, lw, sl.h); l.style.setProperty('font-size', fsM.toFixed(2) + 'px', 'important');
+var l = r.querySelector('[data-sw-mlabel]'), t = l.getAttribute('data-sw-t0'); if (t === null) { t = l.textContent.trim(); l.setAttribute('data-sw-t0', t); } var fsM = R.fsM, lw = Math.max.apply(null, mlabT.map(function (x) { return mw(x, fsM); })) + 2 + HP, sl = stext([t], fsM, lw - (l.hasAttribute('data-sw-hot') ? HP : 0)); l.innerHTML = sl.html; sz(l, lw, sl.h); l.style.setProperty('font-size', fsM.toFixed(2) + 'px', 'important');
 sz(r.querySelector('[data-sw-part]'), null, R.mh * 0.75); });
 }
 // Day names never clip (owner 2026-11-13, remarkable 2 half vertical cut "SUN"): when a name is wider than its column, the name column of
