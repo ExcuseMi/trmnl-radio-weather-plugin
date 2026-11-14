@@ -1,5 +1,5 @@
 // Build: source/shared.liquid (readable, all comments) -> plugin/src/shared.liquid (what trmnlp pushes).
-// Strips Liquid comments, minifies the page script (terser; SW and SWDraw keep their names), nothing else changes.
+// Strips Liquid comments, the markup's indentation and the spaces around filter pipes, minifies the page script (terser; SW and SWDraw keep their names), nothing else changes.
 // Usage: node tools/build.js [outFile]   (default plugin/src/shared.liquid)
 const fs = require('fs');
 const path = require('path');
@@ -15,10 +15,12 @@ function alias(js) {
   const dom = Object.keys(DOM_ALIAS).filter(hit);
   dom.forEach((k) => { js = js.replace(new RegExp('\\.' + k + '\\b', 'g'), '.' + DOM_ALIAS[k]); });
   js = js.replace(/\.parentElement\b/g, '.$p').replace(/\bgetComputedStyle\(/g, '$C(').replace(/\bdocument\./g, '$d.');
+  let imp = 0;   // setProperty(k, v, 'important') -> $I(k, v): one prototype method, the third argument written once
+  js = js.replace(/\.setProperty\(([^;]*?), 'important'\)/g, (m, a) => { if (a.includes('.setProperty(')) throw new Error('important alias swallowed a second call'); imp++; return '.$I(' + a + ')'; });
   js = js.replace(/\.setProperty\(/g, '.$P(').replace(/\.toFixed\(/g, '.$f(');
   const on = (P, ks) => ks.filter((k) => dom.includes(k)).map((k) => P + '.' + DOM_ALIAS[k] + '=' + P + '.' + k + ';').join('');
   const domPre = 'var $d=document,$C=getComputedStyle;(function(){Object.defineProperty(Node.prototype,"$p",{get(){return this.parentElement}});var E=Element.prototype,D=Document.prototype;' + on('E', ['getBoundingClientRect', 'querySelectorAll', 'querySelector', 'getAttribute', 'setAttribute', 'hasAttribute', 'removeAttribute', 'closest'])
-    + on('D', ['querySelectorAll', 'querySelector']) + (dom.includes('getBoundingClientRect') ? 'Range.prototype.$b=Range.prototype.getBoundingClientRect;' : '') + 'CSSStyleDeclaration.prototype.$P=CSSStyleDeclaration.prototype.setProperty;})();';
+    + on('D', ['querySelectorAll', 'querySelector']) + (dom.includes('getBoundingClientRect') ? 'Range.prototype.$b=Range.prototype.getBoundingClientRect;' : '') + 'CSSStyleDeclaration.prototype.$P=CSSStyleDeclaration.prototype.setProperty;' + (imp ? 'CSSStyleDeclaration.prototype.$I=function(a,b){this.setProperty(a,b,"important")};' : '') + '})();';
   const drawPre = '\nvar ' + MATH_ALIAS.map((f) => 'M' + f + '=Math.' + f).join(',') + ';Number.prototype.$f=Number.prototype.toFixed;\n';
   const cut = js.indexOf('// ==== DRAW_BEGIN ====');   // the Math aliases are defined inside the DRAW block: only code after it may use them
   js = js.slice(0, cut) + js.slice(cut).replace(/\bMath\.(max|min|round|abs)\(/g, (m, f) => 'M' + f + '(');
@@ -29,6 +31,9 @@ function alias(js) {
 async function build(src) {
   const { minify } = require('terser');
   let s = src.replace(/\{%-?\s*comment\s*-?%\}[\s\S]*?\{%-?\s*endcomment\s*-?%\}/g, '');
+  const sa = s.indexOf('<script');
+  const tight = (tag) => tag.split(/('[^']*'|"[^"]*")/).map((q, i) => i % 2 ? q : q.replace(/\s*\|\s*/g, '|')).join('');   // size: no spaces around a filter pipe (outside quoted text)
+  s = s.slice(0, sa).replace(/^[ \t]+/gm, '').replace(/[ \t]+$/gm, '').replace(/\{\{[^}]*\}\}|\{%[^%]*%\}/g, tight) + s.slice(sa);   // size: no indentation in the markup (whitespace there only separates tags)
   const a = s.indexOf('<script'), b = s.indexOf('</script>');
   if (a < 0 || b < a) throw new Error('page script not found in shared.liquid');
   const open = s.slice(a, s.indexOf('>', a) + 1), start = a + open.length;

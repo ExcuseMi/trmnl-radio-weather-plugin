@@ -647,7 +647,8 @@ async function run(input) {
   var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time, w.utc_offset_seconds);
   if (field(input, 'sensor_co2', 'show') === 'hide') model.inn.co2 = null;
   var pc = stObj(st0.cue), pmt = stObj(st0.mt);
-  var ui = buildView(model, i18n, w.daily, moon, phase, { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time), limb: moonLimb(Date.parse(((w.current || {}).time || '') + 'Z') - (w.utc_offset_seconds || 0) * 1000, w.latitude, w.longitude) });
+  var vo = { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time), limb: moonLimb(Date.parse(((w.current || {}).time || '') + 'Z') - (w.utc_offset_seconds || 0) * 1000, w.latitude, w.longitude) };
+  var ui = buildView(model, i18n, w.daily, moon, phase, vo);
   if (fb && fb.asOf) ui.stale = i18n.ours.asof + ' ' + clk(fb.asOf.slice(0, 2), fb.asOf.slice(3, 5));
   var st = { v: 1, cue: ui.keep.cue, mt: ui.keep.mt }, keep = snap || stObj(st0.snap); delete ui.keep;
   if (sensors && model.inn.temp !== null && ui.inn) {   // sensor_show hide: sensors null, no indoor state
@@ -658,8 +659,13 @@ async function run(input) {
     if (iv.st.p.length > 1) ui.inn.lohi = i18n.lo + ' ' + SWModel.fmt(cv(iv.st.lo)) + '° ' + i18n.hi + ' ' + SWModel.fmt(cv(iv.st.hi)) + '°';
     if (ui.inn.lohi) { ui.inn.lo = SWModel.fmt(cv(iv.st.lo)) + '°'; ui.inn.hi = SWModel.fmt(cv(iv.st.hi)) + '°'; }   // owner: shown with the plugin's triangle marks (hollow down low, filled up high)
   }
+  // Real devices: the transform input has no sensor_readings (TRMNL adds them for the markup only). So the markup gets the view
+  // twice more, built with a stand-in indoor reading (the outdoor temperature, humidity 50 or none); it picks one when
+  // the merge variable holds a reading and its page script puts the real values in (ph: true marks these views).
+  var phTemp = model.now.temp, wantPh = !sensors && field(input, 'sensor_show', 'show') !== 'hide' && phTemp !== null && phTemp !== undefined;
+  var phView = (hum) => { var v = buildView(Object.assign({}, model, { inn: { temp: phTemp, hum: hum, co2: null, press: null } }), i18n, w.daily, moon, phase, vo); delete v.keep; v.ph = true; if (fb && fb.asOf) v.stale = ui.stale; return v; };
   if (keep) st.snap = keep;   // a failed fetch writes the old copy back as it was
-  return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
+  return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, sens_in: !!sensors, ui_in: wantPh ? phView(50) : null, ui_in_t: wantPh ? phView(null) : null, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
 if (typeof module !== 'undefined') module.exports = { run: run, WMO_TO_WAPI: WMO_TO_WAPI, snapOf: snapOf, fromSnap: fromSnap, innTrack: innTrack, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase, moonLimb: moonLimb, moonSky: moonSky };
