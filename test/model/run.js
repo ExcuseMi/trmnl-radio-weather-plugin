@@ -70,9 +70,13 @@ test('format: rounding, no negative zero', () => {
 test('icon kinds follow the WMO code; the worst of a slot wins', () => {
   // owner: hail is its own kind (WMO 96, 99, a thunderstorm with hail), freezing rain is sleet, 71-77 and 85-86 snow
   eq([0, 1, 2, 3, 45, 51, 56, 61, 65, 66, 67, 71, 73, 75, 77, 80, 82, 85, 86, 95, 96, 99, null].map(SWModel.kind),
-    ['clear', 'clear', 'partly', 'cloud', 'fog', 'drizzle', 'sleet', 'rain', 'heavy', 'sleet', 'sleet', 'snow', 'snow', 'snow', 'snow',
+    ['clear', 'partly', 'partly', 'cloud', 'fog', 'drizzle', 'sleet', 'rain', 'heavy', 'sleet', 'sleet', 'snow', 'snow', 'snow', 'snow',
       'rain', 'heavy', 'snow', 'snow', 'storm', 'hail', 'hail', null]);
   eq(SWModel.worstKind([0, 2, 61, 3]), 'rain');
+  // owner 2026-11-14: the condition text and the icon agree (code 1 read 'partly cloudy' under a full sun)
+  const TXT_KIND = { 1000: 'clear', 1003: 'partly', 1006: 'cloud', 1009: 'cloud' }, W2 = T.WMO_TO_WAPI || {};
+  ok(Object.keys(W2).length > 10, 'WMO_TO_WAPI exported');
+  Object.keys(W2).forEach((c) => { if (TXT_KIND[W2[c]]) eq(SWModel.kind(+c), TXT_KIND[W2[c]], 'WMO ' + c + ' text ' + W2[c] + ' vs icon'); });
   const m = SWModel.build(fx('mixed'), {});
   eq(m.days[0].icon, 'rain');
   eq(m.now.day, false, '06:00 in November is night');
@@ -399,6 +403,10 @@ test('meter cell states for today (owner 2026-11-13): active, reached earlier, e
   eq([(svg.match(/data-sw-gust/g) || []).length, (gsv.match(/data-sw-gust/g) || []).length], [0, 1], 'peak outline only outside today\'s range (owner): none when the range already reaches it, one for a gust beyond it');
   eq([1, (svg.match(/data-sw-st="p"><g class="([^"]+)"/) || [])[1] === (svg.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1] && !/stroke-dasharray/.test(svg)], [1, true], 'one peak outline; earlier and later cells share one range grey (owner: now + today\'s range)');
 });
+test('forecast cells: a light grey (owner 2026-11-14 "maybe a lighter gray")', () => {
+  const lc = (m) => { D.mode = m; const s = D.meter({ frac: 0.3, past: null, later: 0.9, peak: 0.9 }, 300, 30, 10); D.mode = null; return (s.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1]; };
+  eq([lc({ dark: false, bits: 1 }), lc({ dark: false, bits: 4 })], ['text--gray-75', 'text--gray-75'], '1-bit and X light: gray-75 (was gray-50 / gray-70)');
+});
 test('moon tilt: bright limb as the observer sees it (owner 2026-11-14, true tilt)', () => {
   const L = (t, la, lo) => T.moonLimb(Date.parse(t), la, lo), near = (a, b, tol) => Math.abs(((a - b + 540) % 360) - 180) <= tol;
   ok(near(L('2026-11-14T18:00Z', 50.85, 3.35), 242, 6), 'Deerlijk 2026-11-14 19h: waxing crescent lit low on the right (reference site), ' + L('2026-11-14T18:00Z', 50.85, 3.35));
@@ -492,7 +500,7 @@ test('console cue window (owner 2026-11-13): garment now to +3 h, umbrella to 19
   eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25), { day: false }, 7), 'tshirt', 'no sunglasses at night');
   const fb = T.nowCueInput(null, [], { temp: 15, feels: 1, day: true }, 2); eq([fb.lo, fb.hi, fb.rain], [1, 1, null], 'no hourly data: the current felt temperature; rain falls back to the rain window');
 });
-test('meters: today\'s past and later max from today\'s hours, the peak (WIND: max gust) (owner 2026-11-13)', () => {
+test('meters: forecast only, the later max from today\'s coming hours, the peak (WIND: max gust still to come) (owner 2026-11-13, forecast only 2026-11-14)', () => {
   const f = fx('mixed'), today = (k) => String(f.hourly.time[k]).slice(0, 10) === '2026-11-08';
   const g = JSON.parse(JSON.stringify(f)); g.current.time = '2026-11-08T13:00'; g.current.relative_humidity_2m = 30; g.current.wind_speed_10m = 12; g.current.wind_gusts_10m = 20; g.current.pressure_msl = 1010;
   g.hourly.relative_humidity_2m = f.hourly.time.map((t, k) => today(k) ? (k === 2 ? 55 : (k === 11 ? 95 : 40)) : 100);   // 08:00 55 (past), 17:00 95 (later), tomorrow 100
@@ -502,10 +510,10 @@ test('meters: today\'s past and later max from today\'s hours, the peak (WIND: m
   eq(d.weather.hourly.time[0], '2026-11-08T13:00', 'every other consumer still sees the hours from the current hour');
   const v = T.buildView(SWModel.build(raw, {}), T.buildI18n('nl'), g.daily), m = (k) => v.meters.find((q) => q.key === k) || {};
   const r2 = (x) => x === null || x === undefined ? x : Math.round(x * 1000) / 1000, P = (k) => [m(k).frac, m(k).past, m(k).later, m(k).peak].map(r2);
-  eq(P('humidity'), [0.3, 0.55, 0.95, 0.95], 'humidity: now 30, earlier 55, later 95 (tomorrow\'s 100 not counted)');
-  eq(P('wind'), [0.2, 0.55, 0.35, 0.867], 'wind: speeds earlier 33 and later 21, peak today\'s max gust 52 (tomorrow\'s 99 not counted)');
-  eq(P('baro'), [0.5, 0.763, 0.65, 0.763], 'baro: earlier 1031, later 1022 on 970..1050; peak the earlier max');
-  eq(D.cellStates(m('humidity'), 10).st.join(''), 'aaapppllll', 'humidity on 10 cells');
+  eq(P('humidity'), [0.3, null, 0.95, 0.95], 'humidity: now 30, earlier 55 not shown, later 95 (tomorrow\'s 100 not counted)');
+  eq(P('wind'), [0.2, null, 0.35, 0.333], 'wind: later speed 21, peak the max gust from now on 20 (the earlier 52 and tomorrow\'s 99 not counted)');
+  eq(P('baro'), [0.5, null, 0.65, 0.65], 'baro: later 1022 on 970..1050 (the earlier 1031 not shown); peak the later max');
+  eq(D.cellStates(m('humidity'), 10).st.join(''), 'aaalllllll', 'humidity on 10 cells');
   const none = T.buildView(SWModel.build(f, {}), T.buildI18n('nl'), f.daily), h = none.meters.find((q) => q.key === 'humidity');
   eq([h.past, h.later], [null, null], 'no hourly humidity: no earlier or later cells');
   eq(v.meters.filter((q) => q.key === 'co2' || q.key === 'pollen').filter((q) => q.past !== null || q.later !== null || q.peak !== null).length, 0, 'CO2 and pollen: no marks');
