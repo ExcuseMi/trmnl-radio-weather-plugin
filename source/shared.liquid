@@ -655,15 +655,15 @@ var ik = im.getAttribute('data-sw-dink').split(','), iy = +ik[0], ih = +ik[1] ||
 im.style.transformOrigin = 'left center';
 im.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + ((0.5 - iy - ih / 2) * B * sc).toFixed(1) + 'px) scale(' + sc.toFixed(3) + ')';
 });
-// B5 (owner 2026-11-14, OG portrait clipping): when the shifted, scaled icon would touch the low (under 1 px), every icon
-// column gets the right margin that leaves 2 px (the low, high and bar move right, the rows stay aligned). Render check DAYPARTS.
+// B5 (owner 2026-11-14, OG portrait clipping): when the shifted, scaled icon would touch the low (under 1 screen px), every icon
+// column gets the right margin that leaves 2 screen px (the low, high and bar move right, the rows stay aligned). Render check DAYPARTS.
 var ov = -1e9, ks = 1;
 ims.forEach(function (im) {
 var lo = [].filter.call(im.closest('.relative').querySelectorAll('span.title:not([data-sw-dname])'), function (q) { return q.getBoundingClientRect().width > 0; })[0], b = im.getBoundingClientRect(); if (!lo || !b.width) return;
 var g = document.createRange(); g.selectNodeContents(lo); ks = (im.offsetWidth && b.width / im.offsetWidth / (+(im.style.transform.match(/scale\(([\d.]+)/) || [0, 1])[1])) || 1;
 ov = Math.max(ov, b.right - g.getBoundingClientRect().left);
 });
-if (ov > -ks) ims.forEach(function (im) { var c = im.parentElement, m = parseFloat(c.style.marginRight) || 0, nm = m + ov / ks + 2; if (nm - m > 0.5) c.style.setProperty('margin-right', nm.toFixed(1) + 'px', 'important'); });
+if (ov > -1) ims.forEach(function (im) { var c = im.parentElement, m = parseFloat(c.style.marginRight) || 0, nm = m + (ov + 2) / ks; if (nm - m > 0.5) c.style.setProperty('margin-right', nm.toFixed(1) + 'px', 'important'); });
 }
 // B5: the low and high columns as wide as their widest number in any row (like swNames for the names), so no number spills into its
 // neighbour or the bar track (render check DAYPARTS).
