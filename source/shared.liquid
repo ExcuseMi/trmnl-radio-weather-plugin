@@ -239,21 +239,30 @@ if (SWP && SWI[0] !== null && SWP.inn) {
   if (iT) iT.textContent = is;
   if (iH && I.hum) iH.textContent = I.hum;
 }
-// Size class follows the real screen (device tier, owner task D1): the X layout (lg) is tuned for about 4:3 and 780 px
-// of height. A model whose lg class arrives on a small or wide screen (800x480 where the framework has no size for the
-// model, 1067x600) reads as a md screen, so the md sizes and rows apply.
-(function () { var sc = document.querySelector('.screen'); if (sc && sc.classList.contains('screen--lg') && Math.min(sc.offsetWidth, sc.offsetHeight) < 640) { sc.classList.remove('screen--lg'); sc.classList.add('screen--md'); } })();
+function swVis(l) { return [].filter.call(l, function (q) { return q.getBoundingClientRect().width > 0; }); }   // the shown elements of a list
+// Size class from the device and the framework, never from a measurement (owner 2026-11-14: the same device always gets the
+// same layout; a measured .screen once gave the OG the small console): trmnl.device width/height (the viewport when TRMNL sends
+// none), turned to the shown orientation by the framework's portrait class, and the framework's own size of the model (--screen-w,
+// --screen-h; the framework's --pixel-ratio is not set yet when this runs). The X layout (lg) is tuned for 1040x780 framework px: an lg screen under 720 on its short side
+// (1067x600, 1040x650 meta portal, 933x702 go 7) reads as md, so the md sizes and rows apply.
+// SWS: shown width, height, small (a sm screen, or a portrait md screen, turned or native: the OG in portrait; the full console cut
+// its rain calendar on the poke 5 and left empty bands on the wider portrait md screens, B12), device px per framework px.
+var SWS = (function () { var sc = document.querySelector('.screen'), c = sc.classList, cs = getComputedStyle(sc), v = function (n) { return parseFloat(cs.getPropertyValue(n)); }, w = {{ trmnl.device.width | default: 0 }} || innerWidth, h = {{ trmnl.device.height | default: 0 }} || innerHeight, t = w;
+if (c.contains('screen--portrait') && w > h) { w = h; h = t; }
+// a native portrait screen (reMarkable, Poke 5) takes the portrait layouts too: the framework's portrait class, its own size kept
+if (h > w && !c.contains('screen--portrait')) { sc.style.setProperty('--screen-w', v('--screen-w') + 'px'); sc.style.setProperty('--screen-h', v('--screen-h') + 'px'); c.add('screen--portrait'); }
+if (c.contains('screen--lg') && Math.min(v('--screen-w') || w, v('--screen-h') || h) < 720) { c.remove('screen--lg'); c.add('screen--md'); }
+return [w, h, c.contains('screen--sm') || (h > w && !c.contains('screen--lg')), Math.max(w, h) / (Math.max(v('--screen-w'), v('--screen-h')) || Math.max(w, h))]; })();
+// The full view on a small screen shows the small-view console (data-sw-alt) instead of the full one (data-sw-big); on a screen
+// over 2.67 as wide as tall (under 300 of 800 md px high) the days strip goes too and the console takes the view.
+(function () { var big = document.querySelector('[data-sw-big]'); if (!big) return;
+if (!SWS[2]) { document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.remove(); }); return; }
+big.remove(); document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.removeAttribute('data-sw-alt'); });
+if (SWS[0] < 500 && SWS[1] < 500) document.querySelectorAll('[data-sw-sbox]').forEach(function (e) { e.setAttribute('data-sw-nocue', ''); });   // playdate size: a tiny view, no clothing cue (owner)
+if (SWS[1] * 2.67 < SWS[0]) { document.querySelectorAll('[data-sw-dstrip]').forEach(function (e) { e.remove(); }); var c = document.querySelector('[data-sw-small]'); if (c) { [].slice.call(c.classList).forEach(function (q) { if (/h--/.test(q)) c.classList.remove(q); }); c.classList.add('h--full'); } }
+})();
 // Full-colour screens (24 bit) fill their panels like 4-bit ones: no hairline in the gap between them (the markup hides it
 // by the 4bit class, which a colour screen does not carry). Dark mode draws no fill, so it keeps the hairline.
-// Small screens (owner 2026-11-13): the full view on a sm screen or one under 500 px wide shows the small-view console (data-sw-alt)
-// instead of the full one (data-sw-big), as does a native portrait md screen (the full console cut its rain calendar on the poke 5); under 300 px of height the days strip goes too and the console takes the view.
-(function () { var sc = document.querySelector('.screen'), big = document.querySelector('[data-sw-big]'); if (!big) return;
-var sm = !!sc && (sc.classList.contains('screen--sm') || sc.offsetWidth < 500 || (sc.offsetHeight > sc.offsetWidth && !sc.classList.contains('screen--lg') && !sc.classList.contains('screen--portrait')));   // native portrait md screens (poke 5) too
-if (!sm) { document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.remove(); }); return; }
-big.remove(); document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.removeAttribute('data-sw-alt'); });
-if (sc.offsetWidth < 500 && sc.offsetHeight < 500) document.querySelectorAll('[data-sw-sbox]').forEach(function (e) { e.setAttribute('data-sw-nocue', ''); });   // playdate size: a tiny view, no clothing cue (owner)
-if (sc.offsetHeight < 300) { document.querySelectorAll('[data-sw-dstrip]').forEach(function (e) { e.remove(); }); var c = document.querySelector('[data-sw-small]'); if (c) { [].slice.call(c.classList).forEach(function (q) { if (/h--/.test(q)) c.classList.remove(q); }); c.classList.add('h--full'); } }
-})();
 (function () { var sc = document.querySelector('.screen'); if (sc && sc.classList.contains('screen--color-full') && !sc.classList.contains('screen--dark-mode')) document.querySelectorAll('[data-sw-between]').forEach(function (e) { e.classList.add('hidden'); }); })();
 // ==== DRAW_BEGIN ====
 var SWDraw = (() => {
@@ -381,7 +390,7 @@ var offc = !API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.da
 return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) + '</g>' + text(x0 / 2, H / 2, lab, fs, 'middle', ' dominant-baseline="central" data-sw-glabel'));
 }
 function tick(v) { return String(v === 0 ? 0 : v); }
-function lfs(sc) { return API.nfs ? (API.lp && API.nfs > API.lp && API.ogfull ? API.lp : Math.max(API.nfs, API.lp || 0)) : Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }
+function lfs(sc) { var f = API.nfs ? (API.lp && API.nfs > API.lp && API.ogfull ? API.lp : Math.max(API.nfs, API.lp || 0)) : Math.max((API.scaleH || 20) * 0.7, API.lp || 0); return API.lhf ? Math.min(f, 1.28 * API.lhf) : f; }   // B12: scale labels at most 1.28 x the low/high digits (render check PORT; Kobo Forma, Voyage, X portrait)
 function ticks(sc, W) {
 var fs = lfs(sc), st = sc.major, w = (v) => fs * 0.62 * (tick(v).length + 1.2) + fs * 0.6, n = 0, out = [];
 for (var v = sc.a; v <= sc.b + 1e-9; v += st) n += w(v);
@@ -707,18 +716,21 @@ im.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + ((0.5 - iy - ih / 2)
 // column gets the right margin that leaves 2 screen px (the low, high and bar move right, the rows stay aligned). Render check DAYPARTS.
 var ov = -1e9, ks = 1;
 ims.forEach(function (im) {
-var lo = [].filter.call(im.closest('.relative').querySelectorAll('span.title:not([data-sw-dname])'), function (q) { return q.getBoundingClientRect().width > 0; })[0], b = im.getBoundingClientRect(); if (!lo || !b.width) return;
+var lo = swVis(im.closest('.relative').querySelectorAll('span.title:not([data-sw-dname])'))[0], b = im.getBoundingClientRect(); if (!lo || !b.width) return;
 var g = document.createRange(); g.selectNodeContents(lo); ks = (im.offsetWidth && b.width / im.offsetWidth / (+(im.style.transform.match(/scale\(([\d.]+)/) || [0, 1])[1])) || 1;
 ov = Math.max(ov, b.right - g.getBoundingClientRect().left);
 });
-if (ov > -1) ims.forEach(function (im) { var c = im.parentElement, m = parseFloat(c.style.marginRight) || 0, nm = m + (ov + 2) / ks; if (nm - m > 0.5) c.style.setProperty('margin-right', nm.toFixed(1) + 'px', 'important'); });
+var kd = SWS[3]; ov /= ks;   // in framework px; the gap in screen px by the device's own scale (B12: a 0.81 screen measured before its zoom)
+if (ov > -1 / kd) ims.forEach(function (im) { var c = im.parentElement, m = parseFloat(c.style.marginRight) || 0, nm = m + ov + 2 / kd; if (nm - m > 0.5) c.style.setProperty('margin-right', nm.toFixed(1) + 'px', 'important'); });
 }
 // B5: the low and high columns as wide as their widest number in any row (like swNames for the names), so no number spills into its
 // neighbour or the bar track (render check DAYPARTS).
 function swNums() {
 var need = [0, 0], cols = [[], []];
-[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'), function (r) { [].filter.call(r.querySelectorAll('span.title:not([data-sw-dname])'), function (q) { return q.getBoundingClientRect().width > 0; }).slice(0, 2).forEach(function (q, j) { need[j] = Math.max(need[j], q.scrollWidth); cols[j].push(q.parentElement); }); });
-cols.forEach(function (cs, j) { if (cs.length && need[j] > cs[0].clientWidth + 0.5) cs.forEach(function (c) { c.style.setProperty('width', Math.ceil(need[j] + 1) + 'px', 'important'); }); });
+[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'), function (r) { swVis(r.querySelectorAll('span.title:not([data-sw-dname])')).slice(0, 2).forEach(function (q, j) { need[j] = Math.max(need[j], q.scrollWidth); cols[j].push(q.parentElement); }); });
+cols.forEach(function (cs, j) { if (cs.length && need[j] > cs[0].clientWidth + 0.5) cs.forEach(function (c) { c.style.setProperty('width', Math.ceil(need[j] + 1) + 'px', 'important'); });
+// owner 2026-11-14 (OG photo): each low and high column right-aligned on its ones digit ("-1°" under " 6°"), tabular digits; the column stays centred in its cell
+cs.forEach(function (c) { c.firstElementChild.style.cssText += ';text-align:right;font-variant-numeric:tabular-nums;min-width:' + Math.ceil(need[j]) + 'px'; }); });
 }
 // Small views (owner 2026-11-13): one size, the digit height D, drives the console: condition text 0.33 D (SVG text, the ratio of the full
 // view), its icon 2.3 cap heights, unit 0.3 D, clothing cue and rain calendar 0.55 D each. The layout (temperature beside or above the cue
@@ -817,13 +829,19 @@ function swNames() {
 var cells = [].slice.call(document.querySelectorAll('[data-sw-row="day"] > div > :first-child')).filter(function (c) { return c.getBoundingClientRect().width > 0; }), sc = document.querySelector('[data-sw-part="scale"]');
 if (!cells.length) return; if (sc && sc.parentElement.firstElementChild.getBoundingClientRect().width > 0) cells.push(sc.parentElement.firstElementChild);
 var need = 0; cells.forEach(function (c) { [].forEach.call(c.querySelectorAll('span'), function (q) { need = Math.max(need, q.scrollWidth); }); });
+// a screen drawn smaller than the framework's px (inkplate 6 color, 0.75) keeps 7 of its own px between a name and its low (B12)
+var k = SWS[3]; if (k < 1) need += Math.max(0, 7 / k - (parseFloat(getComputedStyle(cells[0].parentElement).columnGap) || 0));
 if (need > cells[0].clientWidth + 0.5) cells.forEach(function (c) { c.style.setProperty('width', Math.ceil(need + 1) + 'px', 'important'); });
 }
 function swCond(cx) {
 document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
 var ic = sp.parentElement.firstElementChild; if (!ic || ic === sp || sp.hasAttribute('data-sw-scond')) return;
 var sb = sp.getBoundingClientRect(); if (!sb.height) return;
-var k = (sp.offsetWidth && sb.width / sp.offsetWidth) || 1, cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+var k = (sp.offsetWidth && sb.width / sp.offsetWidth) || 1, cs = getComputedStyle(sp);
+// md screens taller than the OG (over 500 framework px) grow the digits with the console; the label keeps its size (owner: no step down), so the digits stop
+// at the OG's share of the label (CONDRATIO, B12: Meta Portal, Paperwhite); portrait has its own label size (swOGPortrait)
+var D = 1.08 * parseFloat(cs.fontSize) / SWR; if (SWS[1] / SWS[3] > 500 && !document.querySelector('.screen--lg,.screen--portrait')) sp.closest('[data-sw-console]').querySelectorAll('[data-sw-part$="temp"]').forEach(function (e) { if (e.hasAttribute('data-sw-dcap')) e.style.removeProperty('height'); e.removeAttribute('data-sw-dcap'); if (e.offsetHeight > D) { e.style.setProperty('height', D.toFixed(1) + 'px', 'important'); e.setAttribute('data-sw-dcap', ''); } });   // measured free of its own cap: an early pass must not hold a larger height
+cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
 function size(v) { ic.style.setProperty('height', v.toFixed(1) + 'px', 'important'); ic.style.setProperty('width', v.toFixed(1) + 'px', 'important'); }
 size(cx.measureText('H').actualBoundingBoxAscent); ic.style.transform = '';
 var n0 = 0, h, mid;
@@ -908,33 +926,30 @@ swSmall(cx); swNames(); swNums(); swSeg(cx); swCond(cx); swDayIcons(); swFit(); 
 function swOGPortrait() {
 var screen = document.querySelector('.screen');
 if (!screen || !screen.classList.contains('screen--portrait') || !screen.classList.contains('screen--md') || document.querySelector('[data-sw-small]')) return;
-var panel = document.querySelector('[data-sw-console]'), view = +document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug').match(/view=(\d)/)[1];
-// Only the full (1) and half (2) views reach here: views 3 and 4 always carry the small console (data-sw-small), which returns above.
+var panel = document.querySelector('[data-sw-console]');
+// Only the half horizontal view reaches here: every other view on a portrait md screen carries the small console (data-sw-small), which returns above.
 function set(el, re, cls) { if (!el) return; [].slice.call(el.classList).forEach(function(c) { if (re.test(c)) el.classList.remove(c); }); cls.split(' ').forEach(function(c) { if(c) el.classList.add(c); }); }
 var outer = panel.querySelector('[data-sw-panel] > .relative'), cond = panel.querySelector('[data-sw-cond]'), temp = cond.parentElement.parentElement, top = temp.parentElement, right = panel.querySelector('[data-sw-right]');
 set(outer, /^(flex--(?:row|col|col-reverse|center)|gap--\w+)$/, 'flex--col-reverse flex--between gap--small');
 set(top, /^flex--(?:row|stretch-y)$/, 'flex--row w--full');
-set(right, /^w--/, view === 1 ? 'w--[38cqw]' : 'w--[44cqw]');
+set(right, /^w--/, 'w--[44cqw]');
 set(cond.parentElement, /^h--/, 'h--[7cqh]');
-if (view === 2) set(cond, /^title--/, 'title--small');   // B3: the half view's temperature is width-limited; the condition keeps the full view's share of it (CONDRATIO)
+set(cond, /^title--/, 'title--small');   // B3: the half view's temperature is width-limited; the condition keeps the full view's share of it (CONDRATIO)
 var digits = panel.querySelector('[data-sw-part="temp"]'), tr = digits.parentElement.parentElement;
-if (view === 2) { var mb2 = panel.querySelector('[data-sw-part="meter"]'); mb2 = mb2 && mb2.parentElement.parentElement.parentElement; if (mb2) set(mb2, /^flex--stretch-y$/, 'flex--stretch-y'); }
-set(tr, /^h--/, (view === 1 ? 'h--[13cqh]' : 'h--[21cqh]') + ' shrink-0');
+{ var mb2 = panel.querySelector('[data-sw-part="meter"]'); mb2 = mb2 && mb2.parentElement.parentElement.parentElement; if (mb2) set(mb2, /^flex--stretch-y$/, 'flex--stretch-y'); }
+set(tr, /^h--/, 'h--[21cqh] shrink-0');
 set(digits.parentElement, /^h--/, 'h--full');
 set(tr, /^flex--col$/, 'flex--row');
-var mh = view === 2 ? 'h--[7cqh]' : 'h--[5cqh]';
+var mh = 'h--[7cqh]';
 [].forEach.call(panel.querySelectorAll('[data-sw-mlabel]'),function(e){set(e,/^title--/, 'title--small');set(e.parentElement,/^h--/,mh);set(e.parentElement.parentElement.parentElement.parentElement,/^w--/, 'w--full');});
-[].forEach.call(panel.querySelectorAll('[data-sw-part^="meter"]'),function(e){set(e,/^h--/,view===2?'h--[5cqh]':'h--[4cqh]');set(e.parentElement,/^h--/,mh);});
-var rain = panel.querySelector('[data-sw-part="rain"]'), sun = panel.querySelector('[data-sw-unit="sun"]'), ib = view === 2 ? 'h--[15cqh]' : 'h--[7cqh]';
+[].forEach.call(panel.querySelectorAll('[data-sw-part^="meter"]'),function(e){set(e,/^h--/,'h--[5cqh]');set(e.parentElement,/^h--/,mh);});
+var rain = panel.querySelector('[data-sw-part="rain"]'), sun = panel.querySelector('[data-sw-unit="sun"]'), ib = 'h--[15cqh]';
 [].forEach.call(outer.children,function(e){if(!e.querySelector('[data-sw-part]')&&!e.hasAttribute('data-sw-part'))set(e,/^flex$/,'hidden');});
 [].forEach.call(panel.querySelectorAll('[data-sw-part="gauge"]'),function(e){e.parentNode.removeChild(e);});
-var bt = document.querySelector('[data-sw-between]'), days = bt && bt.nextElementSibling;
-if(view === 1 && days) { set(panel,/^h--/,'h--[57cqh]'); set(days,/^h--/,'h--[35cqh]'); }
-if(view === 1) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-row="day"] > div > :nth-child(3)'),function(e){var r=e.parentElement,c=r.children,dr=r.parentElement.hasAttribute('data-sw-row');set(r,/^gap--/,'gap--xsmall');if(dr){set(r.parentElement,/^hidden$/,'');set(r,/^h--/,'h--[7cqh]');}set(c[0],/^w--/,'w--[12cqw]');set(c[1],/^w--/,'w--[6cqw]');set(c[2],/^w--/,'w--[6cqw]');set(c[3],/^w--/,'w--[6cqw]');if(c[5]){set(c[5],/^w--/,'w--[11cqw]');if(dr)set(c[5].firstElementChild,/^h--/,'h--[6cqh]');}var im=c[1].querySelector('img');if(im)set(im,/^h--/,'h--[6cqh]');});
 var dn = [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'),function(q){return q.getBoundingClientRect().width>0;})[0], tpx = dn ? Math.round(parseFloat(getComputedStyle(dn).fontSize)*0.85) : 0;
 if(tpx) [].forEach.call(document.querySelectorAll('[data-sw-part="tri"]'),function(e){set(e,/^[hw]--/,'h--['+tpx+'px] w--['+tpx+'px]');});
 if(rain) {
-set(rain,/^w--/,'w--[26cqw]'); set(rain,/^h--/,view===2?'h--[15cqh]':'h--[12cqh]');
+set(rain,/^w--/,'w--[26cqw]'); set(rain,/^h--/,'h--[15cqh]');
 set(rain.parentElement,/^flex--col$/, 'flex--row');
 set(rain.parentElement.querySelector('img'),/^(h--\S+|hidden|lg:block)$/,ib);
 set(panel.querySelector('[data-sw-gap="rain-sun"]'),/^h--/,'h--[1cqh]');
@@ -942,9 +957,9 @@ set(panel.querySelector('[data-sw-gap="rain-sun"]'),/^h--/,'h--[1cqh]');
 if(sun) {
 set(sun,/^hidden$/, 'flex');
 var big = !rain;
-[].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,big?(view===2?'h--[8cqh]':'h--[5cqh]'):(view===1?'h--[4cqh]':'h--[7cqh]'));});
+[].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,big?'h--[8cqh]':'h--[7cqh]');});
 if(big){set(sun,/^flex--(?:row|left)$/,'flex--col flex--center');set(sun.children[1]||sun,/^gap--/,'gap--medium');[].forEach.call(sun.querySelectorAll('[data-sw-suntime] span.title'),function(e){set(e,/^title--/,'title--large');});}
-[].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,rain?ib:(big?(view===2?'h--[11cqh]':'h--[8cqh]'):'h--[6cqh]'));}});
+[].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,rain?ib:(big?'h--[11cqh]':'h--[6cqh]'));}});
 }
 
 }
@@ -964,11 +979,18 @@ swOGPortrait(); swOGPortraitDays();
 whenReady(function () {
 swRepaint = swPaint;
 swSmall(document.createElement('canvas').getContext('2d'));
+// Days strip (device tier B12, wider portrait md screens: the half vertical's bigger console left the last day row cut): the
+// rows that do not fit inside their panel go whole, from the last, today always stays.
+document.querySelectorAll('[data-sw-dstrip] [data-sw-panel]').forEach(function (p) { var b = p.getBoundingClientRect().bottom + 1, rs = [].filter.call(p.querySelectorAll('[data-sw-row="day"]'), function (r) { return r.getBoundingClientRect().height > 0; });
+var lo = function (r) { return [].reduce.call(r.querySelectorAll('[data-sw-part]'), function (m, e) { return Math.max(m, e.getBoundingClientRect().bottom); }, r.getBoundingClientRect().bottom); };
+while (rs.length > 1 && lo(rs[rs.length - 1]) > b) rs.pop().style.setProperty('display', 'none', 'important'); });
+// Rain calendar cells at most twice as wide as high (B12, Palma's short wide half view: 43x21): the calendar narrows to 1.95, never flattens.
+document.querySelectorAll('[data-sw-part="rain"]').forEach(function (e) { var rw = (e.getAttribute('data-sw-rows') || '').split(','), n = +(rw[document.querySelector('.screen--lg') ? 1 : 0]) || 2, mw = 5.85 * e.offsetHeight / n; if (e.offsetWidth > 6 * e.offsetHeight / n) e.style.setProperty('width', mw.toFixed(1) + 'px', 'important'); });
 swArrow(document.createElement('canvas').getContext('2d')); swCapBase();
 document.querySelectorAll('[data-sw-part="gauge"]').forEach(function (el) {
 var un = el.previousElementSibling, cal = un && un.querySelector('[data-sw-part="rain"]'); if (!cal) return;
-var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0], lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
-var lab = ((SW.rain || {}).gauge || {}).label || '', rw = (cal.getAttribute('data-sw-rows') || '').split(','), rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || 2, cb = cal.getBoundingClientRect(), ub = un.getBoundingClientRect();
+var ml = swVis(document.querySelectorAll('[data-sw-mlabel]'))[0], lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
+var lab = ((SW.rain || {}).gauge || {}).label || '', rw = (cal.getAttribute('data-sw-rows') || '').split(','), rows = +(rw[document.querySelector('.screen--lg') ? 1 : 0]) || 2, cb = cal.getBoundingClientRect(), ub = un.getBoundingClientRect();
 var cw = cb.width / 3, ch = cb.height / rows, gp = Math.max(2, Math.min(cw, ch) * 0.06), fs = Math.min(lp * 0.7 || 12, (cb.left - ub.left) / (lab.length * 0.62 + 0.5));
 el.style.width = (cb.right - ub.left).toFixed(2) + 'px'; el.style.height = Math.max(4, ch * 0.3).toFixed(2) + 'px'; el.setAttribute('data-sw-gp', gp.toFixed(2)); el.setAttribute('data-sw-x0', (cb.left - ub.left).toFixed(2));
 var rc = el.closest('[data-sw-right]'), pn = rc && rc.closest('[data-sw-panel]'), pb = pn && pn.getBoundingClientRect(), ps = pn && getComputedStyle(pn), rb = rc && rc.getBoundingClientRect();
@@ -995,10 +1017,10 @@ if (lzu && r.height) { var lzk = (el.offsetHeight && r.height / el.offsetHeight)
 if (el.hasAttribute('data-sw-sq') && r.height) { var k0 = (el.offsetHeight && r.height / el.offsetHeight) || 1, tf = el.getAttribute('data-sw-part') === 'tri' ? parseFloat(getComputedStyle(el.parentElement).fontSize) * 0.8 : 0; if (tf) el.style.setProperty('height', tf.toFixed(2) + 'px', 'important'); el.style.setProperty('width', (tf || r.height / k0).toFixed(2) + 'px', 'important'); r = el.getBoundingClientRect(); }
 if (!r.width && !r.height) return;
 SWDraw.tr = el.hasAttribute('data-sw-tr'); SWDraw.gp = +(el.getAttribute('data-sw-gp') || 0); SWDraw.gx0 = +(el.getAttribute('data-sw-x0') || 0); SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
-var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
-var ogp = sc.contains('screen--portrait') && (sc.contains('screen--md') || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; SWDraw.ogfull = ogp && sc.contains('screen--md') && / view=1 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'));
-var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;
-var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
+var ml = swVis(document.querySelectorAll('[data-sw-mlabel]'))[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
+var ogp = sc.contains('screen--portrait') && (sc.contains('screen--md') || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && swVis(document.querySelectorAll('[data-sw-row="day"] span.title'))[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; var lh = swVis(document.querySelectorAll('[data-sw-row="day"] span.title:not([data-sw-dname])'))[0]; SWDraw.lhf = lh ? parseFloat(getComputedStyle(lh).fontSize) : 0; SWDraw.ogfull = ogp && sc.contains('screen--md') && / view=1 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'));
+var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[document.querySelector('.screen--lg') ? 1 : 0]) || null;
+var rows = swVis(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]')), k = rows.indexOf(el);
 SWDraw.nRows = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; }).length;
 SWDraw.scaleH = rows.length && rows[0].getAttribute('data-sw-part') === 'scale' ? Math.round(rows[0].getBoundingClientRect().height) : null;
 var hb = [].map.call(document.querySelectorAll('[data-sw-part="hbar"]'), function (q) { return q.getBoundingClientRect().height; }).filter(function (h) { return h > 0; }); SWDraw.hbarH = hb.length ? Math.floor(Math.min.apply(null, hb)) : null; SWDraw.hcols = hb.length || null;

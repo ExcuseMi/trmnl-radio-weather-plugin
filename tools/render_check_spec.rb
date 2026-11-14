@@ -88,6 +88,8 @@ RSpec.describe 'renders' do
       end
       s = trmnl.render(**opts)
       is_lg = s.evaluate("!!document.querySelector('.screen--lg')")   # the X layouts follow the lg size class, not the model name (device tier, 2026-11-13)
+      # a native portrait screen (reMarkable, Poke 5) runs with no orientation but takes the portrait layouts (B12): the portrait checks follow the layout
+      is_port = s.evaluate("!!document.querySelector('.screen--portrait')")
       puts "SCREEN #{c['name']}: #{s.evaluate("document.querySelector('.screen').className+' '+innerWidth")}" if ENV['SW_SCREEN']
       FileUtils.mkdir_p(out)
       FileUtils.cp(s.png_path, File.join(out, "#{c['name']}.png"))
@@ -189,6 +191,13 @@ caps.forEach(function(c){if(bx.some(function(b){return b[0]<c.right+g&&b[2]>c.le
       mlab = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-mlabel]').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;var g=document.createRange();g.selectNodeContents(e);var t=g.getBoundingClientRect(),cs=getComputedStyle(e),k=b.width/(e.offsetWidth||b.width);if(t.left<b.left+parseFloat(cs.paddingLeft)*k-0.5||t.right>b.right-parseFloat(cs.paddingRight)*k+0.5)bad.push(e.textContent.trim()+' text '+Math.round(t.left)+'..'+Math.round(t.right)+' box '+Math.round(b.left)+'..'+Math.round(b.right));});return bad.join('; ');})()})
       puts "MLAB #{c['name']}: #{mlab}" unless mlab.empty?
       expect(mlab).to eq('')
+      # Layout from the device (owner 2026-11-14, B12: the OG once got the small console from a measured screen): the full view's small
+      # console follows trmnl.device and the framework's size class, never a measurement; og-devsize says 480x800 on an 800x480 screen.
+      if c.key?('want_small')
+        sm = s.evaluate("!!document.querySelector('[data-sw-console][data-sw-small]')")
+        puts "LAYOUT #{c['name']}: small #{sm}" unless sm == c['want_small']
+        expect(sm).to eq(c['want_small'])
+      end
       # Owner 2026-11-14: with several devices a screen shows only its own sensor (the X showed the OG's); want_in '' = no indoor reading.
       if c['want_in']
         inr = s.evaluate("(window.SW && SW.inn && SW.inn.temp) || ''").to_s
@@ -256,8 +265,9 @@ if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.get
       # of the text beside them; the days scale's track at least 45 % of the day row width with its first and last labels
       # at the track's ends (within a cell); no empty band over 12 % of the panel height inside the console, the days
       # panel or the console's right column (ink measured in the screenshot); low/high digits at least 0.85 x the day name size;
-      # quadrant: the temperature digits at least 13 % of the console height.
-      if c['orientation'] == 'portrait' && !is_lg && %w[full half_vertical half_horizontal quadrant].include?(c['view'] || 'full')
+      # quadrant: the temperature digits at least 13 % of the console height. The rain icon is an img, or in dark mode its glow drawing
+      # ([data-sw-part="icon"], as in the rain-calendar check above; B12, Poke 5 dark, a native portrait screen now held to these checks).
+      if is_port && !is_lg && %w[full half_vertical half_horizontal quadrant].include?(c['view'] || 'full')
         require 'chunky_png'
         og = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d'),R=function(b){return [b.left,b.top,b.right,b.bottom]};
 function cap(sp){var b=vis(sp);if(!b)return 0;var cs=getComputedStyle(sp),sf=+sp.getAttribute('data-sw-fs')||0;cx.font=cs.fontWeight+' '+(sf?sf+'px':cs.fontSize)+' '+cs.fontFamily;return cx.measureText('H').actualBoundingBoxAscent*(b.width/(sp.offsetWidth||b.width));}
@@ -278,7 +288,7 @@ tr=[(x1-x0)/row.getBoundingClientRect().width,lb.length?lb[0]-x0:1e9,lb.length?l
 var pn=[];[].filter.call(document.querySelectorAll('[data-sw-panel]'),vis).forEach(function(p){var q=p.getBoundingClientRect(),t=1e9,b=-1e9;p.querySelectorAll('img, svg, span').forEach(function(e){if(e.closest('[data-sw-part="face"]'))return;var r=vis(e);if(!r||(e.tagName==='SPAN'&&!e.textContent.trim()))return;t=Math.min(t,r.top);b=Math.max(b,r.bottom)});if(b>t)pn.push([p.closest('[data-sw-console]')?'console':'days',q.left+10,t,q.right-10,b,q.height]);
 var rt=p.querySelector('[data-sw-right]'),rb=vis(rt);if(rb&&rb.left>q.left+q.width*0.25){var tp=rt.parentElement.getBoundingClientRect();pn.push(['right column',rb.left,tp.top,rb.right,tp.bottom,q.height,1])}});
 var tq=vis(document.querySelector('[data-sw-part="temp"] svg')),pq=vis(document.querySelector('[data-sw-console] [data-sw-panel]'));if(QUAD&&tq&&pq&&tq.height<0.13*pq.height)ic.push(['temperature '+tq.height.toFixed(0)+' under 13 % of the console '+pq.height.toFixed(0),0,0,0,0,1]);
-if([].filter.call(document.querySelectorAll('[data-sw-part="rain"]'),vis).length&&![].filter.call(document.querySelectorAll('[data-sw-unit="rain"] img'),vis).length)ic.push(['rain icon missing beside the calendar',0,0,0,0,1]);
+if([].filter.call(document.querySelectorAll('[data-sw-part="rain"]'),vis).length&&![].filter.call(document.querySelectorAll('[data-sw-unit="rain"] img,[data-sw-unit="rain"] [data-sw-part="icon"]'),vis).length)ic.push(['rain icon missing beside the calendar',0,0,0,0,1]);
 return JSON.stringify({ic:ic,tr:tr,pn:pn,iw:innerWidth});})()}.sub('QUAD', (c['view'] == 'quadrant').to_s))
         og = JSON.parse(og)
         png = ChunkyPNG::Image.from_file(s.png_path)
@@ -422,7 +432,7 @@ return bad.join('; ');})()})
       puts "DAYSTRIP #{c['name']}: #{ds}" unless ds.empty?
       expect(ds).to eq('')
       # X condition label (owner 2026-11-12): a clearly larger title than the day names, so it fills the middle block.
-      if is_lg && %w[full half_horizontal].include?(c['view'] || 'full') && c['orientation'].nil?
+      if is_lg && %w[full half_horizontal].include?(c['view'] || 'full') && !is_port
         cr = s.evaluate(%q{(function(){var v=function(q){return [].filter.call(document.querySelectorAll(q),function(e){return e.getBoundingClientRect().width>0})[0]},a=v('[data-sw-cond]'),b=v('[data-sw-dname]')||v('[data-sw-mlabel]');return a&&b?parseFloat(getComputedStyle(a).fontSize)/parseFloat(getComputedStyle(b).fontSize):9;})()})
         puts "CONDSIZE #{c['name']}: #{cr.round(2)}" if cr < 1.2
         expect(cr).to be >= 1.2
@@ -548,11 +558,20 @@ for(var a=0;a<P.length;a++)for(var b=a+1;b<P.length;b++){var x=P[a][1],y=P[b][1]
       puts "TICKS #{c['name']}: #{tk}" unless tk.empty?
       expect(tk).to eq('')
       expect(dp).to eq('')
+      # Owner 2026-11-14 (OG photo, "temps aligned on the digit before the comma"): in each low and in each high column of the days strip
+      # the last digit of every row ends at the same x (1 px): the numbers right-aligned on their ones digit, the minus and tens reach left.
+      dg = s.evaluate(%q{(function(){var C=[[],[]];[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(r){if(!r.getBoundingClientRect().height)return;[].filter.call(r.querySelectorAll('span.title:not([data-sw-dname])'),function(q){return q.getBoundingClientRect().width>0}).slice(0,2).forEach(function(q,j){var t=q.firstChild,m=t&&t.nodeType===3?t.textContent.search(/\d(?!.*\d)/):-1;if(m<0)return;var g=document.createRange();g.setStart(t,m);g.setEnd(t,m+1);C[j].push([q.textContent.trim(),g.getBoundingClientRect().right])})});var bad=[];C.forEach(function(v,j){if(v.length<2)return;var x=v.map(function(e){return e[1]}),lo=Math.min.apply(null,x),hi=Math.max.apply(null,x);if(hi-lo>1)bad.push((j?'high':'low')+' digits end '+v.map(function(e){return e[0]+'@'+e[1].toFixed(1)}).join(' '))});return bad.join('; ')})()})
+      puts "DIGITCOL #{c['name']}: #{dg}" unless dg.empty?
+      expect(dg).to eq('')
       puts "DAYALIGN #{c['name']}: #{al}" unless al.empty?
       expect(al).to eq('')
       d = dr.split(',').map(&:to_f)
       expect(d[0]).to eq(0) if c['view'] == 'quadrant'
-      expect(d[1]).to be >= (is_lg ? 53 : 28) * (c['dark'] ? 0.85 : 1) if d[0].positive?   # the comment above says less 15 % for dark mode's divider; the code never took it (dark rows were 55 px by luck until the larger console)
+      # B12 (device tier): the floor is a size in the framework's px (X 53 screen px at its pixel ratio 1.8, OG 28 at 1) at the framework's
+      # text scale, so a screen with another ratio (Voyage 1.4, Scribe 2.5) or a smaller text scale (Palma, Kindle 2024: 0.8) is held to the
+      # same drawn size as its own text, not to the X's screen px; OG and X keep their numbers.
+      pxr = s.evaluate("(function(){var c=getComputedStyle(document.querySelector('.screen')),v=function(n){return parseFloat(c.getPropertyValue(n))||1};return v('--pixel-ratio')*v('--device-ui-scale')})()").to_f
+      expect(d[1]).to be >= (is_lg ? 53 / 1.8 : 28) * pxr * (c['dark'] ? 0.85 : 1) if d[0].positive?   # the comment above says less 15 % for dark mode's divider; the code never took it (dark rows were 55 px by luck until the larger console)
       expect([d[3], d[4]]).to eq(d[0].positive? ? [1, 1] : [0, 0])
       expect(d[5]).to eq(1)
       # Felt temperature (owner decision 2026-11-13): no felt readout anywhere (no felt digits, no felt word, no person
@@ -574,7 +593,7 @@ gs.forEach(function(e){var m=e.querySelector('[data-sw-gauge]'),lit=Object.keys(
 if(!m||+m.getAttribute('data-sw-gauge')!==G.segs||lit!==G.segs||Object.keys([].reduce.call(e.querySelectorAll('[data-sw-c]'),function(o,r){o[r.getAttribute('data-sw-c')]=1;return o},{})).length!==3)bad.push('gauge segments '+lit+' want '+(G&&G.segs));
 if(!t||t.textContent!==G.label)bad.push('gauge label');if(Math.abs(b.right-u.right)>1)bad.push('gauge not under the calendar columns');if(t&&t.getBoundingClientRect().right>u.left+0.5)bad.push('gauge label over the bar');});
 if(G&&!gs.length&&INNER_X_FULL)bad.push('no gauge on a wet X full case');
-return bad.join('; ')})()}.sub('INNER_X_FULL', (is_lg && (c['view'] || 'full') == 'full' && !c['orientation'] && !c['fixture']) ? 'true' : 'false'))
+return bad.join('; ')})()}.sub('INNER_X_FULL', (is_lg && (c['view'] || 'full') == 'full' && !is_port && !c['fixture']) ? 'true' : 'false'))
       expect(rg0).to eq('')
       # Hours strip (owner): column count per view, an inverted stamp exactly on the current and the wet hours, the block
       # curve inside its column and its panel, stamp, temperature and icon ink centred on the column axis (2 px; every
@@ -645,7 +664,7 @@ if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);if(ws.length&&Math.max
       # Portrait day rows and console (owner, step 19 on x-port-hv; OG half vertical portrait the model): the console badge
       # beside the temperature (full and half views; quadrants are tiny views without a badge, owner B3 2026-11-14), every day row keeps its low and high, the header its two markers, and the scale labels
       # no larger than 1.3 x the low/high digits.
-      if c['orientation'] == 'portrait'
+      if is_port
         pr = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},bad=[],fs=function(e){return parseFloat(getComputedStyle(e).fontSize)*(e.getBoundingClientRect().width/(e.offsetWidth||1))};
 if(QUAD0&&SW.cue&&SW.cue.length&&![].some.call(document.querySelectorAll('[data-sw-part="cue"]'),vis))bad.push('no console badge');
 var rows=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis),lf=0;rows.forEach(function(r){var n=[].filter.call(r.querySelectorAll('span.title:not([data-sw-dname])'),vis);if(n.length<2)bad.push('row '+r.textContent.trim().split(/\s+/)[0]+' without low/high');else lf=fs(n[0]);});
