@@ -458,6 +458,13 @@ var px=function(r){var sv=r.ownerSVGElement;return +r.getAttribute('rx')*sv.getB
       r3 = s.evaluate(%q{(function(){var sv=[].filter.call(document.querySelectorAll('[data-sw-part="rain"] svg'),function(v){return v.getBoundingClientRect().width>0})[0];if(!sv)return '';var ys={};[].forEach.call(sv.querySelectorAll('text'),function(t){var y=t.getAttribute('y');ys[y]=ys[y]||[];ys[y].push(!!t.closest('.text--white'))});var k=Object.keys(ys).sort(function(a,b){return a-b});if(k.length<3)return '';return ys[k[k.length-1]].some(Boolean)?'':k.length+' rows, last dry'})()})
       puts "RAIN3 #{c['name']}: #{r3}" unless r3.empty?
       expect(r3).to eq('')
+      # Day row parts apart (owner 2026-11-14, OG portrait "lots of clipping"): in each day row the day name, the icon (its box as
+      # drawn, shifts included), the low and the high text and the bar cells neither overlap nor touch (at least 1 px apart); the
+      # numbers no longer spill out of their columns into the icon or the bar track.
+      dp = s.evaluate(%q{(function(){var bad=[],T=function(e){var g=document.createRange();g.selectNodeContents(e);return g.getBoundingClientRect()},v=function(b){return b&&b.width>0&&b.height>0};[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(r,i){if(!r.getBoundingClientRect().height)return;var P=[],nm=r.querySelector('[data-sw-today],[data-sw-dname]'),im=[].filter.call(r.querySelectorAll('img,[data-sw-part="icon"]'),function(e){return v(e.getBoundingClientRect())&&!e.closest('[data-sw-part="dcue"]')})[0],nu=[].filter.call(r.querySelectorAll('span.title:not([data-sw-dname])'),function(e){return v(e.getBoundingClientRect())}),cl=[].filter.call(r.querySelectorAll('[data-sw-cells] rect'),function(e){return v(e.getBoundingClientRect())});if(nm)P.push(['name',nm.hasAttribute('data-sw-today')?nm.getBoundingClientRect():T(nm)]);if(im)P.push(['icon',im.getBoundingClientRect()]);nu.forEach(function(e,j){P.push([j?'high':'low',T(e)])});if(cl.length){var L=1e9,R=-1e9,U=1e9,D=-1e9;cl.forEach(function(e){var b=e.getBoundingClientRect();L=Math.min(L,b.left);R=Math.max(R,b.right);U=Math.min(U,b.top);D=Math.max(D,b.bottom)});P.push(['bar',{left:L,right:R,top:U,bottom:D,width:R-L,height:D-U}])}
+for(var a=0;a<P.length;a++)for(var b=a+1;b<P.length;b++){var x=P[a][1],y=P[b][1];if(v(x)&&v(y)&&x.left<y.right+1&&y.left<x.right+1&&x.top<y.bottom-1&&y.top<x.bottom-1)bad.push('row '+i+' '+P[a][0]+' meets '+P[b][0]+' (gap '+Math.round(Math.max(x.left,y.left)-Math.min(x.right,y.right))+' px)')}});return bad.join('; ')})()})
+      puts "DAYPARTS #{c['name']}: #{dp}" unless dp.empty?
+      expect(dp).to eq('')
       puts "DAYALIGN #{c['name']}: #{al}" unless al.empty?
       expect(al).to eq('')
       d = dr.split(',').map(&:to_f)
