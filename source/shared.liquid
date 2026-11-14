@@ -770,7 +770,7 @@ if (side) { side.classList.toggle('flex--col', R.sideCol); side.classList.toggle
 if (cue) sz(cue, 1.6 * R.cueH, R.cueH);
 if (ru) { ru.style.gap = R.gR.toFixed(1) + 'px'; sz(ru.firstElementChild, R.calH, R.calH); sz(cal, R.calW, R.calH); }
 if (lh) { var f = R.fsL, tw = f * 0.8, x = 0, b = ''; lht.forEach(function (v, i) { var y0 = 0.5 * f, P = i ? [[x, y0 + tw * 0.8], [x + tw, y0 + tw * 0.8], [x + tw / 2, y0]] : [[x, y0], [x + tw, y0], [x + tw / 2, y0 + tw * 0.8]];
-b += '<polygon points="' + P.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" ' + (i ? 'fill="currentColor"' : 'fill="none" ' + SK + '' + (f * 0.08).toFixed(1) + '"') + '/>';
+b += '<polygon points="' + P.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" ' + (i ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="' + (f * 0.08).toFixed(1) + '"') + '/>';
 x += tw + 0.2 * f; b += '<text x="' + x.toFixed(1) + '" y="' + (0.5 * f + CK * f).toFixed(1) + '" font-size="' + f.toFixed(1) + '" font-family="' + fam.replace(/"/g, "'") + '" font-weight="' + wt + '" fill="currentColor">' + v + '</text>'; x += mw(v, f) + 0.6 * f; });
 lh.innerHTML = '<svg class="block" width="' + R.lW.toFixed(1) + '" height="' + (1.2 * f + 0.5 * f).toFixed(1) + '" viewBox="0 0 ' + R.lW.toFixed(1) + ' ' + (1.7 * f).toFixed(1) + '" role="img" aria-label="' + lht.join(' ') + '">' + b + '</svg>'; }
 var mwid = Math.min(W, Math.max(R.condW, R.mainRow ? R.tW + 1.6 * R.g + R.sW : Math.max(R.tW, R.sW)));
