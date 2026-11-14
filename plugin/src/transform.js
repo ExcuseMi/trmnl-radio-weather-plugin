@@ -166,8 +166,9 @@ function field(input, key, fallback) {
   return v === undefined || v === null || v === '' ? fallback : v;
 }
 
+var FETCH_MS = 2500;   // TRMNL stops a transform at 5 s (2026-11-14: degraded after a slow Open-Meteo answer with 4 s): both requests run in parallel, so 2.5 s leaves room for the VM start and the rest
 async function getJson(url) {
-  var res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+  var res = await fetch(url, { signal: AbortSignal.timeout(FETCH_MS) });
   var body = await res.json();
   if (!res.ok && !(body && body.error)) throw new Error('HTTP ' + res.status);
   return body;
@@ -614,13 +615,7 @@ function fitState(st) {
   return { v: 1 };
 }
 
-async function run(input) {
-  var loc = LANGUAGE || (((input || {}).trmnl || {}).user || {}).locale;
-  H12 = timeIs12(TIME, field(input, 'time_format', '24'));
-  var i18n = buildI18n(loc);
-  var parts = String(field(input, 'lat_lon', '52.52,13.41')).split(',');
-  var lat = encodeURIComponent((parts[0] || '').trim()), lon = encodeURIComponent((parts[1] || '').trim());
-  var fahrenheit = String(UNIT || field(input, 'unit', 'celsius')) === 'fahrenheit';
+function omUrls(lat, lon, fahrenheit) {   // the two Open-Meteo requests; settings.yml polling_url carries the same two in Liquid (model test 'polling URLs')
   var forecast = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
     '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index' +
     '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,pressure_msl,weather_code,is_day,wind_speed_10m,wind_gusts_10m,uv_index,relative_humidity_2m' +
@@ -629,7 +624,20 @@ async function run(input) {
     '&precipitation_unit=' + (fahrenheit ? 'inch' : 'mm') + '&wind_speed_unit=' + (fahrenheit ? 'mph' : 'kmh');
   var air = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon +
     '&current=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&hourly=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto&forecast_days=2';
-  var got = await Promise.allSettled([getJson(forecast), getJson(air)]);
+  return [forecast, air];
+}
+async function run(input) {
+  var loc = LANGUAGE || (((input || {}).trmnl || {}).user || {}).locale;
+  H12 = timeIs12(TIME, field(input, 'time_format', '24'));
+  var i18n = buildI18n(loc);
+  var parts = String(field(input, 'lat_lon', '52.52,13.41')).split(',');
+  var lat = encodeURIComponent((parts[0] || '').trim()), lon = encodeURIComponent((parts[1] || '').trim());
+  var fahrenheit = String(UNIT || field(input, 'unit', 'celsius')) === 'fahrenheit';
+  var U = omUrls(lat, lon, fahrenheit), forecast = U[0], air = U[1];
+  // Owner 2026-11-14 ('Transform timed out after 5s'): TRMNL fetches the polling URLs before the transform (IDX_0 weather,
+  // IDX_1 air quality), outside the 5 s limit; the transform fetches itself only when one is missing or unusable.
+  var pre = [(input || {}).IDX_0, (input || {}).IDX_1], okPre = (o) => !!(o && typeof o === 'object' && !o.error && o.current && typeof o.current === 'object');
+  var got = await Promise.allSettled([okPre(pre[0]) ? Promise.resolve(pre[0]) : getJson(forecast), okPre(pre[1]) ? Promise.resolve(pre[1]) : getJson(air)]);
   var st0 = stObj(((input || {}).trmnl || {}).state) || {}, nowS = +(((input || {}).trmnl || {}).system || {}).timestamp_utc || Date.now() / 1000;   // TRMNL hands the transform no system namespace: the clock
   var wr = got[0].status === 'fulfilled' ? got[0].value : null, snap = null, fb = null;
   var aq = got[1].status === 'fulfilled' && got[1].value && got[1].value.current ? got[1].value : null;
@@ -668,4 +676,4 @@ async function run(input) {
   return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, sens_in: !!sensors, ui_in: wantPh ? phView(50) : null, ui_in_t: wantPh ? phView(null) : null, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, WMO_TO_WAPI: WMO_TO_WAPI, snapOf: snapOf, fromSnap: fromSnap, innTrack: innTrack, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase, moonLimb: moonLimb, moonSky: moonSky };
+if (typeof module !== 'undefined') module.exports = { run: run, omUrls: omUrls, WMO_TO_WAPI: WMO_TO_WAPI, snapOf: snapOf, fromSnap: fromSnap, innTrack: innTrack, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase, moonLimb: moonLimb, moonSky: moonSky };

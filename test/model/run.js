@@ -570,6 +570,26 @@ test('built shared.liquid stays under 84 KB: a source edit that pushes it over m
   const b = fs.statSync(path.join(__dirname, '../../plugin/src/shared.liquid')).size;
   ok(b < 84 * 1000, 'plugin/src/shared.liquid is ' + b + ' bytes after the build, budget ' + 84 * 1000 + ': trim source/shared.liquid (dead code, duplicates), not the guard');
 });
+async function hangTest() {   // owner 2026-11-14: 'Transform timed out after 5s' (TRMNL limit); a request that never answers must not hold the run
+  const of = global.fetch, t0 = Date.now(), keep = setInterval(() => {}, 1000);   // AbortSignal.timeout does not hold the Node loop
+  global.fetch = (u, o) => new Promise((res, rej) => { if (o && o.signal) o.signal.addEventListener('abort', () => rej(new Error('aborted'))); });
+  let out = null; try { out = await T.run({ trmnl: { user: { locale: 'nl' }, system: { timestamp_utc: Date.UTC(2026, 10, 8, 5, 10) / 1000 }, plugin_settings: { custom_fields_values: { lat_lon: '50.8,3.4' } } } }); } finally { global.fetch = of; clearInterval(keep); }
+  const ms = Date.now() - t0;
+  ok(ms < 3000, 'a hanging Open-Meteo request ends the run in ' + ms + ' ms (TRMNL stops at 5000 incl. VM start)');
+  ok(out && typeof out === 'object', 'and the run still returns a view');
+}
+async function pollTest() {   // owner 2026-11-14: Open-Meteo through TRMNL's polling URLs (fetched before the transform, outside its 5 s)
+  const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf8');
+  ok(/^strategy: polling$/m.test(y), 'strategy polling');
+  const lines = y.split('polling_url: |-\n')[1].split('\n').filter((l) => /^  https:/.test(l)).map((l) => l.trim());
+  const liq = (l, ll, unit) => l.replace(/\{\{ lat_lon[^}]*first[^}]*\}\}/g, ll.split(',')[0].trim()).replace(/\{\{ lat_lon[^}]*last[^}]*\}\}/g, ll.split(',')[1].trim())
+    .replace(/\{% if unit == 'fahrenheit' %\}(.*?)\{% else %\}(.*?)\{% endif %\}/, (m, f, c) => unit === 'fahrenheit' ? f : c);
+  ['celsius', 'fahrenheit'].forEach((u) => eq(lines.map((l) => liq(l, '50.84, 3.36', u)), T.omUrls('50.84', '3.36', u === 'fahrenheit'), 'polling URLs = the transform\'s requests (' + u + ')'));
+  const of = global.fetch; let calls = 0; global.fetch = async () => { calls++; throw new Error('no network'); };
+  let out; try { out = await T.run({ IDX_0: fx('mixed'), IDX_1: {}, trmnl: { user: { locale: 'nl' }, system: { timestamp_utc: Date.UTC(2026, 10, 8, 5, 10) / 1000 }, plugin_settings: { custom_fields_values: { lat_lon: '50.8,3.4' } } } }); } finally { global.fetch = of; }
+  ok(out && out.model && out.model.now && out.model.now.temp !== null, 'weather from IDX_0 without fetching it');
+  eq(calls, 1, 'only the unusable IDX_1 (no current) is fetched again');
+}
 async function sensorSettingsTests() {
   const originalFetch = global.fetch;
   global.fetch = async (url) => ({ ok: true, json: async () => url.includes('air-quality') ? {} : fx('mixed') });
@@ -763,7 +783,8 @@ async function stateTests() {
     });
   } finally { global.fetch = originalFetch; }
 }
-sensorSettingsTests().then(stateTests).then(() => {
+async function aTest(name, fn) { try { await fn(); passed++; } catch (e) { failed++; console.log('FAIL ' + name + ': ' + e.message); } }
+sensorSettingsTests().then(stateTests).then(() => aTest('a hanging request ends within TRMNL\'s 5 s', hangTest)).then(() => aTest('polling URLs', pollTest)).then(() => {
   console.log(passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 });
