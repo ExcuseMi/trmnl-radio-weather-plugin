@@ -56,7 +56,7 @@ Regenerate the device file after TRMNL adds a model: `python3 tools/make_device_
 
 ## Licence
 
-Copyright (c) 2026 ExcuseMi. All rights reserved. No licence is granted to copy, modify or redistribute this code.
+MIT, see [LICENSE](LICENSE). Copyright (c) 2026 ExcuseMi.
 
 The weather texts (the `sw_i18n` capture in each `plugin/src/<view>.liquid`, the slots between the `I18N_TRMNL` markers in `shared.liquid`) come from
 [usetrmnl/trmnl-i18n](https://github.com/usetrmnl/trmnl-i18n) and stay under its MIT licence; see
