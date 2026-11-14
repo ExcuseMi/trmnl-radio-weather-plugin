@@ -553,15 +553,15 @@ if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);if(ws.length&&Math.max
       expect(co.split('|', 2)[1]).to eq('')
       expect(co.split(',')[1].to_i).to be_positive if (c['view'] || 'full') == 'full' && (c['fields'] || {})['bottom'] != 'hours'
       # Portrait day rows and console (owner, step 19 on x-port-hv; OG half vertical portrait the model): the console badge
-      # beside the temperature, every day row keeps its low and high, the header its two markers, and the scale labels
+      # beside the temperature (full and half views; quadrants are tiny views without a badge, owner B3 2026-11-14), every day row keeps its low and high, the header its two markers, and the scale labels
       # no larger than 1.3 x the low/high digits.
       if c['orientation'] == 'portrait'
         pr = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},bad=[],fs=function(e){return parseFloat(getComputedStyle(e).fontSize)*(e.getBoundingClientRect().width/(e.offsetWidth||1))};
-if(SW.cue&&SW.cue.length&&![].some.call(document.querySelectorAll('[data-sw-part="cue"]'),vis))bad.push('no console badge');
+if(QUAD0&&SW.cue&&SW.cue.length&&![].some.call(document.querySelectorAll('[data-sw-part="cue"]'),vis))bad.push('no console badge');
 var rows=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis),lf=0;rows.forEach(function(r){var n=[].filter.call(r.querySelectorAll('span.title:not([data-sw-dname])'),vis);if(n.length<2)bad.push('row '+r.textContent.trim().split(/\s+/)[0]+' without low/high');else lf=fs(n[0]);});
 if(rows.length){var tr=[].filter.call(document.querySelectorAll('[data-sw-part="tri"]'),vis).length;if(tr!==2)bad.push('markers '+tr);
 var sv=[].filter.call(document.querySelectorAll('[data-sw-part="scale"] svg'),vis)[0];if(sv&&lf){var k=sv.getBoundingClientRect().height/(+sv.getAttribute('height')||1);[].forEach.call(sv.querySelectorAll('text'),function(t){var f=+t.getAttribute('font-size')*k;if(f>lf*1.3)bad.push('scale label '+f.toFixed(0)+' px over low/high '+lf.toFixed(0));});}}
-return bad.filter(function(x,i,a){return a.indexOf(x)===i}).join('; ');})()})
+return bad.filter(function(x,i,a){return a.indexOf(x)===i}).join('; ');})()}.sub('QUAD0', (c['view'] != 'quadrant').to_s))
         puts "PORT #{c['name']}: #{pr}" unless pr.empty?
         expect(pr).to eq('')
       end
