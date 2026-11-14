@@ -1,5 +1,5 @@
 ---
-strategy: polling
+strategy: static
 no_screen_padding: 'no'
 dark_mode: 'no'
 static_data: ''
@@ -7,9 +7,7 @@ polling_verb: get
 framework_version: 3.4.6
 serverless_language: node
 refresh_interval_floor:
-polling_url: |-
-  https://api.open-meteo.com/v1/forecast?latitude={{ lat_lon | default: '52.52,13.41' | split: ',' | first | strip }}&longitude={{ lat_lon | default: '52.52,13.41' | split: ',' | last | strip }}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,pressure_msl,weather_code,is_day,wind_speed_10m,wind_gusts_10m,uv_index,relative_humidity_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,uv_index_max,wind_gusts_10m_max,precipitation_sum,sunrise,sunset&timezone=auto&past_hours=24&forecast_days=14{% if unit == 'fahrenheit' %}&temperature_unit=fahrenheit&precipitation_unit=inch&wind_speed_unit=mph{% else %}&temperature_unit=celsius&precipitation_unit=mm&wind_speed_unit=kmh{% endif %}
-  https://air-quality-api.open-meteo.com/v1/air-quality?latitude={{ lat_lon | default: '52.52,13.41' | split: ',' | first | strip }}&longitude={{ lat_lon | default: '52.52,13.41' | split: ',' | last | strip }}&current=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&hourly=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto&forecast_days=2
+polling_url: ''
 polling_headers: ''
 polling_body:
 id: 535432
