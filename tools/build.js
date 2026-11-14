@@ -32,7 +32,8 @@ async function build(src) {
   const { minify } = require('terser');
   let s = src.replace(/\{%-?\s*comment\s*-?%\}[\s\S]*?\{%-?\s*endcomment\s*-?%\}/g, '');
   const sa = s.indexOf('<script');
-  const tight = (tag) => tag.split(/('[^']*'|"[^"]*")/).map((q, i) => i % 2 ? q : q.replace(/\s*\|\s*/g, '|')).join('');   // size: no spaces around a filter pipe (outside quoted text)
+  const tight = (tag) => tag.split(/('[^']*'|"[^"]*")/).map((q, i) => i % 2 ? q : q.replace(/\s*\|\s*/g, '|').replace(/:\s+/g, ':')).join('')
+    .replace(/^(\{[{%]-?)\s+/, '$1').replace(/^(\{%-?assign\s+\w+)\s*=\s*/, '$1=').replace(/\s+(-?[}%]\})$/, '$1');   // size: no spaces around a filter pipe, after a filter colon or inside the tag delimiters, around an assign's = (outside quoted text)
   s = s.slice(0, sa).replace(/^[ \t]+/gm, '').replace(/[ \t]+$/gm, '').replace(/\{\{[^}]*\}\}|\{%[^%]*%\}/g, tight) + s.slice(sa);   // size: no indentation in the markup (whitespace there only separates tags)
   const a = s.indexOf('<script'), b = s.indexOf('</script>');
   if (a < 0 || b < a) throw new Error('page script not found in shared.liquid');
