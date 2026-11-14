@@ -578,13 +578,17 @@ async function hangTest() {   // owner 2026-11-14: 'Transform timed out after 5s
   ok(ms < 3000, 'a hanging Open-Meteo request ends the run in ' + ms + ' ms (TRMNL stops at 5000 incl. VM start)');
   ok(out && typeof out === 'object', 'and the run still returns a view');
 }
-async function pollTest() {   // owner 2026-11-14: Open-Meteo through TRMNL's polling URLs (fetched before the transform, outside its 5 s)
+async function deafTest() {   // a request that ignores its abort signal: only the run deadline (RUN_MS) ends it
+  const of = global.fetch, t0 = Date.now(), keep = setInterval(() => {}, 1000);
+  global.fetch = () => new Promise(() => {});
+  let out = null; try { out = await T.run({ trmnl: { user: { locale: 'nl' }, system: { timestamp_utc: Date.UTC(2026, 10, 8, 5, 10) / 1000 }, plugin_settings: { custom_fields_values: { lat_lon: '50.8,3.4' } } } }); } finally { global.fetch = of; clearInterval(keep); }
+  const ms = Date.now() - t0;
+  ok(ms < 3200, 'a request deaf to its abort signal ends the run in ' + ms + ' ms');
+  ok(out && typeof out === 'object', 'and the run still returns a view');
+}
+async function pollTest() {   // owner 2026-11-14: own requests with deadlines, no polling URLs; IDX_0/IDX_1 still used when present
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf8');
-  ok(/^strategy: polling$/m.test(y), 'strategy polling');
-  const lines = y.split('polling_url: |-\n')[1].split('\n').filter((l) => /^  https:/.test(l)).map((l) => l.trim());
-  const liq = (l, ll, unit) => l.replace(/\{\{ lat_lon[^}]*first[^}]*\}\}/g, ll.split(',')[0].trim()).replace(/\{\{ lat_lon[^}]*last[^}]*\}\}/g, ll.split(',')[1].trim())
-    .replace(/\{% if unit == 'fahrenheit' %\}(.*?)\{% else %\}(.*?)\{% endif %\}/, (m, f, c) => unit === 'fahrenheit' ? f : c);
-  ['celsius', 'fahrenheit'].forEach((u) => eq(lines.map((l) => liq(l, '50.84, 3.36', u)), T.omUrls('50.84', '3.36', u === 'fahrenheit'), 'polling URLs = the transform\'s requests (' + u + ')'));
+  ok(/^strategy: static$/m.test(y) && /^polling_url: ''$/m.test(y), 'no polling URLs: a failed one fails the whole refresh before the transform (owner 2026-11-14)');
   const of = global.fetch; let calls = 0; global.fetch = async () => { calls++; throw new Error('no network'); };
   let out; try { out = await T.run({ IDX_0: fx('mixed'), IDX_1: {}, trmnl: { user: { locale: 'nl' }, system: { timestamp_utc: Date.UTC(2026, 10, 8, 5, 10) / 1000 }, plugin_settings: { custom_fields_values: { lat_lon: '50.8,3.4' } } } }); } finally { global.fetch = of; }
   ok(out && out.model && out.model.now && out.model.now.temp !== null, 'weather from IDX_0 without fetching it');
@@ -784,7 +788,7 @@ async function stateTests() {
   } finally { global.fetch = originalFetch; }
 }
 async function aTest(name, fn) { try { await fn(); passed++; } catch (e) { failed++; console.log('FAIL ' + name + ': ' + e.message); } }
-sensorSettingsTests().then(stateTests).then(() => aTest('a hanging request ends within TRMNL\'s 5 s', hangTest)).then(() => aTest('polling URLs', pollTest)).then(() => {
+sensorSettingsTests().then(stateTests).then(() => aTest('a hanging request ends within TRMNL\'s 5 s', hangTest)).then(() => aTest('a request deaf to its abort signal', deafTest)).then(() => aTest('no polling URLs; IDX data used when present', pollTest)).then(() => {
   console.log(passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 });

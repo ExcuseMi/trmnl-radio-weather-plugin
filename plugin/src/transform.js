@@ -166,7 +166,7 @@ function field(input, key, fallback) {
   return v === undefined || v === null || v === '' ? fallback : v;
 }
 
-var FETCH_MS = 2500;   // TRMNL stops a transform at 5 s (2026-11-14: degraded after a slow Open-Meteo answer with 4 s): both requests run in parallel, so 2.5 s leaves room for the VM start and the rest
+var FETCH_MS = 2500, RUN_MS = 2800;   // TRMNL stops a transform at 5 s (2026-11-14: degraded after a slow Open-Meteo answer with 4 s): both requests run in parallel, so 2.5 s leaves room for the VM start and the rest
 async function getJson(url) {
   var res = await fetch(url, { signal: AbortSignal.timeout(FETCH_MS) });
   var body = await res.json();
@@ -634,10 +634,12 @@ async function run(input) {
   var lat = encodeURIComponent((parts[0] || '').trim()), lon = encodeURIComponent((parts[1] || '').trim());
   var fahrenheit = String(UNIT || field(input, 'unit', 'celsius')) === 'fahrenheit';
   var U = omUrls(lat, lon, fahrenheit), forecast = U[0], air = U[1];
-  // Owner 2026-11-14 ('Transform timed out after 5s'): TRMNL fetches the polling URLs before the transform (IDX_0 weather,
-  // IDX_1 air quality), outside the 5 s limit; the transform fetches itself only when one is missing or unusable.
+  // Owner 2026-11-14: own requests, no polling URLs (a failed polling URL fails the whole refresh, so the saved copy
+  // could never show). Each request stops at FETCH_MS; RUN_MS caps both together, then the saved copy is used.
+  // IDX_0/IDX_1 are still taken when present (a polling URL added by hand).
   var pre = [(input || {}).IDX_0, (input || {}).IDX_1], okPre = (o) => !!(o && typeof o === 'object' && !o.error && o.current && typeof o.current === 'object');
-  var got = await Promise.allSettled([okPre(pre[0]) ? Promise.resolve(pre[0]) : getJson(forecast), okPre(pre[1]) ? Promise.resolve(pre[1]) : getJson(air)]);
+  var cap = (p) => { var t; return Promise.race([p, new Promise((res, rej) => { t = setTimeout(() => rej(new Error('run deadline')), RUN_MS); })]).finally(() => clearTimeout(t)); };
+  var got = await Promise.allSettled([okPre(pre[0]) ? Promise.resolve(pre[0]) : cap(getJson(forecast)), okPre(pre[1]) ? Promise.resolve(pre[1]) : cap(getJson(air))]);
   var st0 = stObj(((input || {}).trmnl || {}).state) || {}, nowS = +(((input || {}).trmnl || {}).system || {}).timestamp_utc || Date.now() / 1000;   // TRMNL hands the transform no system namespace: the clock
   var wr = got[0].status === 'fulfilled' ? got[0].value : null, snap = null, fb = null;
   var aq = got[1].status === 'fulfilled' && got[1].value && got[1].value.current ? got[1].value : null;
