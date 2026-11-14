@@ -2,6 +2,24 @@
 require 'json'
 require 'fileutils'
 # SW_CASES: JSON list of {name, view, device, fields, fixture, patch (json merged into current), mocks_extra, palette, orientation}
+# A real device: the serverless transform input has no sensor_readings (TRMNL adds it to the markup's merge variables at
+# render time). trmnlp hands every case variable to both, so sensor_readings is taken out of the transform input and put
+# back into the markup's variables, unless the case says "sens_in" (the readings reach the transform, the old path).
+module SensorsAfterTransform
+  def call(device: {})
+    r = super
+    sr = config.project.user_data_overrides['sensor_readings']
+    r['sensor_readings'] = sr if sr && !ENV['SW_SENS_IN']
+    r
+  end
+
+  private
+
+  def transform_input(merged)
+    ENV['SW_SENS_IN'] ? super : super(merged.reject { |k, _| k == 'sensor_readings' })
+  end
+end
+TRMNLP::UserDataAssembler.prepend(SensorsAfterTransform)
 DIAL_R = Hash.new { |h, k| h[k] = [] }
 COND_R = Hash.new { |h, k| h[k] = [] }
 RSpec.describe 'renders' do
@@ -66,6 +84,7 @@ RSpec.describe 'renders' do
         opts[:mocks] = { 'https://api.open-meteo.com/*' => { status: 503, json: { error: true, reason: 'Service unavailable' } } }
         opts[:now] = (Time.iso8601(now) + c['offline_h'] * 3600).iso8601
       end
+      c['sens_in'] ? ENV['SW_SENS_IN'] = '1' : ENV.delete('SW_SENS_IN')
       s = trmnl.render(**opts)
       is_lg = s.evaluate("!!document.querySelector('.screen--lg')")   # the X layouts follow the lg size class, not the model name (device tier, 2026-11-13)
       puts "SCREEN #{c['name']}: #{s.evaluate("document.querySelector('.screen').className+' '+innerWidth")}" if ENV['SW_SCREEN']
@@ -327,7 +346,7 @@ tw.forEach(function(t){var k=t.getAttribute('data-sw-twin'),d=t.querySelector('[
 var td=[].filter.call(document.querySelectorAll('[data-sw-part="tdial"]'),vis).length;
 return tw.length+','+nd.length+','+td+(bad.length?' '+bad.join('; '):'');})()})
       puts "SENSOR #{c['name']}: #{sn}"
-      want = c['vars'] && c['vars']['sensor_readings'] ? 2 : 0
+      want = c['sens_want'] || (c['vars'] && c['vars']['sensor_readings'] ? 2 : 0)   # sens_want 0: a reading over 3 h old shows nothing
       expect(sn.split(' ')[0].split(',')[0].to_i).to eq(want)
       expect(sn).not_to include(' ')
       dials = sn.split(',')[2].to_i
