@@ -4,19 +4,19 @@ require 'fileutils'
 # SW_CASES: JSON list of {name, view, device, fields, fixture, patch (json merged into current), mocks_extra, palette, orientation}
 # A real device: the serverless transform input has no sensor_readings (TRMNL adds it to the markup's merge variables at
 # render time). trmnlp hands every case variable to both, so sensor_readings is taken out of the transform input and put
-# back into the markup's variables, unless the case says "sens_in" (the readings reach the transform, the old path).
+# back into the markup's variables.
 module SensorsAfterTransform
   def call(device: {})
     r = super
     sr = config.project.user_data_overrides['sensor_readings']
-    r['sensor_readings'] = sr if sr && !ENV['SW_SENS_IN']
+    r['sensor_readings'] = sr if sr
     r
   end
 
   private
 
   def transform_input(merged)
-    ENV['SW_SENS_IN'] ? super : super(merged.reject { |k, _| k == 'sensor_readings' })
+    super(merged.reject { |k, _| k == 'sensor_readings' })
   end
 end
 TRMNLP::UserDataAssembler.prepend(SensorsAfterTransform)
@@ -72,6 +72,8 @@ RSpec.describe 'renders' do
       opts = { view: c['view'] || 'full', device: dev, mocks:, custom_fields: fields, now:, wait_for: "document.querySelector('[data-sw-drawn],[data-sw-error]') !== null" }
       opts[:variables] = { 'trmnl' => { 'user' => { 'locale' => c['locale'] } } } if c['locale']
       opts[:variables] = (opts[:variables] || {}).merge(c['vars']) if c['vars']
+      # a screen shows only its own sensor, device_<trmnl.device.id> (owner 2026-11-14): a case with readings and no trmnl of its own is device 1
+      opts[:variables]['trmnl'] = (opts[:variables]['trmnl'] || {}).merge('device' => { 'id' => 1 }) if c['vars'] && c['vars']['sensor_readings'] && !c['vars'].key?('trmnl')
       opts[:theme] = c['theme'] if c['theme']
       opts[:palette] = c['palette'] if c['palette']
       opts[:orientation] = c['orientation'].to_sym if c['orientation']
@@ -84,7 +86,6 @@ RSpec.describe 'renders' do
         opts[:mocks] = { 'https://api.open-meteo.com/*' => { status: 503, json: { error: true, reason: 'Service unavailable' } } }
         opts[:now] = (Time.iso8601(now) + c['offline_h'] * 3600).iso8601
       end
-      c['sens_in'] ? ENV['SW_SENS_IN'] = '1' : ENV.delete('SW_SENS_IN')
       s = trmnl.render(**opts)
       is_lg = s.evaluate("!!document.querySelector('.screen--lg')")   # the X layouts follow the lg size class, not the model name (device tier, 2026-11-13)
       puts "SCREEN #{c['name']}: #{s.evaluate("document.querySelector('.screen').className+' '+innerWidth")}" if ENV['SW_SCREEN']
@@ -188,7 +189,7 @@ caps.forEach(function(c){if(bx.some(function(b){return b[0]<c.right+g&&b[2]>c.le
       mlab = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-mlabel]').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;var g=document.createRange();g.selectNodeContents(e);var t=g.getBoundingClientRect(),cs=getComputedStyle(e),k=b.width/(e.offsetWidth||b.width);if(t.left<b.left+parseFloat(cs.paddingLeft)*k-0.5||t.right>b.right-parseFloat(cs.paddingRight)*k+0.5)bad.push(e.textContent.trim()+' text '+Math.round(t.left)+'..'+Math.round(t.right)+' box '+Math.round(b.left)+'..'+Math.round(b.right));});return bad.join('; ');})()})
       puts "MLAB #{c['name']}: #{mlab}" unless mlab.empty?
       expect(mlab).to eq('')
-      # Owner 2026-11-14: with several devices, sensor_device picks whose indoor reading shows (the X showed the OG's).
+      # Owner 2026-11-14: with several devices a screen shows only its own sensor (the X showed the OG's); want_in '' = no indoor reading.
       if c['want_in']
         inr = s.evaluate("(window.SW && SW.inn && SW.inn.temp) || ''").to_s
         puts "INDOOR #{c['name']}: #{inr}" unless inr == c['want_in']

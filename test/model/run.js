@@ -134,8 +134,9 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   eq([T.timeIs12('24', '12'), T.timeIs12('12', '24')], [false, true], 'constant wins');
   const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf-8');
   const fields = y.split(/^- keyname: /m).slice(1).map((part) => ({ key: part.split('\n')[0], group: (/^  group: (.+)$/m.exec(part) || [])[1] || null }));
-  eq(fields.map((f) => f.key), ['author_info', 'lat_lon', 'unit', 'time_format', 'bottom', 'hide_title_bar', 'sensor_show', 'sensor_device', 'sensor_co2'], 'settings in owner order');
-  eq(fields.map((f) => f.group), [null, null, 'Display', 'Display', 'Display', 'Display', 'Sensor', 'Sensor', 'Sensor'], 'settings groups');
+  eq(fields.map((f) => f.key), ['author_info', 'lat_lon', 'unit', 'time_format', 'bottom', 'hide_title_bar', 'sensor_show', 'sensor_co2'], 'settings in owner order');
+  eq(fields.map((f) => f.group), [null, null, 'Display', 'Display', 'Display', 'Display', 'Sensor', 'Sensor'], 'settings groups');
+  ok(!/sensor_device/.test(y), 'owner 2026-11-14: a screen shows only its own sensor, no setting picks another device');
   ok(/- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n/.test(y) && /- Days: days\n  - Hours: hours\n  - Hours, days after 18:00: auto\n  default: auto\n/.test(y), 'time format 24 by default, bottom strip Days by default');
 });
 
@@ -157,15 +158,7 @@ test('air quality: the current index at any hour (no evening mode)', () => {
   eq(SWModel.build(Object.assign({}, e, { aq }), {}).now.aqi, 30);
 });
 
-test('indoor sensor: latest reading, dropped when older than 3 hours', () => {
-  const sens = { device_1: { temperature: [{ '2026-11-08 05:00:00 UTC': 21.1 }, { '2026-11-08 05:30:00 UTC': 21.6 }], humidity: [{ '2026-11-08 05:30:00 UTC': 48 }], carbon_dioxide: [], pressure: [] } };
-  const base = Date.UTC(2026, 10, 8, 5, 40) / 1000;
-  const m = SWModel.build(Object.assign({}, fx('mixed'), { sens, renderedAt: base }), {});
-  eq([m.inn.temp, m.inn.hum], [21.6, 48]);
-  const old = SWModel.build(Object.assign({}, fx('mixed'), { sens, renderedAt: base + 4 * 3600 }), {});
-  eq([old.inn.temp, old.inn.hum], [null, null]);
-});
-
+// removed 'indoor sensor: latest reading, dropped when older than 3 hours': the input never carries sensor_readings on TRMNL (owner's live payload), so the transform no longer parses readings; the markup path is the render cases x-sens* (x-sens-stale: over 3 h shows nothing)
 test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 meter and high CO2 first (as live)', () => {
   const raw = fx('mixed'), view = (inn) => { const M = SWModel.build(raw, {}); M.inn = Object.assign({ temp: null, hum: null, co2: null, press: null }, inn); return T.buildView(M, T.buildI18n('nl'), raw.daily); };
   const none = view({});
@@ -407,19 +400,7 @@ test('forecast cells: a light grey (owner 2026-11-14 "maybe a lighter gray")', (
   const lc = (m) => { D.mode = m; const s = D.meter({ frac: 0.3, past: null, later: 0.9, peak: 0.9 }, 300, 30, 10); D.mode = null; return (s.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1]; };
   eq([lc({ dark: false, bits: 1 }), lc({ dark: false, bits: 4 })], ['text--gray-75', 'text--gray-75'], '1-bit and X light: gray-75 (was gray-50 / gray-70)');
 });
-test('sensor readings in the shape TRMNL shows (owner screenshot 2026-11-14): newest of several readings, float noise', () => {
-  const f = fx('mixed'), sens = { device_8920: { temperature: [{ '2026-11-08 05:32:43 UTC': 18.9 }, { '2026-11-08 05:34:37 UTC': 18.299999 }, { '2026-11-08 05:34:48 UTC': 18.5 }, { '2026-11-08 05:37:01 UTC': 19.700001 }],
-    humidity: [{ '2026-11-08 05:32:43 UTC': 51 }, { '2026-11-08 05:37:01 UTC': 49.400002 }] } };
-  const m = SWModel.build(Object.assign({}, f, { sens: sens, renderedAt: Date.UTC(2026, 10, 8, 5, 40) / 1000 }), {});
-  eq([m.inn.temp, m.inn.hum], [19.700001, 49.400002], 'the newest reading of each list');
-  const old = SWModel.build(Object.assign({}, f, { sens: sens, renderedAt: Date.UTC(2026, 10, 8, 9, 0) / 1000 }), {});
-  eq(old.inn.temp, null, 'over 3 h old: not shown');
-});
-test('sensor_device picks one device of several (owner 2026-11-14: the X showed the OG\'s sensor)', () => {
-  const f = fx('mixed'), r = (v) => [{ '2026-11-08 05:00:00 UTC': v }], sens = { device_100: { temperature: r(21.6), humidity: r(40) }, device_8920: { temperature: r(13), humidity: r(63) } };
-  const m = (dev) => SWModel.build(Object.assign({}, f, { sens: sens, renderedAt: Date.UTC(2026, 10, 8, 5, 10) / 1000 }), { sensorDevice: dev }).inn.temp;
-  eq([m(''), m('8920'), m('device_8920'), m(' 8920 '), m('77')], [21.6, 13, 13, 13, null], 'empty: the first; a number or device_N: that one; unknown: none');
-});
+// removed 'sensor readings in the shape TRMNL shows' and 'sensor_device picks one device': they ran the transform-side parser, which is gone; a screen shows only its own sensor (owner 2026-11-14), covered by the render cases og-sens-devid, og-sens-other*, og-sens-noid
 test('moon tilt: bright limb as the observer sees it (owner 2026-11-14, true tilt)', () => {
   const L = (t, la, lo) => T.moonLimb(Date.parse(t), la, lo), near = (a, b, tol) => Math.abs(((a - b + 540) % 360) - 180) <= tol;
   ok(near(L('2026-11-14T18:00Z', 50.85, 3.35), 242, 6), 'Deerlijk 2026-11-14 19h: waxing crescent lit low on the right (reference site), ' + L('2026-11-14T18:00Z', 50.85, 3.35));
@@ -608,41 +589,33 @@ async function sensorSettingsTests() {
     try { await fn(); passed++; } catch (e) { failed++; console.log('FAIL ' + name + ': ' + e.message); }
   }
   try {
-    await check('sensor_show: hide removes every sensor part, show and default keep them', async () => {
-      const baseline = await run({}, false, null);
+    // removed 'sensor_co2: hide removes only CO2' and the parts of the two checks below that gave the transform readings: on TRMNL the input never carries sensor_readings (owner's live payload), so no reading reaches the transform
+    await check('the transform ignores sensor_readings in its input and keeps the payload small (owner 2026-11-14)', async () => {
+      const none = await run({}, false, null);
       for (const nested of [false, true]) {
-        for (const values of [{}, { sensor_show: 'show' }]) {
-          const v = (await run(values, nested)).ui;
-          eq([v.inn.temp, v.inn.out, v.inn.in, v.tdial.twin, v.meters.some((m) => m.key === 'co2')], ['21.6', 'BUITEN', 'BINNEN', 21.6, true]);
-        }
-        const hidden = await run({ sensor_show: 'hide', sensor_co2: 'show' }, nested);
-        eq(hidden.ui, baseline.ui, 'hide matches the complete no-sensor view');
-        eq(hidden.model.inn, baseline.model.inn, 'hide removes all model readings');
+        const r = await run({}, nested);
+        eq(r.ui, none.ui, 'readings in the input change nothing');
+        eq(r.model.inn, none.model.inn, 'no model readings');
+        ok(!('sensors' in r) && !('sens_in' in r) && !('ui_in' in r) && !('ui_in_t' in r), 'no sensor leftovers in the payload');
       }
+      const size = Buffer.byteLength(JSON.stringify(none));
+      ok(size < 22000, 'payload ' + size + ' bytes, the sensor path adds only a small overlay');
+      ok(Buffer.byteLength(JSON.stringify(none.ph)) < 400, 'overlay ' + Buffer.byteLength(JSON.stringify(none.ph)) + ' bytes');
     });
-    await check('sensor_co2: hide removes only CO2, show and default keep it', async () => {
-      const shown = await run({ sensor_co2: 'show' });
-      eq(shown.ui, (await run({})).ui, 'show is the default');
-      ok(shown.ui.meters.some((m) => m.key === 'co2'), 'show keeps CO2');
-      const hidden = await run({ sensor_co2: 'hide' }, true);
-      ok(!hidden.ui.meters.some((m) => m.key === 'co2'), 'hide removes CO2');
-      eq(hidden.ui.inn, shown.ui.inn, 'indoor readout unchanged');
-      eq(hidden.ui.tdial, shown.ui.tdial, 'twin needle unchanged');
-      eq(hidden.model.inn, Object.assign({}, shown.model.inn, { co2: null }), 'other readings unchanged');
-    });
-    await check('sensor_readings only in the markup (as on a device): sens_in false, a stand-in view for each humidity case', async () => {
-      const none = await run({}, false, null), norm = (u) => { const v = JSON.parse(JSON.stringify(u)); delete v.ph; if (v.inn) { delete v.inn.arrow; delete v.inn.co2arrow; } return v; };
-      eq([none.sens_in, none.ui.inn, none.ui_in.ph, none.ui_in_t.ph], [false, null, true, true], 'the transform says it had no readings and builds the stand-ins');
-      eq([none.ui_in.inn.out, none.ui_in.inn.in, none.ui_in.tdial.twin === none.ui.tdial.now, none.ui_in.meters.some((m) => m.tw), none.ui_in_t.meters.some((m) => m.tw), none.ui_in_t.inn.hum], ['BUITEN', 'BINNEN', true, true, false, ''], 'stand-in with and without humidity');
-      eq(none.ui.meters.some((m) => m.key === 'co2'), false, 'no CO2 meter without readings');
-      const has = await run({});
-      eq([has.sens_in, has.ui_in, has.ui_in_t], [true, null, null], 'readings in the input: no stand-ins');
+    await check('sensor_show: hide leaves no overlay, show and default carry it', async () => {
       const hid = await run({ sensor_show: 'hide' }, false, null);
-      eq([hid.ui_in, hid.ui_in_t, hid.ui.inn], [null, null, null], 'sensor_show hide: no stand-ins');
-      // parity: the stand-in is the real view built from the same reading (outdoor temperature, humidity 50, no CO2)
-      const at = none.ui.tdial.now, r1 = (t) => ({ device_1: { temperature: [{ '2026-11-08 05:30:00 UTC': t }], humidity: [{ '2026-11-08 05:30:00 UTC': 50 }] } });
-      eq(norm((await run({}, false, r1(at))).ui), norm(none.ui_in), 'stand-in equals the view the transform builds from that reading');
-      eq(norm((await run({}, false, { device_1: { temperature: r1(at).device_1.temperature } })).ui), norm(none.ui_in_t), 'same without humidity');
+      eq([hid.ph, hid.ui.inn], [null, null], 'sensor_show hide: no overlay');
+      for (const values of [{}, { sensor_show: 'show' }]) { const r = await run(values, false, null); eq([r.ph.inn.out, r.ph.inn.in, r.ph.tw.k, r.ui.inn], ['BUITEN', 'BINNEN', 'humidity', null]); }
+    });
+    await check('overlay: the view with a stand-in reading equals the view plus the overlay, with and without a humidity meter', async () => {
+      const raw = fx('mixed'), i18n = T.buildI18n('nl');
+      const merge = (u, o) => { const v = JSON.parse(JSON.stringify(u)); v.inn = o.inn; v.tdial.twin = o.twin; if (o.tw) v.meters.forEach((m) => { if (m.key === o.tw.k) m.tw = { out: o.tw.out, in: o.tw.in, m: { frac: 0.5 } }; }); return v; };
+      for (const noHum of [false, true]) {
+        const mk = (inn) => { const M = SWModel.build(raw, {}); if (noHum) M.now.hum = null; M.inn = Object.assign({ temp: null, hum: null, co2: null, press: null }, inn); return T.buildView(M, i18n, raw.daily); };
+        const a = mk({}), b = mk({ temp: a.tdial.now, hum: 50 }), o = T.phOverlay(b);
+        eq(merge(a, o), JSON.parse(JSON.stringify(b)), 'overlay complete' + (noHum ? ' (no humidity meter)' : ''));
+        eq(!!o.tw, !noHum, 'the twin meter key only with a humidity meter');
+      }
     });
   } finally { global.fetch = originalFetch; }
 }
@@ -763,30 +736,17 @@ async function stateTests() {
       ok((await run({ cue: { top: other, bn: false } })).ui.cue[0] !== undefined);
       for (const bad of [{ cue: 'x' }, { cue: { top: 5 } }, { mt: [] }, { cue: null, mt: 'x' }]) eq((await run(bad)).ui.cue, r.ui.cue, 'ignored ' + JSON.stringify(bad));
     });
-    await check('indoor trend: points per 30 min kept 6 h, arrow over 3 h (1 C / 2 F, CO2 100 ppm), today\'s low/high, hide settings write nothing', async () => {
+    // removed 'indoor trend: points per 30 min ...': the trend, low/high and CO2 arrow needed readings in the transform input, which TRMNL never sends (owner's live payload)
+    await check('no indoor state: an old saved inn is dropped, nothing indoor is written', async () => {
       answer = fx('mixed');
-      const S = Math.floor((AT + 600) / 1800), rd = (t, c) => ({ device_1: { temperature: [{ '2026-11-08 05:00:00 UTC': t }], carbon_dioxide: [{ '2026-11-08 05:00:00 UTC': c }] } });
-      const go = (state, t, c, fields = {}) => run(state, AT + 600, fields, { sensor_readings: rd(t, c) });
-      const first = await go({}, 21, 900);
-      eq(first.trmnl_state.inn.p, [[S, 21, 900]]); eq([first.ui.inn.arrow, first.ui.inn.co2arrow, first.ui.inn.lohi], [null, null, undefined], 'one point: no trend, no low/high');
-      const st = (pts, lo, hi, d = '2026-11-08') => ({ inn: { d: d, lo: lo, hi: hi, p: pts } });
-      let r = await go(st([[S - 6, 20, 800]], 19.5, 21), 21, 900);
-      eq([r.ui.inn.arrow, r.ui.inn.co2arrow, r.ui.inn.lohi], ['up', 'up', 'L 20° H 21°']);
-      r = await go(st([[S - 6, 20.1, 801]], 19.5, 21), 21, 900); eq([r.ui.inn.arrow, r.ui.inn.co2arrow], ['level', 'level'], 'just under: level');
-      r = await go(st([[S - 7, 22, 1000]], 19.5, 23), 21, 900); eq([r.ui.inn.arrow, r.ui.inn.co2arrow], ['down', 'down'], '3.5 h ago counts');
-      r = await go(st([[S - 8, 22, 1000]], 19.5, 23), 21, 900); eq(r.ui.inn.arrow, null, '4 h ago does not');
-      r = await go(st([[S - 6, 20, 800]], 19.5, 21), 21, 900, { unit: 'fahrenheit' }); eq(r.ui.inn.arrow, 'level', 'F: 1.8 F is under 2 F');
-      r = await go(st([[S - 6, 19.8, 800]], 19.5, 21), 21, 900, { unit: 'fahrenheit' }); eq(r.ui.inn.arrow, 'up', 'F: 2.2 F');
-      r = await go(st(Array.from({ length: 20 }, (_, i) => [S - 20 + i, 20, 800]), 18, 21), 21, 900);
-      eq(r.trmnl_state.inn.p.map((q) => q[0]), Array.from({ length: 13 }, (_, i) => S - 12 + i), '6 h kept, trimmed');
-      r = await go(st([[S - 6, 20, 800]], 10, 30, '2026-11-07'), 21, 900); eq([r.trmnl_state.inn.lo, r.trmnl_state.inn.hi], [21, 21], 'a new day resets low/high');
-      for (const bad of [{ inn: 'x' }, { inn: [] }, { inn: { p: 'x', lo: 'a' } }, { inn: { p: [null, 'x', [1], ['a', 2]] } }]) eq((await go(bad, 21, 900)).trmnl_state.inn.p, [[S, 21, 900]], 'bad ' + JSON.stringify(bad));
-      ok(!('inn' in (await go(st([[S - 6, 20, 800]], 19, 21), 21, 900, { sensor_show: 'hide' })).trmnl_state), 'sensor_show hide: no indoor state');
-      r = await go(st([[S - 6, 20, 800]], 19, 21), 21, 900, { sensor_co2: 'hide' }); eq([r.trmnl_state.inn.p[1][2], r.ui.inn.co2arrow], [null, null], 'sensor_co2 hide: no CO2 kept');
+      const S = Math.floor((AT + 600) / 1800), rd = { device_1: { temperature: [{ '2026-11-08 05:00:00 UTC': 21 }], carbon_dioxide: [{ '2026-11-08 05:00:00 UTC': 900 }] } };
+      const r = await run({ inn: { d: '2026-11-08', lo: 19, hi: 21, p: [[S - 6, 20, 800]] } }, AT + 600, {}, { sensor_readings: rd });
+      ok(!('inn' in r.trmnl_state), 'no inn in the saved state');
+      ok(!r.ui.inn && !r.model.inn.temp, 'no indoor reading from the transform input');
     });
-    await check('state size guard: an oversize state drops the indoor points, then the copy, and always stays an object under 8000 bytes', () => {
-      const big = { v: 1, snap: { pad: 'x'.repeat(5000) }, inn: { p: Array.from({ length: 900 }, () => [1, 2, 3]) } };
-      const a = T.fitState(big); ok(Buffer.byteLength(JSON.stringify(a)) <= 8000); eq(a.snap, big.snap, 'copy kept'); eq(a.inn.p, []);
+    await check('state size guard: an oversize state drops the copy, and always stays an object under 8000 bytes', () => {
+      const big = { v: 1, snap: { pad: 'x'.repeat(5000) } };
+      const a = T.fitState(big); ok(Buffer.byteLength(JSON.stringify(a)) <= 8000); eq(a.snap, big.snap, 'copy kept');
       const b = T.fitState({ v: 1, snap: { pad: 'x'.repeat(9000) } }); eq(b, { v: 1 });
       const c = { v: 1, snap: { a: 1 } }; eq(T.fitState(c), c, 'small state unchanged');
     });
