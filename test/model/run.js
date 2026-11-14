@@ -601,6 +601,20 @@ async function sensorSettingsTests() {
       eq(hidden.ui.tdial, shown.ui.tdial, 'twin needle unchanged');
       eq(hidden.model.inn, Object.assign({}, shown.model.inn, { co2: null }), 'other readings unchanged');
     });
+    await check('sensor_readings only in the markup (as on a device): sens_in false, a stand-in view for each humidity case', async () => {
+      const none = await run({}, false, null), norm = (u) => { const v = JSON.parse(JSON.stringify(u)); delete v.ph; if (v.inn) { delete v.inn.arrow; delete v.inn.co2arrow; } return v; };
+      eq([none.sens_in, none.ui.inn, none.ui_in.ph, none.ui_in_t.ph], [false, null, true, true], 'the transform says it had no readings and builds the stand-ins');
+      eq([none.ui_in.inn.out, none.ui_in.inn.in, none.ui_in.tdial.twin === none.ui.tdial.now, none.ui_in.meters.some((m) => m.tw), none.ui_in_t.meters.some((m) => m.tw), none.ui_in_t.inn.hum], ['BUITEN', 'BINNEN', true, true, false, ''], 'stand-in with and without humidity');
+      eq(none.ui.meters.some((m) => m.key === 'co2'), false, 'no CO2 meter without readings');
+      const has = await run({});
+      eq([has.sens_in, has.ui_in, has.ui_in_t], [true, null, null], 'readings in the input: no stand-ins');
+      const hid = await run({ sensor_show: 'hide' }, false, null);
+      eq([hid.ui_in, hid.ui_in_t, hid.ui.inn], [null, null, null], 'sensor_show hide: no stand-ins');
+      // parity: the stand-in is the real view built from the same reading (outdoor temperature, humidity 50, no CO2)
+      const at = none.ui.tdial.now, r1 = (t) => ({ device_1: { temperature: [{ '2026-11-08 05:30:00 UTC': t }], humidity: [{ '2026-11-08 05:30:00 UTC': 50 }] } });
+      eq(norm((await run({}, false, r1(at))).ui), norm(none.ui_in), 'stand-in equals the view the transform builds from that reading');
+      eq(norm((await run({}, false, { device_1: { temperature: r1(at).device_1.temperature } })).ui), norm(none.ui_in_t), 'same without humidity');
+    });
   } finally { global.fetch = originalFetch; }
 }
 // Saved state (owner 2026-11-13): the offline copy, the clothing/meter memory and the indoor trend.
