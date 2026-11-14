@@ -5,6 +5,25 @@ const fs = require('fs');
 const path = require('path');
 const ROOT = path.join(__dirname, '..');
 
+// Size aliases (owner 2026-11-14, budget 84 KB): long DOM method names and Math calls used dozens of times are renamed to short
+// aliases of the SAME functions (prototype aliases, no wrappers) in the built script only; the source stays readable.
+// The DOM aliases open the page script; the Math and toFixed aliases open the DRAW block (the model tests run that block alone).
+const DOM_ALIAS = { getBoundingClientRect: '$b', querySelectorAll: '$A', querySelector: '$Q', getAttribute: '$g', setAttribute: '$s', hasAttribute: '$h', removeAttribute: '$r', closest: '$c' };
+const MATH_ALIAS = ['max', 'min', 'round', 'abs'];
+function alias(js) {
+  const hit = (k) => new RegExp('\\.' + k + '\\b').test(js);
+  const dom = Object.keys(DOM_ALIAS).filter(hit);
+  dom.forEach((k) => { js = js.replace(new RegExp('\\.' + k + '\\b', 'g'), '.' + DOM_ALIAS[k]); });
+  js = js.replace(/\.parentElement\b/g, '.$p').replace(/\bgetComputedStyle\(/g, '$C(').replace(/\bdocument\./g, '$d.');
+  js = js.replace(/\.setProperty\(/g, '.$P(').replace(/\.toFixed\(/g, '.$f(').replace(/\bMath\.(max|min|round|abs)\(/g, (m, f) => 'M' + f + '(');
+  const on = (P, ks) => ks.filter((k) => dom.includes(k)).map((k) => P + '.' + DOM_ALIAS[k] + '=' + P + '.' + k + ';').join('');
+  const domPre = 'var $d=document,$C=getComputedStyle;(function(){Object.defineProperty(Node.prototype,"$p",{get(){return this.parentElement}});var E=Element.prototype,D=Document.prototype;' + on('E', ['getBoundingClientRect', 'querySelectorAll', 'querySelector', 'getAttribute', 'setAttribute', 'hasAttribute', 'removeAttribute', 'closest'])
+    + on('D', ['querySelectorAll', 'querySelector']) + 'CSSStyleDeclaration.prototype.$P=CSSStyleDeclaration.prototype.setProperty;})();';
+  const drawPre = '\nvar ' + MATH_ALIAS.map((f) => 'M' + f + '=Math.' + f).join(',') + ';Number.prototype.$f=Number.prototype.toFixed;\n';
+  js = js.replace('// ==== DRAW_BEGIN ====', '// ==== DRAW_BEGIN ====' + drawPre);
+  return domPre + '\n' + js;
+}
+
 async function build(src) {
   const { minify } = require('terser');
   let s = src.replace(/\{%-?\s*comment\s*-?%\}[\s\S]*?\{%-?\s*endcomment\s*-?%\}/g, '');
@@ -14,6 +33,7 @@ async function build(src) {
   let js = s.slice(start, b);
   const lq = [];
   js = js.replace(/\{\{[^}]*\}\}|\{%[^%]*%\}/g, (m) => { lq.push(m); return '__LQ' + (lq.length - 1) + '__'; });
+  js = alias(js);
   const r = await minify(js, {
     ecma: 2020, compress: { passes: 3, toplevel: true, pure_getters: true, unsafe_arrows: true },
     mangle: { toplevel: true, reserved: ['SW', 'SWDraw'] },
