@@ -654,7 +654,7 @@ async function run(input) {
   var raw = { current: w.current || null, hourly: w.hourly || null, todayHourly: past.today || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
-  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius', sensorDevice: field(input, 'sensor_device', '') }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time, w.utc_offset_seconds);
+  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius', sensorDevice: field(input, 'sensor_device', '') || ((((input || {}).trmnl || {}).device || {}).id || '') /* owner 2026-11-14: TRMNL may add the numeric trmnl.device.id; then this device's own sensor */ }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time, w.utc_offset_seconds);
   if (field(input, 'sensor_co2', 'show') === 'hide') model.inn.co2 = null;
   var pc = stObj(st0.cue), pmt = stObj(st0.mt);
   var vo = { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time), limb: moonLimb(Date.parse(((w.current || {}).time || '') + 'Z') - (w.utc_offset_seconds || 0) * 1000, w.latitude, w.longitude) };
