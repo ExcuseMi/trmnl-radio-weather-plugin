@@ -399,6 +399,18 @@ test('meter cell states for today (owner 2026-11-13): active, reached earlier, e
   eq([(svg.match(/data-sw-gust/g) || []).length, (gsv.match(/data-sw-gust/g) || []).length], [0, 1], 'peak outline only outside today\'s range (owner): none when the range already reaches it, one for a gust beyond it');
   eq([1, (svg.match(/data-sw-st="p"><g class="([^"]+)"/) || [])[1] === (svg.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1] && !/stroke-dasharray/.test(svg)], [1, true], 'one peak outline; earlier and later cells share one range grey (owner: now + today\'s range)');
 });
+test('moon tilt: bright limb as the observer sees it (owner 2026-11-14, true tilt)', () => {
+  const L = (t, la, lo) => T.moonLimb(Date.parse(t), la, lo), near = (a, b, tol) => Math.abs(((a - b + 540) % 360) - 180) <= tol;
+  ok(near(L('2026-11-14T18:00Z', 50.85, 3.35), 242, 6), 'Deerlijk 2026-11-14 19h: waxing crescent lit low on the right (reference site), ' + L('2026-11-14T18:00Z', 50.85, 3.35));
+  ok(near(L('2026-11-14T09:00Z', -33.87, 151.21), 151, 6), 'Sydney the same evening: lit low on the left (southern sky flips), ' + L('2026-11-14T09:00Z', -33.87, 151.21));
+  ok(near(L('2026-12-01T06:00Z', 50.85, 3.35), 109, 6), 'Deerlijk 2026-12-01 07h: waning, lit on the left, ' + L('2026-12-01T06:00Z', 50.85, 3.35));
+  eq(T.moonLimb(NaN, 50, 3), null); eq(T.moonLimb(Date.parse('2026-11-14T18:00Z'), undefined, 3), null);
+  const p = T.moonPhase('2026-11-14T19:00', 3600); ok(p > 0.14 && p < 0.19, 'phase at the refresh time, waxing crescent ' + p);
+  ok(T.moonPhase('2026-11-14T23:00', 3600) > p, 'later the same evening: further on');
+  D.mode = { bits: 4 }; const s = D.moon(p, 100, 242); D.mode = null;
+  ok(/data-sw-moon="lit" transform="rotate\((-?[\d.]+) 50 50\)"/.test(s) && /rotate\(28 50 50\)/.test(s), 'the lit part rotated from the right (270) to 242: 28 degrees clockwise');
+  ok(!/rotate/.test(D.moon(p, 100)), 'no location: no rotation');
+});
 test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter, gibbous and full, light and dark, lit side right while waxing', () => {
   const H = 100, r = H * 0.27, disk = Math.PI * r * r;
   [0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9].forEach((p) => {
@@ -409,10 +421,11 @@ test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter,
       ok(Math.abs(a.area / disk - want) <= 0.1, 'p ' + p + (dark ? ' dark' : ' light') + ': lit ' + (a.area / disk).toFixed(3) + ' want ' + want.toFixed(3));
       if (want < 0.99) ok(p < 0.5 ? a.mx > H / 2 : a.mx < H / 2, 'p ' + p + ': lit on the ' + (p < 0.5 ? 'right' : 'left'));
       ok(/<circle[^>]*fill="none"/.test(s) && !/text--gray-45"><circle[^>]*fill="none"/.test(s), 'limb outline in full ink, light and dark (Calm, owner)');
-      ok(dark ? !/text--gray-45"><path/.test(s) : /text--gray-45"><path/.test(s), dark ? 'dark: lit part in full (light) ink' : 'light: lit part in grey ink');
+      ok(dark ? !/text--gray-45"><path/.test(s) : /text--gray-20"><circle[^>]*data-sw-moon="disk"\/><\/g><g class="text--white"><path/.test(s), dark ? 'dark: lit part in full (light) ink' : 'light: dark disc, lit part white on it (owner 2026-11-14, printed moon-phase icon)');
     });
   });
-  ok(!/<path/.test(D.moon(0, H)) && /<circle/.test(D.moon(0, H)), 'new moon: outline only');
+  D.mode = { bits: 4 }; const nm = D.moon(0, H); D.mode = null;
+  ok(!/<path/.test(nm) && /text--gray-20"><circle[^>]*data-sw-moon="disk"/.test(nm) && /<circle[^>]*fill="none"/.test(nm), 'new moon: a dark disc with its outline, no lit part (owner 2026-11-14)');
   for (let d = 1; d <= 30; d++) { const t = '2026-11-' + String(d).padStart(2, '0') + 'T12:00', ic = T.moonIcon(t), p = T.moonPhase(t);
     if (ic === 'wi-moon-alt-full') ok(Math.abs(p - 0.5) < 0.03, t + ' full at ' + p); if (ic === 'wi-moon-alt-new') ok(p < 0.03 || p > 0.97, t + ' new at ' + p); }
   eq(T.moonPhase(null), null);

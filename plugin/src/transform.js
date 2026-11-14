@@ -95,12 +95,32 @@ function buildI18n(rawLocale) {
   };
 }
 
-// Moon phase as a fraction of the cycle (0 new, 0.25 first quarter, 0.5 full, 0.75 last quarter), from the date.
-function moonPhase(timeStr) {
-  var m = /(\d{4})-(\d{2})-(\d{2})/.exec(String(timeStr || ''));
+// Moon phase as a fraction of the cycle (0 new, 0.25 first quarter, 0.5 full, 0.75 last quarter), at the refresh time (owner 2026-11-14:
+// local time plus the UTC offset in seconds; a date alone counts as its noon).
+function moonPhase(timeStr, off) {
+  var m = /(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(String(timeStr || ''));
   if (!m) return null;
-  var jd = Date.UTC(+m[1], +m[2] - 1, +m[3], 12) / 86400000 + 2440587.5, P = 29.530588853;
-  return Math.round(((((jd - 2451550.1) % P) + P) % P) / P * 1000) / 1000;
+  var k = moonSky(Date.UTC(+m[1], +m[2] - 1, +m[3], m[4] === undefined ? 12 : +m[4], +(m[5] || 0)) - (off || 0) * 1000);   // the moon's elongation from the sun (true phase, not the mean cycle)
+  return Math.round(((((k.lm - k.ls) % 360) + 360) % 360) / 360 * 1000) / 1000 % 1;
+}
+
+// Moon tilt (owner 2026-11-14, "like the reference site"): the angle of the moon's bright limb as the observer sees it, in degrees
+// counter-clockwise from the zenith (90 = the left of the disc, 270 = the right). Bright-limb position angle chi from low-precision sun and
+// moon positions (moonSky), minus the parallactic angle q from latitude, sidereal time and the moon's hour angle. utcMs, lat, lon.
+// Low-precision sun and moon ecliptic longitudes (degrees) and moon latitude at a UTC time, about 0.3 degrees.
+function moonSky(utcMs) {
+  var R = Math.PI / 180, d = utcMs / 86400000 + 2440587.5 - 2451545, sn = function (x) { return Math.sin(x * R); };
+  var Ls = 280.46 + 0.9856474 * d, Ms = 357.528 + 0.9856003 * d, Lm = 218.316 + 13.176396 * d, Mm = 134.963 + 13.064993 * d, F = 93.272 + 13.22935 * d, D = Lm - Ls;
+  return { d: d, e: 23.439 - 4e-7 * d, ls: Ls + 1.915 * sn(Ms) + 0.02 * sn(2 * Ms), lm: Lm + 6.289 * sn(Mm) + 1.274 * sn(2 * D - Mm) + 0.658 * sn(2 * D) - 0.186 * sn(Ms) - 0.114 * sn(2 * F), bm: 5.128 * sn(F) };
+}
+function moonLimb(utcMs, lat, lon) {
+  if (!isFinite(utcMs) || !isFinite(lat) || !isFinite(lon)) return null;
+  var R = Math.PI / 180, k = moonSky(utcMs), e = k.e, sn = function (x) { return Math.sin(x * R); }, cs = function (x) { return Math.cos(x * R); };
+  var eq = function (l, b) { return [Math.atan2(sn(l) * cs(e) - Math.tan(b * R) * sn(e), cs(l)) / R, Math.asin(sn(b) * cs(e) + cs(b) * sn(e) * sn(l)) / R]; };
+  var S = eq(k.ls, 0), M = eq(k.lm, k.bm), da = S[0] - M[0];
+  var chi = Math.atan2(cs(S[1]) * sn(da), sn(S[1]) * cs(M[1]) - cs(S[1]) * sn(M[1]) * cs(da)) / R;
+  var H = 280.46061837 + 360.98564736629 * k.d + lon - M[0], q = Math.atan2(sn(H), Math.tan(lat * R) * cs(M[1]) - sn(M[1]) * cs(H)) / R;
+  return Math.round((((chi - q) % 360) + 360) % 360);
 }
 
 // Moon phase icon (wi-moon-alt-*) from the date, about 29.53 days from a known new moon.
@@ -498,7 +518,7 @@ var tl = t.lo, th = t.hi, tvals = [tl, th, tv, inT].filter((v) => v !== null), t
 var tsc = tvals.length ? { a: Math.floor(Math.min.apply(null, tvals) / tst) * tst, b: Math.ceil(Math.max.apply(null, tvals) / tst) * tst } : null;
 if (tsc && tsc.b - tsc.a < 3 * tst) tsc.b = tsc.a + 3 * tst;
 var ps = (M.hours || []).slice(0, 24).map((q) => q.pr).filter((q) => q !== null && q !== undefined); if (pr !== null) ps.push(pr);
-var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg', phase: phase == null ? null : phase };
+var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg', phase: phase == null ? null : phase, limb: opt && opt.limb != null ? opt.limb : null };
 var trend = pressTrend(n.press, opt && opt.pressAgo);
 var hrs = opt && opt.hours ? hourStrip(M.hours || [], fmt, deg, opt.prevHour) : null;   // owner: bottom strip Hours instead of the days
 var out = {
@@ -624,10 +644,10 @@ async function run(input) {
   var raw = { current: w.current || null, hourly: w.hourly || null, todayHourly: past.today || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
-  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
+  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time, w.utc_offset_seconds);
   if (field(input, 'sensor_co2', 'show') === 'hide') model.inn.co2 = null;
   var pc = stObj(st0.cue), pmt = stObj(st0.mt);
-  var ui = buildView(model, i18n, w.daily, moon, phase, { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time) });
+  var ui = buildView(model, i18n, w.daily, moon, phase, { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time), limb: moonLimb(Date.parse(((w.current || {}).time || '') + 'Z') - (w.utc_offset_seconds || 0) * 1000, w.latitude, w.longitude) });
   if (fb && fb.asOf) ui.stale = i18n.ours.asof + ' ' + clk(fb.asOf.slice(0, 2), fb.asOf.slice(3, 5));
   var st = { v: 1, cue: ui.keep.cue, mt: ui.keep.mt }, keep = snap || stObj(st0.snap); delete ui.keep;
   if (sensors && model.inn.temp !== null && ui.inn) {   // sensor_show hide: sensors null, no indoor state
@@ -642,4 +662,4 @@ async function run(input) {
   return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, snapOf: snapOf, fromSnap: fromSnap, innTrack: innTrack, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
+if (typeof module !== 'undefined') module.exports = { run: run, snapOf: snapOf, fromSnap: fromSnap, innTrack: innTrack, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase, moonLimb: moonLimb, moonSky: moonSky };
