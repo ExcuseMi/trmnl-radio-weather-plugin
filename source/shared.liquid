@@ -840,6 +840,7 @@ set(outer, /^(flex--(?:row|col|col-reverse|center)|gap--\w+)$/, 'flex--col-rever
 set(top, /^flex--(?:row|stretch-y)$/, 'flex--row w--full');
 set(right, /^w--/, view === 1 ? 'w--[38cqw]' : 'w--[44cqw]');
 set(cond.parentElement, /^h--/, 'h--[7cqh]');
+if (view === 2) set(cond, /^title--/, 'title--small');   // B3: the half view's temperature is width-limited; the condition keeps the full view's share of it (CONDRATIO)
 var digits = panel.querySelector('[data-sw-part="temp"]'), tr = digits.parentElement.parentElement;
 if (view === 2) { var mb2 = panel.querySelector('[data-sw-part="meter"]'); mb2 = mb2 && mb2.parentElement.parentElement.parentElement; if (mb2) set(mb2, /^flex--stretch-y$/, 'flex--stretch-y'); }
 set(tr, /^h--/, (view === 1 ? 'h--[13cqh]' : 'h--[21cqh]') + ' shrink-0');
