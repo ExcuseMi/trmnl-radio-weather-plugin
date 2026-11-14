@@ -15,13 +15,14 @@
 {%- comment -%} One console and one days strip {%- endcomment -%}
 {%- assign stk = false %}{% assign hm = 1 %}{% assign hl = 1 %}{% assign wm = 1 %}{% assign wl = 1 %}{% assign n_md = 9 %}{% assign n_lg = 9 %}{% assign nd_md = 4 %}{% assign nd_lg = 5 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1' %}{% assign pad_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = '' %}{% assign rgw_l = 18 %}
 {%- assign name_w = 'w--[6cqw] lg:w--[5cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw]' %}{% assign num_w = 'w--[6cqw] lg:w--[5cqw]' %}
-{%- if view == 1 %}{% assign name_w = 'w--[10cqw] lg:w--[5cqw] lg:portrait:w--[12cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign con_h = 'h--[56cqh] lg:h--[38cqh] lg:portrait:h--[31cqh]' %}{% assign days_h = 'h--[37cqh] lg:h--[28cqh] lg:portrait:h--[33cqh]' %}
+{%- if view == 1 %}{% assign dgap = 'gap--small portrait:gap--xsmall lg:gap--small lg:portrait:gap--small' %}{% assign num_w = 'w--[6cqw] portrait:w--[5cqw] lg:w--[5cqw]' %}{% assign name_w = 'w--[9cqw] lg:w--[5cqw] lg:portrait:w--[12cqw]' %}{% assign icon_w = 'w--[5cqw] portrait:w--[8cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' portrait:h--[7cqh] lg:portrait:h--[7cqh]' %}{% assign row_p = ' portrait:h--[8cqh] lg:portrait:h--[6cqh]' %}{% assign con_h = 'h--[56cqh] lg:h--[38cqh] lg:portrait:h--[31cqh]' %}{% assign days_h = 'h--[37cqh] portrait:h--[38cqh] lg:h--[28cqh] lg:portrait:h--[33cqh]' %}
 {%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
-{%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 4 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden lg:portrait:flex' %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% assign name_w = 'w--[26cqw] lg:w--[11cqw] lg:portrait:w--[15cqw]' %}{% assign icon_w = 'w--[7cqw] lg:portrait:hidden' %}{% assign num_w = 'w--[9cqw]' %}{% assign rw_m = 6 %}{% assign hh_m = 6 %}{% assign name_t = '' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[60cqh] lg:h--[54cqh] lg:portrait:h--[44cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[44cqh] lg:portrait:h--[54cqh]' %}
+{%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 4 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden lg:portrait:flex' %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% assign name_w = 'w--[26cqw] portrait:w--[12cqw] lg:w--[11cqw] lg:portrait:w--[15cqw]' %}{% assign icon_w = 'w--[7cqw] portrait:hidden lg:portrait:hidden' %}{% assign num_w = 'w--[9cqw] portrait:w--[7cqw] lg:portrait:w--[9cqw]' %}{% assign rw_m = 6 %}{% assign hh_m = 6 %}{% assign name_t = ' portrait:title--small lg:portrait:title--base' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[60cqh] lg:h--[54cqh] lg:portrait:h--[44cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[44cqh] lg:portrait:h--[54cqh]' %}
 {%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 2.3 %}{% assign n_md = 1 %}{% assign n_lg = 2 %}{% assign con_h = 'h--full' %}{% endif %}
 {%- assign calm_btw = ' 1bit:hidden 2bit:hidden dark:2bit:block' %}{% comment %} Calm: 2-bit panels are filled {% endcomment %}
 {%- assign calm_q = false %}{% if view == 4 %}{% assign calm_q = true %}{% endif %}{% comment %} Calm quadrant (owner) {% endcomment %}
-{%- if view == 3 %}{% assign rw_m = 8 %}{% assign nd_md = 3 %}{% assign rh_l = 6 %}{% assign nd_lg = 6 %}{% endif %}{% comment %} Calm half view (owner) {% endcomment %}
+{%- if view == 3 %}{% assign rw_m = 8 %}{% assign nd_md = 3 %}{% assign rh_l = 6 %}{% assign nd_lg = 6 %}{% assign row_p = ' portrait:h--[11cqh] lg:portrait:h--[6cqh]' %}{% endif %}
+{%- assign nd_mp = nd_md %}{% if view == 1 %}{% assign nd_mp = 4 %}{% elsif view == 3 %}{% assign nd_mp = 5 %}{% endif %}{% comment %} native portrait md screens (OG): one or two more day rows, no empty bands {% endcomment %}{% comment %} Calm half view (owner) {% endcomment %}
 {%- if view == 1 %}{% assign rw_m = 9 %}{% assign rh_l = 6 %}{% assign nd_md = 3 %}{% assign nd_lg = 4 %}{% endif %}{% comment %} Calm (owner): airier day rows {% endcomment %}
 {%- if mr_m == nil %}{% assign mr_m = 9 %}{% assign mb_m = 7 %}{% endif %}
 {%- if view == 1 %}{% for m in ui.meters %}{% if m.tw %}{% assign mr_m = 7.4 %}{% endif %}{% endfor %}{% endif %}
@@ -102,7 +103,7 @@
  low/high), the meters only when they fit readable. The page script (swSmall) sizes every part from the digit height and drops lower
  items whole. In the full view both consoles are in the markup and the script keeps one (data-sw-big / data-sw-alt). {%- endcomment -%}
 {%- if view != 2 %}
- <div data-sw-console data-sw-small{% if view == 1 %} data-sw-alt{% endif %} class="{{ con_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full w--full p--2 lg:p--4" data-sw-sbox{% if view == 4 %} data-sw-nocue{% endif %}>
+ <div data-sw-console data-sw-small{% if view == 1 %} data-sw-alt{% endif %} class="{{ con_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full w--full p--2 lg:p--4" data-sw-sbox{% if view == 4 %} data-sw-nocue{% elsif view == 1 %} data-sw-keepcue{% endif %}>
   <div class="flex flex--row flex--center-y flex--center-x gap--small w--full" data-sw-srow="cond">
    {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1" data-sw-sicon><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
    <span class="title title--small text--bold" data-sw-cond data-sw-scond>{{ ui.cond }}</span>
@@ -162,11 +163,11 @@
   {%- if i < nd_md %}{% assign on_md = true %}{% endif %}
   {%- assign j = i %}{% comment %} owner: the strip always starts {% endcomment %}
   {%- if j >= 0 and j < nd_lg %}{% assign on_lg = true %}{% endif %}
-  {%- if on_md or on_lg %}
-  <div class="w--full{% if on_md and on_lg %}{% elsif on_md %} lg:hidden{% else %} hidden lg:block{% endif %}{% if j == nd_last %}{{ last_p }}{% endif %}" data-sw-row="day">
+  {%- if on_md or on_lg or i < nd_mp %}
+  <div class="w--full{% if on_md and on_lg %}{% elsif on_md %} lg:hidden{% elsif i < nd_mp and on_lg %} hidden portrait:block lg:block{% elsif i < nd_mp %} hidden portrait:block lg:portrait:hidden{% else %} hidden lg:block{% endif %}{% if j == nd_last %}{{ last_p }}{% endif %}" data-sw-row="day">
   {% comment %} owner: a faint hairline over {% endcomment %}
   <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
-   <div class="shrink-0 {{ name_w }} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%- if d.today %}<span class="label label--inverted label--large{% if view != 3 %} lg:portrait:label--xxlarge{% endif %} text--bold" data-sw-today>{{ d.name }}</span>{% comment %} owner: today an inverted label in {% endcomment %}{% else %}<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}</span>{% endif %}</div></div>
+   <div class="shrink-0 {{ name_w }} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%- if d.today %}<span class="label label--inverted label--large{% if view != 3 %} lg:portrait:label--xxlarge{% else %} portrait:label--base lg:portrait:label--large{% endif %} text--bold" data-sw-today>{{ d.name }}</span>{% comment %} owner: today an inverted label in {% endcomment %}{% else %}<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}</span>{% endif %}</div></div>
    <div class="shrink-0 {{ icon_w }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="" data-sw-dink="{{ d.iconInk }}">{% endif %}</div>
    <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.lo }}</span></div>
    <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.hi }}</span></div>
@@ -203,7 +204,7 @@ var SW = {{ ui | json }};
 var sm = !!sc && (sc.classList.contains('screen--sm') || sc.offsetWidth < 500 || (sc.offsetHeight > sc.offsetWidth && !sc.classList.contains('screen--lg') && !sc.classList.contains('screen--portrait')));   // native portrait md screens (poke 5) too
 if (!sm) { document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.remove(); }); return; }
 big.remove(); document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.removeAttribute('data-sw-alt'); });
-if (sc.offsetWidth < 500) document.querySelectorAll('[data-sw-sbox]').forEach(function (e) { e.setAttribute('data-sw-nocue', ''); });   // playdate size: a tiny view, no clothing cue (owner)
+if (sc.offsetWidth < 500 && sc.offsetHeight < 500) document.querySelectorAll('[data-sw-sbox]').forEach(function (e) { e.setAttribute('data-sw-nocue', ''); });   // playdate size: a tiny view, no clothing cue (owner)
 if (sc.offsetHeight < 300) { document.querySelectorAll('[data-sw-dstrip]').forEach(function (e) { e.remove(); }); var c = document.querySelector('[data-sw-small]'); if (c) { [].slice.call(c.classList).forEach(function (q) { if (/h--/.test(q)) c.classList.remove(q); }); c.classList.add('h--full'); } }
 })();
 (function () { var sc = document.querySelector('.screen'); if (sc && sc.classList.contains('screen--color-full') && !sc.classList.contains('screen--dark-mode')) document.querySelectorAll('[data-sw-between]').forEach(function (e) { e.classList.add('hidden'); }); })();
@@ -350,12 +351,12 @@ var X = xmap(sc, W), body = '';
 var E = API.extD || 0;
 body = g('text--gray-70', body);
 if (d.loV !== null && d.hiV !== null) {
-var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * (hi ? 0.5 : 0.4), y = (H - bh) / 2, cells = '', sh = '';
+var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * (hi || API.nfs ? 0.5 : 0.4), y = (H - bh) / 2, cells = '', sh = '';
 var ptH = lfs(sc) * 0.3 * 1.4;
 if (hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); }
 var k = 1; while (k * cw - Math.max(2.5, k * cw * 0.16) < 6 && k < 50) k++;
 var gp = Math.max(2.5, k * cw * 0.16), pc = [], a0 = sc.a + Math.floor((a - sc.a) / k) * k;
-var ca = API.nfs ? 2.2 : 1.5; if ((API.nfs || API.port) && k * cw - gp >= 6 && bh > (k * cw - gp) * ca) { y += (bh - (k * cw - gp) * ca) / 2; bh = (k * cw - gp) * ca; }
+var ca = API.nfs ? 3 : 1.5; if ((API.nfs || API.port) && k * cw - gp >= 6 && bh > (k * cw - gp) * ca) { y += (bh - (k * cw - gp) * ca) / 2; bh = (k * cw - gp) * ca; }
 if (k * cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = k > 1 ? a0 : a; t < b; t += k) pc.push([X(t) + gp / 2, X(t + k) - gp / 2]);
 pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
 body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells data-sw-k="' + k + '" data-sw-r="' + (b - a) + '">' + g(hi ? blk(hi) : mid(), cells) + '</g>';
@@ -695,7 +696,7 @@ return r;
 function best(n) { var b = null; [[true, true], [false, true], [false, false], [true, false]].forEach(function (m) { var lo = 8, hi = H, r = null; for (var i = 0; i < 18; i++) { var mid = (lo + hi) / 2, x = geo(mid, m[0], m[1], n); if (x.fit) { lo = mid; r = x; } else hi = mid; } if (r && (!b || r.D > b.D + 0.5)) b = r; }); return b && n && b.fsM < 11 ? null : b; }
 var R = best(0); if (!R) return;
 // The clothing cue stays only while it costs the temperature under 15 %; otherwise (and in the tiny views) it goes whole.
-var cu0 = q('[data-sw-part="cue"]'); if (cue) { var c0 = cue; cue = null; var Rx = best(0); cue = c0; if (Rx && R.D < 0.85 * Rx.D) { R = Rx; cue = null; } }
+var cu0 = q('[data-sw-part="cue"]'); if (cue) { var c0 = cue; cue = null; var Rx = best(0); cue = c0; if (Rx && R.D < 0.85 * Rx.D && !box.hasAttribute('data-sw-keepcue')) { R = Rx; cue = null; } }
 if (cu0) { cu0.classList.toggle('hidden', !cue); }
 for (var n = Math.min(2, mrows.length); n > 0; n--) { var Rn = best(n); if (Rn && Rn.D >= 0.85 * R.D) { R = Rn; break; } }
 // A console limited by its width (narrow columns) gives its spare height to the days or hours strip below it.
