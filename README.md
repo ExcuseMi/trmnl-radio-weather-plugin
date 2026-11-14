@@ -4,25 +4,27 @@
 
 ![Radio Weather on the TRMNL X](assets/screenshot.png)
 
-The weather as the front of an early-80s hi-fi receiver, for [TRMNL](https://trmnl.com) e-paper displays:
+The weather as a calm early-80s hi-fi receiver, for [TRMNL](https://trmnl.com) e-paper displays:
 
-- **L meter**: a needle shows the temperature now, between today's low and high.
-- **R meter**: a needle shows the chance of rain.
-- **Smoked-glass display**: the temperature in segment digits, humidity, UV and the time the rain starts. Warning lamps light for rain, snow, hail, thunder, frost, wind and high UV.
-- **Level bars**: one key per coming day with its icon, low and high.
+- **Dials** (TRMNL X): a barometer with the pressure trend, and a temperature dial with today's low and high.
+- **Console**: the temperature in segment digits with what to wear (clothing, umbrella, sunglasses); block meters for wind and gusts, UV, air quality, humidity, pollen and pressure when they matter, grey cells for what is still to come today.
+- **Rain or sun**: an hour calendar when rain is coming; otherwise sunrise, sunset and the moon as it looks from your location.
+- **Bottom strip**: the coming days or hours.
+- **Indoor sensor**: with a TRMNL temperature sensor on the screen, indoor becomes the big reading and outdoor moves beside it.
 
-Every element shows data. It is drawn for each view (full, half horizontal, half vertical, quadrant) and each panel: a warm lamp glow on colour screens, solid ink on BWRY, grey on the TRMNL X, and a night glass in dark mode.
+Every view (full, half horizontal, half vertical, quadrant), 1-bit, greyscale and colour screens, dark mode, 24 or 12 hour time. When Open-Meteo is slow or down, the last saved forecast shows with its time.
 
 ### Settings
 
 | Setting | What it does |
 |---|---|
 | Location | City, postal code or latitude,longitude |
-| Temperature Unit | Celsius or Fahrenheit |
-| Days Shown | Day keys; Auto fits the screen |
-| Dial Span | How far ahead the rain meter looks |
-| Hide Title Bar | Hides the title bar on the full view |
-| Language | Override the TRMNL account language |
+| Temperature unit | Celsius or Fahrenheit |
+| Time format | 24 hours (17:00) or 12 hours (5:00 PM) |
+| Bottom strip | Days, hours, or hours with days after 18:00 |
+| Hide title bar | Hides the title bar on the full view |
+| Indoor readings | With a TRMNL temperature sensor on this screen: the indoor reading becomes the big number, outdoor moves beside it. The screen's own sensor is found automatically. |
+| CO2 meter | Shows the CO2 meter of a TRMNL CO2 sensor |
 
 Data comes from [Open-Meteo](https://open-meteo.com); no key is needed.
 
