@@ -407,10 +407,6 @@ test('forecast cells: a light grey (owner 2026-11-14 "maybe a lighter gray")', (
   const lc = (m) => { D.mode = m; const s = D.meter({ frac: 0.3, past: null, later: 0.9, peak: 0.9 }, 300, 30, 10); D.mode = null; return (s.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1]; };
   eq([lc({ dark: false, bits: 1 }), lc({ dark: false, bits: 4 })], ['text--gray-75', 'text--gray-75'], '1-bit and X light: gray-75 (was gray-50 / gray-70)');
 });
-test('extreme meter: the label inverts from the red zone (owner 2026-11-14)', () => {
-  const f = fx('mixed'), v = (w) => { const g = JSON.parse(JSON.stringify(f)); g.current.wind_speed_10m = w; return (T.buildView(SWModel.build(g, {}), T.buildI18n('en'), g.daily).meters.find((q) => q.key === 'wind') || {}).hot; };
-  eq([v(20), v(62)], [false, true], 'wind 20 km/h plain, 62 km/h inverted');
-});
 test('moon tilt: bright limb as the observer sees it (owner 2026-11-14, true tilt)', () => {
   const L = (t, la, lo) => T.moonLimb(Date.parse(t), la, lo), near = (a, b, tol) => Math.abs(((a - b + 540) % 360) - 180) <= tol;
   ok(near(L('2026-11-14T18:00Z', 50.85, 3.35), 242, 6), 'Deerlijk 2026-11-14 19h: waxing crescent lit low on the right (reference site), ' + L('2026-11-14T18:00Z', 50.85, 3.35));

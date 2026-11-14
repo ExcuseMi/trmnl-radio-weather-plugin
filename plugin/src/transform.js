@@ -497,7 +497,7 @@ var SCL = { wind: [0, F_ ? 40 : 60], uv: [0, 11], aqi: [0, 100], humidity: [0, 1
 var mm = (k, e) => SCL[k] && RG[k] && RG[k][e] !== null && RG[k][e] !== undefined ? bar(RG[k][e], SCL[k][0], SCL[k][1]) : null;
 var top = (a) => { a = a.filter((v) => v !== null && v !== undefined); return a.length ? Math.max.apply(null, a) : null; };
 var pk = (k) => k === 'wind' ? (mm(k, 'hi') !== null ? mm(k, 'hi') : bar(n.gust, 0, F_ ? 40 : 60)) : (SCL[k] ? top([RO[k][1], mm(k, 'past'), mm(k, 'later')]) : null);   // the peak: today's max gust (WIND), else the max of past, now and later
-var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], past: mm(k, 'past'), later: mm(k, 'later'), peak: pk(k), zones: ZONES[k] || null, hot: !!(ZONES[k] && RO[k][1] !== null && RO[k][1] >= ZONES[k][1]), idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
+var meters = keys.map((k, i) => ({ key: k, label: RO[k][0], frac: RO[k][1], past: mm(k, 'past'), later: mm(k, 'later'), peak: pk(k), zones: ZONES[k] || null, idx: i, rank: PRI.indexOf(k) < 0 ? PRI.length : PRI.indexOf(k) }));
 var hm = meters.filter((m) => m.key === 'humidity')[0];
 if (hm && inT !== null && M.inn.hum !== null) hm.tw = { out: O.outdoor, in: O.indoor, m: { frac: bar(M.inn.hum, 0, 100) } };   // owner 2026-11-13: with the indoor sensor the humidity row is a twin meter (indoor in grey)
 var t1 = (v) => { var s = (Math.round(v * 10) / 10).toFixed(1), r = Math.round(v); return s.split('.')[0].length >= 3 ? String(r === 0 ? 0 : r) : s; };   // owner (step 12): no decimal once the whole part has 3+ characters (104°, -12°)
