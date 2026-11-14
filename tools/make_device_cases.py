@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Regenerate tools/render_check_devices.json: every TRMNL model with a screen class x full/hh/hv/quadrant,
-a portrait full + hv for landscape models, and one dark full for models whose default palette is gray.
+a portrait full + hv for landscape models, one dark full for models whose default palette is gray, and a full and a
+portrait full with an indoor sensor reading.
 Source: https://trmnl.com/api/models and /api/palettes (what trmnlp itself reads)."""
 import json, sys, urllib.request
 
@@ -8,6 +9,7 @@ def get(p):
     return json.load(urllib.request.urlopen(urllib.request.Request('https://trmnl.com/api/' + p, headers={'User-Agent': 'curl/8'}), timeout=30))['data']
 
 models, palettes = get('models'), get('palettes')
+SENS = {'sensor_readings': {'device_1': {'temperature': [{'2026-11-08 04:50:00 UTC': 21.6}], 'humidity': [{'2026-11-08 04:50:00 UTC': 48}], 'pressure': []}}}
 VIEWS = [('full', 'full'), ('hh', 'half_horizontal'), ('hv', 'half_vertical'), ('q', 'quadrant')]
 cases = []
 for m in sorted(models, key=lambda m: m['name']):
@@ -31,5 +33,9 @@ for m in sorted(models, key=lambda m: m['name']):
         add('hv-port', 'half_vertical', orientation='portrait')
     if grey:
         add('full-dark', 'full', dark=True)
+    # B12 (owner 2026-11-14): with a TRMNL temperature sensor too (indoor primary), full and portrait
+    add('full-sens', 'full', vars=SENS)
+    if m['width'] >= m['height']:
+        add('full-port-sens', 'full', orientation='portrait', vars=SENS)
 json.dump(cases, open(sys.argv[1] if len(sys.argv) > 1 else 'tools/render_check_devices.json', 'w'), separators=(',', ':'))
 print(len(cases), 'cases', len({c['device'] for c in cases}), 'models')
