@@ -52,13 +52,14 @@
    <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
    <span class="absolute bottom--3 left--4 title title--base lg:portrait:title--small text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>{% comment %} owner step 13 {% endcomment %}
    {%- capture dv_row %}
-    {%- if k == 2 and ui.inn %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="0" data-sw-loc="out"></div>{% endif %}
-    {%- if k == 1 %}{% assign arw = ui.baro.arrow %}{% else %}{% assign arw = ui.tdial.arrow %}{% endif %}{% if arw == 'up' or arw == 'down' %}<div class="shrink-0 self--center" data-sw-part="arrow" data-sw-i="{{ k | minus: 1 }}" data-sw-arrow="{{ arw }}"></div>{% endif %}{% comment %} owner 2026-11-13 {% endcomment %}
+    {%- comment %} owner 2026-11-14: with a sensor the caption follows the main needle, indoor (no house icon: with it and a trend arrow the wider value shrank the dial, render check DIALR) {% endcomment %}
+    {%- if k == 1 %}{% assign arw = ui.baro.arrow %}{% assign arw_i = 0 %}{% elsif ui.inn %}{% assign arw = ui.inn.arrow %}{% assign arw_i = 2 %}{% else %}{% assign arw = ui.tdial.arrow %}{% assign arw_i = 1 %}{% endif %}{% if arw == 'up' or arw == 'down' %}<div class="shrink-0 self--center" data-sw-part="arrow" data-sw-i="{{ arw_i }}" data-sw-arrow="{{ arw }}"></div>{% endif %}{% comment %} owner 2026-11-13 {% endcomment %}
     {%- if k == 1 %}<span class="value value--small value--tnums">{{ ui.baro.value }}</span><span class="title title--small text--bold">{{ ui.baro.unit }}</span>{% comment %} owner: the pressure, the trend {% endcomment %}
+    {%- elsif ui.inn %}<span class="value value--small value--tnums" data-sw-inval>{{ ui.inn.temp }}</span><span class="title title--small text--bold">{{ ui.tdial.unit }}</span>
     {%- else %}<span class="value value--small value--tnums">{{ ui.tdial.value }}</span><span class="title title--small text--bold">{{ ui.tdial.unit }}</span>{% endif -%}
    {%- endcapture %}
    <div class="absolute bottom--3 right--4 flex flex--row flex--bottom gap--small" data-sw-cap>{{ dv_row }}</div>
-   {%- if k == 2 and ui.inn %}<div class="absolute top--3 right--4 flex flex--row flex--bottom gap--small text--gray-30 dark:text--gray-30" data-sw-cap data-sw-dialin>{% comment %} owner 2026-11-13 {% endcomment %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="1" data-sw-loc="in"></div>{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center text--gray-30 dark:text--gray-30" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}"></div>{% endif %}<span class="value value--small value--tnums text--gray-30 dark:text--gray-30">{{ ui.inn.temp }}</span><span class="title title--small text--bold text--gray-30 dark:text--gray-30">{{ ui.tdial.unit }}</span></div>{% endif %}
+   {%- if k == 2 and ui.inn %}<div class="absolute top--3 right--4 flex flex--row flex--bottom gap--small text--gray-30 dark:text--gray-30" data-sw-cap data-sw-dialin>{% comment %} owner 2026-11-13 {% endcomment %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="0" data-sw-loc="out"></div>{% if ui.tdial.arrow == 'up' or ui.tdial.arrow == 'down' %}<div class="shrink-0 self--center text--gray-30 dark:text--gray-30" data-sw-part="arrow" data-sw-i="1" data-sw-arrow="{{ ui.tdial.arrow }}"></div>{% endif %}<span class="value value--small value--tnums text--gray-30 dark:text--gray-30">{{ ui.tdial.value }}</span><span class="title title--small text--bold text--gray-30 dark:text--gray-30">{{ ui.tdial.unit }}</span></div>{% endif %}
   </div>{{ p_close }}
   {%- endfor %}
  </div></div>
@@ -67,7 +68,7 @@
 {% if calm_q %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% endif %}
 {% capture c_meters %}
   <div class="flex flex--col gap--small shrink-0 w--[{{ 30 | times: wm | round | at_most: 100 }}cqw] lg:w--[{{ 22 | times: wm | round | at_most: 100 }}cqw] lg:portrait:w--full">{% comment %} owner: no lamps; the rain unit's {% endcomment %}{% comment %} owner: the meters take the full {% endcomment %}
-   <div class="flex flex--row grow{% if view == 2 %} lg:portrait:flex--stretch-y{% endif %} gap--small w--full">{% assign any_tw = false %}{% capture c_lab %}{% endcapture %}{% capture c_blk %}{% endcapture %}{% for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}{% assign passes = 1 %}{% if m.tw %}{% assign passes = 2 %}{% assign any_tw = true %}{% endif %}{% capture rc %}{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y{% endcapture %}{% capture rh %}h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}{% endcapture %}{% for pass in (1..passes) %}{% assign h2 = '' %}{% assign pk = 'meter' %}{% if pass == 2 %}{% assign h2 = ' data-sw-hum2' %}{% assign pk = 'meterin' %}{% endif %}{% capture c_lab %}{{ c_lab }}<div class="{{ rc }} flex--right w--full gap--xsmall {{ rh }}"{{ h2 }}>{% if m.tw %}<div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-for="{{ m.key }}" data-sw-i="{{ pass | minus: 1 }}" data-sw-loc="{% if pass == 1 %}out{% else %}in{% endif %}"></div>{% endif %}<span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>{% endcapture %}{% capture c_blk %}{{ c_blk }}<div class="{{ rc }} w--full {{ rh }}"{{ h2 }}><div class="w--full h--[{{ mb_m | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="{{ pk }}" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div><div class="hidden lg:block w--full h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}" data-sw-part="{{ pk }}" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div></div>{% endcapture %}{% endfor %}{% endfor %}{% capture mcol %}flex flex--col flex--between{% endcapture %}
+   <div class="flex flex--row grow{% if view == 2 %} lg:portrait:flex--stretch-y{% endif %} gap--small w--full">{% assign any_tw = false %}{% capture c_lab %}{% endcapture %}{% capture c_blk %}{% endcapture %}{% for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}{% assign passes = 1 %}{% if m.tw %}{% assign passes = 2 %}{% assign any_tw = true %}{% endif %}{% capture rc %}{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y{% endcapture %}{% capture rh %}h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}{% endcapture %}{% for pass in (1..passes) %}{% assign h2 = '' %}{% assign pk = 'meter' %}{% if pass == 2 %}{% assign h2 = ' data-sw-hum2' %}{% elsif m.tw %}{% assign pk = 'meterin' %}{% endif %}{% comment %} owner 2026-11-14: the indoor row first {% endcomment %}{% capture c_lab %}{{ c_lab }}<div class="{{ rc }} flex--right w--full gap--xsmall {{ rh }}"{{ h2 }}>{% if m.tw %}<div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-for="{{ m.key }}" data-sw-i="{{ 2 | minus: pass }}" data-sw-loc="{% if pass == 1 %}in{% else %}out{% endif %}"></div>{% endif %}<span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>{% endcapture %}{% capture c_blk %}{{ c_blk }}<div class="{{ rc }} w--full {{ rh }}"{{ h2 }}><div class="w--full h--[{{ mb_m | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="{{ pk }}" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div><div class="hidden lg:block w--full h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}" data-sw-part="{{ pk }}" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div></div>{% endcapture %}{% endfor %}{% endfor %}{% capture mcol %}flex flex--col flex--between{% endcapture %}
     <div class="{{ mcol }} shrink-0">{{ c_lab }}</div>
     <div class="{{ mcol }} grow">{{ c_blk }}</div>
    </div>
@@ -77,9 +78,9 @@
     <span class="title {% if view == 2 %}title--base lg:title--xlarge{% else %}title--base lg:title--xlarge{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
    </div>
    <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner: a gap, no rule {% endcomment %}{% assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}{% if view == 1 %}{% assign th_m = 22 %}{% assign th_l = 20 %}{% if ui.inn %}{% assign th_m = 26 %}{% assign th_l = 22 %}{% endif %}{% endif %}{% comment %} readable from across the room (owner 2026-11-13) {% endcomment %}{% assign bw_m = 9 | times: wm | round %}{% assign bw_l = 6 | times: wl | round %}{% capture badge_w %}w--[{{ bw_m }}cqw] lg:w--[{{ bw_l }}cqw]{% if view == 1 %} lg:portrait:w--[12cqw]{% endif %}{% endcapture %}{% comment %} Calm (owner) {% endcomment %}{% assign ar_m = 0.6 %}{% assign ar_l = 0.75 %}{% if view == 2 %}{% assign ar_m = 0.3 %}{% assign ar_l = 0.375 %}{% endif %}{% assign dh_m = th_m %}{% assign dh_l = th_l %}{% assign ch_p = 7 %}{% if ui.inn %}{% assign dh_m = 12 %}{% assign dh_l = 10 %}{% assign ch_p = 3.5 %}{% endif %}{% assign ch_m = dh_m | times: hm | times: tm | times: 0.85 | round %}{% assign ch_l = dh_l | times: hl | times: tf | times: 0.85 | round %}{% assign cw_m = ch_m | times: ar_m | times: 1.6 | round %}{% assign cw_l = ch_l | times: ar_l | times: 1.6 | round %}{% assign cw_p = ch_p | times: 2.1 | round %}{% if view == 2 %}{% assign cw_p = ch_p | times: 1.1 | round %}{% endif %}{% comment %} owner: the console badge beside {% endcomment %}{% capture cbadge %}{% if ui.cue and ui.cue.size > 0 %}<div class="shrink-0 h--[{{ ch_m }}cqh] lg:h--[{{ ch_l }}cqh] lg:portrait:h--[{{ ch_p }}cqh] w--[{{ cw_m }}cqw] lg:w--[{{ cw_l }}cqw] lg:portrait:w--[{{ cw_p }}cqw]" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}{% endcapture %}{% comment %} left out on OG half vertical and {% endcomment %}
-{% if view == 2 %}{% assign th_m = th_m | times: 1.15 %}{% endif %}{% comment %}B4: the half view has spare height; a taller temperature keeps the condition text in the full view's proportion (CONDRATIO og-hh-aq: the glyph 4 has less ink height){% endcomment %}<div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] {% if view == 2 %}lg:portrait:h--[17cqh]{% else %}{{ tp_h | default: 'lg:portrait:h--[8cqh]' }}{% endif %}">{% if ui.inn %}{% comment %} Indoor sensor (as live) {% endcomment %}{% for tw in (1..2) %}{% if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
+{% if view == 2 %}{% assign th_m = th_m | times: 1.15 %}{% endif %}{% comment %}B4: the half view has spare height; a taller temperature keeps the condition text in the full view's proportion (CONDRATIO og-hh-aq: the glyph 4 has less ink height){% endcomment %}<div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] {% if view == 2 %}lg:portrait:h--[17cqh]{% else %}{{ tp_h | default: 'lg:portrait:h--[8cqh]' }}{% endif %}">{% if ui.inn %}{% comment %} Indoor sensor (as live). Owner 2026-11-14: the indoor reading is the primary one (big digits, first), outdoor the smaller second readout with the clothing cue. {% endcomment %}{% assign tw_o = '2,1' | split: ',' %}{% for tw_s in tw_o %}{% assign tw = tw_s | plus: 0 %}{% if forloop.index == 2 %}<div class="border--v-60 h--full"></div>{% endif %}{% if tw == 2 %}{% assign tw_dm = 13 %}{% assign tw_dl = 13 %}{% if view == 2 %}{% assign tw_dm = 15 %}{% assign tw_dl = 11 %}{% else %}{% assign tw_dl = 12 %}{% endif %}{% assign tw_dp = 6 %}{% else %}{% assign tw_dm = 6 %}{% assign tw_dl = 6 %}{% assign tw_dp = 3 %}{% endif %}
     <div class="flex flex--col flex--center gap--xsmall h--full shrink-0" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
-     <div class="flex flex--row flex--top gap--xsmall">{% if tw == 2 %}{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center h--[3cqh] hidden lg:block" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}" data-sw-inarrow></div>{% endif %}{% endif %}<div class="flex flex--col flex--center gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]" data-sw-part="loc" data-sw-sq data-sw-i="{% if tw == 1 %}0{% else %}1{% endif %}" data-sw-loc="{% if tw == 1 %}out{% else %}in{% endif %}"></div>{% assign it_l = 8 %}{% if view == 1 %}{% assign it_l = 8 %}{% endif %}<div class="h--[{{ 8 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ it_l | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div></div><div class="flex flex--col gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
+     <div class="flex flex--row flex--top gap--xsmall">{% if tw == 2 %}{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center h--[3cqh] hidden lg:block" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}" data-sw-inarrow></div>{% endif %}{% endif %}<div class="flex flex--col flex--center gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]" data-sw-part="loc" data-sw-sq data-sw-i="{% if tw == 1 %}0{% else %}1{% endif %}" data-sw-loc="{% if tw == 1 %}out{% else %}in{% endif %}"></div><div class="h--[{{ tw_dm | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ tw_dl | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[{{ tw_dp }}cqh]" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div></div><div class="flex flex--col gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]"></div><span class="value {% if tw == 2 %}value--small{% else %}value--xsmall{% endif %}" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
      <span class="label label--small flex flex--row flex--center-y gap--xsmall">{% if tw == 2 %}{{ ui.inn.hum }}{% if ui.inn.lohi %}<span class="hidden lg:flex flex--row flex--center-y gap--xsmall" data-sw-inlohi>{% if ui.inn.hum != '' %}·{% endif %}<div class="shrink-0 h--[1cqh] lg:h--[1cqh]" data-sw-part="tri" data-sw-i="2" data-sw-sq></div>{{ ui.inn.lo }}<div class="shrink-0 h--[1cqh] lg:h--[1cqh]" data-sw-part="tri" data-sw-i="3" data-sw-sq></div>{{ ui.inn.hi }}</span>{% endif %}{% else %}&nbsp;{% endif %}</span>{% comment %} indoor trend (saved state) {% endcomment %}{% comment %} an empty line under BUITEN keeps {% endcomment %}
     </div>{% endfor %}{% else %}
     <div class="flex flex--row flex--top gap--xsmall shrink-0 {{ tg_h }}"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>{% if ui.cue and ui.cue.size > 0 %}<div data-sw-div class="border--v-60 shrink-0 h--full"></div>{% endif %}{% comment %} owner: the thin divider between the {% endcomment %}
@@ -113,8 +114,10 @@
    <span class="title title--small text--bold" data-sw-cond data-sw-scond>{{ ui.cond }}</span>
   </div>
   <div class="flex flex--row flex--center-y flex--center-x w--full" data-sw-srow="main">
-   <div class="flex flex--row flex--top shrink-0" data-sw-sgrp="temp"><div class="shrink-0" data-sw-part="temp"></div><span class="title title--small text--bold shrink-0" data-sw-unit data-sw-sunit>{{ ui.unit }}</span></div>
+   {%- comment %} Owner 2026-11-14: with an indoor reading the big number is indoor (house icon in front), outdoor a small readout first in the side column where it fits. {% endcomment %}
+   <div class="flex flex--row flex--top shrink-0" data-sw-sgrp="temp">{% if ui.inn %}<div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-i="1" data-sw-loc="in" data-sw-sloc></div><div class="shrink-0" data-sw-part="itemp"></div>{% else %}<div class="shrink-0" data-sw-part="temp"></div>{% endif %}<span class="title title--small text--bold shrink-0" data-sw-unit data-sw-sunit>{{ ui.unit }}</span></div>
    <div class="flex flex--col flex--center shrink-0" data-sw-sgrp="side">
+    {%- if ui.inn %}<div class="flex flex--row flex--top shrink-0" data-sw-sout><div class="shrink-0 self--center" data-sw-part="loc" data-sw-sq data-sw-i="0" data-sw-loc="out"></div><div class="shrink-0" data-sw-part="temp"></div><span class="title title--small text--bold shrink-0" data-sw-sounit>{{ ui.unit }}</span></div>{% endif %}
     {%- if ui.cue and ui.cue.size > 0 %}<div class="shrink-0" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}
     {%- if ui.rain %}<div class="flex flex--row flex--center-y shrink-0" data-sw-unit="rain"><img class="image image--adaptive shrink-0" src="{{ ui.rain.icon }}" alt="" data-sw-icon data-sw-sricon><div class="shrink-0" data-sw-part="rain" data-sw-rows="2,2"></div></div>
     {%- elsif ui.days[0] %}<span class="title title--small text--bold shrink-0" data-sw-slohi="{{ ui.days[0].lo }}|{{ ui.days[0].hi }}">{{ ui.days[0].lo }} {{ ui.days[0].hi }}</span>{% endif %}
@@ -213,7 +216,7 @@ if (SW.ph) {
     I.hum = I.hum.replace(/\d+(?= %$)/, Math.round(SWI[1]));
     SW.meters.forEach(function (m) { if (m.tw) m.tw.m.frac = Math.min(1, SWI[1] / 100); });
   }
-  var iT = document.querySelector('[data-sw-dialin] .value'), iH = document.querySelector('[data-sw-twin="in"] .label');
+  var iT = document.querySelector('[data-sw-inval]'), iH = document.querySelector('[data-sw-twin="in"] .label');
   if (iT) iT.textContent = is;
   if (iH && I.hum) iH.textContent = I.hum;
 }
@@ -316,7 +319,7 @@ return { html: svg(vw * k, HH * k, glow(body, GPX / k), '0 0 ' + vw + ' ' + HH).
 }
 var LOC = { out: "<path d='M8 17a4.5 4.5 0 0 1 .5-8.8A5.5 5.5 0 0 1 19.5 8.2 4.5 4.5 0 0 1 20 17z'/><path d='M14 17v8M10.5 25h7'/>", in: "<path d='M3 14L14 4l11 10'/><path d='M6 12v12h16V12'/><path d='M12 24v-7h4v7'/>" };
 function loc(k, W, H) { return svg(W, H, locAt(k, (W - Math.min(W, H)) / 2, (H - Math.min(W, H)) / 2, Math.min(W, H))); }
-function locAt(k, x, y, s) { return g(k === 'in' ? inc() : '', '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(s) + '" height="' + n1(s) + '" viewBox="0 0 28 28" overflow="visible"><g fill="none" ' + SK + '' + n1(Math.max(1.8, 1.5 * 28 / Math.max(1, s)) * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-loc="' + k + '">' + LOC[k] + '</g></svg>'); }
+function locAt(k, x, y, s) { return g(k === 'out' ? inc() : '', '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(s) + '" height="' + n1(s) + '" viewBox="0 0 28 28" overflow="visible"><g fill="none" ' + SK + '' + n1(Math.max(1.8, 1.5 * 28 / Math.max(1, s)) * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-loc="' + k + '">' + LOC[k] + '</g></svg>'); }
 var inc = () => 'text--gray-30', inb = () => API.mode && API.mode.dark ? 'text--gray-45' : 'text--gray-50';
 function cells(frac, n) { return frac === null || frac === undefined || !(frac > 0) ? 0 : Math.max(1, Math.round(Math.min(1, frac) * n)); }
 function cellStates(m, n) {
@@ -325,8 +328,8 @@ for (var i = 0; i < n; i++) st.push(i < a ? 'a' : (i < p ? 'p' : (i < l ? 'l' : 
 return { st: st, peak: k - 1 };
 }
 function meter(m, W, H, n, ind) {
-m = m || {}; if (!ind) return svg(W, H, mrow(m, W, H, n));
-return svg(W, H, '<g data-sw-twrow="in">' + mrow(m.tw.m, W, H, n, inb()) + '</g>');
+m = m || {}; if (!ind) return svg(W, H, m.tw ? '<g data-sw-twrow="out">' + mrow(m, W, H, n, inb()) + '</g>' : mrow(m, W, H, n));   /* owner 2026-11-14: indoor primary, the outdoor row of the twin in grey */
+return svg(W, H, '<g data-sw-twrow="in">' + mrow(m.tw.m, W, H, n) + '</g>');
 }
 function mrow(m, W, H, n, lc) {
 n = n || 10;
@@ -602,11 +605,11 @@ case 'scale': return scale(scN, W, H);
 case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now, SW.hours);
 case 'gauge': return SW.rain ? gauge(SW.rain.gauge, W, H) : '';
 case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
-case 'tri': return tri(i % 2 === 0, W, H, i > 1 ? inc() : '');
+case 'tri': return tri(i % 2 === 0, W, H, '');
 case 'rule': return rule(W, H);
 case 'moon': return moon(SW.sun && SW.sun.phase, H, SW.sun && SW.sun.limb);
 case 'baro': return dial(SW.baro, W, H, true, SW.tdial);
-case 'tdial': return dial(SW.tdial, W, H, false, SW.baro);
+case 'tdial': return dial(SW.inn && SW.tdial.twin != null ? Object.assign({}, SW.tdial, { now: SW.tdial.twin, twin: SW.tdial.now }) : SW.tdial, W, H, false, SW.baro);   /* owner 2026-11-14: main needle indoor, the twin needle outdoor */
 case 'icon': return icon(API.src, W, H);
 case 'face': { var n = Math.max(1, Math.round(W / H)), w = W / n, two = API.mode && API.mode.bits === 2;
 if (API.mode && !API.mode.dark && API.mode.bits <= 2) { var ow = API.mode.bits === 2 ? 2 : 1;
@@ -707,7 +710,7 @@ function swSmall(cx) {
 var box = document.querySelector('[data-sw-sbox]'); if (!box) return;
 var bb = box.getBoundingClientRect(); if (!bb.width || !bb.height) return;
 var bs = getComputedStyle(box), W = box.clientWidth - parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight) - 1, H = box.clientHeight - parseFloat(bs.paddingTop) - parseFloat(bs.paddingBottom) - 1;
-var q = function (s) { return box.querySelector(s); }, cond = q('[data-sw-scond]'), ico = q('[data-sw-sicon]'), tg = q('[data-sw-sgrp="temp"]'), te = q('[data-sw-part="temp"]'), un = q('[data-sw-sunit]');
+var q = function (s) { return box.querySelector(s); }, cond = q('[data-sw-scond]'), ico = q('[data-sw-sicon]'), tg = q('[data-sw-sgrp="temp"]'), te = tg.querySelector('[data-sw-part="temp"],[data-sw-part="itemp"]'), un = q('[data-sw-sunit]'), sl = q('[data-sw-sloc]'), so = q('[data-sw-sout]'), soE = so, big = te.getAttribute('data-sw-part') === 'itemp' ? SW.inn.temp : SW.temp;
 // A tall quadrant (portrait screens, owner B3 "fill the screen like a real e-ink design") is limited by its width: no clothing badge (a
 // tiny view, owner), up to four meter rows with a readable label (11 px) even where 0.2 D is smaller; the spare height goes into the meter
 // rows and between the rows (no empty bands); of layouts with the same digit height the taller one wins.
@@ -720,7 +723,8 @@ var lht = lh ? lh.getAttribute('data-sw-slohi').split('|') : null;
 function mw(t, fs) { cx.font = wt + ' ' + fs.toFixed(2) + 'px ' + fam; return cx.measureText(t).width; }
 function capk() { cx.font = wt + ' 100px ' + fam; return (cx.measureText('H').actualBoundingBoxAscent || 72) / 100; }
 var CK = capk(), at = 0.8, ik = ((ico && ico.querySelector('[data-sw-ink]')) || ico || { getAttribute: function () { return null; } }).getAttribute('data-sw-ink') || '0,1', IY = +ik.split(',')[0] || 0, IH = Math.max(0.3, +ik.split(',')[1] || 1);
-try { var ds = SWDraw.digits(String(SW.temp), 100); at = parseFloat(ds.match(/width="([\d.]+)"/)[1]) / 100; } catch (e) { at = 0.6 * String(SW.temp).length; }
+function dw(t) { try { return parseFloat(SWDraw.digits(String(t), 100).match(/width="([\d.]+)"/)[1]) / 100; } catch (e) { return 0.6 * String(t).length; } }
+at = dw(big); var ao = so ? dw(SW.temp) : 0;
 var cjk = /[⺀-鿿가-힯＀-￯]/.test(ct), toks = cjk ? ct.split('') : ct.split(/\s+/);
 function wrap(fs, avail) { var out = ['']; toks.forEach(function (w) { var cur = out[out.length - 1], tr = cur ? cur + (cjk ? '' : ' ') + w : w; if (cur && mw(tr, fs) > avail) out.push(w); else out[out.length - 1] = tr; }); return out; }
 var mlabT = mrows.map(function (r) { var l = r.querySelector('[data-sw-mlabel]'), t = l.getAttribute('data-sw-t0'); return t === null ? l.textContent.trim() : t; }), mlw = mlabT.length ? Math.max.apply(null, mlabT.map(function (t) { return mw(t, 100) / 100; })) : 0;
@@ -730,8 +734,9 @@ var g = Math.max(4, 0.07 * D), fsC = SWR * D, ic = ico ? 2.3 * CK * fsC / IH : 0
 var ln = wrap(fsC, av), cw = Math.max.apply(null, ln.map(function (l) { return mw(l, fsC); }));
 var r = { D: D, g: g, fsC: fsC, ic: ic, ln: ln, ok: ln.length <= 2 && cw <= av };
 r.condH = Math.max(ic * IH, ln.length * 1.15 * fsC); r.condW = ic + (ico ? gc : 0) + cw;
-r.fsU = 0.3 * D; r.uW = mw(SW.unit || '', r.fsU) + 2; r.gU = 0.05 * D; r.tW = at * D + r.gU + r.uW;
+r.fsU = 0.3 * D; r.uW = mw(SW.unit || '', r.fsU) + 2; r.gU = 0.05 * D; r.lI = sl ? 0.28 * D : 0; r.tW = (sl ? r.lI + 1.5 * r.gU : 0) + at * D + r.gU + r.uW;
 var it = [];
+if (so) { r.oD = 0.4 * D; r.oI = 0.6 * r.oD; r.ofU = 0.3 * r.oD; r.ouW = mw(SW.unit || '', r.ofU) + 2; it.push([r.oI + 0.15 * r.oD + ao * r.oD + 0.05 * r.oD + r.ouW, r.oD]); }
 if (cue) { r.cueH = 0.55 * D; it.push([1.6 * r.cueH, r.cueH]); }
 if (ru) { r.calH = 0.55 * D; r.calW = 1.95 * r.calH; r.gR = 0.06 * D; it.push([r.calH + r.gR + r.calW, r.calH]); }
 else if (lh) { r.fsL = 0.3 * D; r.lW = mw(lht[0], r.fsL) + mw(lht[1], r.fsL) + 2.8 * r.fsL; it.push([r.lW, 1.2 * r.fsL]); }
@@ -744,7 +749,11 @@ r.tH = tH; r.fit = r.ok && tH <= H && tW <= W; r.mainRow = mainRow; r.sideCol = 
 return r;
 }
 function best(n) { var b = null; [[true, true], [false, true], [false, false], [true, false]].forEach(function (m) { var lo = 8, hi = H, r = null; for (var i = 0; i < 18; i++) { var mid = (lo + hi) / 2, x = geo(mid, m[0], m[1], n); if (x.fit) { lo = mid; r = x; } else hi = mid; } if (r && (!b || r.D > b.D + 0.5 || (tallQ && r.D > b.D - 0.5 && r.tH > b.tH + 1))) b = r; }); return b && n && b.fsM < 11 ? null : b; }
-var R = best(0); if (!R) return;
+var R = best(0);
+// The outdoor readout (with an indoor reading) stays only while it costs the indoor temperature under 15 %.
+if (so) { so = null; var Ro = best(0); so = soE; if (Ro && (!R || R.D < 0.85 * Ro.D)) { R = Ro; so = null; } }
+if (soE) soE.classList.toggle('hidden', !so);
+if (!R) return;
 // The clothing cue stays only while it costs the temperature under 15 %; otherwise (and in the tiny views) it goes whole.
 var cu0 = q('[data-sw-part="cue"]'); if (cue) { var c0 = cue; cue = null; var Rx = best(0); cue = c0; if (Rx && R.D < 0.85 * Rx.D && !box.hasAttribute('data-sw-keepcue')) { R = Rx; cue = null; } }
 if (cu0) { cu0.classList.toggle('hidden', !cue); }
@@ -766,6 +775,8 @@ cond.innerHTML = st.html; cond.setAttribute('data-sw-fs', R.fsC.toFixed(2)); con
 main.classList.toggle('flex--row', R.mainRow); main.classList.toggle('flex--col', !R.mainRow); main.style.gap = (R.mainRow ? 1.6 * R.g : R.g).toFixed(1) + 'px';
 sz(te, at * R.D, R.D); te.setAttribute('data-sw-d', R.D.toFixed(1));
 var su = stext([SW.unit || ''], R.fsU, R.uW); un.innerHTML = su.html; un.style.marginLeft = R.gU.toFixed(1) + 'px'; sz(un, R.uW, su.h);
+if (sl) { sz(sl, R.lI, R.lI); sl.style.marginRight = (1.5 * R.gU).toFixed(1) + 'px'; sl.style.marginTop = (0.05 * R.D).toFixed(1) + 'px'; }
+if (so) { var oL = so.querySelector('[data-sw-part="loc"]'), oT = so.querySelector('[data-sw-part="temp"]'), oU = so.querySelector('[data-sw-sounit]'), ou = stext([SW.unit || ''], R.ofU, R.ouW); sz(oL, R.oI, R.oI); oL.style.marginRight = (0.15 * R.oD).toFixed(1) + 'px'; sz(oT, ao * R.oD, R.oD); oU.innerHTML = ou.html; oU.style.marginLeft = (0.05 * R.oD).toFixed(1) + 'px'; sz(oU, R.ouW, ou.h); }
 if (side) { side.classList.toggle('flex--col', R.sideCol); side.classList.toggle('flex--row', !R.sideCol); side.style.gap = (R.sideCol ? R.g : 1.5 * R.g).toFixed(1) + 'px'; side.style.alignItems = R.sideCol && R.mainRow ? 'flex-start' : 'center'; }
 if (cue) sz(cue, 1.6 * R.cueH, R.cueH);
 if (ru) { ru.style.gap = R.gR.toFixed(1) + 'px'; sz(ru.firstElementChild, R.calH, R.calH); sz(cal, R.calW, R.calH); }
