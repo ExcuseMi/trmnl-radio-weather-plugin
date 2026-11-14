@@ -117,7 +117,8 @@
    </div>
   </div>
   {%- assign sms = ui.meters | sort: 'rank' %}
-  {%- for m in sms %}{% if forloop.index > 2 %}{% break %}{% endif %}
+  {%- assign smx = 2 %}{% if view == 4 %}{% assign smx = 4 %}{% endif %}{% comment %} tall quadrants (portrait) may show up to four {% endcomment %}
+  {%- for m in sms %}{% if forloop.index > smx %}{% break %}{% endif %}
   <div class="hidden flex--row flex--center-y gap--small w--full" data-sw-srow="meter"><span class="title title--small text--bold shrink-0" data-sw-mlabel>{{ m.label }}</span><div class="grow" data-sw-part="meter" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div></div>
   {%- endfor %}
  </div>{{ p_close }}</div>
@@ -662,6 +663,10 @@ var box = document.querySelector('[data-sw-sbox]'); if (!box) return;
 var bb = box.getBoundingClientRect(); if (!bb.width || !bb.height) return;
 var bs = getComputedStyle(box), W = box.clientWidth - parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight) - 1, H = box.clientHeight - parseFloat(bs.paddingTop) - parseFloat(bs.paddingBottom) - 1;
 var q = function (s) { return box.querySelector(s); }, cond = q('[data-sw-scond]'), ico = q('[data-sw-sicon]'), tg = q('[data-sw-sgrp="temp"]'), te = q('[data-sw-part="temp"]'), un = q('[data-sw-sunit]');
+// A tall quadrant (portrait screens, owner B3 "fill the screen like a real e-ink design") is limited by its width: no clothing badge (a
+// tiny view, owner), up to four meter rows with a readable label (11 px) even where 0.2 D is smaller; the spare height goes into the meter
+// rows and between the rows (no empty bands); of layouts with the same digit height the taller one wins.
+var tallQ = box.hasAttribute('data-sw-nocue') && !!document.querySelector('.screen--portrait') && H > 1.2 * W;
 var side = q('[data-sw-sgrp="side"]'), cue = box.hasAttribute('data-sw-nocue') ? null : q('[data-sw-part="cue"]'), ru = q('[data-sw-unit="rain"]'), cal = q('[data-sw-part="rain"]'), lh = q('[data-sw-slohi]'), main = q('[data-sw-srow="main"]');
 var mrows = [].slice.call(box.querySelectorAll('[data-sw-srow="meter"]'));
 var cs = getComputedStyle(cond), fam = cs.fontFamily, wt = cs.fontWeight;
@@ -688,17 +693,19 @@ else if (lh) { r.fsL = 0.3 * D; r.lW = mw(lht[0], r.fsL) + mw(lht[1], r.fsL) + 2
 var sW = 0, sH = 0; it.forEach(function (x, i) { if (sideCol) { sW = Math.max(sW, x[0]); sH += x[1] + (i ? g : 0); } else { sW += x[0] + (i ? 1.5 * g : 0); sH = Math.max(sH, x[1]); } });
 r.sW = sW; r.sH = sH;
 var mW = mainRow ? r.tW + (it.length ? 1.6 * g + sW : 0) : Math.max(r.tW, sW), mH = mainRow ? Math.max(D, sH) : D + (it.length ? g + sH : 0);
-r.mh = 0.2 * D; r.fsM = 0.5 * r.mh; r.n = n;
-var tH = r.condH + g + mH + n * (r.mh + g), tW = Math.max(r.condW, mW, n ? mlw * r.fsM + 0.3 * r.mh + 7 * r.mh : 0);
+r.mh = tallQ ? Math.max(0.2 * D, 22) : 0.2 * D; r.fsM = 0.5 * r.mh; r.n = n;
+var tH = r.condH + g + mH + n * (r.mh + g), tW = Math.max(r.condW, mW, n ? mlw * r.fsM + 0.3 * r.mh + (tallQ ? 5 : 7) * r.mh : 0);
 r.tH = tH; r.fit = r.ok && tH <= H && tW <= W; r.mainRow = mainRow; r.sideCol = sideCol;
 return r;
 }
-function best(n) { var b = null; [[true, true], [false, true], [false, false], [true, false]].forEach(function (m) { var lo = 8, hi = H, r = null; for (var i = 0; i < 18; i++) { var mid = (lo + hi) / 2, x = geo(mid, m[0], m[1], n); if (x.fit) { lo = mid; r = x; } else hi = mid; } if (r && (!b || r.D > b.D + 0.5)) b = r; }); return b && n && b.fsM < 11 ? null : b; }
+function best(n) { var b = null; [[true, true], [false, true], [false, false], [true, false]].forEach(function (m) { var lo = 8, hi = H, r = null; for (var i = 0; i < 18; i++) { var mid = (lo + hi) / 2, x = geo(mid, m[0], m[1], n); if (x.fit) { lo = mid; r = x; } else hi = mid; } if (r && (!b || r.D > b.D + 0.5 || (tallQ && r.D > b.D - 0.5 && r.tH > b.tH + 1))) b = r; }); return b && n && b.fsM < 11 ? null : b; }
 var R = best(0); if (!R) return;
 // The clothing cue stays only while it costs the temperature under 15 %; otherwise (and in the tiny views) it goes whole.
 var cu0 = q('[data-sw-part="cue"]'); if (cue) { var c0 = cue; cue = null; var Rx = best(0); cue = c0; if (Rx && R.D < 0.85 * Rx.D && !box.hasAttribute('data-sw-keepcue')) { R = Rx; cue = null; } }
 if (cu0) { cu0.classList.toggle('hidden', !cue); }
-for (var n = Math.min(2, mrows.length); n > 0; n--) { var Rn = best(n); if (Rn && Rn.D >= 0.85 * R.D) { R = Rn; break; } }
+for (var n = Math.min(tallQ ? 4 : 2, mrows.length); n > 0; n--) { var Rn = best(n); if (Rn && Rn.D >= (tallQ ? 0.97 : 0.85) * R.D) { R = Rn; break; } }
+// Tall quadrant: meter rows take the spare height beyond a 3.5 % gap per row (up to 0.5 D high), so the stack fills the panel.
+if (tallQ && R.n) { var ex = Math.min(0.5 * R.D - R.mh, Math.max(0, H - R.tH - 0.035 * H * (R.n + 1)) / R.n); if (ex > 0 && mlw * 0.5 * (R.mh + ex) + 5.3 * (R.mh + ex) <= W) { R.mh += ex; R.fsM = 0.5 * R.mh; R.tH += ex * R.n; } }
 // A console limited by its width (narrow columns) gives its spare height to the days or hours strip below it.
 var cw0 = box.closest('[data-sw-console]'), ds = document.querySelector('div[data-sw-dstrip]');
 if (cw0 && ds && H - R.tH > 0.06 * H) { var k1 = (cw0.offsetHeight && cw0.getBoundingClientRect().height / cw0.offsetHeight) || 1; cw0.style.setProperty('height', (cw0.getBoundingClientRect().height / k1 - (H - R.tH) + 2).toFixed(1) + 'px', 'important'); H = R.tH + 1; }
@@ -706,7 +713,7 @@ var key = [W.toFixed(0), H.toFixed(0), R.D.toFixed(1), R.n, R.mainRow, R.sideCol
 if (box.getAttribute('data-sw-sk') === key) return; box.setAttribute('data-sw-sk', key);
 function sz(e, w, h) { if (!e) return; if (w !== null) e.style.setProperty('width', w.toFixed(1) + 'px', 'important'); if (h !== null) e.style.setProperty('height', h.toFixed(1) + 'px', 'important'); }
 function stext(lines, fs, w) { var lh2 = 1.15 * fs, h = lh2 * (lines.length - 1) + 1.25 * fs, y1 = (h - lh2 * (lines.length - 1)) / 2 + CK * fs / 2; return { h: h, html: '<svg class="block" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" viewBox="0 0 ' + w.toFixed(1) + ' ' + h.toFixed(1) + '" role="img" aria-label="' + lines.join(' ').replace(/"/g, '&quot;') + '">' + lines.map(function (l, j) { return '<text x="0" y="' + (y1 + j * lh2).toFixed(2) + '" font-size="' + fs.toFixed(2) + '" font-family="' + fam.replace(/"/g, "'") + '" font-weight="' + wt + '" fill="currentColor">' + l.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>'; }).join('') + '</svg>' }; }
-box.style.rowGap = (R.g + (!ds && H - R.tH > 0.06 * H ? Math.min(0.35 * R.D, 0.9 * (H - R.tH) / (R.n + 1)) : 0)).toFixed(1) + 'px';   // width-limited quadrant (a wide -13): the spare height goes between the rows, not into empty bands
+box.style.rowGap = (R.g + (!ds && H - R.tH > 0.06 * H ? Math.min(tallQ ? H : 0.35 * R.D, 0.9 * (H - R.tH) / (R.n + 1)) : 0)).toFixed(1) + 'px';   // width-limited quadrant (a wide -13): the spare height goes between the rows, not into empty bands
 var cr = q('[data-sw-srow="cond"]'); cr.style.columnGap = (0.3 * R.fsC).toFixed(1) + 'px'; sz(cr, null, R.condH); cr.style.marginTop = (-0.62 * Math.max(0, R.condH - Math.max(R.ic * IH, (R.ln.length - 1) * 1.15 * R.fsC + CK * R.fsC)) / 2).toFixed(1) + 'px';   // the text block's own air above the first cap line does not count as top padding (render check HVPAD: ink equal above and below)
 sz(ico, R.ic, R.ic); if (ico) { ico.style.margin = (-(R.ic - R.ic * IH) / 2).toFixed(1) + 'px 0'; ico.style.transform = 'translateY(' + ((0.5 - IY - IH / 2) * R.ic).toFixed(1) + 'px)'; ico.setAttribute('data-sw-condicon', R.ln.length + ',' + R.ic.toFixed(1)); }
 var cwid = Math.max.apply(null, R.ln.map(function (l) { return mw(l, R.fsC); })) + 2, st = stext(R.ln, R.fsC, cwid);
@@ -723,7 +730,7 @@ x += tw + 0.2 * f; b += '<text x="' + x.toFixed(1) + '" y="' + (0.5 * f + CK * f
 lh.innerHTML = '<svg class="block" width="' + R.lW.toFixed(1) + '" height="' + (1.2 * f + 0.5 * f).toFixed(1) + '" viewBox="0 0 ' + R.lW.toFixed(1) + ' ' + (1.7 * f).toFixed(1) + '" role="img" aria-label="' + lht.join(' ') + '">' + b + '</svg>'; }
 var mwid = Math.min(W, Math.max(R.condW, R.mainRow ? R.tW + 1.6 * R.g + R.sW : Math.max(R.tW, R.sW)));
 mrows.forEach(function (r, i) { var on = i < R.n; r.classList.toggle('hidden', !on); r.classList.toggle('flex', on); if (!on) return; sz(r, mwid, R.mh); r.style.gap = (0.3 * R.mh).toFixed(1) + 'px';
-var l = r.querySelector('[data-sw-mlabel]'), t = l.getAttribute('data-sw-t0'); if (t === null) { t = l.textContent.trim(); l.setAttribute('data-sw-t0', t); } var fsM = R.fsM, lw = Math.max.apply(null, mlabT.map(function (x) { return mw(x, fsM); })) + 2, sl = stext([t], fsM, lw); l.innerHTML = sl.html; sz(l, lw, sl.h);
+var l = r.querySelector('[data-sw-mlabel]'), t = l.getAttribute('data-sw-t0'); if (t === null) { t = l.textContent.trim(); l.setAttribute('data-sw-t0', t); } var fsM = R.fsM, lw = Math.max.apply(null, mlabT.map(function (x) { return mw(x, fsM); })) + 2, sl = stext([t], fsM, lw); l.innerHTML = sl.html; sz(l, lw, sl.h); l.style.setProperty('font-size', fsM.toFixed(2) + 'px', 'important');
 sz(r.querySelector('[data-sw-part]'), null, R.mh * 0.75); });
 }
 // Day names never clip (owner 2026-11-13, remarkable 2 half vertical cut "SUN"): when a name is wider than its column, the name column of
