@@ -333,7 +333,7 @@ var gh = maxOf([mx(th, 'wind_gusts_10m', sdW.l), num(c.wind_gusts_10m)].filter((
 model.range = { wind: Object.assign(rg2(th, 'wind_speed_10m', sdW), { hi: gh !== null ? gh : model.today.gustMax }), uv: rg2(th, 'uv_index', sdW), humidity: rg2(th, 'relative_humidity_2m', sdW), baro: rg2(th, 'pressure_msl', sdW), aqi: aq ? rg2(aq.hourly || {}, 'european_aqi', sdA) : { past: null, later: null } };
 model.inn = { temp: null, hum: null, co2: null, press: null };
 var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;
-var dk = sd ? Object.keys(sd).sort().filter((k) => sd[k] && typeof sd[k] === 'object' && Object.keys(sd[k]).some((q) => Array.isArray(sd[k][q]) && sd[k][q].length))[0] : null;
+var sw = String(cfg && cfg.sensorDevice || '').replace('device_', '').trim(), dk = sd ? Object.keys(sd).sort().filter((k) => (!sw || k === 'device_' + sw) && sd[k] && typeof sd[k] === 'object' && Object.keys(sd[k]).some((q) => Array.isArray(sd[k][q]) && sd[k][q].length))[0] : null;   // owner 2026-11-14: sensor_device picks one device's sensor (one instance per device)
 if (dk) {
 var latest = (arr) => { var best = null, bt = ''; (arr || []).forEach((e) => { var ts = Object.keys(e || {})[0]; if (ts && ts > bt) { bt = ts; best = num(e[ts]); } });
 var m3 = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(bt);
@@ -654,7 +654,7 @@ async function run(input) {
   var raw = { current: w.current || null, hourly: w.hourly || null, todayHourly: past.today || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
-  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time, w.utc_offset_seconds);
+  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius', sensorDevice: field(input, 'sensor_device', '') }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time, w.utc_offset_seconds);
   if (field(input, 'sensor_co2', 'show') === 'hide') model.inn.co2 = null;
   var pc = stObj(st0.cue), pmt = stObj(st0.mt);
   var vo = { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time), limb: moonLimb(Date.parse(((w.current || {}).time || '') + 'Z') - (w.utc_offset_seconds || 0) * 1000, w.latitude, w.longitude) };
