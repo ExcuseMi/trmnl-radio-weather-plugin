@@ -1,0 +1,1034 @@
+{% template main %}
+{%- assign cf = trmnl.plugin_settings.custom_fields_values -%}{%- assign tsb = 'title title--small text--bold' %}{% assign fcy = 'flex flex--row flex--center-y' %}{% assign iia = 'image image--adaptive' -%}
+{%- capture sw_stale_icon -%}<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="10" stroke="#000" stroke-width="2.2"/><path d="M14 8V14L18 16.5" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>{%- endcapture -%}
+{%- capture sw_icon -%}<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M4 16A10 10 0 0 1 24 16" stroke="#000" stroke-width="2.2" stroke-linecap="round"/> <path d="M14 6V8.5M6.9 8.9L8.6 10.6M21.1 8.9L19.4 10.6" stroke="#000" stroke-width="1.6" stroke-linecap="round"/> <path d="M14 16L18.6 9.6" stroke="#000" stroke-width="2" stroke-linecap="round"/> <circle cx="14" cy="16" r="1.8" fill="#000"/> <rect x="3" y="21" width="4" height="4" rx="0.8" fill="#000"/><rect x="8.5" y="21" width="4" height="4" rx="0.8" fill="#000"/><rect x="14" y="21" width="4" height="4" rx="0.8" fill="#000"/> <rect x="19.5" y="21.5" width="4" height="3" rx="0.8" stroke="#000" stroke-width="1"/> </svg>{%- endcapture -%}
+{%- comment -%} Panel (owner {%- endcomment -%}
+{%- capture p_open_g -%}<div class="relative h--full w--full"><div class="h--full w--full"><div class="relative h--full w--full p--1" data-sw-panel><div class="absolute inset--0" data-sw-part="face"></div>{%- endcapture -%}
+{%- capture vr -%}<div class="border--v-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--v-black" data-sw-rule></div>{%- endcapture -%}
+{%- capture p_close -%}</div></div></div>{%- endcapture -%}
+{%- comment -%} Indoor sensor from the markup's own merge variable sensor_readings (TRMNL adds it at render time, the transform never sees it): the newest reading of temperature and humidity of this screen's own device (device_<trmnl.device.id>, no other device's sensor; no id: no indoor reading), none when over 3 h older than the render time. Then ph (the payload's small overlay: the BINNEN readout, the humidity twin meter's key) applies: inn is its readout, ph_tw the key of the meter that gets a twin; the page script merges the same overlay into SW and puts the real values in. {%- endcomment -%}
+{%- assign ml = ui.meters %}{% if ph %}{% assign i_w = trmnl.device.id | append: '' %}{% if i_w != '' %}{% assign i_k = 'device_' | append: i_w %}{% for d in sensor_readings %}{% if d[0] == i_k and d[1].temperature.size > 0 %}{% assign i_d = d[1] %}{% endif %}{% endfor %}{% endif %}
+{%- assign i_q = 'temperature,humidity,carbon_dioxide' | split: ',' %}{% for q in i_q %}{% assign i_m = 0 %}{% assign i_v = nil %}{% assign i_l = i_d[q] %}{% for e in i_l %}{% assign kv = e | first %}{% assign s = kv[0] | date: '%s' | plus: 0 %}{% if s > i_m %}{% assign i_m = s %}{% assign i_v = kv[1] %}{% endif %}{% endfor %}{% assign i_a = trmnl.system.timestamp_utc | minus: i_m %}{% if i_a > 10800 %}{% assign i_v = nil %}{% endif %}{% if forloop.index == 1 %}{% assign i_t = i_v %}{% elsif forloop.index == 2 %}{% assign i_h = i_v %}{% else %}{% assign i_c = i_v %}{% endif %}{% endfor %}
+{%- if i_t != nil and ph.inn %}{% assign inn = ph.inn %}{% assign inn_hum = ph.inn.hum %}{% if i_h != nil %}{% assign ph_tw = ph.tw.k %}{% else %}{% assign inn_hum = '' %}{% endif %}{% endif %}
+{%- if i_c != nil and ph.mn %}{% assign ml = ph.mn %}{% elsif i_t != nil and i_h != nil and ph.hn %}{% assign ml = ph.hn %}{% endif %}{% endif %}
+{%- if ui == nil or ui.ok != true -%}
+<div class="layout layout--col layout--center" data-sw-error="{{ model.reason | default: 'NO SIGNAL' | escape }}">
+ <span class="title title--xlarge">{{ i18n.ours.no_signal | default: 'NO SIGNAL' }}</span>
+ <span class="description">{{ model.reason | escape }}</span>
+</div>
+{%- elsif view >= 1 and view <= 4 -%}
+{%- comment -%} One console and one days strip {%- endcomment -%}
+{%- assign stk = false %}{% assign hm = 1 %}{% assign hl = 1 %}{% assign wm = 1 %}{% assign wl = 1 %}{% assign n_md = 9 %}{% assign n_lg = 9 %}{% assign nd_md = 4 %}{% assign nd_lg = 5 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1' %}{% assign pad_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = '' %}{% assign rgw_l = 18 %}
+{%- assign name_w = 'w--[6cqw] lg:w--[5cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw]' %}{% assign num_w = 'w--[6cqw] lg:w--[5cqw]' %}
+{%- if view == 1 %}{% assign dgap = 'gap--small portrait:gap--xsmall lg:gap--small lg:portrait:gap--small' %}{% assign num_w = 'w--[6cqw] portrait:w--[5cqw] lg:w--[5cqw]' %}{% assign name_w = 'w--[9cqw] lg:w--[5cqw] lg:portrait:w--[12cqw]' %}{% assign icon_w = 'w--[5cqw] portrait:w--[8cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' portrait:h--[7cqh] lg:portrait:h--[7cqh]' %}{% assign row_p = ' portrait:h--[8cqh] lg:portrait:h--[6cqh]' %}{% assign con_h = 'h--[56cqh] lg:h--[38cqh] lg:portrait:h--[31cqh]' %}{% assign days_h = 'h--[37cqh] portrait:h--[38cqh] lg:h--[28cqh] lg:portrait:h--[33cqh]' %}
+{%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
+{%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 4 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden lg:portrait:flex' %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% assign name_w = 'w--[26cqw] portrait:w--[12cqw] lg:w--[11cqw] lg:portrait:w--[15cqw]' %}{% assign icon_w = 'w--[7cqw] portrait:hidden lg:portrait:hidden' %}{% assign num_w = 'w--[9cqw] portrait:w--[7cqw] lg:portrait:w--[9cqw]' %}{% assign rw_m = 6 %}{% assign hh_m = 6 %}{% assign name_t = ' portrait:title--small lg:portrait:title--base' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[60cqh] lg:h--[54cqh] lg:portrait:h--[44cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[44cqh] lg:portrait:h--[54cqh]' %}
+{%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 2.3 %}{% assign n_md = 1 %}{% assign n_lg = 2 %}{% assign con_h = 'h--full' %}{% endif %}
+{%- assign calm_btw = ' 1bit:hidden 2bit:hidden dark:2bit:block' %}{% comment %} Calm: 2-bit panels are filled {% endcomment %}
+{%- assign calm_q = false %}{% if view == 4 %}{% assign calm_q = true %}{% endif %}{% comment %} Calm quadrant (owner) {% endcomment %}
+{%- if view == 3 %}{% assign rw_m = 8 %}{% assign nd_md = 3 %}{% assign rh_l = 6 %}{% assign nd_lg = 6 %}{% assign row_p = ' portrait:h--[11cqh] lg:portrait:h--[6cqh]' %}{% endif %}
+{%- assign nd_mp = nd_md %}{% if view == 1 %}{% assign nd_mp = 4 %}{% elsif view == 3 %}{% assign nd_mp = 5 %}{% endif %}{% comment %} native portrait md screens (OG): one or two more day rows, no empty bands {% endcomment %}{% comment %} Calm half view (owner) {% endcomment %}
+{%- if view == 1 %}{% assign rw_m = 9 %}{% assign rh_l = 6 %}{% assign nd_md = 3 %}{% assign nd_lg = 4 %}{% endif %}{% comment %} Calm (owner): airier day rows {% endcomment %}
+{%- if mr_m == nil %}{% assign mr_m = 9 %}{% assign mb_m = 7 %}{% endif %}
+{%- if view == 1 %}{% for m in ml %}{% if m.tw or m.key == ph_tw %}{% assign mr_m = 7.4 %}{% endif %}{% endfor %}{% endif %}
+{%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
+{%- comment -%} Right column {%- endcomment -%}
+{%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3w = 26 %}{% if ui.rain %}{% assign q3w = 23 %}{% endif %}{% assign q3 = q3w | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign su_cls = 'flex--row' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6b = 20 %}{% if stk %}{% assign q6b = 15 %}{% assign ru_cls = 'flex--col lg:flex--row' %}{% endif %}{% assign q6 = q6b | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
+{%- if stk %}{% assign ri_md = 'w--[8cqw] lg:hidden' %}{% assign rgw_l = 15 %}{% assign rg_p = '' %}{% assign su_cls = 'flex--row' %}{% assign rc_w = 'w--[40cqw] lg:w--[37cqw] shrink-0' %}{% assign rule_w = 'w--full' %}{% assign tf = 0.7 %}{% assign mh_l = 0.4 %}{% if ui.rain %}{% assign su_cls = 'hidden lg:flex flex--row' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}{% if view == 3 %}{% assign su_cls = 'flex--row' %}{% assign sep_cls = '' %}{% assign ru_cls = 'flex--row' %}{% assign rc_w = 'w--[44cqw] lg:w--[37cqw] lg:portrait:w--[42cqw] shrink-0' %}{% endif %}{% endif %}
+{%- if view <= 2 %}{% assign ru_cls = 'flex--row' %}{% endif %}{% comment %} X full and half horizontal {% endcomment %}
+{%- if calm_q %}{% assign rc_w = 'w--[33cqw] lg:w--[39cqw] lg:portrait:w--full shrink-0' %}{% assign rg_m = 'w--[31cqw]' %}{% endif %}
+{%- if hh_m == nil %}{% assign hh_m = 6 %}{% endif %}{% if rw_m == nil %}{% assign rw_m = 6 %}{% endif %}
+{%- if rh_l == nil %}{% assign rh_l = 4 | times: hl | round | at_most: 100 %}{% endif %}
+{%- if tf == nil %}{% assign tf = 1 %}{% endif %}{% assign tm = tf %}{% if view == 3 %}{% assign tm = 1 %}{% endif %}
+{%- if view == 4 and ui.rain == nil %}{% assign n_lg = 3 %}{% endif %}{% comment %} X quadrant without rain {% endcomment %}
+{%- if stk %}{% assign ms = ml | sort: 'rank' %}{% else %}{% assign ms = ml %}{% endif %}
+{%- assign st_h = cf.hide_title_bar | append: '' %}{% if ui.stale %}{% if view != 1 or st_h == 'true' or st_h == 'yes' %}{% assign st_on = true %}{% endif %}{% endif %}
+<div class="layout layout--col layout--stretch-x gap--base relative" data-sw-debug="v2 view={{ view }} meters={{ ml | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
+{%- if st_on %}{% for sp in (1..2) %}{% if sp == 1 %}{% assign sp_c = 'top--5 right--10' %}{% if view == 4 %}{% assign sp_c = 'top--5 right--10 lg:hidden' %}{% endif %}{% elsif view == 4 %}{% assign sp_c = 'top--5 left--10 hidden lg:block' %}{% else %}{% break %}{% endif %}<span class="absolute {{ sp_c }} z--10 label label--small" data-sw-stale>{{ ui.stale }}</span>{% endfor %}{% endif %}{% comment %} offline, no title bar {% endcomment %}
+{%- if view == 1 %}
+ <div class="hidden lg:block h--[28cqh] lg:portrait:h--[22cqh]"><div class="flex flex--row flex--stretch-y gap--base h--full">
+  {%- for k in (1..2) %}
+  {%- if k == 2 %}<div class="py--4 shrink-0 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner: hairlines in the gaps {% endcomment %}
+  {{ p_open_g }}<div class="relative h--full w--full">
+   <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
+   <span class="absolute bottom--3 left--4 title title--base lg:portrait:title--small text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>{% comment %} owner step 13 {% endcomment %}
+   {%- capture dv_row %}
+    {%- comment %} owner 2026-11-14: with a sensor the caption follows the main needle, indoor (no house icon: with it and a trend arrow the wider value shrank the dial, render check DIALR) {% endcomment %}
+    {%- if k == 1 %}{% assign arw = ui.baro.arrow %}{% assign arw_i = 0 %}{% elsif inn %}{% assign arw = '' %}{% else %}{% assign arw = ui.tdial.arrow %}{% assign arw_i = 1 %}{% endif %}{% if arw == 'up' or arw == 'down' %}<div class="shrink-0 self--center" data-sw-part="arrow" data-sw-i="{{ arw_i }}" data-sw-arrow="{{ arw }}"></div>{% endif %}{% comment %} owner 2026-11-13 {% endcomment %}
+    {%- if k == 1 %}<span class="value value--small value--tnums">{{ ui.baro.value }}</span><span class="{{ tsb }}">{{ ui.baro.unit }}</span>{% comment %} owner: the pressure, the trend {% endcomment %}
+    {%- elsif inn %}<span class="value value--small value--tnums" data-sw-inval>{{ inn.temp }}</span><span class="{{ tsb }}">{{ ui.tdial.unit }}</span>
+    {%- else %}<span class="value value--small value--tnums">{{ ui.tdial.value }}</span><span class="{{ tsb }}">{{ ui.tdial.unit }}</span>{% endif -%}
+   {%- endcapture %}
+   <div class="absolute bottom--3 right--4 flex flex--row flex--bottom gap--small" data-sw-cap>{{ dv_row }}</div>
+   {%- if k == 2 and inn %}<div class="absolute top--3 right--4 flex flex--row flex--bottom gap--small text--gray-30 dark:text--gray-30" data-sw-cap data-sw-dialin>{% comment %} owner 2026-11-13 {% endcomment %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="0" data-sw-loc="out"></div>{% if ui.tdial.arrow == 'up' or ui.tdial.arrow == 'down' %}<div class="shrink-0 self--center text--gray-30 dark:text--gray-30" data-sw-part="arrow" data-sw-i="1" data-sw-arrow="{{ ui.tdial.arrow }}"></div>{% endif %}<span class="value value--small value--tnums text--gray-30 dark:text--gray-30">{{ ui.tdial.value }}</span><span class="{{ tsb }} text--gray-30 dark:text--gray-30">{{ ui.tdial.unit }}</span></div>{% endif %}
+  </div>{{ p_close }}
+  {%- endfor %}
+ </div></div>
+ <div class="hidden lg:block lg:4bit:hidden dark:lg:4bit:block{{ calm_btw }} w--full px--4" data-sw-between><div class="border--h-60"></div></div>
+{%- endif %}
+{% if calm_q %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% endif %}
+{% capture c_meters %}
+  <div class="flex flex--col gap--small shrink-0 w--[{% if inn and view < 3 %}{{ 25 | times: wm | round }}{% else %}{{ 30 | times: wm | round }}{% endif %}cqw] lg:w--[{% if inn and view == 2 %}19{% else %}{{ 22 | times: wm | round }}{% endif %}cqw] lg:portrait:w--full">{% comment %} owner: no lamps; the rain unit's {% endcomment %}{% comment %} owner: the meters take the full {% endcomment %}
+   <div class="flex flex--row grow{% if view == 2 %} lg:portrait:flex--stretch-y{% endif %} gap--small w--full">{% assign any_tw = false %}{% capture c_lab %}{% endcapture %}{% capture c_blk %}{% endcapture %}{% for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}{% assign passes = 1 %}{% if m.tw or m.key == ph_tw %}{% assign passes = 2 %}{% assign any_tw = true %}{% endif %}{% capture rc %}{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y{% endcapture %}{% capture rh %}h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}{% endcapture %}{% for pass in (1..passes) %}{% assign h2 = '' %}{% assign pk = 'meter' %}{% if pass == 2 %}{% assign h2 = ' data-sw-hum2' %}{% elsif m.tw or m.key == ph_tw %}{% assign pk = 'meterin' %}{% endif %}{% comment %} owner 2026-11-14: the indoor row first {% endcomment %}{% capture c_lab %}{{ c_lab }}<div class="{{ rc }} flex--right w--full gap--xsmall {{ rh }}"{{ h2 }}>{% if m.tw or m.key == ph_tw %}<div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-for="{{ m.key }}" data-sw-i="{{ 2 | minus: pass }}" data-sw-loc="{% if pass == 1 %}in{% else %}out{% endif %}"></div>{% endif %}<span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>{% endcapture %}{% capture c_blk %}{{ c_blk }}<div class="{{ rc }} w--full {{ rh }}"{{ h2 }}><div class="w--full h--[{{ mb_m | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="{{ pk }}" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div><div class="hidden lg:block w--full h--[{{ 4 | times: hl | round }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}" data-sw-part="{{ pk }}" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div></div>{% endcapture %}{% endfor %}{% endfor %}{% capture mcol %}flex flex--col flex--between{% endcapture %}
+    <div class="{{ mcol }} shrink-0">{{ c_lab }}</div>
+    <div class="{{ mcol }} grow">{{ c_blk }}</div>
+   </div>
+  </div>{% endcapture %}{% capture c_temp %}
+  <div class="flex flex--col flex--center gap--medium grow w--min-0">{% comment %} owner step 12 {% endcomment %}
+   <div class="{{ fcy }} flex--center-x w--full gap--medium h--[{{ 13 | times: hm | times: tf | round }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round }}cqh] lg:portrait:h--[{% if view == 2 %}9{% else %}5{% endif %}cqh]">{% if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="{{ iia }} h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
+    <span class="title {% if view == 2 %}title--base lg:title--xlarge{% else %}title--base lg:title--xlarge{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
+   </div>
+   <div class="{{ rule_w }} h--[{{ 1 | times: hm | round }}cqh]"></div>{% comment %} owner: a gap, no rule {% endcomment %}{% assign th_m = 15 %}{% assign th_l = 13 %}{% if inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}{% if view == 1 %}{% assign th_m = 22 %}{% assign th_l = 20 %}{% if inn %}{% assign th_m = 26 %}{% assign th_l = 22 %}{% endif %}{% endif %}{% comment %} readable from across the room (owner 2026-11-13) {% endcomment %}{% assign bw_m = 9 | times: wm | round %}{% assign bw_l = 6 | times: wl | round %}{% capture badge_w %}w--[{{ bw_m }}cqw] lg:w--[{{ bw_l }}cqw]{% if view == 1 %} lg:portrait:w--[12cqw]{% endif %}{% endcapture %}{% comment %} Calm (owner) {% endcomment %}{% assign ar_m = 0.6 %}{% assign ar_l = 0.75 %}{% if view == 2 %}{% assign ar_m = 0.3 %}{% assign ar_l = 0.375 %}{% endif %}{% assign dh_m = th_m %}{% assign dh_l = th_l %}{% assign ch_p = 7 %}{% if inn %}{% assign dh_m = 12 %}{% assign dh_l = 10 %}{% assign ch_p = 3.5 %}{% endif %}{% assign ch_m = dh_m | times: hm | times: tm | times: 0.85 | round %}{% assign ch_l = dh_l | times: hl | times: tf | times: 0.85 | round %}{% assign cw_m = ch_m | times: ar_m | times: 1.6 | round %}{% assign cw_l = ch_l | times: ar_l | times: 1.6 | round %}{% assign cw_p = ch_p | times: 2.1 | round %}{% if view == 2 %}{% assign cw_p = ch_p | times: 1.1 | round %}{% endif %}{% comment %} owner: the console badge beside {% endcomment %}{% capture cbadge %}{% if ui.cue and ui.cue.size > 0 %}<div class="shrink-0 h--[{{ ch_m }}cqh] lg:h--[{{ ch_l }}cqh] lg:portrait:h--[{{ ch_p }}cqh] w--[{{ cw_m }}cqw] lg:w--[{{ cw_l }}cqw] lg:portrait:w--[{{ cw_p }}cqw]" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}{% endcapture %}{% comment %} left out on OG half vertical and {% endcomment %}
+{% if view == 2 %}{% assign th_m = th_m | times: 1.15 %}{% endif %}{% comment %}B4: the half view has spare height; a taller temperature keeps the condition text in the full view's proportion (CONDRATIO og-hh-aq: the glyph 4 has less ink height){% endcomment %}<div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] {% if view == 2 %}lg:portrait:h--[17cqh]{% else %}{{ tp_h | default: 'lg:portrait:h--[8cqh]' }}{% endif %}">{% if inn %}{% comment %} Indoor sensor (as live). Owner 2026-11-14: the indoor reading is the primary one (big digits, first), outdoor the smaller second readout with the clothing cue. {% endcomment %}{% assign tw_o = '2,1' | split: ',' %}{% for tw_s in tw_o %}{% assign tw = tw_s | plus: 0 %}{% assign tw_k = 'in' %}{% if tw == 1 %}{% assign tw_k = 'out' %}{% endif %}{% if forloop.index == 2 %}<div class="border--v-60 h--full"></div>{% endif %}{% assign tw_dm = 13 %}{% assign tw_dl = 12 %}{% if view == 2 %}{% assign tw_dm = 15 %}{% assign tw_dl = 11 %}{% endif %}{% comment %} owner 2026-11-14: the two temperatures the same size {% endcomment %}
+    <div class="flex flex--col flex--center gap--xsmall h--full shrink-0" data-sw-twin="{{ tw_k }}">
+     {%- comment %} B10 (owner 2026-11-14, the readout icons were small): the icon is at least 1.4 times the unit font (script, swPaint); above the digits (small views: left of them). {% endcomment %}
+     <div class="flex flex--row flex--top gap--xsmall"><div class="flex flex--col flex--center gap--xsmall"><div class="{{ fcy }} gap--xsmall"><div class="shrink-0 h--[4cqh]" data-sw-part="loc" data-sw-sq data-sw-i="{{ tw | minus: 1 }}" data-sw-loc="{{ tw_k }}" data-sw-lz></div>{% if tw == 1 %}{{ cbadge | replace: 'data-sw-part="cue"', 'data-sw-part="cue" data-sw-cb' }}{% endif %}</div><div class="h--[{{ tw_dm | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ tw_dl | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[6cqh]" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div></div><div class="flex flex--col gap--xsmall"><div class="shrink-0 h--[4cqh]" data-sw-lsp></div><span class="value value--small" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div></div>
+     {%- if tw == 2 %}<span class="label label--small flex flex--row flex--center-y gap--xsmall">{{ inn_hum }}</span>{% else %}<span class="label label--small">&nbsp;</span>{% endif %}{% comment %} an empty line under BUITEN keeps {% endcomment %}
+    </div>{% endfor %}{% else %}
+    <div class="flex flex--row flex--top gap--xsmall shrink-0 {{ tg_h }}"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>{% if ui.cue and ui.cue.size > 0 %}<div data-sw-div class="border--v-60 shrink-0 h--full"></div>{% endif %}{% comment %} owner: the thin divider between the {% endcomment %}
+    {{ cbadge }}{% endif %}
+   </div>
+  </div>{% endcapture %}{% capture c_right %}{% comment %}Rain unit (owner){% endcomment %}{% assign rr = 2 %}{% if ui.rain.rows == 3 %}{% assign rr = 3 %}{% endif %}{% assign rr_m = rr %}{% if view == 2 %}{% assign rr_m = 2 %}{% endif %}{% assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% comment %} X quadrant, 2-row calendar (it {% endcomment %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.75 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}{% if view == 1 %}{% assign cal_p = 5 | times: rr | divided_by: 2 %}{% endif %}{% if view == 2 %}{% assign cal_p = 5 | times: rr %}{% endif %}{% assign ib_l = cal_l %}{% assign ib_m = cal_m %}{% capture ib_cls %}aspect--1/1 h--[{{ ib_m }}cqh] lg:h--[{{ ib_l }}cqh] {% if view == 2 %}lg:portrait:h--[6cqh]{% elsif view == 1 %}lg:portrait:h--[{{ cal_p }}cqh]{% else %}lg:portrait:h--[7cqh]{% endif %} shrink-0{% endcapture %}{% comment %} X half vertical portrait (owner {% endcomment %}{% comment %} Calm quadrant {% endcomment %}
+  <div data-sw-right class="flex flex--col flex--center gap--xsmall lg:gap--small shrink-0 {{ rc_w }}">{% if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small{% if view == 1 %} lg:portrait:gap--none{% endif %}">
+   <div class="flex {{ ru_cls }} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full pr--1" data-sw-unit="rain">
+    <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
+    <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | times: kw | round | at_most: 100 }}cqw] lg:portrait:w--[18cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"></div>
+   </div>{% if ui.rain.gauge %}<div class="shrink-0 lg:portrait:hidden" data-sw-part="gauge"></div>{% endif %}
+   <div class="h--[{{ rc_m }}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>{% endif %}{% if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% endif %}
+   {% assign si_k = 1 %}{% comment %} X half vertical, 12 h {% endcomment %}
+   <div class="flex {{ su_cls }} {% if ui.rain %}flex--left flex--center-y w--full gap--xsmall lg:gap--small{% else %}flex--center gap--xsmall lg:gap--medium{% endif %} shrink-0" data-sw-unit="sun">{% if ui.rain %}<div class="{{ ib_cls }}" data-sw-part="moon"></div>{% else %}{% assign mo_m = si_m | times: 2 | plus: 1 | times: hm | round | at_most: 100 %}<div class="w--[{{ mo_m }}cqh] h--[{{ mo_m }}cqh] lg:hidden" data-sw-part="moon"></div>
+    {% assign mo_l = 13 | times: mh_l | round | at_most: 100 %}<div class="hidden lg:block h--[{{ mo_l }}cqh] lg:portrait:h--[12cqh]" data-sw-part="moon"></div>{% comment %} half vertical (owner step 12) {% endcomment %}{% endif %}
+    <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
+     <div class="{{ fcy }} gap--small"><img class="{{ iia }} h--[{{ si_m | times: hm | round }}cqh] lg:h--[{{ si_l | times: hl | times: si_k | round }}cqh] lg:portrait:h--[{% if view == 1 %}3{% else %}4{% endif %}cqh]" src="{{ ui.sun.riseIcon }}" alt="" data-sw-icon>{% assign st = ui.sun.rise | split: ' ' %}<span class="flex flex--row flex--bottom gap--xsmall shrink-0" data-sw-suntime><span class="title title--base{% unless ui.rain %} lg:title--large{% endunless %} text--bold">{{ st[0] }}</span>{% if st[1] %}<span class="label label--small text--bold">{{ st[1] }}</span>{% comment %} 12 h (owner step 12) {% endcomment %}{% endif %}</span></div>
+     <div class="{{ fcy }} gap--small"><img class="{{ iia }} h--[{{ si_m | times: hm | round }}cqh] lg:h--[{{ si_l | times: hl | times: si_k | round }}cqh] lg:portrait:h--[{% if view == 1 %}3{% else %}4{% endif %}cqh]" src="{{ ui.sun.setIcon }}" alt="" data-sw-icon>{% assign st = ui.sun.set | split: ' ' %}<span class="flex flex--row flex--bottom gap--xsmall shrink-0" data-sw-suntime><span class="title title--base{% unless ui.rain %} lg:title--large{% endunless %} text--bold">{{ st[0] }}</span>{% if st[1] %}<span class="label label--small text--bold">{{ st[1] }}</span>{% comment %} 12 h (owner step 12) {% endcomment %}{% endif %}</span></div>
+    </div>
+   </div>{% if ui.rain %}</div>{% endif %}
+  </div>{% endcapture %}
+{%- comment -%} Small views (owner 2026-11-13, "a tiny view also looks spectacular with the most important info"): quadrant and half vertical
+ on every screen, and the full view on a sm or narrow (< 500 px) screen, show their own console instead of a shrunken full one: the big
+ temperature first (the largest element), the condition icon and text, the clothing cue (half vertical and full only, owner: not in the tiny views), the rain calendar with its rain icon (else today's
+ low/high), the meters only when they fit readable. The page script (swSmall) sizes every part from the digit height and drops lower
+ items whole. In the full view both consoles are in the markup and the script keeps one (data-sw-big / data-sw-alt). {%- endcomment -%}
+{%- if view != 2 %}
+ <div data-sw-console data-sw-small{% if view == 1 %} data-sw-alt{% endif %} class="{{ con_h }}">{{ p_open_g }}<div class="relative flex flex--col flex--center h--full w--full p--2 lg:p--4" data-sw-sbox{% if view == 4 %} data-sw-nocue{% elsif view == 1 %} data-sw-keepcue{% endif %}>
+  <div class="{{ fcy }} flex--center-x gap--small w--full" data-sw-srow="cond">
+   {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1" data-sw-sicon><img class="{{ iia }} h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
+   <span class="{{ tsb }}" data-sw-cond data-sw-scond>{{ ui.cond }}</span>
+  </div>
+  <div class="{{ fcy }} flex--center-x w--full" data-sw-srow="main">
+   {%- comment %} Owner 2026-11-14: with an indoor reading the big number is indoor (house icon in front), outdoor a small readout first in the side column where it fits. {% endcomment %}
+   <div class="flex flex--row flex--top shrink-0" data-sw-sgrp="temp">{% if inn %}<div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-i="1" data-sw-loc="in" data-sw-sloc></div><div class="shrink-0" data-sw-part="itemp"></div>{% else %}<div class="shrink-0" data-sw-part="temp"></div>{% endif %}<span class="{{ tsb }} shrink-0" data-sw-unit data-sw-sunit>{{ ui.unit }}</span></div>
+   <div class="flex flex--col flex--center shrink-0" data-sw-sgrp="side">
+    {%- if inn %}<div class="flex flex--row flex--top shrink-0" data-sw-sout><div class="shrink-0 self--center" data-sw-part="loc" data-sw-sq data-sw-i="0" data-sw-loc="out"></div>{% if ui.cue and ui.cue.size > 0 %}<div class="shrink-0 self--center" data-sw-part="cue" data-sw-cb data-sw-socue data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}<div class="shrink-0" data-sw-part="temp" data-sw-tr></div><span class="{{ tsb }} shrink-0" data-sw-sounit>{{ ui.unit }}</span></div>{% endif %}
+    {%- if ui.cue and ui.cue.size > 0 %}<div class="shrink-0" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}
+    {%- if ui.rain %}<div class="{{ fcy }} shrink-0" data-sw-unit="rain"><img class="{{ iia }} shrink-0" src="{{ ui.rain.icon }}" alt="" data-sw-icon data-sw-sricon><div class="shrink-0" data-sw-part="rain" data-sw-rows="2,2"></div></div>
+    {%- elsif ui.days[0] %}<span class="{{ tsb }} shrink-0" data-sw-slohi="{{ ui.days[0].lo }}|{{ ui.days[0].hi }}">{{ ui.days[0].lo }} {{ ui.days[0].hi }}</span>{% endif %}
+   </div>
+  </div>
+  {%- assign sms = ml | sort: 'rank' %}
+  {%- assign smx = 2 %}{% if view == 4 %}{% assign smx = 4 %}{% endif %}{% comment %} tall quadrants (portrait) may show up to four {% endcomment %}
+  {%- for m in sms %}{% if forloop.index > smx %}{% break %}{% endif %}
+  <div class="hidden flex--row flex--center-y gap--small w--full" data-sw-srow="meter"><span class="{{ tsb }} shrink-0" data-sw-mlabel>{{ m.label }}</span><div class="grow" data-sw-part="{% if m.tw or m.key == ph_tw %}meterin{% else %}meter{% endif %}" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div></div>
+  {%- endfor %}
+ </div>{{ p_close }}</div>
+{%- endif %}
+{%- if view <= 2 %}
+ <div data-sw-console{% if view == 1 %} data-sw-big{% endif %} class="{{ con_h }}">{{ p_open_g }}<div class="relative flex flex--row lg:portrait:flex--col-reverse{% if view == 2 %} lg:portrait:flex--between{% endif %} {% if view == 1 %}landscape:{% endif %}flex--stretch-y gap--medium lg:gap--large{% if view == 1 %} lg:portrait:gap--medium{% endif %} p--2 lg:p--4 h--full">{% comment %} X portrait (owner step 12) {% endcomment %}
+{{ c_meters }}
+  <div class="flex lg:portrait:hidden">{{ vr }}</div>
+  <div class="flex flex--row flex--stretch-y gap--medium lg:gap--large grow">
+{{ c_temp }}
+  {{ vr }}
+{{ c_right }}
+  </div>
+ </div>{{ p_close }}</div>
+{%- endif %}
+{%- if days_h %}
+ <div class="w--full px--4 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between data-sw-dstrip><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner: no divider between filled {% endcomment %}
+ <div class="{{ days_h }} grow" data-sw-dstrip>{{ p_open_g }}<div class="relative flex flex--col flex--center{% if view == 1 %} lg:portrait:flex--evenly{% endif %} h--full p--2 lg:p--4">
+{%- if ui.hours %}{% comment %} Hours strip (owner) {% endcomment %}
+  {%- assign nh_md = 8 %}{% assign nh_lg = 12 %}{% if view == 3 %}{% assign nh_md = 6 %}{% assign nh_lg = 8 %}{% endif %}
+  <div class="relative z--2 flex flex--row w--full h--full gap--xsmall" data-sw-hours="{{ nh_md }},{{ nh_lg }}">
+  {%- for q in ui.hours %}{% assign i = forloop.index0 %}
+  {%- if i < nh_md or i < nh_lg %}
+   <div class="grow basis--0 h--full{% if i >= nh_md %} hidden lg:block{% elsif i >= nh_lg %} lg:hidden{% endif %}" data-sw-hcol="{{ i }}"><div class="flex flex--col flex--center-x h--full w--full gap--xsmall">{% comment %} the visibility on the outer box, {% endcomment %}
+    <div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y h--[{{ 7 | times: hm | round }}cqh] lg:h--[{{ 4 | times: hl | round }}cqh]">{%- if q.now or q.wet %}<span class="label label--inverted label--large{% if q.now %} text--bold{% endif %}" data-sw-hstamp="{% if q.now %}now{% else %}wet{% endif %}">{{ q.hl }}</span>{% else %}<span class="label label--large" data-sw-hstamp="">{{ q.hl }}</span>{% endif %}</div>
+    <div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y h--[{{ 8 | times: hm | round }}cqh] lg:h--[{{ 6 | times: hl | round }}cqh]">{% if q.icon %}<img class="{{ iia }} h--full" src="{{ q.icon }}" alt="">{% endif %}</div>
+    <div class="grow w--full" data-sw-part="hbar" data-sw-i="{{ i }}"></div>
+   </div></div>
+  {%- endif %}
+  {%- endfor %}
+  </div>
+{%- else %}
+  <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round }}cqh]">
+   {%- assign dcue_on = false %}{% if view != 2 and view != 4 %}{% assign dcue_on = true %}{% endif %}{% capture dcue_w %}{{ badge_w }}{% if view == 3 %} hidden lg:block lg:portrait:hidden{% endif %}{% endcapture %}{% comment %} Calm (owner) {% endcomment %}
+   <div class="shrink-0 {{ name_w }}"></div><div class="shrink-0 {{ icon_w }}"></div>
+   <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round }}cqh] lg:h--[{{ 3 | times: hl | round }}cqh] w--[{{ 2 | times: wm | round }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
+   <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round }}cqh] lg:h--[{{ 3 | times: hl | round }}cqh] w--[{{ 2 | times: wm | round }}cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
+   <div class="grow basis--0 h--full" data-sw-part="scale"></div>{% if dcue_on %}<div class="shrink-0 {{ dcue_w }}"></div>{% endif %}
+  </div>
+  {%- assign nd_last = nd_lg | minus: 1 %}
+  {%- for d in ui.days %}
+  {%- assign i = forloop.index0 %}{% assign on_md = false %}{% assign on_lg = false %}
+  {%- if i < nd_md %}{% assign on_md = true %}{% endif %}
+  {%- assign j = i %}{% comment %} owner: the strip always starts {% endcomment %}
+  {%- if j >= 0 and j < nd_lg %}{% assign on_lg = true %}{% endif %}
+  {%- if on_md or on_lg or i < nd_mp %}
+  <div class="w--full{% if on_md and on_lg %}{% elsif on_md %} lg:hidden{% elsif i < nd_mp and on_lg %} hidden portrait:block lg:block{% elsif i < nd_mp %} hidden portrait:block lg:portrait:hidden{% else %} hidden lg:block{% endif %}{% if j == nd_last %}{{ last_p }}{% endif %}" data-sw-row="day">
+  {% comment %} owner: a faint hairline over {% endcomment %}
+  <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
+   <div class="shrink-0 {{ name_w }} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%- if d.today %}<span class="label label--inverted label--large{% if view != 3 %} lg:portrait:label--xxlarge{% else %} portrait:label--base lg:portrait:label--large{% endif %} text--bold" data-sw-today>{{ d.name }}</span>{% comment %} owner: today an inverted label in {% endcomment %}{% else %}<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}</span>{% endif %}</div></div>
+   <div class="shrink-0 {{ icon_w }} flex flex--center">{% if d.icon %}<img class="{{ iia }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="" data-sw-dink="{{ d.iconInk }}">{% endif %}</div>
+   <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.lo }}</span></div>
+   <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.hi }}</span></div>
+   <div class="grow basis--0 h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>{% if dcue_on %}<div class="shrink-0 {{ dcue_w }} flex flex--row flex--center-y"><div class="w--full h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round }}cqh]{{ icon_x }}" data-sw-part="dcue" data-sw-i="{{ forloop.index0 }}" data-sw-cue="{{ d.cue | join: '+' }}"></div></div>{% endif %}
+  </div></div>
+  {%- endif %}
+  {%- endfor %}
+{%- endif %}
+ </div>{{ p_close }}</div>
+{%- endif %}
+</div>
+{%- endif -%}
+{%- assign sw_hide = cf.hide_title_bar | append: '' -%}
+{%- unless sw_hide == 'true' or sw_hide == 'yes' or view != 1 %}
+<div class="title_bar">
+ <img class="{{ iia }} w--[28px] h--[28px]" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
+ {%- assign sw_name = trmnl.plugin_settings.instance_name %}{% if sw_name == blank or sw_name == 'Radio Weather' %}{% assign sw_name = i18n.ours.app | default: 'Radio Weather' %}{% endif %}{% comment %} owner 2026-11-13 {% endcomment %}
+ <span class="title">{{ sw_name }}</span>
+ {%- if ui.stale %}<span class="instance flex flex--row flex--center-y gap--xsmall"><img class="{{ iia }} w--[20px] h--[20px]" src="data:image/svg+xml;base64,{{ sw_stale_icon | base64_encode }}" alt=""><span data-sw-stale>{{ ui.stale }}</span></span>{% elsif clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}{% comment %} offline (saved copy): when the {% endcomment %}
+</div>
+{%- endunless %}
+{%- if ui and ui.ok %}
+<script type="text/javascript">
+var SW = {{ ui | json }};
+// Indoor overlay (ph, only the parts of the view that differ with an indoor reading): merged into SW, then the real
+// reading from the merge variable replaces the stand-in's values: the BINNEN readout, the humidity under it and the twin
+// needle (the dial scale widens to hold it) and the humidity twin meter. The trend arrows, today's low and high and the
+// trend arrows need the transform's saved state: not in this path. The CO2 meter (ph.mn / ph.mu: the meter list with a normal
+// and with a high reading, key, label, idx and rank only) is rebuilt from the meters already in SW plus the CO2 one, in the
+// same list the markup used (ml).
+var SWP = {% assign swp = false %}{% if ph.inn and i_t != nil %}{% assign swp = true %}{% endif %}{% if ph.mn and i_c != nil %}{% assign swp = true %}{% endif %}{% if swp %}{{ ph | json }}{% else %}null{% endif %};
+if (SWP) {
+  var SWI = [{{ i_t | default: 'null' }}, {{ i_h | default: 'null' }}, {{ i_c | default: 'null' }}];
+  var cL = SWI[2] !== null && SWP.mn ? SWP.mn : SWI[0] !== null && SWI[1] !== null && SWP.hn ? SWP.hn : 0;   /* the indoor order (owner 2026-11-14): the list for this reading, key, label, idx and rank */
+  if (cL) {
+    var cO = SW.meters;
+    SW.meters = cL.map(function (e) {
+      var b = cO.filter(function (m) { return m.key === e.key; })[0] || { key: e.key, label: e.label, frac: Math.max(0, Math.min(1, (SWI[2] - 400) / 1600)), past: null, later: null, peak: null, zones: SWP.cz };
+      b.idx = e.idx; b.rank = e.rank; return b;
+    });
+  }
+}
+if (SWP && SWI[0] !== null && SWP.inn) {
+  var fh = /F$/.test(SW.tdial.unit), D = SW.tdial, I = SW.inn = SWP.inn;
+  if (SWI[1] === null) I.hum = '';
+  else if (SWP.tw) SW.meters.forEach(function (m) { if (m.key === SWP.tw.k) m.tw = { out: SWP.tw.out, in: SWP.tw.in, m: { frac: 0 } }; });
+  var iv = fh ? SWI[0] * 1.8 + 32 : SWI[0], is = String(Math.round(iv * 10) / 10);
+  if (is.indexOf('.') < 0) is += '.0';
+  if (is.split('.')[0].length >= 3) is = String(Math.round(iv));
+  I.temp = is; D.twin = iv;
+  var iq = [D.lo, D.hi, D.now, iv].filter(function (v) { return v !== null; });
+  D.a = Math.floor(Math.min.apply(null, iq) / D.step) * D.step; D.b = Math.ceil(Math.max.apply(null, iq) / D.step) * D.step;
+  if (D.b - D.a < 3 * D.step) D.b = D.a + 3 * D.step;
+  if (SWI[1] !== null) {
+    I.hum = I.hum.replace(/\d+(?= %$)/, Math.round(SWI[1]));
+    SW.meters.forEach(function (m) { if (m.tw) m.tw.m.frac = Math.min(1, SWI[1] / 100); });
+  }
+  var iT = document.querySelector('[data-sw-inval]'), iH = document.querySelector('[data-sw-twin="in"] .label');
+  if (iT) iT.textContent = is;
+  if (iH && I.hum) iH.textContent = I.hum;
+}
+// Size class follows the real screen (device tier, owner task D1): the X layout (lg) is tuned for about 4:3 and 780 px
+// of height. A model whose lg class arrives on a small or wide screen (800x480 where the framework has no size for the
+// model, 1067x600) reads as a md screen, so the md sizes and rows apply.
+(function () { var sc = document.querySelector('.screen'); if (sc && sc.classList.contains('screen--lg') && Math.min(sc.offsetWidth, sc.offsetHeight) < 640) { sc.classList.remove('screen--lg'); sc.classList.add('screen--md'); } })();
+// Full-colour screens (24 bit) fill their panels like 4-bit ones: no hairline in the gap between them (the markup hides it
+// by the 4bit class, which a colour screen does not carry). Dark mode draws no fill, so it keeps the hairline.
+// Small screens (owner 2026-11-13): the full view on a sm screen or one under 500 px wide shows the small-view console (data-sw-alt)
+// instead of the full one (data-sw-big), as does a native portrait md screen (the full console cut its rain calendar on the poke 5); under 300 px of height the days strip goes too and the console takes the view.
+(function () { var sc = document.querySelector('.screen'), big = document.querySelector('[data-sw-big]'); if (!big) return;
+var sm = !!sc && (sc.classList.contains('screen--sm') || sc.offsetWidth < 500 || (sc.offsetHeight > sc.offsetWidth && !sc.classList.contains('screen--lg') && !sc.classList.contains('screen--portrait')));   // native portrait md screens (poke 5) too
+if (!sm) { document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.remove(); }); return; }
+big.remove(); document.querySelectorAll('[data-sw-alt]').forEach(function (e) { e.removeAttribute('data-sw-alt'); });
+if (sc.offsetWidth < 500 && sc.offsetHeight < 500) document.querySelectorAll('[data-sw-sbox]').forEach(function (e) { e.setAttribute('data-sw-nocue', ''); });   // playdate size: a tiny view, no clothing cue (owner)
+if (sc.offsetHeight < 300) { document.querySelectorAll('[data-sw-dstrip]').forEach(function (e) { e.remove(); }); var c = document.querySelector('[data-sw-small]'); if (c) { [].slice.call(c.classList).forEach(function (q) { if (/h--/.test(q)) c.classList.remove(q); }); c.classList.add('h--full'); } }
+})();
+(function () { var sc = document.querySelector('.screen'); if (sc && sc.classList.contains('screen--color-full') && !sc.classList.contains('screen--dark-mode')) document.querySelectorAll('[data-sw-between]').forEach(function (e) { e.classList.add('hidden'); }); })();
+// ==== DRAW_BEGIN ====
+var SWDraw = (() => {
+var API = { paint: null };
+var GLYPH = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '' };
+var SHADOW = 'dark:hidden 1bit:hidden', SO = 3, K = 0;
+var SK = 'stroke="currentColor" stroke-width="';   // size: the stroke attributes most shapes share
+function n1(v) { return String(Math.round(v * 10) / 10); }
+function pts(p) { return p.map((q) => n1(q[0]) + ',' + n1(q[1])).join(' '); }
+function poly(p, extra) { return '<polygon points="' + pts(p) + '"' + (extra || '') + '/>'; }
+function rect(x, y, w, h, rx, extra) { return '<rect x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(Math.max(0, w)) + '" height="' + n1(Math.max(0, h)) + '"' + (rx ? ' rx="' + n1(rx) + '"' : '') + (extra || '') + '/>'; }
+var DEFS = '';
+function nat2(tok) {
+var m = /^gray-(\d+)$/.exec(tok || ''); if (!m) return tok;
+var v = +m[1]; return v <= 20 ? 'black' : (v <= 47 ? 'gray-30' : (v <= 72 ? 'gray-55' : 'white'));
+}
+function mid() { return API.mode && API.mode.bits <= 1 ? '' : (API.mode && API.mode.bits === 2 ? 'text--gray-40 dark:text--gray-60' : 'text--gray-45 dark:text--gray-50'); }
+function act() { return API.mode && API.mode.bits === 2 ? 'text--gray-40' : 'text--gray-20'; }
+function blk(hi) { return API.mode && API.mode.bits <= 1 ? '' : (hi ? 'text--gray-10 dark:text--gray-75' : (act() + ' dark:text--gray-60')); }
+function g(cls, body) {
+var keep = [], tok = null;
+cls.split(' ').forEach((c) => { if (c.indexOf('text--') === 0) tok = c.slice(6); else if (c) keep.push(c); });
+if (API.mode && API.mode.bits === 2) {
+tok = nat2(tok);
+}
+var f = tok && API.paint ? API.paint(tok) : null, at = '';
+if (f && f.url && f.size) { var id = 'swp' + (K++); DEFS += '<pattern id="' + id + '" patternUnits="userSpaceOnUse" width="' + f.size + '" height="' + f.size + '">' + (f.color ? '<rect width="' + f.size + '" height="' + f.size + '" fill="' + f.color + '"/>' : '') + '<image href="' + f.url + '" width="' + f.size + '" height="' + f.size + '"/></pattern>'; at = ' fill="url(#' + id + ')"' + (f.color ? ' color="' + f.color + '"' : ''); }
+else if (f && f.color) at = ' fill="' + f.color + '" color="' + f.color + '"';
+else if (tok) keep.push('text--' + tok);
+return '<g' + (keep.length ? ' class="' + keep.join(' ') + '"' : '') + at + '>' + body + '</g>';
+}
+function hue(tok) {
+if (!(API.mode && API.mode.color) || !API.paint) return null;
+var f = API.paint(tok); if (!f || !f.color || f.url) return null;
+var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(f.color); if (!m) return null;
+var r = +m[1], q = +m[2], b = +m[3], ok = tok === 'red' ? r > 150 && q < 110 && b < 110 : (tok === 'yellow' ? r > 150 && q > 150 && b < 110 : false);
+return ok ? f.color : null;
+}
+function hg(tok, body) { return '<g data-sw-hue="' + tok + '">' + g('text--' + tok, body) + '</g>'; }
+function text(x, y, s, fs, anc, extra) { return '<text x="' + n1(x) + '" y="' + n1(y) + '" font-size="' + n1(fs) + '" font-weight="700" text-anchor="' + (anc || 'middle') + '"' + (extra || '') + '>' + s + '</text>'; }
+function svg(W, H, body, vb) { var d0 = DEFS; DEFS = ''; return svg0(W, H, body, vb, d0); }
+function svg0(W, H, body, vb, DEFS) { return '<svg xmlns="http://www.w3.org/2000/svg" width="' + n1(W) + '" height="' + n1(H) + '" viewBox="' + (vb || '0 0 ' + n1(W) + ' ' + n1(H)) + '" fill="currentColor" overflow="visible"' + (API.font ? ' font-family="' + API.font.replace(/"/g, "'") + '"' : '') + '>' + (DEFS ? '<defs>' + DEFS + '</defs>' : '') + body + '</svg>'; }
+function hseg(x0, x1, y, t) { var h = t / 2; return [[x0, y], [x0 + h, y - h], [x1 - h, y - h], [x1, y], [x1 - h, y + h], [x0 + h, y + h]]; }
+function vseg(x, y0, y1, t) { var h = t / 2; return [[x, y0], [x + h, y0 + h], [x + h, y1 - h], [x, y1], [x - h, y1 - h], [x - h, y0 + h]]; }
+function shapes(x, w, h, t, g0) {
+var gp = g0 !== undefined ? g0 : Math.max(1, t * 0.16), xl = x + t / 2, xr = x + w - t / 2, yt = t / 2, ym = h / 2, yb = h - t / 2;
+return { a: hseg(xl + gp, xr - gp, yt, t), g: hseg(xl + gp, xr - gp, ym, t), d: hseg(xl + gp, xr - gp, yb, t),
+f: vseg(xl, yt + gp, ym - gp, t), b: vseg(xr, yt + gp, ym - gp, t), e: vseg(xl, ym + gp, yb - gp, t), c: vseg(xr, ym + gp, yb - gp, t) };
+}
+function digits(str, H, tr) {
+var W = 56, HH = 100, T = 13, G = 14, x = 0, body = '', dec = '', post = false;
+// Owner 2026-11-14: the point and the decimal digit after it are drawn in a dark grey (light grey on black in dark mode), black stays on 1-bit.
+function put(t) { if (post) dec += t; else body += t; }
+// Owner 2026-11-14: fixed-width digit cells like an LCD: the 1 sits in a full cell and the integer part always reserves two cells (a minus takes the empty one), so 1.6 and 21.6 have the same width.
+var ip = (/^-?\d*/.exec(str) || [''])[0], idg = ip.replace('-', '').length, neg = ip.charAt(0) === '-';
+if (idg < 2 && !neg && !tr) x += W + G;   /* tr: the outdoor readout beside its icons drops the empty cell */
+for (var i = 0; i < str.length; i++) {
+var ch = str.charAt(i);
+if (ch === '.') { post = true; put(rect(x - G + 3, HH - T, T, T)); x += 20 - G; continue; }
+if (ch === '°') { post = false; body += '<circle cx="' + (x + 9) + '" cy="10" r="7" fill="none" ' + SK + '5"/>'; x += 22 + G; continue; }
+var w = ch === '-' ? 46 : W, on = GLYPH[ch] || '', sh = shapes(x, w, HH, T), gb = '';
+'abcdefg'.split('').forEach((s) => { if (on.indexOf(s) >= 0) gb += poly(sh[s]); });
+put('<g data-sw-glyph="' + ch + '">' + gb + '</g>');
+x += ch === '-' ? (idg < 2 ? W + G : w + G * 0.3) : w + G;
+}
+if (dec) body += '<g data-sw-dec>' + g(API.mode && API.mode.bits <= 1 ? '' : (API.mode && API.mode.dark ? 'text--gray-30 dark:text--gray-30' : 'text--gray-30'), dec) + '</g>';
+var vw = Math.max(1, x - G);
+return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
+}
+function segtime(str, cap) {
+var T = 17, W = 54, G = 13, GP = 1.5, HH = 100, s = String(str).trim();
+if (!s || /[^0-9:\-. ]/.test(s)) return null;
+var adv = (c) => c === ' ' ? 40 : ((c === '.') ? T + G : (c === '1' ? W * 0.58 + G : (c === ':' ? T + G * 2.4 : W + G))), x = 0, body = '';
+s.split('').forEach((c) => {
+if (c === '.') body += rect(x, HH - T, T, T);
+else if (c === ':') body += rect(x + G * 0.7, 0.3 * HH - T / 2, T, T) + rect(x + G * 0.7, 0.7 * HH - T / 2, T, T);
+else if (c !== ' ') { var on = GLYPH[c] || '', sh = shapes(c === '1' ? x + (W * 0.58 - T) / 2 : x, c === '1' ? T : W, HH, T, GP), gb = ''; 'abcdefg'.split('').forEach((q) => { if (on.indexOf(q) >= 0) gb += c === '7' && q === 'a' ? poly(hseg(x + GP, x + W - GP, T / 2, T)) : poly(sh[q]); }); body += '<g data-sw-glyph="' + c + '">' + gb + '</g>'; }
+x += adv(c);
+});
+var vw = x - G, k = cap * 1.25 / HH;
+return { html: svg(vw * k, HH * k, glow(body, GPX / k), '0 0 ' + vw + ' ' + HH).replace('<svg ', '<svg class="block" '), key: s + '|' + n1(cap) };
+}
+var LOC = { out: "<path d='M8 17a4.5 4.5 0 0 1 .5-8.8A5.5 5.5 0 0 1 19.5 8.2 4.5 4.5 0 0 1 20 17z'/><path d='M14 17v8M10.5 25h7'/>", in: "<path d='M3 14L14 4l11 10'/><path d='M6 12v12h16V12'/><path d='M12 24v-7h4v7'/>" };
+function loc(k, W, H) { return svg(W, H, locAt(k, (W - Math.min(W, H)) / 2, (H - Math.min(W, H)) / 2, Math.min(W, H))); }
+function locAt(k, x, y, s) { return g(k === 'out' ? inc() : '', '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(s) + '" height="' + n1(s) + '" viewBox="0 0 28 28" overflow="visible"><g fill="none" ' + SK + '' + n1(Math.max(1.8, 1.5 * 28 / Math.max(1, s)) * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-loc="' + k + '">' + LOC[k] + '</g></svg>'); }
+var inc = () => API.mode && API.mode.bits <= 1 ? '' : 'text--gray-30', inb = () => API.mode && API.mode.dark ? 'text--gray-45' : 'text--gray-50';
+function cells(frac, n) { return frac === null || frac === undefined || !(frac > 0) ? 0 : Math.max(1, Math.round(Math.min(1, frac) * n)); }
+function cellStates(m, n) {
+m = m || {}; var a = cells(m.frac, n), p = cells(m.past, n), l = cells(m.later, n), k = cells(m.peak, n), st = [];
+for (var i = 0; i < n; i++) st.push(i < a ? 'a' : (i < p ? 'p' : (i < l ? 'l' : 'e')));
+return { st: st, peak: k - 1 };
+}
+function meter(m, W, H, n, ind) {
+m = m || {}; if (!ind) return svg(W, H, m.tw ? '<g data-sw-twrow="out">' + mrow(m, W, H, n, inb()) + '</g>' : mrow(m, W, H, n));   /* owner 2026-11-14: indoor primary, the outdoor row of the twin in grey */
+return svg(W, H, '<g data-sw-twrow="in">' + mrow(m.tw.m, W, H, n) + '</g>');
+}
+function mrow(m, W, H, n, lc) {
+n = n || 10;
+var CS = cellStates(m, n), zones = m.zones, lit = cells(m.frac, n), gk = '', pv = '', lt = '', lo = '',
+cw = (W - SO) / n, gp = cw * 0.12, ch = H - SO, on = '', sh = '', off = '', zc = ['', '', ''], ZT = [null, hue('yellow') && 'yellow', hue('red') && 'red'];
+var DK = API.mode && API.mode.dark && API.mode.bits >= 2;
+for (var i = 0; i < n; i++) {
+var x = i * cw + gp / 2, w = cw - gp, s = CS.st[i];
+var zi = zones ? ((i + 0.5) / n >= zones[1] ? 2 : ((i + 0.5) / n >= zones[0] ? 1 : 0)) : 0;
+if (i === CS.peak && s === 'e') { var sw = Math.max(3, Math.min(w, ch) * 0.14), gr = rect(x + sw / 2, sw / 2, w - sw, ch - sw, 2, ' fill="none" ' + SK + '' + n1(sw) + '" data-sw-gust="' + i + '"'); gk = ZT[zi] ? hg(ZT[zi], gr) : gr; sh += rect(x + sw / 2 + SO, sw / 2 + SO, w - sw, ch - sw, 2, ' fill="none" ' + SK + '' + n1(sw) + '"'); }
+if (s === 'a' && ZT[zi]) { zc[zi] += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, ch, 2); }
+else if (s === 'a') { on += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, ch, 2); }
+else if (s === 'p') pv += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"');
+else if (s === 'l') { lt += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"'); if (!DK) lo += rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" ' + SK + '2" data-sw-lo="' + i + '"'); }   // light forecast fill keeps the empty-cell outline (owner 2026-11-14)
+else off += DK ? rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" ' + SK + '2" data-sw-c="' + i + '"');
+}
+var PV = API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bits <= 1 ? 'text--gray-75' : (API.mode && API.mode.bits <= 2 ? 'text--gray-65' : 'text--gray-75'));   // owner 2026-11-14: lighter grey for the forecast cells
+var LT = PV, OC;
+return ('<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + (lc ? '' : g(SHADOW + ' text--gray-65', sh)) + '<g data-sw-st="e">' + g(OC = !API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + g(LT, lt) + (lo ? g(OC, lo) : '') + '</g><g data-sw-on data-sw-st="a">' + (lc ? g(lc, on) : API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) +   /* owner: 2-bit+ light dark grey, 1-bit black, dark white */ (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);
+}
+function gauge(gq, W, H) {
+if (!gq) return '';
+var lab = String(gq.label), x0 = API.gx0 || 0, bw = W - x0, fs = Math.min((API.lp || 16) * 0.7, x0 / (lab.length * 0.62 + 0.5)), n = 3, cw = bw / n, gp = API.gp || Math.max(2, Math.min(cw, H) * 0.06), on = '', sh = '', off = '', DK = API.mode && API.mode.dark && API.mode.bits >= 2;
+for (var i = 0; i < n; i++) {
+var x = x0 + i * cw + gp / 2, w = cw - gp;
+if (i < gq.segs) { on += rect(x, 0, w, H, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, H, 2); }
+else off += DK ? rect(x, 0, w, H, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1, w - 2, H - 2, 2, ' fill="none" ' + SK + '2" data-sw-c="' + i + '"');
+}
+var offc = !API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')));
+return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) + '</g>' + text(x0 / 2, H / 2, lab, fs, 'middle', ' dominant-baseline="central" data-sw-glabel'));
+}
+function tick(v) { return String(v === 0 ? 0 : v); }
+function lfs(sc) { return API.nfs ? (API.lp && API.nfs > API.lp && API.ogfull ? API.lp : Math.max(API.nfs, API.lp || 0)) : Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }
+function ticks(sc, W) {
+var fs = lfs(sc), st = sc.major, w = (v) => fs * 0.62 * (tick(v).length + 1.2) + fs * 0.6, n = 0, out = [];
+for (var v = sc.a; v <= sc.b + 1e-9; v += st) n += w(v);
+if (n > W * 0.75) { st = sc.major * 2; if (API.nfs) { var m = 2, R = sc.b - sc.a, ok = function (s) { var t = 0, mx = 0; for (var v = sc.a; v <= sc.b + 1e-9; v += s) { t += w(v); mx = Math.max(mx, w(v)); } return t <= W * 0.75 && mx <= s / R * W; };
+for (;;) { while (m * sc.major < R && Math.abs(R / (m * sc.major) % 1) > 1e-9) m++; st = m * sc.major; if (st >= R || ok(st)) break; m++; } } }   // B5: portrait rows widen the step until each label fits its spacing ("-25°-15°" ran together; render check TICKS)
+for (var v = API.nfs && st > sc.major ? sc.a : Math.ceil(sc.a / st - 1e-9) * st; v <= sc.b + 1e-9; v += st) out.push(v);   // a widened step (portrait rows) starts at the track's first value, so the labels sit at both track ends
+return out;
+}
+function xmap(sc, W) {
+var fs = lfs(sc), cw = fs * 0.62, pl = cw * tick(sc.a).length / 2 + 2, pr = cw * tick(sc.b).length / 2 + cw * 0.7 + 2;
+return (t) => pl + (t - sc.a) / (sc.b - sc.a) * (W - pl - pr);
+}
+function day(d, sc, W, H, hi) {
+var nowV = sc.now; sc = Object.assign({}, sc, { now: null });
+var X = xmap(sc, W), body = '';
+var E = API.extD || 0;
+body = g('text--gray-70', body);
+if (d.loV !== null && d.hiV !== null) {
+var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * (hi || API.nfs ? 0.5 : 0.4), y = (H - bh) / 2, cells = '', sh = '';
+var ptH = lfs(sc) * 0.3 * 1.4;
+if (hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); }
+var k = 1; while (k * cw - Math.max(2.5, k * cw * 0.16) < 6 && k < 50) k++;
+var gp = Math.max(2.5, k * cw * 0.16), pc = [], a0 = sc.a + Math.floor((a - sc.a) / k) * k;
+var ca = API.nfs ? 3 : 1.5; if ((API.nfs || API.port) && k * cw - gp >= 6 && bh > (k * cw - gp) * ca) { y += (bh - (k * cw - gp) * ca) / 2; bh = (k * cw - gp) * ca; }
+if (API.top) y = Math.min(y, ptH + 2);   // B5: a two-line row's bar sits right under its name (room for the now mark only), not halfway to the next day (render check DAYNAME)
+if (k * cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = k > 1 ? a0 : a; t < b; t += k) pc.push([X(t) + gp / 2, X(t + k) - gp / 2]);
+pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
+body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells data-sw-k="' + k + '" data-sw-r="' + (b - a) + '">' + g(hi ? blk(hi) : mid(), cells) + '</g>';
+}
+if (hi && nowV !== null && nowV !== undefined) { var pxn = X(nowV), pr2 = ptH / 1.4, py0 = API.nfs && y !== undefined ? Math.max(0, y - ptH - 2) : 0, ptr = poly([[pxn - pr2, py0], [pxn + pr2, py0], [pxn, py0 + ptH]], ' data-sw-nowmark'); body += hue('red') ? hg('red', ptr) : ptr; }
+if (hi) body += '<g data-sw-hl="1"></g>';
+return svg(W, H, body);
+}
+function hscale(all, nc) {
+var ts = (all || []).slice(0, nc || (all || []).length).map((q) => q && q.tV).filter((v) => v !== null && v !== undefined).map(Math.round);
+return ts.length ? { a: Math.min.apply(null, ts) - 1, b: Math.max.apply(null, ts) } : null;
+}
+function hper(hs, cap) { return Math.max(1, Math.ceil(Math.max(1, hs.b - hs.a) / cap)); }
+function hlevels(hs, C) {
+var steps = Math.max(1, hs.b - hs.a), cap = Math.max(1, Math.min(6, Math.floor(C / 6))), per = hper(hs, cap);
+return per > 1 ? Math.ceil(steps / per) : steps * Math.floor(cap / steps);
+}
+function hbar(q, hs0, W, H, hi, all) {
+var hs = hscale(all, API.hcols) || hs0;
+if (!q || q.tV === null || q.tV === undefined || !hs) return svg(W, H, '');
+var lw = String(q.t).length, fs = Math.max(8, Math.min(W / (Math.max(2, lw) * 0.62), (API.hbarH || H) * 0.2, 30)), R = Math.round(fs * 1.45) + 3;
+var C = Math.min(H, API.hbarH || H) - R, L = hlevels(hs, C), per = hper(hs, Math.max(1, Math.min(6, Math.floor(C / 6))));
+var n = Math.max(1, Math.min(L, per > 1 ? Math.ceil((Math.round(q.tV) - hs.a) / per) : Math.round((Math.round(q.tV) - hs.a) / (hs.b - hs.a) * L))), Hh = H - SO, lh = (C - SO) / L, gp = Math.max(2, lh * 0.2), bw = W - SO, cells = '', sh = '';
+for (var k = 0; k < n; k++) { var y = Hh - (k + 1) * lh + gp / 2; cells += rect(0, y, bw, lh - gp, 2); sh += rect(SO, y + SO, bw, lh - gp, 2); }
+var ty = Hh - n * lh + gp / 2 - 3 - fs * 0.36;
+return svg(W, H, g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells="' + n + '" data-sw-area="' + n1(C) + '">' + g(blk(hi), cells) + '</g>' + text(bw / 2, ty, q.t, fs, 'middle', ' data-sw-htemp'));
+}
+function scale(sc, W, H) {
+var X = xmap(sc, W), fs = lfs(sc), body = '', rules = '', ty = Math.max(H * 0.62, fs * 0.3 * 1.4 + 2 + fs * 0.4), lb = ty + fs * 0.55, E = API.extD || 0, cross = false, xn = sc.now === null || sc.now === undefined ? null : X(sc.now);
+ticks(sc, W).forEach((v) => {
+var p = X(v), s = tick(v), tw = fs * 0.62 * s.length, l = p - tw / 2;
+body += text(p, ty, s, fs, 'middle', ' dominant-baseline="middle" data-sw-tick="' + s + '"') + text(p + tw / 2, ty, sc.deg, fs, 'start', ' dominant-baseline="middle"');
+
+});
+var pw = (API.paint && (API.paint('white') || {}).color) || '#fff';
+body = '<g data-sw-track="' + n1(X(sc.a)) + ',' + n1(X(sc.b)) + '"></g>' + g('text--gray-70', rules) + '<g data-sw-axis stroke="' + pw + '" stroke-width="' + n1(fs * 0.22) + '" paint-order="stroke" stroke-linejoin="round">' + body + '</g>';
+return svg(W, H, body);
+}
+function rain(hours, W, H, rows) {
+var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = rows === 2 ? 2 : (rows === 3 || fit(3) < fit(2)) && (W / C) / (H / 3) <= 1.95 && Math.min(H / 3 * 0.9, W / C * 0.7) >= (API.lp || 0) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.7), body = '';
+var hs = hours.slice(0, C * R), lw = (h) => { var m = String(h).match(/^(\d*)(.*)$/); return m[1].length * 0.62 + m[2].length * 0.7 * 0.6; }, wf = (a) => Math.max.apply(null, a.map((q) => lw(q.h)).concat(0)), wmax = wf(hs);
+var pf = (w) => Math.min(0.9, Math.max(0.7, (API.lp || 0) * 0.97 * w / cw));
+if (wmax * fs > cw * pf(wmax) && cw * pf(wmax) / wmax < (API.lp || 0) * 0.95) { hs = hs.map((q) => ({ h: String(q.h).replace(/\D+$/, ''), wet: q.wet })); wmax = wf(hs); }
+if (wmax * fs > cw * pf(wmax)) fs = cw * pf(wmax) / wmax;
+hs.forEach((q, i) => {
+var x = (i % C) * cw, y = Math.floor(i / C) * rh;
+if (q.wet) { var gp = Math.max(2, Math.min(cw, rh) * 0.06), wr = rect(x + gp / 2, y + gp / 2, cw - gp, rh - gp, 2);
+body += hue('red') ? hg('red', wr) : (API.mode && API.mode.bits >= 4 ? g('text--gray-10 dark:text--gray-30', glow(wr, GPX)) : glow(wr, GPX)); }
+var hm = String(q.h).match(/^(\d+)(\D+)$/), tx = text(x + cw / 2, y + rh / 2, hm ? hm[1] + '<tspan font-size="' + n1(fs * 0.6) + '">' + hm[2] + '</tspan>' : q.h, fs, 'middle', ' dominant-baseline="central"'); body += q.wet ? g('text--white', tx) : tx;
+});
+return svg(W, H, body);
+}
+function rule(W, H) { return svg(W, H, g('text--gray-40', '<line x1="0" y1="' + n1(H / 2) + '" x2="' + W + '" y2="' + n1(H / 2) + '" ' + SK + '3" stroke-dasharray="3 7"/>')); }
+function moonLit(p, cx, cy, r) {
+var c = Math.cos(2 * Math.PI * p), rx = r * Math.abs(c), wax = p < 0.5, top = n1(cx) + ',' + n1(cy - r), bot = n1(cx) + ',' + n1(cy + r);
+var term = wax ? (c > 0 ? 0 : 1) : (c > 0 ? 1 : 0);
+return 'M' + top + ' A' + n1(r) + ',' + n1(r) + ' 0 0 ' + (wax ? 1 : 0) + ' ' + bot + ' A' + n1(rx) + ',' + n1(r) + ' 0 0 ' + term + ' ' + top + ' Z';
+}
+function moon(p, H, lb) {
+if (p == null || isNaN(p)) return '';
+var r = H * 0.27, cx = H / 2, f = (1 - Math.cos(2 * Math.PI * p)) / 2, lit = '';
+var dk = API.mode && API.mode.dark, bits = API.mode ? API.mode.bits : 4, sw = Math.max(bits <= 2 ? 2.5 : 1.5, H * 0.03),
+ri = bits <= 1 && !dk ? r - sw * 1.6 : r;
+if (f > 0.01) lit = '<path d="' + moonLit(p, cx, cx, ri) + '" data-sw-moon="lit"' + (lb == null ? '' : ' transform="rotate(' + n1(-(lb - (p < 0.5 ? 270 : 90))) + ' ' + n1(cx) + ' ' + n1(cx) + ')"') + '/>';   // lb: the bright limb as the observer sees it (transform moonLimb, owner 2026-11-14: true tilt)
+var limb = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fill="none" ' + SK + '' + n1(sw) + '"/>';
+var h = dk ? halo('<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '"/>', GPX) : '';
+if (h) { var mid = 'swmk' + (K++); h = '<defs><mask id="' + mid + '" maskUnits="userSpaceOnUse" x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '"><rect x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '" fill="#fff"/><circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r + sw / 2) + '" fill="#000"/></mask></defs><g mask="url(#' + mid + ')" data-sw-moonhalo>' + h + '</g>'; }
+var disk = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" data-sw-moon="disk"/>';
+if (dk) { if (f < 0.08) return svg(H, H, h + g('text--gray-45', disk.replace('r="' + n1(r) + '"', 'r="' + n1(ri) + '"').replace('"disk"', '"lit"')) + limb); return svg(H, H, h + lit + limb); }
+// Light (owner 2026-11-14, like a printed moon-phase icon): the shadow is a dark disc, the lit part paper white, the outline kept.
+return svg(H, H, g(bits <= 1 ? '' : (bits === 2 ? 'text--gray-10' : 'text--gray-20'), disk) + (lit ? g('text--white', lit) : '') + limb);
+}
+var CLOTH = { umbrella: "<path d='M3.5 14a10.5 10.5 0 0 1 21 0c-1.7-1.4-3.5-1.4-5.2 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.5-1.4-5.2 0z'/><path d='M14 14v8.5a2 2 0 0 1-4 0'/><path d='M14 2.5v1'/>",
+parka: "<g transform='translate(0 -0.70)'><path class='text--gray-65' fill='currentColor' stroke='none' d='M7.4 9.2q-.9-1.1 0-2.2q-.2-1.4 1.2-1.9q.4-1.3 1.8-1.3q.9-1 2.2-.6q1.4-.6 2.8 0q1.3-.4 2.2.6q1.4 0 1.8 1.3q1.4.5 1.2 1.9q.9 1.1 0 2.2L18 9.7Q14 13 10 9.7Z'/><path d='M7.4 9.2q-.9-1.1 0-2.2q-.2-1.4 1.2-1.9q.4-1.3 1.8-1.3q.9-1 2.2-.6q1.4-.6 2.8 0q1.3-.4 2.2.6q1.4 0 1.8 1.3q1.4.5 1.2 1.9q.9 1.1 0 2.2' stroke-width='1.4'/><path d='M10 9.7Q14 13 18 9.7L20 9.5 22.5 10.5 24 22.5h-3L19.7 14 20.2 26H7.8L8.3 14 7 22.5H4L5.5 10.5 8 9.5Z'/><path d='M14 11.3v14.7'/><path d='M15.1 14.4h.9M15.1 17.6h.9' stroke-width='1.6'/><path d='M10 20.2h2M16 20.2h2' stroke-width='1.6'/></g>",
+jacket: "<path d='M10.5 4.5L5.5 7 4 22h3l1.5-10V24h11V12L21 22h3L22.5 7l-5-2.5'/><path d='M10.5 4.5L14 9l3.5-4.5'/><path d='M14 9v15'/>",
+sweater: "<path d='M10.2 5Q14 8.4 17.8 5L22.5 7 24 22h-3L19.5 12V24h-11V12L7 22H4L5.5 7Z'/><path d='M8.5 21.5h11M8.5 19h11' stroke-width='1.3'/>",
+tshirt: "<path d='M10 5Q14 9.2 18 5L24 8.5 21.5 13 19 11.5V24H9V11.5L6.5 13 4 8.5Z'/>" };
+// Garment strokes (owner 2026-11-13: "milder"): the weight of the weather and rain icons, 1.05 of 28 units, scaling with the size; at least 0.9 px (1.25 px on 1-bit).
+function cue(ks, W, H, mid) {
+ks = (ks || []).filter((k) => CLOTH[k]).slice(0, 2); if (!ks.length) return svg(W, H, '');
+if (!mid) W = Math.max(W, 1.6 * H);
+var s = Math.min(48, 30 * W / H), e = s * 0.55, sw = (z) => n1(Math.max(1.05, (API.mode && API.mode.bits <= 1 ? 1.25 : 0.9) * 28 / (z * H / 48)) * 100) / 100,
+it = (k, x, y, z) => '<g data-sw-item="' + (k === 'umbrella' ? k : 'top') + '" transform="translate(' + n1(x) + ' ' + n1(y) + ') scale(' + n1(z / 28 * 1000) / 1000 + ')" stroke-width="' + sw(z) + '">' + CLOTH[k] + '</g>', y0 = (48 - s) / 2;
+var body = it(ks[0], 0, y0, s) + (ks[1] ? it(ks[1], s * 1.6 - e, y0, e) : '');
+return svg(W, H, '<svg width="' + n1(W) + '" height="' + n1(H) + '" viewBox="0 0 ' + n1(48 * W / H) + ' 48" overflow="visible"><g data-sw-cloth data-sw-box="0,0,' + n1(H) + '"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="' + sw(s) + '">' + body + '</g></g></svg>');
+}
+function backlight(W, H, cx, cy, rad, ryk, rx) {
+var m = API.mode || {}, pa = API.paint ? API.paint(m.bits === 2 ? 'gray-55' : 'gray-75') : null;
+if (m.dark || (m.bits || 4) < 3) return '';
+return rect(0, 0, W, H, rx || 0, ' fill="' + ((pa && pa.color) || '#bbb') + '"' + (m.bits !== 2 ? ' fill-opacity="0.5"' : '') + ' data-sw-fill="1"');
+}
+function glow(s, sd) { return halo(s, sd) + s; }
+function halo(s, sd) {
+var m = API.mode || {};
+if (!m.dark || (m.bits || 4) < 2 || !s) return '';
+var id = 'swgl' + (K++), f = m.bits === 2
+? '<feMorphology in="SourceAlpha" operator="dilate" radius="' + n1(Math.max(0.5, sd / 4)) + '" result="d"/><feFlood flood-color="' + ((API.paint && (API.paint('gray-45') || {}).color) || '#777') + '"/><feComposite operator="in" in2="d"/>'
+: '<feGaussianBlur stdDeviation="' + n1(sd) + '"/><feComponentTransfer><feFuncA type="linear" slope="0.75"/></feComponentTransfer>';
+return '<defs><filter id="' + id + '" x="-30%" y="-30%" width="160%" height="160%">' + f + '</filter></defs><g filter="url(#' + id + ')" data-sw-glow="' + m.bits + '">' + s + '</g>';
+}
+var GPX = 4;
+function icon(href, W, H) {
+var id = 'swink' + (K++);
+return svg(W, H, '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>' + glow('<image href="' + href + '" x="0" y="0" width="' + n1(W) + '" height="' + n1(H) + '" filter="url(#' + id + ')"/>', GPX));
+}
+function mlp(f, r1, lt, W, H, py, lo) {
+var A = 75 * Math.PI / 180, mfs = H * 0.1, mg = Math.max(2.5, H * 0.008), g = Math.max(4, H * 0.03), hw = mfs * 0.62 * lt.length / 2, an = -A + 2 * A * Math.max(-0.03, Math.min(1.03, f));
+var rr = r1 + mg + Math.abs(Math.sin(an)) * hw + Math.abs(Math.cos(an)) * mfs * 0.4 + r1 * 0.022 * 2 * A, x = W / 2 + rr * Math.sin(an), y = py - rr * Math.cos(an), t = g + mfs * 0.625 + 0.5;
+var bs = y < t;
+if (bs) { y = Math.max(t, py - r1 * Math.cos(an)); x = W / 2 + r1 * Math.sin(an) + (lo === undefined ? (an < 0 ? -1 : 1) : (lo ? -1 : 1)) * (hw + r1 * 0.022 * 2 * A + mg + 2); /* owner 2026-11-14: right beside its marker at its height, the low value left, the high value right */ }
+return [Math.max(g + hw, Math.min(W - g - hw, x)), y, bs];
+}
+function dialR(D, W, H, nums, py) {
+var lw = Math.max(2, H * 0.026), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.1, mg = Math.max(2.5, H * 0.008);
+var g = Math.max(4, H * 0.03), r = Math.min(W * 0.42 / Math.sin(A), H * (W < H * 1.8 ? 0.5893 : 0.639), py - g - 1.3 * mh - bw - lw - 2), rmin = Math.min(r, W * 0.37 / Math.sin(A)), ok = true;
+return [r, ok];
+}
+function dialClash(D, W, H, r, py, nums, kind) {
+var g = Math.max(4, H * 0.03), caps = (API.caps || {})[kind] || [];
+return dialInk(D, W, H, r, py, nums, kind === 'baro').some((b) => b[0] < g || b[1] < g || b[2] > W - g || b[3] > H - g || caps.some((c) => b[0] < c[2] + g && b[2] > c[0] - g && b[1] < c[3] + g && b[3] > c[1] - g));
+}
+function dialInk(D, W, H, r, py, nums, baro) {
+var lw = Math.max(2, H * 0.026), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.1, mg = Math.max(2.5, H * 0.008), out = [];
+var cl = (f) => Math.max(-0.03, Math.min(1.03, f)), at = (f, rad) => { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }, F = (v) => (v - D.a) / (D.b - D.a);
+var pt = (q, h) => out.push([q[0] - h, q[1] - h, q[0] + h, q[1] + h]), bx = (q, w, h) => out.push([q[0] - w / 2, q[1] - h / 2, q[0] + w / 2, q[1] + h / 2]);
+for (var f = 0; f <= 1.0001; f += 0.025) { pt(at(f, r), lw); pt(at(f, r - H * 0.07), lw); }
+if (baro) { var zri = r - H * 0.135, isz = r * 0.34; [0, 1, 2, 3].forEach((i) => bx(at((2 * i + 1) / 8, zri - isz * 0.62), isz, isz)); }
+else for (var v = D.a; v <= D.b + 1e-9; v += D.step) { var fs = H * 0.1; bx(at(F(v), r - H * 0.07 - fs * 0.8), fs * 0.62 * String(v).length, fs * 1.25); }
+if (D.lo !== null && D.lo !== undefined && D.hi !== null && D.hi !== undefined) {
+var r0 = r + lw + bw + 2, r1 = r0 + mh, f0 = F(D.lo), f1 = F(D.hi);
+for (var k = 0; k <= 20; k++) pt(at(f0 + (f1 - f0) * k / 20, r + lw / 2 + bw / 2), bw);
+[D.lo, D.hi].forEach((m) => { var f = F(m); pt(at(f, r1), mh * 0.3); if (nums) { var lt = String(Math.round(m)) + '°'; bx(mlp(f, r1, lt, W, H, py, m === D.lo), mfs * 0.62 * lt.length, mfs * 1.25); } });
+}
+return out;
+}
+function dial(D, W, H, baro, O) {
+var lw = Math.max(2, H * 0.026), A = 75 * Math.PI / 180, cx = W / 2, py = H * (W < H * 1.8 ? 0.79 : 0.93),
+bw = H * 0.045, mh = H * 0.05 * 1.6;
+var cm = !baro, mfs = H * 0.1, mg = Math.max(2.5, H * 0.008);
+var k0 = baro ? 'baro' : 'tdial', k1 = baro ? 'tdial' : 'baro', R0, R1, r, nums, py0 = py;
+for (var yy = py0; yy >= H * 0.5; yy -= H * 0.01) {
+R0 = dialR(D, W, H, cm, yy); R1 = O ? dialR(O, W, H, baro, yy) : R0; r = Math.min(R0[0], R1[0]); nums = cm && R0[1]; py = yy;
+if (!dialClash(D, W, H, r, yy, nums, k0) && !(O && dialClash(O, W, H, r, yy, baro && R1[1], k1))) break;
+}
+var F = (v) => (v - D.a) / (D.b - D.a), cl = (f) => Math.max(-0.03, Math.min(1.03, f));
+function at(f, rad) { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
+function arc(rad, f0, f1) { var p0 = at(f0, rad), p1 = at(f1, rad); return 'M' + n1(p0[0]) + ' ' + n1(p0[1]) + ' A' + n1(rad) + ' ' + n1(rad) + ' 0 0 1 ' + n1(p1[0]) + ' ' + n1(p1[1]); }
+var id = 'swink' + (K++), body = '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>';
+body += '<g data-sw-arc="' + n1(r) + ',' + n1(W) + '"></g>';
+var path = (d, sw, extra) => '<path d="' + d + '" fill="none" ' + SK + '' + n1(sw) + '"' + (extra || '') + '/>';
+if (baro) {
+var zro = r - H * 0.085, zri = zro - H * 0.05, zg = 0.012, isz = r * 0.34;
+[[0, 0.25, 1], [0.25, 0.5, 0], [0.5, 0.75, 1], [0.75, 1, 0]].forEach((z) => {
+var a0 = at(z[0] + zg, zri), a1 = at(z[1] - zg, zri), d = arc(zro, z[0] + zg, z[1] - zg) + ' L' + n1(a1[0]) + ' ' + n1(a1[1]) + ' A' + n1(zri) + ' ' + n1(zri) + ' 0 0 0 ' + n1(a0[0]) + ' ' + n1(a0[1]) + ' Z';
+body += (z[2] ? g('text--gray-45', '<path d="' + d + '"/>') : '') + path(d, Math.max(1, lw * 0.5));
+});
+(D.icons || []).forEach((u, i) => { var q = at((2 * i + 1) / 8, zri - isz * 0.62); body += glow('<image href="' + u + '" x="' + n1(q[0] - isz / 2) + '" y="' + n1(q[1] - isz / 2) + '" width="' + n1(isz) + '" height="' + n1(isz) + '" filter="url(#' + id + ')"/>', Math.max(2, H * 0.012)); });
+}
+body += glow(path(arc(r, 0, 1), lw), Math.max(2, H * 0.012));
+var step = baro ? 10 : D.step / 2, major = baro ? 20 : D.step, labs = '';
+for (var v = D.a; v <= D.b + 1e-9; v += step) {
+var mj = Math.abs((v - D.a) / major - Math.round((v - D.a) / major)) < 1e-6, p0 = at(F(v), r), p1 = at(F(v), r - (mj ? H * 0.07 : H * 0.035));
+body += '<line x1="' + n1(p0[0]) + '" y1="' + n1(p0[1]) + '" x2="' + n1(p1[0]) + '" y2="' + n1(p1[1]) + '" ' + SK + '' + n1(mj ? lw : Math.max(1, lw * 0.6)) + '"/>';
+if (!baro && mj) { var fs = H * 0.1, pl = at(F(v), r - H * 0.07 - fs * 0.8); labs += text(pl[0], pl[1], String(v), fs, 'middle', ' dominant-baseline="central"'); }
+}
+body += labs;
+var lo = D.lo, hi = D.hi;
+if (lo !== null && hi !== null && lo !== undefined && hi !== undefined) {
+body += path(arc(r + lw / 2 + bw / 2, F(lo), F(hi)), bw);
+var r0 = r + lw + bw + 2, r1 = r0 + mh;
+[[lo, true], [hi, false]].forEach((m) => {
+var f = F(m[0]), q = 0.022, t = [at(f, r0), at(f - q, r1), at(f + q, r1)];
+if (nums) { var lt = String(Math.round(m[0]) === 0 ? 0 : Math.round(m[0])) + '°', lp = mlp(f, r1, lt, W, H, py, !!m[1]);
+body += text(lp[0], lp[1], lt, mfs, 'middle', ' dominant-baseline="central" data-sw-mark="' + (m[1] ? 'lo' : 'hi') + '"' + (lp[2] ? ' data-sw-beside' : '')); }
+body += poly(t, ' data-sw-markt="' + (m[1] ? 'lo' : 'hi') + '"' + (m[1] ? ' fill="none" ' + SK + '' + n1(Math.max(1.5, lw * 0.5)) + '" stroke-linejoin="round"' : ''));
+});
+}
+if (D.now !== null && D.now !== undefined) {
+var ang = -A + 2 * A * cl(F(D.now)), ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux, tipR = r + H * 0.025, tailR = H * 0.1, wb = Math.max(4, H * 0.03), wt = Math.max(1.5, H * 0.012);
+var np = (ox, oy, an, k) => { var vx = an === undefined ? ux : Math.sin(an), vy = an === undefined ? uy : -Math.cos(an), qx = -vy, qy = vx, e = k || 1, b = [cx + ox, py + oy], t = [b[0] + vx * tipR * e, b[1] + vy * tipR * e], q = [b[0] - vx * tailR, b[1] - vy * tailR];
+return [[t[0] + qx * wt / 2, t[1] + qy * wt / 2], [b[0] + qx * wb / 2, b[1] + qy * wb / 2], [q[0] + qx * wb * 1.6, q[1] + qy * wb * 1.6], [q[0] - qx * wb * 1.6, q[1] - qy * wb * 1.6], [b[0] - qx * wb / 2, b[1] - qy * wb / 2], [t[0] - qx * wt / 2, t[1] - qy * wt / 2]]; };
+var hr = Math.max(6, H * 0.035), tw = '';
+if (D.twin !== null && D.twin !== undefined) {
+tw = '<g data-sw-twin="1">' + g(inb(), poly(np(0, 0, -A + 2 * A * cl(F(D.twin)), 0.86))) + '</g>';
+}
+body += '<g data-sw-needle>' + g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
+body += glow(tw + poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '" data-sw-hub="' + n1(Math.max(hr, tailR + wb * 1.6)) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>') + '</g>';
+}
+return svg(W, H, body);
+}
+function tri(down, W, H, c) {
+var s = Math.min(W, H), x0 = (W - s) / 2, y0 = (H - s) / 2, p = down ? [[x0 + s * 0.1, y0 + s * 0.12], [x0 + s * 0.9, y0 + s * 0.12], [x0 + s / 2, y0 + s * 0.9]] : [[x0 + s * 0.1, y0 + s * 0.9], [x0 + s * 0.9, y0 + s * 0.9], [x0 + s / 2, y0 + s * 0.12]];
+var pl = poly(p, down ? ' fill="none" ' + SK + '' + n1(Math.max(2, s * 0.1)) + '" stroke-linejoin="round"' : '');
+return svg(W, H, c ? g(c, pl) : pl);
+}
+function arrow(dir, W, H) {
+if (dir !== 'up' && dir !== 'down') return '';
+var s = Math.min(W, H), k = s / 28, tf = 'translate(' + n1((W - s) / 2) + ' ' + n1((H - s) / 2) + ') scale(' + n1(k) + ')' + (dir === 'down' ? ' translate(0 28) scale(1 -1)' : '');
+return svg(W, H, '<g transform="' + tf + '" fill="none" ' + SK + '2" stroke-linecap="round" stroke-linejoin="round" data-sw-arrowpoly="' + dir + '"><path d="M3 20l7-7 4 4 9-9"/><path d="M17 8h6v6"/></g>');
+}
+function axisFor(SW) { return (API.nRows && SW.scales && SW.scales[API.nRows]) || SW.scale; }
+function part(SW, kind, i, W, H) {
+var scN = Object.assign({}, axisFor(SW), { now: null });
+switch (kind) {
+case 'arrow': return arrow(((i ? SW.tdial : SW.baro) || {}).arrow, W, H);
+case 'cue': return cue(SW.cue, W, H);
+case 'dcue': return cue((SW.days[i] || {}).cue, W, H, true);
+case 'temp': return digits(SW.temp, H, API.tr);
+case 'loc': return loc(['out', 'in'][i] || API.loc || 'out', W, H);
+case 'itemp': return SW.inn ? digits(SW.inn.temp, H) : '';
+case 'meter': return meter(SW.meters[i], W, H, API.n || 10);
+case 'meterin': return meter(SW.meters[i], W, H, API.n || 10, 1);
+case 'day': return day(SW.days[i], axisFor(SW), W, H, !!(SW.days[i] || {}).today);
+case 'scale': return scale(scN, W, H);
+case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now, SW.hours);
+case 'gauge': return SW.rain ? gauge(SW.rain.gauge, W, H) : '';
+case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
+case 'tri': return tri(i % 2 === 0, W, H, '');
+case 'rule': return rule(W, H);
+case 'moon': return moon(SW.sun && SW.sun.phase, H, SW.sun && SW.sun.limb);
+case 'baro': return dial(SW.baro, W, H, true, SW.tdial);
+case 'tdial': return dial(SW.inn && SW.tdial.twin != null ? Object.assign({}, SW.tdial, { now: SW.tdial.twin, twin: SW.tdial.now }) : SW.tdial, W, H, false, SW.baro);   /* owner 2026-11-14: main needle indoor, the twin needle outdoor */
+case 'icon': return icon(API.src, W, H);
+case 'face': { var n = Math.max(1, Math.round(W / H)), w = W / n, two = API.mode && API.mode.bits === 2;
+if (API.mode && !API.mode.dark && API.mode.bits <= 2) { var ow = API.mode.bits === 2 ? 2 : 1;
+return svg(W, H, g(API.mode.bits === 2 ? 'text--gray-55' : '', rect(ow / 2, ow / 2, W - ow, H - ow, Math.min(24, Math.min(W, H) * 0.08), ' fill="none" ' + SK + '' + ow + '" data-sw-outline'))); }
+if (two) return '';
+var rx = Math.min(24, Math.min(W, H) * 0.08), cp = 'swfc' + (K++);
+return svg(W, H, '<defs><clipPath id="' + cp + '">' + rect(0, 0, W, H, rx) + '</clipPath></defs><g clip-path="url(#' + cp + ')">' + (two ? backlight(W, H, W / 2, H / 2, W * 0.6 / 0.8, H * 0.78 / (W * 0.6), rx) : backlight(W, H, Array.from({ length: n }, (_, j) => w * (j + 0.5)), H / 2, Math.max(w, H) * 0.62, 0.8, rx)) + '</g>').replace('overflow="visible"', 'overflow="hidden"'); }
+}
+return '';
+}
+Object.assign(API, { cellStates: cellStates, part: part, hbar: hbar, hscale: hscale, hlevels: hlevels, glow: glow, icon: icon, digits: digits, segtime: segtime, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit, hue: hue });
+return API;
+})();
+// ==== DRAW_END ====
+(function () {
+function whenReady(cb) { var tries = 0; (function attempt() { if (window.TRMNLPaint) return cb(); if (++tries > 200) return; setTimeout(attempt, 50); })(); }
+function swSeg(cx) {
+var sps = [].slice.call(document.querySelectorAll('[data-sw-suntime] > span.title'));
+function seg(sp) {
+var t = sp.getAttribute('data-sw-t'); if (t === null) { t = sp.textContent.trim(); sp.setAttribute('data-sw-t', t); }
+var cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+var cap = cx.measureText('H').actualBoundingBoxAscent * (+sp.getAttribute('data-sw-sf') || 1), r = cap > 0 ? SWDraw.segtime(t, cap) : null;
+if (!r) { if (sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); } return; }
+if (sp.getAttribute('data-sw-segk') !== r.key) { sp.innerHTML = r.html; sp.setAttribute('data-sw-segk', r.key); sp.setAttribute('aria-label', t); }
+var scr = document.querySelector('.screen'), sc = scr && scr.offsetWidth ? window.innerWidth / scr.offsetWidth : 1; if (cap * 1.25 * sc < 24 && sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); }
+}
+// The sun times never leave their column: owner 2026-11-13, narrow and native-portrait screens cut them by 3 to 91 px. Both rows take the
+// largest Framework title size at which every time fits the column and the panel's inner edge (the same size for sunrise and sunset).
+function over(sp) {
+var w = sp.parentElement.getBoundingClientRect(), pn = sp.closest('[data-sw-panel]'), un = sp.closest('[data-sw-unit]'); if (!w.width || !pn) return 0;
+var q = pn.getBoundingClientRect(), cs = getComputedStyle(pn), k = q.width / (pn.offsetWidth || q.width), lim = q.right - parseFloat(cs.paddingRight) * k;
+if (un && un.parentElement) lim = Math.min(lim, un.parentElement.getBoundingClientRect().right);
+return w.right - lim;
+}
+var sizes = ['title--large', 'title--base', 'title--small'];
+sps.forEach(seg);
+var vis = sps.filter(function (sp) { return sp.parentElement.getBoundingClientRect().width > 0; });
+if (!vis.length) return;
+for (var i = 0; i < sizes.length && vis.some(function (sp) { return over(sp) > 0.5; }); i++) {
+var cur = parseFloat(getComputedStyle(vis[0]).fontSize), cn = vis[0].className;
+var cand = sizes.map(function (z) { vis[0].className = 'title ' + z + ' text--bold'; return [z, parseFloat(getComputedStyle(vis[0]).fontSize)]; }).filter(function (c) { return c[1] < cur - 0.1; })[0];
+vis[0].className = cn;
+if (!cand) break;
+vis.forEach(function (sp) { sp.className = 'title ' + cand[0] + ' text--bold'; seg(sp); });
+}
+// Below the smallest title size the segments themselves shrink (never under half), by the share that still sticks out.
+for (var n = 0; n < 3 && vis.some(function (sp) { return over(sp) > 0.5; }); n++) {
+var f = Math.max(0.5, Math.min.apply(null, vis.map(function (sp) { var o = over(sp), w = sp.parentElement.getBoundingClientRect().width; return o > 0.5 && w ? (+sp.getAttribute('data-sw-sf') || 1) * (w - o - 1) / w : 1; })));
+vis.forEach(function (sp) { sp.setAttribute('data-sw-sf', f.toFixed(3)); sp.removeAttribute('data-sw-segk'); seg(sp); });
+}
+// Still too wide (plain digits below 24 px, or an icon sized by the screen height): the sun icons give way, both rows by the same amount.
+var ics = vis.map(function (sp) { return sp.parentElement.parentElement.querySelector('img,svg'); });
+var h0 = ics.every(Boolean) ? Math.min.apply(null, ics.map(function (e) { return e.getBoundingClientRect().height; })) : 0;
+for (var m = 0; m < 4; m++) {
+var cut = Math.max.apply(null, vis.map(function (sp) { return over(sp); }));
+if (!(cut > 0.5) || !ics.every(Boolean)) break;
+var ih = Math.min.apply(null, ics.map(function (e) { return e.getBoundingClientRect().height; })), k0 = (ics[0].offsetHeight && ics[0].getBoundingClientRect().height / ics[0].offsetHeight) || 1, nh = Math.max(0.45 * h0 / k0, (ih - 2 * cut - 1) / k0);
+if (nh * k0 >= ih - 0.1) break;
+ics.forEach(function (e) { e.style.setProperty('height', nh.toFixed(1) + 'px', 'important'); e.style.setProperty('width', nh.toFixed(1) + 'px', 'important'); });
+}
+}
+function swDayIcons() {
+var ims = [].slice.call(document.querySelectorAll('img[data-sw-dink]')), dx = 0;
+ims.forEach(function (im) { im.style.transform = ''; });
+ims.forEach(function (im) {
+var row = im.closest('.relative'), nm = row && row.querySelector('[data-sw-dname], [data-sw-today]'), B = im.offsetHeight; if (!nm || !B) return;
+var nb = nm.getBoundingClientRect(), b0 = im.getBoundingClientRect(), k = (im.offsetWidth && b0.width / im.offsetWidth) || 1, need = B * k * 0.3 - (b0.left - nb.right);
+if (need > 0) dx = Math.max(dx, need / k);
+});
+ims.forEach(function (im) {
+var ik = im.getAttribute('data-sw-dink').split(','), iy = +ik[0], ih = +ik[1] || 1, sc = Math.min(1.15, Math.max(1, 0.8 / ih)), B = im.offsetHeight; if (!B) return;
+im.style.transformOrigin = 'left center';
+im.style.transform = 'translate(' + dx.toFixed(1) + 'px,' + ((0.5 - iy - ih / 2) * B * sc).toFixed(1) + 'px) scale(' + sc.toFixed(3) + ')';
+});
+// B5 (owner 2026-11-14, OG portrait clipping): when the shifted, scaled icon would touch the low (under 1 screen px), every icon
+// column gets the right margin that leaves 2 screen px (the low, high and bar move right, the rows stay aligned). Render check DAYPARTS.
+var ov = -1e9, ks = 1;
+ims.forEach(function (im) {
+var lo = [].filter.call(im.closest('.relative').querySelectorAll('span.title:not([data-sw-dname])'), function (q) { return q.getBoundingClientRect().width > 0; })[0], b = im.getBoundingClientRect(); if (!lo || !b.width) return;
+var g = document.createRange(); g.selectNodeContents(lo); ks = (im.offsetWidth && b.width / im.offsetWidth / (+(im.style.transform.match(/scale\(([\d.]+)/) || [0, 1])[1])) || 1;
+ov = Math.max(ov, b.right - g.getBoundingClientRect().left);
+});
+if (ov > -1) ims.forEach(function (im) { var c = im.parentElement, m = parseFloat(c.style.marginRight) || 0, nm = m + (ov + 2) / ks; if (nm - m > 0.5) c.style.setProperty('margin-right', nm.toFixed(1) + 'px', 'important'); });
+}
+// B5: the low and high columns as wide as their widest number in any row (like swNames for the names), so no number spills into its
+// neighbour or the bar track (render check DAYPARTS).
+function swNums() {
+var need = [0, 0], cols = [[], []];
+[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'), function (r) { [].filter.call(r.querySelectorAll('span.title:not([data-sw-dname])'), function (q) { return q.getBoundingClientRect().width > 0; }).slice(0, 2).forEach(function (q, j) { need[j] = Math.max(need[j], q.scrollWidth); cols[j].push(q.parentElement); }); });
+cols.forEach(function (cs, j) { if (cs.length && need[j] > cs[0].clientWidth + 0.5) cs.forEach(function (c) { c.style.setProperty('width', Math.ceil(need[j] + 1) + 'px', 'important'); }); });
+}
+// Small views (owner 2026-11-13): one size, the digit height D, drives the console: condition text 0.33 D (SVG text, the ratio of the full
+// view), its icon 2.3 cap heights, unit 0.3 D, clothing cue and rain calendar 0.55 D each. The layout (temperature beside or above the cue
+// and rain column, that column stacked or side by side) that allows the largest D wins; a meter row is added only while D keeps 85 % and its
+// label stays readable; nothing is shrunk below its share, lower items are dropped whole.
+var SWR = (document.querySelector('.screen--lg') ? (document.querySelector('.screen--portrait') ? 0.455 : 0.385) : 0.356);   // the full view's condition/temperature ratio per device class (render check CONDRATIO)
+function swSmall(cx) {
+var box = document.querySelector('[data-sw-sbox]'); if (!box) return;
+var bb = box.getBoundingClientRect(); if (!bb.width || !bb.height) return;
+var bs = getComputedStyle(box), W = box.clientWidth - parseFloat(bs.paddingLeft) - parseFloat(bs.paddingRight) - 1, H = box.clientHeight - parseFloat(bs.paddingTop) - parseFloat(bs.paddingBottom) - 1;
+var q = function (s) { return box.querySelector(s); }, cond = q('[data-sw-scond]'), ico = q('[data-sw-sicon]'), tg = q('[data-sw-sgrp="temp"]'), te = tg.querySelector('[data-sw-part="temp"],[data-sw-part="itemp"]'), un = q('[data-sw-sunit]'), sl = q('[data-sw-sloc]'), so = q('[data-sw-sout]'), soE = so, big = te.getAttribute('data-sw-part') === 'itemp' ? SW.inn.temp : SW.temp;
+// A tall quadrant (portrait screens, owner B3 "fill the screen like a real e-ink design") is limited by its width: no clothing badge (a
+// tiny view, owner), up to four meter rows with a readable label (11 px) even where 0.2 D is smaller; the spare height goes into the meter
+// rows and between the rows (no empty bands); of layouts with the same digit height the taller one wins.
+var tallQ = box.hasAttribute('data-sw-nocue') && !!document.querySelector('.screen--portrait') && H > 1.2 * W;
+var side = q('[data-sw-sgrp="side"]'), cue = box.hasAttribute('data-sw-nocue') ? null : q('[data-sw-part="cue"]:not([data-sw-socue])'), scE = q('[data-sw-socue]'), scue = so && cue ? scE : null, ru = q('[data-sw-unit="rain"]'), cal = q('[data-sw-part="rain"]'), lh = q('[data-sw-slohi]'), main = q('[data-sw-srow="main"]');
+if (scue) cue = null;   /* owner 2026-11-14: with an outdoor readout the clothing cue sits next to its tree icon */
+if (scE) scE.classList.toggle('hidden', !scue);
+var mrows = [].slice.call(box.querySelectorAll('[data-sw-srow="meter"]'));
+var cs = getComputedStyle(cond), fam = cs.fontFamily, wt = cs.fontWeight;
+var ct = cond.getAttribute('data-sw-t0'); if (ct === null) { ct = cond.textContent.trim(); cond.setAttribute('data-sw-t0', ct); }
+var lht = lh ? lh.getAttribute('data-sw-slohi').split('|') : null;
+function mw(t, fs) { cx.font = wt + ' ' + fs.toFixed(2) + 'px ' + fam; return cx.measureText(t).width; }
+function capk() { cx.font = wt + ' 100px ' + fam; return (cx.measureText('H').actualBoundingBoxAscent || 72) / 100; }
+var CK = capk(), at = 0.8, ik = ((ico && ico.querySelector('[data-sw-ink]')) || ico || { getAttribute: function () { return null; } }).getAttribute('data-sw-ink') || '0,1', IY = +ik.split(',')[0] || 0, IH = Math.max(0.3, +ik.split(',')[1] || 1);
+function dw(t, tr) { try { return parseFloat(SWDraw.digits(String(t), 100, tr).match(/width="([\d.]+)"/)[1]) / 100; } catch (e) { return 0.6 * String(t).length; } }
+at = dw(big); var ao = so ? dw(SW.temp, 1) : 0;
+var cjk = /[⺀-鿿가-힯＀-￯]/.test(ct), toks = cjk ? ct.split('') : ct.split(/\s+/);
+function wrap(fs, avail) { var out = ['']; toks.forEach(function (w) { var cur = out[out.length - 1], tr = cur ? cur + (cjk ? '' : ' ') + w : w; if (cur && mw(tr, fs) > avail) out.push(w); else out[out.length - 1] = tr; }); return out; }
+var mlabT = mrows.map(function (r) { var l = r.querySelector('[data-sw-mlabel]'), t = l.getAttribute('data-sw-t0'); return t === null ? l.textContent.trim() : t; }), mlw = mlabT.length ? Math.max.apply(null, mlabT.map(function (t) { return mw(t, 100) / 100; })) : 0;
+// geometry of one candidate: D, main row (row or col), side (col or row), n meter rows
+var osz = 1;
+function geo(D, mainRow, sideCol, n) {
+var g = Math.max(4, 0.07 * D), fsC = SWR * D, ic = ico ? 2.3 * CK * fsC / IH : 0, gc = 0.3 * fsC, av = W - ic - (ico ? gc : 0);
+var ln = wrap(fsC, av), cw = Math.max.apply(null, ln.map(function (l) { return mw(l, fsC); }));
+var r = { D: D, g: g, fsC: fsC, ic: ic, ln: ln, ok: ln.length <= 2 && cw <= av };
+r.condH = Math.max(ic * IH, ln.length * 1.15 * fsC); r.condW = ic + (ico ? gc : 0) + cw;
+r.fsU = 0.3 * D; r.uW = mw(SW.unit || '', r.fsU) + 2; r.gU = 0.05 * D; r.lI = sl ? 0.42 * D : 0; r.tW = (sl ? r.lI + 1.5 * r.gU : 0) + at * D + r.gU + r.uW;
+var it = [];
+if (so) { r.oD = osz * D; r.oI = Math.min(0.42 * D, 0.8 * r.oD); r.ofU = 0.3 * r.oD; r.ouW = mw(SW.unit || '', r.ofU) + 2; it.push([r.oI + (scue ? 1.6 * r.oI + 0.1 * r.oD : 0) + 0.3 * r.oD + ao * r.oD + 0.05 * r.oD + r.ouW, r.oD]); }
+if (cue) { r.cueH = 0.55 * D; it.push([1.6 * r.cueH, r.cueH]); }
+if (ru) { r.calH = 0.55 * D; r.calW = 1.95 * r.calH; r.gR = 0.06 * D; it.push([r.calH + r.gR + r.calW, r.calH]); }
+else if (lh) { r.fsL = 0.3 * D; r.lW = mw(lht[0], r.fsL) + mw(lht[1], r.fsL) + 2.8 * r.fsL; it.push([r.lW, 1.2 * r.fsL]); }
+var sW = 0, sH = 0; it.forEach(function (x, i) { if (sideCol) { sW = Math.max(sW, x[0]); sH += x[1] + (i ? g : 0); } else { sW += x[0] + (i ? 1.5 * g : 0); sH = Math.max(sH, x[1]); } });
+r.sW = sW; r.sH = sH;
+var mW = mainRow ? r.tW + (it.length ? 1.6 * g + sW : 0) : Math.max(r.tW, sW), mH = mainRow ? Math.max(D, sH) : D + (it.length ? g + sH : 0);
+r.mh = tallQ ? Math.max(0.2 * D, 22) : 0.2 * D; r.fsM = 0.5 * r.mh; r.n = n;
+var tH = r.condH + g + mH + n * (r.mh + g), tW = Math.max(r.condW, mW, n ? mlw * r.fsM + 0.3 * r.mh + (tallQ ? 5 : 7) * r.mh : 0);
+r.tH = tH; r.fit = r.ok && tH <= H && tW <= W; r.mainRow = mainRow; r.sideCol = sideCol;
+return r;
+}
+function best(n) { var b = null; [[true, true], [false, true], [false, false], [true, false]].forEach(function (m) { var lo = 8, hi = H, r = null; for (var i = 0; i < 18; i++) { var mid = (lo + hi) / 2, x = geo(mid, m[0], m[1], n); if (x.fit) { lo = mid; r = x; } else hi = mid; } if (r && (!b || r.D > b.D + 0.5 || (tallQ && r.D > b.D - 0.5 && r.tH > b.tH + 1))) b = r; }); return b && n && b.fsM < 11 ? null : b; }
+var R = best(0);
+// The outdoor readout (with an indoor reading) stays only while it costs the indoor temperature under 15 %.
+if (so) { so = null; var Ro = best(0); so = soE; R = null; [1, 0.7, 0.5, 0.35, 0.22].some(function (f) { osz = f; R = best(0); return R && Ro && R.D >= 0.85 * Ro.D; }); if (!R) { R = Ro; so = null; } }   /* owner 2026-11-14: the outdoor readout never goes, it shrinks to fit */
+if (soE) soE.classList.toggle('hidden', !so);
+if (!R) return;
+// The clothing cue stays only while it costs the temperature under 15 %; otherwise (and in the tiny views) it goes whole.
+var cu0 = q('[data-sw-part="cue"]:not([data-sw-socue])'); if (cue) { var c0 = cue; cue = null; var Rx = best(0); cue = c0; if (Rx && R.D < 0.85 * Rx.D && !box.hasAttribute('data-sw-keepcue')) { R = Rx; cue = null; } }
+if (cu0) { cu0.classList.toggle('hidden', !cue); }
+for (var n = Math.min(tallQ ? 4 : 2, mrows.length); n > 0; n--) { var Rn = best(n); if (Rn && Rn.D >= (tallQ ? 0.97 : 0.85) * R.D) { R = Rn; break; } }
+// Tall quadrant: meter rows take the spare height beyond a 3.5 % gap per row (up to 0.5 D high), so the stack fills the panel.
+if (tallQ && R.n) { var ex = Math.min(0.5 * R.D - R.mh, Math.max(0, H - R.tH - 0.035 * H * (R.n + 1)) / R.n); if (ex > 0 && mlw * 0.5 * (R.mh + ex) + 5.3 * (R.mh + ex) <= W) { R.mh += ex; R.fsM = 0.5 * R.mh; R.tH += ex * R.n; } }
+// A console limited by its width (narrow columns) gives its spare height to the days or hours strip below it.
+var cw0 = box.closest('[data-sw-console]'), ds = document.querySelector('div[data-sw-dstrip]');
+if (cw0 && ds && H - R.tH > 0.06 * H) { var k1 = (cw0.offsetHeight && cw0.getBoundingClientRect().height / cw0.offsetHeight) || 1; cw0.style.setProperty('height', (cw0.getBoundingClientRect().height / k1 - (H - R.tH) + 2).toFixed(1) + 'px', 'important'); H = R.tH + 1; [].forEach.call(cw0.querySelectorAll('[data-sw-part="face"]'), function (f) { if (swRepaint) swRepaint(f); }); }
+var key = [W.toFixed(0), H.toFixed(0), R.D.toFixed(1), R.n, R.mainRow, R.sideCol, fam].join('|');
+if (box.getAttribute('data-sw-sk') === key) return; box.setAttribute('data-sw-sk', key);
+function sz(e, w, h) { if (!e) return; if (w !== null) e.style.setProperty('width', w.toFixed(1) + 'px', 'important'); if (h !== null) e.style.setProperty('height', h.toFixed(1) + 'px', 'important'); }
+function stext(lines, fs, w) { var lh2 = 1.15 * fs, h = lh2 * (lines.length - 1) + 1.25 * fs, y1 = (h - lh2 * (lines.length - 1)) / 2 + CK * fs / 2; return { h: h, html: '<svg class="block" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" viewBox="0 0 ' + w.toFixed(1) + ' ' + h.toFixed(1) + '" role="img" aria-label="' + lines.join(' ').replace(/"/g, '&quot;') + '">' + lines.map(function (l, j) { return '<text x="0" y="' + (y1 + j * lh2).toFixed(2) + '" font-size="' + fs.toFixed(2) + '" font-family="' + fam.replace(/"/g, "'") + '" font-weight="' + wt + '" fill="currentColor">' + l.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>'; }).join('') + '</svg>' }; }
+box.style.rowGap = (R.g + (!ds && H - R.tH > 0.06 * H ? Math.min(tallQ ? H : 0.35 * R.D, 0.9 * (H - R.tH) / (R.n + 1)) : 0)).toFixed(1) + 'px';   // width-limited quadrant (a wide -13): the spare height goes between the rows, not into empty bands
+var cr = q('[data-sw-srow="cond"]'); cr.style.columnGap = (0.3 * R.fsC).toFixed(1) + 'px'; sz(cr, null, R.condH); cr.style.marginTop = (-0.62 * Math.max(0, R.condH - Math.max(R.ic * IH, (R.ln.length - 1) * 1.15 * R.fsC + CK * R.fsC)) / 2).toFixed(1) + 'px';   // the text block's own air above the first cap line does not count as top padding (render check HVPAD: ink equal above and below)
+sz(ico, R.ic, R.ic); if (ico) { ico.style.margin = (-(R.ic - R.ic * IH) / 2).toFixed(1) + 'px 0'; ico.style.transform = 'translateY(' + ((0.5 - IY - IH / 2) * R.ic).toFixed(1) + 'px)'; ico.setAttribute('data-sw-condicon', R.ln.length + ',' + R.ic.toFixed(1)); }
+var cwid = Math.max.apply(null, R.ln.map(function (l) { return mw(l, R.fsC); })) + 2, st = stext(R.ln, R.fsC, cwid);
+cond.innerHTML = st.html; cond.setAttribute('data-sw-fs', R.fsC.toFixed(2)); cond.setAttribute('data-sw-lines', R.ln.length);
+main.classList.toggle('flex--row', R.mainRow); main.classList.toggle('flex--col', !R.mainRow); main.style.gap = (R.mainRow ? 1.6 * R.g : R.g).toFixed(1) + 'px';
+sz(te, at * R.D, R.D); te.setAttribute('data-sw-d', R.D.toFixed(1));
+var su = stext([SW.unit || ''], R.fsU, R.uW); un.innerHTML = su.html; un.style.marginLeft = R.gU.toFixed(1) + 'px'; sz(un, R.uW, su.h);
+if (sl) { sz(sl, R.lI, R.lI); sl.style.marginRight = (1.5 * R.gU).toFixed(1) + 'px'; sl.style.marginTop = (0.05 * R.D).toFixed(1) + 'px'; }
+if (so) { var oL = so.querySelector('[data-sw-part="loc"]'), oT = so.querySelector('[data-sw-part="temp"]'), oU = so.querySelector('[data-sw-sounit]'), ou = stext([SW.unit || ''], R.ofU, R.ouW); sz(oL, R.oI, R.oI); if (scue) { sz(scue, 1.6 * R.oI, R.oI); oL.style.marginRight = (0.1 * R.oD).toFixed(1) + 'px'; } (scue || oL).style.marginRight = (0.15 * R.oD).toFixed(1) + 'px'; [oL, scue].forEach(function (e) { if (e) e.style.transform = 'translateX(' + (/^1/.test(SW.temp) ? 0.4 * R.oD : 0).toFixed(1) + 'px)'; });   /* the 1 sits at the right of its cell: the icons move up to its ink */ sz(oT, ao * R.oD, R.oD); oU.innerHTML = ou.html; oU.style.marginLeft = (0.05 * R.oD).toFixed(1) + 'px'; sz(oU, R.ouW, ou.h); }
+if (side) { side.classList.toggle('flex--col', R.sideCol); side.classList.toggle('flex--row', !R.sideCol); side.style.gap = (R.sideCol ? R.g : 1.5 * R.g).toFixed(1) + 'px'; side.style.alignItems = R.sideCol && R.mainRow ? 'flex-start' : 'center'; }
+if (cue) sz(cue, 1.6 * R.cueH, R.cueH);
+if (ru) { ru.style.gap = R.gR.toFixed(1) + 'px'; sz(ru.firstElementChild, R.calH, R.calH); sz(cal, R.calW, R.calH); }
+if (lh) { var f = R.fsL, tw = f * 0.8, x = 0, b = ''; lht.forEach(function (v, i) { var y0 = 0.5 * f, P = i ? [[x, y0 + tw * 0.8], [x + tw, y0 + tw * 0.8], [x + tw / 2, y0]] : [[x, y0], [x + tw, y0], [x + tw / 2, y0 + tw * 0.8]];
+b += '<polygon points="' + P.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '" ' + (i ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="' + (f * 0.08).toFixed(1) + '"') + '/>';
+x += tw + 0.2 * f; b += '<text x="' + x.toFixed(1) + '" y="' + (0.5 * f + CK * f).toFixed(1) + '" font-size="' + f.toFixed(1) + '" font-family="' + fam.replace(/"/g, "'") + '" font-weight="' + wt + '" fill="currentColor">' + v + '</text>'; x += mw(v, f) + 0.6 * f; });
+lh.innerHTML = '<svg class="block" width="' + R.lW.toFixed(1) + '" height="' + (1.2 * f + 0.5 * f).toFixed(1) + '" viewBox="0 0 ' + R.lW.toFixed(1) + ' ' + (1.7 * f).toFixed(1) + '" role="img" aria-label="' + lht.join(' ') + '">' + b + '</svg>'; }
+var mwid = Math.min(W, Math.max(R.condW, R.mainRow ? R.tW + 1.6 * R.g + R.sW : Math.max(R.tW, R.sW)));
+mrows.forEach(function (r, i) { var on = i < R.n; r.classList.toggle('hidden', !on); r.classList.toggle('flex', on); if (!on) return; sz(r, mwid, R.mh); r.style.gap = (0.3 * R.mh).toFixed(1) + 'px';
+var l = r.querySelector('[data-sw-mlabel]'), t = l.getAttribute('data-sw-t0'); if (t === null) { t = l.textContent.trim(); l.setAttribute('data-sw-t0', t); } var fsM = R.fsM, lw = Math.max.apply(null, mlabT.map(function (x) { return mw(x, fsM); })) + 2, sl = stext([t], fsM, lw); l.innerHTML = sl.html; sz(l, lw, sl.h); l.style.setProperty('font-size', fsM.toFixed(2) + 'px', 'important');
+sz(r.querySelector('[data-sw-part]'), null, R.mh * 0.75); });
+}
+// Day names never clip (owner 2026-11-13, remarkable 2 half vertical cut "SUN"): when a name is wider than its column, the name column of
+// every day row and of the scale row takes the widest name, so the bars stay aligned with the scale.
+function swNames() {
+var cells = [].slice.call(document.querySelectorAll('[data-sw-row="day"] > div > :first-child')).filter(function (c) { return c.getBoundingClientRect().width > 0; }), sc = document.querySelector('[data-sw-part="scale"]');
+if (!cells.length) return; if (sc && sc.parentElement.firstElementChild.getBoundingClientRect().width > 0) cells.push(sc.parentElement.firstElementChild);
+var need = 0; cells.forEach(function (c) { [].forEach.call(c.querySelectorAll('span'), function (q) { need = Math.max(need, q.scrollWidth); }); });
+if (need > cells[0].clientWidth + 0.5) cells.forEach(function (c) { c.style.setProperty('width', Math.ceil(need + 1) + 'px', 'important'); });
+}
+function swCond(cx) {
+document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
+var ic = sp.parentElement.firstElementChild; if (!ic || ic === sp || sp.hasAttribute('data-sw-scond')) return;
+var sb = sp.getBoundingClientRect(); if (!sb.height) return;
+var k = (sp.offsetWidth && sb.width / sp.offsetWidth) || 1, cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+function size(v) { ic.style.setProperty('height', v.toFixed(1) + 'px', 'important'); ic.style.setProperty('width', v.toFixed(1) + 'px', 'important'); }
+size(cx.measureText('H').actualBoundingBoxAscent); ic.style.transform = '';
+var n0 = 0, h, mid;
+for (var pass = 0; pass < 3; pass++) {
+var rg = document.createRange(); rg.selectNodeContents(sp); var lr = [].filter.call(rg.getClientRects(), function (q) { return q.width > 0; }), tops = [];
+lr.forEach(function (q) { if (!tops.some(function (t) { return Math.abs(t - q.top) < 2; })) tops.push(q.top); });
+var m = cx.measureText('H'), cap = m.actualBoundingBoxAscent, fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent, lh = parseFloat(cs.lineHeight) || (fa + fd);
+var first = lr[0] || sb, base = first.top / k + (first.height / k - (fa + fd)) / 2 + fa;
+if (tops.length <= 1) { h = 2.3 * cap; mid = base - cap / 2; }
+else { var last = lr[lr.length - 1], lb = last.top / k + (last.height / k - (fa + fd)) / 2 + fa; h = 2.3 * cap; mid = (lb + base - cap) / 2; }
+var pn = sp.closest('[data-sw-panel]'); if (pn) { var pr = pn.getBoundingClientRect(), pp = getComputedStyle(pn), lim = 2 * Math.min(mid - pr.top / k - parseFloat(pp.paddingTop), pr.bottom / k - parseFloat(pp.paddingBottom) - mid) - 2; if (lim > 0 && h > lim) { h = lim; ic.setAttribute('data-sw-clamped', '1'); } }
+var ik = (ic.querySelector('[data-sw-ink]') || ic).getAttribute('data-sw-ink') || '0,1', iy = +ik.split(',')[0], ih = +ik.split(',')[1] || 1, ink = h;
+h = ink / ih; mid += (0.5 - iy - ih / 2) * h;
+size(h);
+if (tops.length === n0) break; n0 = tops.length;
+}
+var sv = ic.querySelector('svg'); if (sv) { sv.setAttribute('width', h.toFixed(1)); sv.setAttribute('height', h.toFixed(1)); }
+var ib = ic.getBoundingClientRect(); ic.style.transform = 'translateY(' + (mid - (ib.top + ib.height / 2) / k).toFixed(1) + 'px)';
+ic.setAttribute('data-sw-condicon', tops.length + ',' + h.toFixed(1) + ',' + mid.toFixed(1));
+});
+}
+var swRepaint = null;
+function swFit() {
+document.querySelectorAll('[data-sw-part="temp"]').forEach(function (t) {
+var g = t.parentElement, row = g.parentElement; if (t.closest('[data-sw-twin]') || t.closest('[data-sw-small]')) return;
+var rb = row.getBoundingClientRect(); if (!rb.width) return;
+var k = (row.offsetWidth && rb.width / row.offsetWidth) || 1, w = function (e) { return e ? e.getBoundingClientRect().width / k : 0; };
+var kids = [].filter.call(row.children, function (c) { return c.getBoundingClientRect().width > 0; }), rs = getComputedStyle(row), gap = parseFloat(rs.columnGap) || 0;
+var col = rs.flexDirection.indexOf('column') === 0, need = col ? kids.reduce(function (a, c) { return Math.max(a, w(c)); }, 0) : kids.reduce(function (a, c) { return a + w(c); }, 0) + gap * (kids.length - 1), avail = Math.min(row.clientWidth - parseFloat(rs.paddingLeft) - parseFloat(rs.paddingRight), row.parentElement.clientWidth) - (row.querySelector(':scope > [data-sw-part="cue"]') ? gap : 0);
+var h = function (e) { return e.getBoundingClientRect().height / k; };
+var cu = row.querySelector(':scope > [data-sw-part="cue"]'); if (cu && !cu.getBoundingClientRect().width) cu = null;
+if (!g.hasAttribute('data-sw-h0')) { if (need <= avail + 0.5) return; g.setAttribute('data-sw-h0', h(g)); }
+var hs = function (e) { var v = e && e.querySelector('svg'); return v ? h(v) : 0; }, gr = +g.getAttribute('data-sw-h0') / (hs(t) || 1);
+var tw = w(t.querySelector('svg')) * gr, bw = cu && !col ? w(cu) * gr : 0; need += tw - w(t.querySelector('svg')) + (bw ? bw - w(cu) : 0);
+if (!tw) return;
+var ex = w(g) - w(t.querySelector('svg')), f = col ? Math.min(1, Math.max(0.4, (avail - 1 - ex) / tw)) : Math.min(1, Math.max(0.4, (tw + bw - (need - avail) - 1) / (tw + bw)));
+function set(e, v, p) { if (Math.abs(h(e) - v) > 0.3) { e.style.setProperty('height', v.toFixed(1) + 'px', 'important'); if (swRepaint) swRepaint(p); } }
+set(g, +g.getAttribute('data-sw-h0') * f, t);
+row.setAttribute('data-sw-fit', f.toFixed(3));
+});
+}
+function swArrow(cx) {
+document.querySelectorAll('[data-sw-part="arrow"]').forEach(function (e) {
+var c = e.closest('.relative').querySelector('[data-sw-cap]'); if (!c) return; var cs = getComputedStyle(c); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+var v = 1.5 * cx.measureText('H').actualBoundingBoxAscent; e.style.width = v.toFixed(1) + 'px'; e.style.height = v.toFixed(1) + 'px';
+});
+}
+function swInk(e) { var r = e.getBoundingClientRect(), vb = e.viewBox.baseVal, b = e.getBBox(), kx = r.width / (vb.width || r.width), ky = r.height / (vb.height || r.height); return { l: r.left + (b.x - vb.x) * kx, r: r.left + (b.x - vb.x + b.width) * kx, t: r.top + (b.y - vb.y) * ky, h: b.height * ky }; }
+function swBadge(cx) {
+document.querySelectorAll('[data-sw-part="cue"]:not([data-sw-cb])').forEach(function (cu) {
+var cb = cu.getBoundingClientRect(), sv = cu.querySelector('svg'), g = cu.querySelector('g[data-sw-cloth]'), t = cu.parentElement.querySelector('[data-sw-part="temp"] svg');
+if (!cb.width || !sv || !g || !t || !t.getBoundingClientRect().height) return;
+var sc = (cu.offsetWidth && cb.width / cu.offsetWidth) || 1, ti = swInk(t), vb = sv.viewBox.baseVal, bx = g.getAttribute('data-sw-box').split(',').map(Number), kk = ti.h / bx[2];
+if (Math.abs(cb.height - vb.height * kk) > 0.3) { cu.style.setProperty('height', (vb.height * kk / sc).toFixed(2) + 'px', 'important'); cu.style.setProperty('width', (vb.width * kk / sc).toFixed(2) + 'px', 'important'); sv.setAttribute('preserveAspectRatio', 'xMinYMid slice'); }
+cu.style.transform = ''; cb = cu.getBoundingClientRect();
+var top = cb.top + (cb.height - vb.height * kk) / 2 + (bx[1] - vb.y) * kk;
+cu.style.transform = 'translateY(' + ((ti.t - top) / sc).toFixed(2) + 'px)';
+var dv = cu.previousElementSibling; if (!dv || !dv.hasAttribute('data-sw-div')) return;
+var u = cu.parentElement.querySelector('[data-sw-unit]'); dv.style.transform = '';
+if (!u || !dv.getBoundingClientRect().height) return;
+var cs = getComputedStyle(u); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+var ub = u.getBoundingClientRect(), us = (u.offsetWidth && ub.width / u.offsetWidth) || 1, ur = ub.left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight * us, bl = cu.getBoundingClientRect().left;
+dv.style.setProperty('height', (ti.h / sc).toFixed(2) + 'px', 'important'); var r = dv.getBoundingClientRect();
+dv.style.transform = 'translate(' + (((ur + bl) / 2 - (r.left + r.right) / 2) / sc).toFixed(2) + 'px,' + ((ti.t - r.top) / sc).toFixed(2) + 'px)';
+});
+}
+function swCapBase() {
+function B(e) { var p = document.createElement('span'); p.style.cssText = 'display:inline-block;width:0;height:0'; e.appendChild(p); var y = p.getBoundingClientRect().bottom; e.removeChild(p); return y; }
+document.querySelectorAll('[data-sw-part="baro"],[data-sw-part="tdial"]').forEach(function (d) {
+var w = d.parentElement, cap = w.querySelector('span[data-sw-cap]'), row = [].filter.call(w.querySelectorAll('div[data-sw-cap]:not([data-sw-dialin])'), function (e) { return e.getBoundingClientRect().width > 0; })[0], v = row && row.querySelector('.value');
+if (!cap || !v || !d.getBoundingClientRect().width) return;
+var k = (cap.offsetWidth && cap.getBoundingClientRect().width / cap.offsetWidth) || 1, dl = B(v) - B(cap);
+if (Math.abs(dl) > 0.2) cap.style.bottom = (parseFloat(getComputedStyle(cap).bottom) - dl / k).toFixed(2) + 'px';
+});
+}
+var swN = 0;
+function swAlign() {
+if (++swN > 60) return;
+var cx = document.createElement('canvas').getContext('2d');
+swSmall(cx); swNames(); swNums(); swSeg(cx); swCond(cx); swDayIcons(); swFit(); swBadge(cx); swFit(); swBadge(cx);
+}
+function swOGPortrait() {
+var screen = document.querySelector('.screen');
+if (!screen || !screen.classList.contains('screen--portrait') || !screen.classList.contains('screen--md') || document.querySelector('[data-sw-small]')) return;
+var panel = document.querySelector('[data-sw-console]'), view = +document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug').match(/view=(\d)/)[1];
+// Only the full (1) and half (2) views reach here: views 3 and 4 always carry the small console (data-sw-small), which returns above.
+function set(el, re, cls) { if (!el) return; [].slice.call(el.classList).forEach(function(c) { if (re.test(c)) el.classList.remove(c); }); cls.split(' ').forEach(function(c) { if(c) el.classList.add(c); }); }
+var outer = panel.querySelector('[data-sw-panel] > .relative'), cond = panel.querySelector('[data-sw-cond]'), temp = cond.parentElement.parentElement, top = temp.parentElement, right = panel.querySelector('[data-sw-right]');
+set(outer, /^(flex--(?:row|col|col-reverse|center)|gap--\w+)$/, 'flex--col-reverse flex--between gap--small');
+set(top, /^flex--(?:row|stretch-y)$/, 'flex--row w--full');
+set(right, /^w--/, view === 1 ? 'w--[38cqw]' : 'w--[44cqw]');
+set(cond.parentElement, /^h--/, 'h--[7cqh]');
+if (view === 2) set(cond, /^title--/, 'title--small');   // B3: the half view's temperature is width-limited; the condition keeps the full view's share of it (CONDRATIO)
+var digits = panel.querySelector('[data-sw-part="temp"]'), tr = digits.parentElement.parentElement;
+if (view === 2) { var mb2 = panel.querySelector('[data-sw-part="meter"]'); mb2 = mb2 && mb2.parentElement.parentElement.parentElement; if (mb2) set(mb2, /^flex--stretch-y$/, 'flex--stretch-y'); }
+set(tr, /^h--/, (view === 1 ? 'h--[13cqh]' : 'h--[21cqh]') + ' shrink-0');
+set(digits.parentElement, /^h--/, 'h--full');
+set(tr, /^flex--col$/, 'flex--row');
+var mh = view === 2 ? 'h--[7cqh]' : 'h--[5cqh]';
+[].forEach.call(panel.querySelectorAll('[data-sw-mlabel]'),function(e){set(e,/^title--/, 'title--small');set(e.parentElement,/^h--/,mh);set(e.parentElement.parentElement.parentElement.parentElement,/^w--/, 'w--full');});
+[].forEach.call(panel.querySelectorAll('[data-sw-part^="meter"]'),function(e){set(e,/^h--/,view===2?'h--[5cqh]':'h--[4cqh]');set(e.parentElement,/^h--/,mh);});
+var rain = panel.querySelector('[data-sw-part="rain"]'), sun = panel.querySelector('[data-sw-unit="sun"]'), ib = view === 2 ? 'h--[15cqh]' : 'h--[7cqh]';
+[].forEach.call(outer.children,function(e){if(!e.querySelector('[data-sw-part]')&&!e.hasAttribute('data-sw-part'))set(e,/^flex$/,'hidden');});
+[].forEach.call(panel.querySelectorAll('[data-sw-part="gauge"]'),function(e){e.parentNode.removeChild(e);});
+var bt = document.querySelector('[data-sw-between]'), days = bt && bt.nextElementSibling;
+if(view === 1 && days) { set(panel,/^h--/,'h--[57cqh]'); set(days,/^h--/,'h--[35cqh]'); }
+if(view === 1) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-row="day"] > div > :nth-child(3)'),function(e){var r=e.parentElement,c=r.children,dr=r.parentElement.hasAttribute('data-sw-row');set(r,/^gap--/,'gap--xsmall');if(dr){set(r.parentElement,/^hidden$/,'');set(r,/^h--/,'h--[7cqh]');}set(c[0],/^w--/,'w--[12cqw]');set(c[1],/^w--/,'w--[6cqw]');set(c[2],/^w--/,'w--[6cqw]');set(c[3],/^w--/,'w--[6cqw]');if(c[5]){set(c[5],/^w--/,'w--[11cqw]');if(dr)set(c[5].firstElementChild,/^h--/,'h--[6cqh]');}var im=c[1].querySelector('img');if(im)set(im,/^h--/,'h--[6cqh]');});
+var dn = [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'),function(q){return q.getBoundingClientRect().width>0;})[0], tpx = dn ? Math.round(parseFloat(getComputedStyle(dn).fontSize)*0.85) : 0;
+if(tpx) [].forEach.call(document.querySelectorAll('[data-sw-part="tri"]'),function(e){set(e,/^[hw]--/,'h--['+tpx+'px] w--['+tpx+'px]');});
+if(rain) {
+set(rain,/^w--/,'w--[26cqw]'); set(rain,/^h--/,view===2?'h--[15cqh]':'h--[12cqh]');
+set(rain.parentElement,/^flex--col$/, 'flex--row');
+set(rain.parentElement.querySelector('img'),/^(h--\S+|hidden|lg:block)$/,ib);
+set(panel.querySelector('[data-sw-gap="rain-sun"]'),/^h--/,'h--[1cqh]');
+}
+if(sun) {
+set(sun,/^hidden$/, 'flex');
+var big = !rain;
+[].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,big?(view===2?'h--[8cqh]':'h--[5cqh]'):(view===1?'h--[4cqh]':'h--[7cqh]'));});
+if(big){set(sun,/^flex--(?:row|left)$/,'flex--col flex--center');set(sun.children[1]||sun,/^gap--/,'gap--medium');[].forEach.call(sun.querySelectorAll('[data-sw-suntime] span.title'),function(e){set(e,/^title--/,'title--large');});}
+[].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,rain?ib:(big?(view===2?'h--[11cqh]':'h--[8cqh]'):'h--[6cqh]'));}});
+}
+
+}
+// OG half vertical portrait (B3, owner "fill the screen like a real e-ink design", 240x800): each day row takes two lines, name and
+// low/high above, its bar below across the whole row (the scale row likewise: markers above, scale below), so the bars and the scale
+// track get the row's width instead of a third of it (render check OGPORT: track at least 45 %).
+function swOGPortraitDays() {
+var sc = document.querySelector('.screen'), dbg = document.querySelector('[data-sw-debug]');
+if (!sc || !dbg || !sc.classList.contains('screen--portrait') || !sc.classList.contains('screen--md') || !/ view=3 /.test(dbg.getAttribute('data-sw-debug'))) return;
+[].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (e) { var r = e.parentElement, dr = e.getAttribute('data-sw-part') === 'day';
+r.classList.add('flex--wrap'); r.style.rowGap = '2px'; e.classList.remove('grow', 'basis--0', 'h--full'); e.classList.add('w--full', 'shrink-0');
+e.style.setProperty('height', dr ? '45%' : '50%', 'important'); if (dr) e.setAttribute('data-sw-top', '');
+[].forEach.call(r.children, function (c, i) { if (c === e) return; c.style.setProperty('height', dr ? '50%' : '45%', 'important'); if (dr) c.style.setProperty('align-items', 'flex-end', 'important'); if (i === 2 || i === 3) c.style.setProperty('width', '13cqw', 'important'); });
+if (!dr) r.style.setProperty('height', (2 * r.offsetHeight).toFixed(1) + 'px', 'important'); });
+}
+swOGPortrait(); swOGPortraitDays();
+whenReady(function () {
+swRepaint = swPaint;
+swSmall(document.createElement('canvas').getContext('2d'));
+swArrow(document.createElement('canvas').getContext('2d')); swCapBase();
+document.querySelectorAll('[data-sw-part="gauge"]').forEach(function (el) {
+var un = el.previousElementSibling, cal = un && un.querySelector('[data-sw-part="rain"]'); if (!cal) return;
+var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0], lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
+var lab = ((SW.rain || {}).gauge || {}).label || '', rw = (cal.getAttribute('data-sw-rows') || '').split(','), rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || 2, cb = cal.getBoundingClientRect(), ub = un.getBoundingClientRect();
+var cw = cb.width / 3, ch = cb.height / rows, gp = Math.max(2, Math.min(cw, ch) * 0.06), fs = Math.min(lp * 0.7 || 12, (cb.left - ub.left) / (lab.length * 0.62 + 0.5));
+el.style.width = (cb.right - ub.left).toFixed(2) + 'px'; el.style.height = Math.max(4, ch * 0.3).toFixed(2) + 'px'; el.setAttribute('data-sw-gp', gp.toFixed(2)); el.setAttribute('data-sw-x0', (cb.left - ub.left).toFixed(2));
+var rc = el.closest('[data-sw-right]'), pn = rc && rc.closest('[data-sw-panel]'), pb = pn && pn.getBoundingClientRect(), ps = pn && getComputedStyle(pn), rb = rc && rc.getBoundingClientRect();
+if (!cb.width || cw / ch < 0.85 || cw * 0.7 < lp || fs < (lp * 0.7 || 12) * 0.6 || (rb && pb && (rb.bottom > pb.bottom - parseFloat(ps.paddingBottom) + 0.5 || rb.top < pb.top + parseFloat(ps.paddingTop) - 0.5))) el.classList.add('hidden');
+});
+var qvm = [].filter.call(document.querySelectorAll('[data-sw-part^="meter"]'), function (q) { return q.getBoundingClientRect().height > 0; }), qhv = qvm.filter(function (q) { return q.getAttribute('data-sw-part') === 'meterin'; })[0];
+if (qhv) { var qcol = qhv.parentElement.parentElement, qpn = qcol.closest('[data-sw-panel]') || qcol.parentElement, qcs = getComputedStyle(qpn), qin = qpn.getBoundingClientRect().height - (parseFloat(qcs.paddingTop) + parseFloat(qcs.paddingBottom)) * ((qpn.offsetHeight && qpn.getBoundingClientRect().height / qpn.offsetHeight) || 1);
+if (qcol.getBoundingClientRect().height > qin + 0.5 || qcol.scrollHeight > qcol.clientHeight + 1) document.querySelectorAll('[data-sw-hum2]').forEach(function (q) { q.classList.add('hidden'); q.classList.remove('flex', 'lg:flex', 'lg:block'); }); }
+document.querySelectorAll('[data-sw-for]').forEach(function (el) { var mt = [].filter.call(document.querySelectorAll('[data-sw-part^="meter"][data-sw-key="' + el.getAttribute('data-sw-for') + '"]'), function (q) { return q.getBoundingClientRect().height > 0; })[0]; if (!mt) return; var mk = (mt.offsetHeight && mt.getBoundingClientRect().height / mt.offsetHeight) || 1, mh = (mt.getBoundingClientRect().height / mk).toFixed(2) + 'px'; el.style.setProperty('height', mh, 'important'); el.style.setProperty('width', mh, 'important'); });
+document.querySelectorAll('[data-sw-part]').forEach(function (el) {
+TRMNLPaint.watch(el, function () { swPaint(el); });
+});
+function swPaint(el) {
+SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: el }); };
+SWDraw.bg = null; for (var an = el; an && !SWDraw.bg; an = an.parentElement) { var bc = getComputedStyle(an).backgroundColor; if (bc && !/^rgba\(.*, 0\)$|^transparent$/.test(bc)) SWDraw.bg = bc; }
+var di = el.closest('[data-sw-dialin]'); if (di) { var pf = TRMNLPaint.bg(SWDraw.mode.dark ? 'gray-45' : (SWDraw.mode.bits === 2 ? 'gray-55' : 'gray-50'), { el: el }); if (pf && pf.color) di.style.color = pf.color; }
+var sc = (el.closest('.screen') || document.querySelector('.screen') || document.body).classList;
+var cl = /(^| )screen--color-/.test(sc.value);
+SWDraw.mode = { color: cl, dark: sc.contains('screen--dark-mode'), bits: sc.contains('screen--1bit') || (cl && !sc.contains('screen--color-full')) ? 1 : (sc.contains('screen--2bit') ? 2 : 4) };
+SWDraw.font = (TRMNLPaint.type('title', { el: el }) || {}).fontFamily || null;
+var r = el.getBoundingClientRect();
+var lzt = el.hasAttribute('data-sw-lz') && el.closest('[data-sw-twin]'), lzu = lzt && lzt.querySelector('[data-sw-unit]');
+if (lzu && r.height) { var lzk = (el.offsetHeight && r.height / el.offsetHeight) || 1, lzh = Math.max(r.height / lzk, 1.4 * parseFloat(getComputedStyle(lzu).fontSize)), lzs = lzt.querySelector('[data-sw-lsp]'); el.style.setProperty('height', lzh.toFixed(2) + 'px', 'important'); var lzc = lzt.querySelector('[data-sw-cb]'); if (lzc) { lzc.style.setProperty('height', lzh.toFixed(2) + 'px', 'important'); lzc.style.setProperty('width', (1.6 * lzh).toFixed(2) + 'px', 'important'); } if (lzs) lzs.style.setProperty('height', lzh.toFixed(2) + 'px', 'important'); r = el.getBoundingClientRect(); }   /* B10: readout icon at least 1.4 unit fonts */
+if (el.hasAttribute('data-sw-sq') && r.height) { var k0 = (el.offsetHeight && r.height / el.offsetHeight) || 1, tf = el.getAttribute('data-sw-part') === 'tri' ? parseFloat(getComputedStyle(el.parentElement).fontSize) * 0.8 : 0; if (tf) el.style.setProperty('height', tf.toFixed(2) + 'px', 'important'); el.style.setProperty('width', (tf || r.height / k0).toFixed(2) + 'px', 'important'); r = el.getBoundingClientRect(); }
+if (!r.width && !r.height) return;
+SWDraw.tr = el.hasAttribute('data-sw-tr'); SWDraw.gp = +(el.getAttribute('data-sw-gp') || 0); SWDraw.gx0 = +(el.getAttribute('data-sw-x0') || 0); SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
+var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
+var ogp = sc.contains('screen--portrait') && (sc.contains('screen--md') || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; SWDraw.ogfull = ogp && sc.contains('screen--md') && / view=1 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'));
+var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;
+var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
+SWDraw.nRows = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; }).length;
+SWDraw.scaleH = rows.length && rows[0].getAttribute('data-sw-part') === 'scale' ? Math.round(rows[0].getBoundingClientRect().height) : null;
+var hb = [].map.call(document.querySelectorAll('[data-sw-part="hbar"]'), function (q) { return q.getBoundingClientRect().height; }).filter(function (h) { return h > 0; }); SWDraw.hbarH = hb.length ? Math.floor(Math.min.apply(null, hb)) : null; SWDraw.hcols = hb.length || null;
+SWDraw.top = el.hasAttribute('data-sw-top');
+SWDraw.extD = k >= 0 && k + 1 < rows.length ? Math.max(0, rows[k + 1].getBoundingClientRect().top - r.bottom + 1) : 0;
+if (/^(baro|tdial)$/.test(el.getAttribute('data-sw-part'))) { SWDraw.caps = {}; document.querySelectorAll('[data-sw-part="baro"], [data-sw-part="tdial"]').forEach(function (d) { var b = d.getBoundingClientRect(); if (!b.width) return; SWDraw.caps[d.getAttribute('data-sw-part')] = [].map.call(d.parentElement.querySelectorAll('[data-sw-cap]'), function (c) { var rg = document.createRange(); rg.selectNodeContents(c); var q = rg.getBoundingClientRect(); return [q.left - b.left, q.top - b.top, q.right - b.left, q.bottom - b.top]; }); }); }
+el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.floor(r.width), Math.floor(r.height));
+if (el.getAttribute('data-sw-part') === 'cue') { var cs0 = el.firstElementChild; if (cs0) { cs0.setAttribute('width', '100%'); cs0.setAttribute('height', '100%'); cs0.setAttribute('preserveAspectRatio', 'xMinYMid meet'); } }
+el.querySelectorAll('text[data-sw-tick]').forEach(function (t) { var d = t.nextElementSibling; if (d) d.setAttribute('x', (+t.getAttribute('x') + t.getComputedTextLength() / 2 + 1).toFixed(1)); });
+swAlign();
+}
+var scr = (document.querySelector('.screen') || document.body).classList;
+if (scr.contains('screen--dark-mode') && !scr.contains('screen--1bit')) document.querySelectorAll('img[data-sw-icon]').forEach(function (im) {
+function swap() { var r = im.getBoundingClientRect(), k = (im.offsetWidth && r.width / im.offsetWidth) || 1; if (!r.width || !r.height) return;
+SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: im.parentElement }); }; SWDraw.mode = { dark: true, bits: scr.contains('screen--2bit') ? 2 : 4 }; SWDraw.src = im.src;
+var w = document.createElement('span'); w.setAttribute('data-sw-part', 'icon'); if (im.getAttribute('data-sw-ink')) w.setAttribute('data-sw-ink', im.getAttribute('data-sw-ink')); w.className = 'block shrink-0'; w.innerHTML = SWDraw.part(SW, 'icon', 0, Math.round(r.width / k), Math.round(r.height / k));
+var sv = w.firstChild, nx = im.parentElement.nextElementSibling; sv.setAttribute('class', 'block');
+if (nx && nx.hasAttribute('data-sw-cond')) { sv.setAttribute('width', '100%'); sv.setAttribute('height', '100%'); w.className = 'block shrink-0 h--full w--full'; }
+else { sv.setAttribute('width', Math.round(r.width / k)); sv.setAttribute('height', Math.round(r.height / k)); }
+im.replaceWith(w); }
+if (im.complete) swap(); else im.addEventListener('load', swap);
+});
+swAlign();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(swAlign);
+if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-cond]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
+if (window.MutationObserver) { var mo = new MutationObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-cond]').forEach(function (q) { mo.observe(q, { attributes: true, childList: true, characterData: true, subtree: true }); }); }
+[200, 800, 2000].forEach(function (ms) { setTimeout(function () { swN = 0; swAlign(); }, ms); });
+document.body.setAttribute('data-sw-drawn', '1');
+});
+})();
+</script>
+{%- endif %}
+{% endtemplate %}

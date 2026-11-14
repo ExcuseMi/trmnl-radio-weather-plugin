@@ -10,7 +10,7 @@ const TIME = null;
 var SLOTS = ["w.temperature", "w.low_high_short", "w.today", "p.precipitation_probability", "p.precipitation", "p.wind", "t.snow", "c1000", "c1003", "c1009", "c1087", "c1135", "c1147", "c1150", "c1153", "c1168", "c1171", "c1183", "c1189", "c1195", "c1198", "c1201", "c1213", "c1219", "c1225", "c1237", "c1246", "c1264", "c1276", "c1000n", "c1003n"];
 var TRMNL_TEXTS = {"cs": "Teplota|Min/Max|Dnes||||Sněžení|Slunečno|Polojasno|Zataženo|Bouřky|Mlha|Mrznoucí mlha|Slabé mrholení|Mrholení|Mrznoucí mrholení|Silné mrznoucí mrholení|Slabý déšť|Mírný déšť|Silný déšť|Slabý mrznoucí déšť|Silný mrznoucí déšť|Slabé sněžení|Mírné sněžení|Silné sněžení|Ledové krupky|Průtrž mračen|Silné krupobití|Bouřka s deštěm|Jasno", "da": "Temperatur||I dag|||||Solrigt|Let skyet|Overskyet|Torden|Tåge|Frosttåge|Let støvregn|Støvregn|Underafkølet finregn|Kraftig frost|Let regn|Moderat regn|Kraftig regn|Let frost|Kraftig frost|Let sne|Moderat sne|Kraftig sne|Hagl|Styrtregn|Kraftig isdannelse|Torden og regn|Klart", "de-AT": "", "de": "Temperatur|Min/Max|heute|Niederschlagswahrscheinlichkeit|Niederschlag||Schnee|sonnig|teilweise bewölkt|bedeckt|Gewitter|Nebel|gefrierender Nebel|leichter Nieselregen|Nieselregen|gefrierender Nieselregen|starker Gefrierregen|leichter Regen|mäßiger Regen|starker Regen|leichter Gefrierregen|starker Gefrierregen|leichter Schneefall|mäßiger Schneefall|starker Schneefall|Eiskörner|Wolkenbruch|starker Eisregen|Gewitter mit Regen|klar", "en": "Temperature|L/H|Today|Precipitation Probability|Precipitation|Wind|Snow|Sunny|Partly Cloudy|Overcast|Thunder|Fog|Freezing Fog|Light Drizzle|Drizzle|Freeze Drizzle|Heavy Freeze|Light Rain|Moderate Rain|Heavy Rain|Light Freeze|Heavy Freeze|Light Snow|Moderate Snow|Heavy Snow|Ice Pellets|Torrential Rain|Heavy Ice|Thunder & Rain|Clear", "en-AU": "", "en-GB": "", "es-ES": "Temperatura|Mín/Máx|Hoy||||Nieve|Soleado|Parcialmente Nublado|Cubierto|Tormenta|Niebla|Niebla Helada|Llovizna Ligera|Llovizna|Llovizna Helada|Llovizna Helada Fuerte|Lluvia Ligera|Lluvia Moderada|Lluvia Fuerte|Lluvia Helada Ligera|Lluvia Helada Fuerte|Nieve Ligera|Nieve Moderada|Nieve Fuerte|Granizo|Lluvia Torrencial|Granizo Fuerte|Tormenta con Lluvia|Despejado", "fr": "Température|Min/Max|Aujourd'hui||||Neige|Ensoleillé|Partiellement nuageux|Couvert|Orage|Brouillard|Brouillard verglaçant|Bruine légère|Bruine|Bruine verglaçante|Gel intense|Pluie légère|Pluie modérée|Pluie intense|Gel léger|Gel intense|Neige légère|Neige modérée|Neige intense|Granules de glace|Pluie torrentielle|Glace intense|Orage et pluie|Dégagé", "gu": "", "he": "טמפרטורה||היום", "hi": "", "hu": "Hőmérséklet||Ma|||||Napos|Részben felhős|Borult|Mennydörgés|Köd|Zúzmarás köd|Enyhe szitálás|Szitálás|Fagyos szitálás|Erős fagy|Enyhe eső|Mérsékelt eső|Erős eső|Enyhe fagy|Erős fagy|Enyhe havazás|Mérsékelt havazás|Erős havazás|Jégdarabok|Felhőszakadás|Erős jég|Zivatar és eső|Tiszta", "id": "", "is": "Hiti||Í dag|||||Sólskin|Hálfskýjað|Alskýjað|Þrumur|Þoka|Frostþoka|Dálítil súld|Úði|Frosinn úði|Mikið frost|Dálítil rigning|Miðlungs rigning|Mikil rigning|Dálítil ísing|Mikil ísing|Dálítil snjókoma|Miðlungs snjókoma|Mikil snjókoma|Haglél|Úrfelli|Mikil ísmyndun|Þrumur & rigning|Heiðskírt", "it": "Temperatura||Oggi", "ja": "温度||今日", "ko": "온도|최저/최고|오늘||||눈|맑음|구름 많음|흐림|천둥|안개|어는 안개|약한 이슬비|이슬비|어는 이슬비|강한 어는 이슬비|약한 비|비|강한 비|약한 어는 비|어는 비|약한 눈|눈|강한 눈|얼음싸라기|호우|싸락우박|뇌우", "lt": "Temperatūra|Ž/A|Šiandien||||Sniegas|Saulėta|Mažai debesuota|Apsiniaukę|Perkūnija|Rūkas|Šalantis rūkas|Lengva dulksna|Dulksna|Šalanti dulksna|Stipri šalanti dulksna|Lengvas lietus|Lietus|Labai stiprus lietus|Šalanti dulksna|Šalantis lietus|Nedidelis sniegas|Sniegas|Labai stiprus sniegas|Ledo kruša|Labai stipri liūtis|Kruša|Perkūnija ir stiprus lietus|Giedra", "nl": "Temperatuur||Vandaag|||||Zonnig|Deels Bewolkt|Zwaar Bewolkt|Onweer|Mist|Ijzige mist|Lichte Motregen|Motregen|Ijzel|Zware Ijzel|Lichte Regen|Matige Regen|Zware Regen|Lichte Ijzel|Zware Ijzel|Lichte Sneeuw|Matige Sneeuw|Zware Sneeuw|Ijsregen|Stortregen|Zware Ijzel|Onweer & Regen|Helder", "no": "Temperatur||I dag|Sannsynlighet for nedbør|Nedbør|Vind", "pl": "Temperatura|min/max|Dziś|Prawdopodobieństwo opadów|Opady|Wiatr|Opady śniegu|Słonecznie|Częściowe zachmurzenie|Całkowite zachmurzenie|Możliwe burze|Mgła|Marznąca mgła|Przelotna mżawka|Mżawka|Marznąca mżawka|Intensywne opady marznącej mżawki|Słabe opady deszczu|Umiarkowane opady deszczu|Intensywne opady deszczu|Słabe opady marznącego deszczu|Intensywne opady marznącego deszczu|Słabe opady śniegu|Umiarkowane opady śniegu|Intensywne opady śniegu|Deszcz lodowy|Przelotne ulewne deszcze|Przelotny intensywny deszcz lodowy|Burza z intensywnymi opadami deszczu|Bezchmurnie", "pt-BR": "Temperatura||Hoje|||||Ensolarado|Parcialmente Nublado|Encoberto|Trovoadas|Nevoeiro|Nevoeiro Congelante|Garoa Leve|Garoa|Garoa Congelante|Geada Forte|Chuva Leve|Chuva Moderada|Chuva Forte|Geada Leve|Geada Forte|Neve Leve|Neve Moderada|Neve Pesada|Granizo|Chuva Torrencial|Gelo Pesado|Trovões e Chuva|Limpo", "ro": "Temperatură|Min/Max|Astăzi|Probabilitate de precipitații|Precipitații|Vânt|Ninsoare|Însorit|Parțial noros|Acoperit|Descărcări electrice|Ceață|Ceață care îngheață|Burniță ușoară|Burniță|Burniță care îngheață|Îngheț puternic|Ploaie ușoară|Ploaie moderată|Ploaie puternică|Îngheț ușor|Îngheț puternic|Ninsoare ușoară|Ninsoare moderată|Ninsoare puternică|Granule de gheață|Ploaie torențială|Averse abundente de granule de gheață|Ploaie cu descărcări electrice|Senin", "ru": "Температура||Сегодня|||||Солнечно|Переменная облачность|Пасмурно|Гроза|Туман|Ледяной туман|Небольшая морось|Морось|Ледяная морось|Сильный ледяной дождь|Небольшой дождь|Умеренный дождь|Сильный дождь|Лёгкий ледяной дождь|Сильный ледяной дождь|Небольшой снег|Умеренный снег|Сильный снег|Ледяная крупа|Ливневый дождь|Сильный лёд|Гроза и дождь|Ясно", "sk": "Teplota|Min/Max|Dnes||||Sneženie|Jasno|Polooblačno|Zatiahnuté|Búrka|Hmla|Mrznúca hmla|Slabé mrholenie|Mrholenie|Mrznúce mrholenie|Silný mráz|Slabý dážď|Mierny dážď|Silný dážď|Slabý mráz|Silný mráz|Slabé sneženie|Mierne sneženie|Silné sneženie|Ľadové krúpy|Prívalový dážď|Silná poľadovica|Búrka s dažďom|Jasná obloha", "sl": "Temperatura|N/V|Danes||||Sneg|Sončno|Delno oblačno|Pooblačeno|Grmenje|Megla|Ledena megla|Šibko rosenje|Rosenje|Zmrzujoče rosenje|Močna poledica|Šibek dež|Zmeren dež|Močan dež|Šibka poledica|Močna poledica|Šibek sneg|Zmeren sneg|Močan sneg|Ledene kroglice|Silovit dež|Močan led|Grmenje in dež|Jasno", "sv": "", "uk": "Температура|Мін/Макс|Сьогодні|Ймовірність опадів|Опади|Вітер|Сніг|Сонячно|Мінлива хмарність|Суцільна хмарність|Грім|Туман|Переохолоджений туман|Слабка мряка|Мряка|Переохолоджена мряка|Сильна переохолоджена мряка|Слабкий дощ|Помірний дощ|Сильний дощ|Слабкий переохолоджений дощ|Сильний переохолоджений дощ|Слабкий сніг|Помірний сніг|Сильний сніг|Льодяна крупа|Злива|Сильна льодяна крупа|Гроза з дощем|Ясно", "zh-CN": "温度||今天||||下雪|晴天|局部多云|阴天|打雷|大雾|冻雾|小细雨|细雨|冻细雨|严重霜冻|小雨|中雨|大雨|小霜冻|大霜冻|小雪|中雪|大雪|冰雹|暴雨|冰雹|雷雨|晴朗", "zh-HK": "氣溫|低/高|今日||||有雪|天晴|部分時間多雲|密雲|雷暴|霧|冰霧|毛毛雨|細雨|凍毛雨|嚴重結冰|微雨|中雨|大雨|輕微結冰|嚴重結冰|微雪|中雪|大雪|冰珠|暴雨|大冰|雷雨|天色良好"};
 var OURS_KEYS = ["temp_s","rain","rain_from","rain_until","until","raining_now","no_rain","dry","next_h","dry_h","frost","no_signal","no_forecast","next_days","over","under","now","rain_chance","wind","temperature","today","lh","snow","hail","snow_from","snow_until","snowing_now","hail_from","hail_until","hailing_now","hum","uv","humidity","gust","pressure","feels","compass","sunrise","sunset","m_hum","m_press","m_rain","m_gust","baro","bw","daylight","dl_u","pollen","moon_new","moon_fq","moon_full","moon_lq","indoor","outdoor","tomorrow","p_steady","p_rising","p_falling","app","asof"];
-var OURS = {"en":"TEMP|RAIN|RAIN FROM|RAIN UNTIL|UNTIL|RAINING NOW|NO RAIN|DRY|NEXT {n} H|DRY {n} H|FROST|NO SIGNAL|NO FORECAST|NEXT DAYS|OVER|UNDER|NOW|RAIN CHANCE|WIND|TEMPERATURE|TODAY|L/H|SNOW|HAIL|SNOW FROM|SNOW UNTIL|SNOWING NOW|HAIL FROM|HAIL UNTIL|HAIL NOW|HUM|UV|HUMIDITY|GUST|PRESSURE|FEELS|N,NE,E,SE,S,SW,W,NW|SUNRISE|SUNSET|HUM|BARO|PRECIP|GUST|BAROMETER|STORMY,RAIN,CHANGE,FAIR|DAYLIGHT|H|POLLEN|NEW MOON|FIRST QUARTER|FULL MOON|LAST QUARTER|IN|OUT|TOMORROW|STEADY|RISING|FALLING|Radio Weather|as of","de":"TEMP|REGEN|REGEN AB|REGEN BIS|BIS|ES REGNET|KEIN REGEN|TROCKEN|NÄCHSTE {n} STD|TROCKEN {n} STD|FROST|KEIN SIGNAL|KEINE VORHERSAGE|NÄCHSTE TAGE|ÜBER|UNTER|JETZT|REGENRISIKO|WIND|TEMPERATUR|HEUTE|T/H|SCHNEE|HAGEL|SCHNEE AB|SCHNEE BIS|ES SCHNEIT|HAGEL AB|HAGEL BIS|ES HAGELT||||BÖE|LUFTDRUCK|GEFÜHLT|N,NO,O,SO,S,SW,W,NW|SONNENAUFGANG|SONNENUNTERGANG|FEUCHT|BARO|NIEDERSCH|BÖE|BAROMETER|STURM,REGEN,VERÄNDERLICH,SCHÖN|TAGESLICHT|STD|POLLEN|NEUMOND|ERSTES VIERTEL|VOLLMOND|LETZTES VIERTEL|INNEN|AUSSEN|MORGEN|STABIL|STEIGEND|FALLEND|Radiowetter|Stand","fr":"TEMP|PLUIE|PLUIE DÈS|PLUIE JUSQU'À|JUSQU'À|IL PLEUT|PAS DE PLUIE|SEC|PROCHAINES {n} H|SEC {n} H|GEL|PAS DE SIGNAL|PAS DE PRÉVISION|PROCHAINS JOURS|AU-DESSUS|EN DESSOUS|MAINTENANT|RISQUE DE PLUIE|VENT|TEMPÉRATURE|AUJOURD'HUI|MIN/MAX|NEIGE|GRÊLE|NEIGE DÈS|NEIGE JUSQU'À|IL NEIGE|GRÊLE DÈS|GRÊLE JUSQU'À|IL GRÊLE||||RAFALE|PRESSION|RESSENTI|N,NE,E,SE,S,SO,O,NO|LEVER DU SOLEIL|COUCHER DU SOLEIL|HUMID|BARO|PRÉCIP|RAFALE|BAROMÈTRE|TEMPÊTE,PLUIE,VARIABLE,BEAU|LUMIÈRE|H|POLLEN|NOUVELLE LUNE|PREMIER QUARTIER|PLEINE LUNE|DERNIER QUARTIER|INT|EXT|DEMAIN|STABLE|EN HAUSSE|EN BAISSE|Radio Météo|à","es":"TEMP|LLUVIA|LLUVIA DESDE|LLUVIA HASTA|HASTA|LLUEVE|SIN LLUVIA|SECO|PRÓXIMAS {n} H|SECO {n} H|HELADA|SIN SEÑAL|SIN PRONÓSTICO|PRÓXIMOS DÍAS|ENCIMA|DEBAJO|AHORA|RIESGO DE LLUVIA|VIENTO|TEMPERATURA|HOY|MÍN/MÁX|NIEVE|GRANIZO|NIEVE DESDE|NIEVE HASTA|NIEVA|GRANIZO DESDE|GRANIZO HASTA|GRANIZA||||RACHA|PRESIÓN|SENSACIÓN|N,NE,E,SE,S,SO,O,NO|AMANECER|ATARDECER|HUMED|BARO|PRECIP|RACHA|BARÓMETRO|TORMENTA,LLUVIA,VARIABLE,BUENO|LUZ DÍA|H|POLEN|LUNA NUEVA|CUARTO CRECIENTE|LUNA LLENA|CUARTO MENGUANTE|||MAÑANA|ESTABLE|SUBIENDO|BAJANDO|Radio Tiempo|a las","it":"TEMP|PIOGGIA|PIOGGIA DALLE|PIOGGIA FINO|FINO ALLE|PIOVE|NIENTE PIOGGIA|ASCIUTTO|PROSSIME {n} ORE|ASCIUTTO {n} ORE|GELO|NESSUN SEGNALE|NESSUNA PREVISIONE|PROSSIMI GIORNI|SOPRA|SOTTO|ORA|RISCHIO PIOGGIA|VENTO|TEMPERATURA|OGGI|MIN/MAX|NEVE|GRANDINE|NEVE DALLE|NEVE FINO|NEVICA|GRANDINE DALLE|GRANDINE FINO|GRANDINA||||RAFFICA|PRESSIONE|PERCEPITA|N,NE,E,SE,S,SO,O,NO|ALBA|TRAMONTO|UMID|BARO|PRECIP|RAFFICA|BAROMETRO|TEMPESTA,PIOGGIA,VARIABILE,BELLO|LUCE|H|POLLINI|LUNA NUOVA|PRIMO QUARTO|LUNA PIENA|ULTIMO QUARTO|||DOMANI||||Radio Meteo|alle","nl":"TEMP|REGEN|REGEN VANAF|REGEN TOT|TOT|HET REGENT|GEEN REGEN|DROOG|KOMENDE {n} UUR|DROOG {n} UUR|VORST|GEEN SIGNAAL|GEEN VERWACHTING|KOMENDE DAGEN|BOVEN|ONDER|NU|REGENKANS|WIND|TEMPERATUUR|VANDAAG|MIN/MAX|SNEEUW|HAGEL|SNEEUW VANAF|SNEEUW TOT|HET SNEEUWT|HAGEL VANAF|HAGEL TOT|HET HAGELT|VOCHT|UV|VOCHTIGHEID|VLAAG|LUCHTDRUK|GEVOEL|N,NO,O,ZO,Z,ZW,W,NW|ZONSOPGANG|ZONSONDERGANG|VOCHT|BARO|NEERSLAG|STOTEN|BAROMETER|STORM,REGEN,VERANDERLIJK,MOOI|DAGLICHT|U|POLLEN|NIEUWE MAAN|EERSTE KWARTIER|VOLLE MAAN|LAATSTE KWARTIER|BINNEN|BUITEN|MORGEN|STABIEL|STIJGEND|DALEND|Radioweer|stand","pt":"TEMP|CHUVA|CHUVA ÀS|CHUVA ATÉ|ATÉ|CHOVENDO|SEM CHUVA|SECO|PRÓXIMAS {n} H|SECO {n} H|GEADA|SEM SINAL|SEM PREVISÃO|PRÓXIMOS DIAS|ACIMA|ABAIXO|AGORA|CHANCE DE CHUVA|VENTO|TEMPERATURA|HOJE|MÍN/MÁX|NEVE|GRANIZO|NEVE ÀS|NEVE ATÉ|NEVANDO|GRANIZO ÀS|GRANIZO ATÉ|GRANIZANDO||||RAJADA|PRESSÃO|SENSAÇÃO|N,NE,L,SE,S,SO,O,NO|NASCER DO SOL|PÔR DO SOL|UMID|BARO|PRECIP|RAJADA|BARÔMETRO|TEMPESTADE,CHUVA,VARIÁVEL,BOM|LUZ|H|PÓLEN|LUA NOVA|QUARTO CRESCENTE|LUA CHEIA|QUARTO MINGUANTE|||AMANHÃ||||Rádio Tempo|às","ja":"気温|雨|雨の開始|雨の終了|終了|降雨中|雨なし|雨なし|今後{n}時間|{n}時間 雨なし|霜|受信なし|予報なし|週間予報|超過|未満|現在|降水確率|風|気温|今日|最低/最高|雪|ひょう|雪の開始|雪の終了|降雪中|ひょうの開始|ひょうの終了|降ひょう中||||突風|気圧|体感||日の出|日の入||||||||||||||||明日||||ラジオ天気|","ko":"기온|비|비 시작|비 그침|종료|비 오는 중|비 없음|비 없음|향후 {n}시간|{n}시간 비 없음|서리|신호 없음|예보 없음|주간 예보|초과|미만|현재|강수 확률|바람|기온|오늘|최저/최고|눈|우박|눈 시작|눈 그침|눈 오는 중|우박 시작|우박 그침|우박 내리는 중||||돌풍|기압|체감||일출|일몰||||||||||||||||내일||||라디오 날씨|","zh-CN":"气温|雨|开始下雨|雨停|至|正在下雨|无雨|无雨|未来{n}小时|{n}小时无雨|霜冻|无信号|无预报|未来几天|超出|低于|现在|降水概率|风|气温|今天|最低/最高|雪|冰雹|开始下雪|雪停|正在下雪|开始下冰雹|冰雹停|正在下冰雹||||阵风|气压|体感||日出|日落||||||||||||||||明天||||收音机天气|","zh-HK":"氣溫|雨|開始下雨|雨停|至|正在下雨|無雨|無雨|未來{n}小時|{n}小時無雨|霜凍|無信號|無預報|未來數天|超出|低於|現在|降雨概率|風|氣溫|今天|最低/最高|雪|冰雹|開始下雪|雪停|正在下雪|開始下冰雹|冰雹停|正在下冰雹||||陣風|氣壓|體感||日出|日落||||||||||||||||明天||||收音機天氣|","sv":"TEMP|REGN|REGN FRÅN|REGN TILL|TILL|DET REGNAR|INGET REGN|TORRT|KOMMANDE {n} TIM|TORRT {n} TIM|FROST|INGEN SIGNAL|INGEN PROGNOS|KOMMANDE DAGAR|ÖVER|UNDER|NU|REGNRISK|VIND|TEMPERATUR|IDAG|MIN/MAX|SNÖ|HAGEL|SNÖ FRÅN|SNÖ TILL|DET SNÖAR|HAGEL FRÅN|HAGEL TILL|DET HAGLAR||||BY|LUFTTRYCK|KÄNNS SOM|N,NO,O,SO,S,SV,V,NV|SOLUPPGÅNG|SOLNEDGÅNG|FUKT|BARO|NEDERBÖRD|BYAR|BAROMETER|STORM,REGN,VARIABELT,VACKERT|DAGSLJUS|T|POLLEN|||||||IMORGON||||Radioväder|per","da":"TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NÆSTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN PROGNOSE|NÆSTE DAGE|OVER|UNDER|NU|REGNRISIKO|VIND|TEMPERATUR|I DAG|MIN/MAX|SNE|HAGL|SNE FRA|SNE TIL|DET SNER|HAGL FRA|HAGL TIL|DET HAGLER||||VINDSTØD|LUFTTRYK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV|SOLOPGANG|SOLNEDGANG|FUGT|BARO|NEDBØR|STØD|BAROMETER|STORM,REGN,SKIFTENDE,SMUKT|DAGSLYS|T|POLLEN|||||||I MORGEN||||Radiovejr|pr.","no":"TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NESTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN VARSEL|NESTE DAGER|OVER|UNDER|NÅ|NEDBØRSSJANSE|VIND|TEMPERATUR|I DAG|MIN/MAKS|SNØ|HAGL|SNØ FRA|SNØ TIL|DET SNØR|HAGL FRA|HAGL TIL|DET HAGLER||||VINDKAST|LUFTTRYKK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV|SOLOPPGANG|SOLNEDGANG|FUKT|BARO|NEDBØR|KAST|BAROMETER|STORM,REGN,VARIABELT,FINT|DAGSLYS|T|POLLEN|||||||I MORGEN||||Radiovær|per","pl":"TEMP|DESZCZ|DESZCZ OD|DESZCZ DO|DO|PADA|BEZ DESZCZU|SUCHO|KOLEJNE {n} H|SUCHO {n} H|MRÓZ|BRAK SYGNAŁU|BRAK PROGNOZY|KOLEJNE DNI|POWYŻEJ|PONIŻEJ|TERAZ|SZANSA OPADÓW|WIATR|TEMPERATURA|DZIŚ|MIN/MAKS|ŚNIEG|GRAD|ŚNIEG OD|ŚNIEG DO|PADA ŚNIEG|GRAD OD|GRAD DO|PADA GRAD||||PORYW|CIŚNIENIE|ODCZUWALNA|N,NE,E,SE,S,SW,W,NW|WSCHÓD SŁOŃCA|ZACHÓD SŁOŃCA|WILG|BARO|OPADY|PORYW|BAROMETR|BURZA,DESZCZ,ZMIENNIE,ŁADNIE|DZIEŃ|H|PYŁKI|||||||JUTRO||||Radio Pogoda|","cs":"TEPL|DÉŠŤ|DÉŠŤ OD|DÉŠŤ DO|DO|PRŠÍ|BEZ DEŠTĚ|SUCHO|DALŠÍCH {n} H|SUCHO {n} H|MRÁZ|BEZ SIGNÁLU|BEZ PŘEDPOVĚDI|DALŠÍ DNY|NAD|POD|TEĎ|ŠANCE SRÁŽEK|VÍTR|TEPLOTA|DNES|MIN/MAX|SNÍH|KRUPOBITÍ|SNÍH OD|SNÍH DO|SNĚŽÍ|KRUPOBITÍ OD|KRUPOBITÍ DO|PADÁ KRUPOBITÍ||||NÁRAZ|TLAK|POCITOVÁ|S,SV,V,JV,J,JZ,Z,SZ|VÝCHOD SLUNCE|ZÁPAD SLUNCE|VLHK|BARO|SRÁŽKY|NÁRAZ|BAROMETR|BOUŘE,DÉŠŤ,PROMĚNLIVO,KRÁSNĚ|DENNÍ SVĚTLO|H|PYL|||||||ZÍTRA||||Rádio Počasí|"};
+var OURS = {"en":"TEMP|RAIN|RAIN FROM|RAIN UNTIL|UNTIL|RAINING NOW|NO RAIN|DRY|NEXT {n} H|DRY {n} H|FROST|NO SIGNAL|NO FORECAST|NEXT DAYS|OVER|UNDER|NOW|RAIN CHANCE|WIND|TEMPERATURE|TODAY|L/H|SNOW|HAIL|SNOW FROM|SNOW UNTIL|SNOWING NOW|HAIL FROM|HAIL UNTIL|HAIL NOW|HUM|UV|HUMIDITY|GUST|PRESSURE|FEELS|N,NE,E,SE,S,SW,W,NW|SUNRISE|SUNSET|HUM|BARO|PRECIP|GUST|BAROMETER|STORMY,RAIN,CHANGE,FAIR|DAYLIGHT|H|POLLEN|NEW MOON|FIRST QUARTER|FULL MOON|LAST QUARTER|IN|OUT|TOMORROW|STEADY|RISING|FALLING|Radio Weather|as of","de":"TEMP|REGEN|REGEN AB|REGEN BIS|BIS|ES REGNET|KEIN REGEN|TROCKEN|NÄCHSTE {n} STD|TROCKEN {n} STD|FROST|KEIN SIGNAL|KEINE VORHERSAGE|NÄCHSTE TAGE|ÜBER|UNTER|JETZT|REGENRISIKO|WIND|TEMPERATUR|HEUTE|T/H|SCHNEE|HAGEL|SCHNEE AB|SCHNEE BIS|ES SCHNEIT|HAGEL AB|HAGEL BIS|ES HAGELT|FEUCHT|UV|LUFTFEUCHTE|BÖE|LUFTDRUCK|GEFÜHLT|N,NO,O,SO,S,SW,W,NW|SONNENAUFGANG|SONNENUNTERGANG|FEUCHT|BARO|NIEDERSCH|BÖE|BAROMETER|STURM,REGEN,VERÄNDERLICH,SCHÖN|TAGESLICHT|STD|POLLEN|NEUMOND|ERSTES VIERTEL|VOLLMOND|LETZTES VIERTEL|INNEN|AUSSEN|MORGEN|STABIL|STEIGEND|FALLEND|Radiowetter|Stand","fr":"TEMP|PLUIE|PLUIE DÈS|PLUIE JUSQU'À|JUSQU'À|IL PLEUT|PAS DE PLUIE|SEC|PROCHAINES {n} H|SEC {n} H|GEL|PAS DE SIGNAL|PAS DE PRÉVISION|PROCHAINS JOURS|AU-DESSUS|EN DESSOUS|MAINTENANT|RISQUE DE PLUIE|VENT|TEMPÉRATURE|AUJOURD'HUI|MIN/MAX|NEIGE|GRÊLE|NEIGE DÈS|NEIGE JUSQU'À|IL NEIGE|GRÊLE DÈS|GRÊLE JUSQU'À|IL GRÊLE|HUMID|UV|HUMIDITÉ|RAFALE|PRESSION|RESSENTI|N,NE,E,SE,S,SO,O,NO|LEVER DU SOLEIL|COUCHER DU SOLEIL|HUMID|BARO|PRÉCIP|RAFALE|BAROMÈTRE|TEMPÊTE,PLUIE,VARIABLE,BEAU|LUMIÈRE|H|POLLEN|NOUVELLE LUNE|PREMIER QUARTIER|PLEINE LUNE|DERNIER QUARTIER|INT|EXT|DEMAIN|STABLE|EN HAUSSE|EN BAISSE|Radio Météo|à","es":"TEMP|LLUVIA|LLUVIA DESDE|LLUVIA HASTA|HASTA|LLUEVE|SIN LLUVIA|SECO|PRÓXIMAS {n} H|SECO {n} H|HELADA|SIN SEÑAL|SIN PRONÓSTICO|PRÓXIMOS DÍAS|ENCIMA|DEBAJO|AHORA|RIESGO DE LLUVIA|VIENTO|TEMPERATURA|HOY|MÍN/MÁX|NIEVE|GRANIZO|NIEVE DESDE|NIEVE HASTA|NIEVA|GRANIZO DESDE|GRANIZO HASTA|GRANIZA|HUMED|UV|HUMEDAD|RACHA|PRESIÓN|SENSACIÓN|N,NE,E,SE,S,SO,O,NO|AMANECER|ATARDECER|HUMED|BARO|PRECIP|RACHA|BARÓMETRO|TORMENTA,LLUVIA,VARIABLE,BUENO|LUZ DÍA|H|POLEN|LUNA NUEVA|CUARTO CRECIENTE|LUNA LLENA|CUARTO MENGUANTE|INT|EXT|MAÑANA|ESTABLE|SUBIENDO|BAJANDO|Radio Tiempo|a las","it":"TEMP|PIOGGIA|PIOGGIA DALLE|PIOGGIA FINO|FINO ALLE|PIOVE|NIENTE PIOGGIA|ASCIUTTO|PROSSIME {n} ORE|ASCIUTTO {n} ORE|GELO|NESSUN SEGNALE|NESSUNA PREVISIONE|PROSSIMI GIORNI|SOPRA|SOTTO|ORA|RISCHIO PIOGGIA|VENTO|TEMPERATURA|OGGI|MIN/MAX|NEVE|GRANDINE|NEVE DALLE|NEVE FINO|NEVICA|GRANDINE DALLE|GRANDINE FINO|GRANDINA|UMID|UV|UMIDITÀ|RAFFICA|PRESSIONE|PERCEPITA|N,NE,E,SE,S,SO,O,NO|ALBA|TRAMONTO|UMID|BARO|PRECIP|RAFFICA|BAROMETRO|TEMPESTA,PIOGGIA,VARIABILE,BELLO|LUCE|H|POLLINI|LUNA NUOVA|PRIMO QUARTO|LUNA PIENA|ULTIMO QUARTO|INT|EST|DOMANI|STABILE|IN AUMENTO|IN CALO|Radio Meteo|alle","nl":"TEMP|REGEN|REGEN VANAF|REGEN TOT|TOT|HET REGENT|GEEN REGEN|DROOG|KOMENDE {n} UUR|DROOG {n} UUR|VORST|GEEN SIGNAAL|GEEN VERWACHTING|KOMENDE DAGEN|BOVEN|ONDER|NU|REGENKANS|WIND|TEMPERATUUR|VANDAAG|MIN/MAX|SNEEUW|HAGEL|SNEEUW VANAF|SNEEUW TOT|HET SNEEUWT|HAGEL VANAF|HAGEL TOT|HET HAGELT|VOCHT|UV|VOCHTIGHEID|VLAAG|LUCHTDRUK|GEVOEL|N,NO,O,ZO,Z,ZW,W,NW|ZONSOPGANG|ZONSONDERGANG|VOCHT|BARO|NEERSLAG|STOTEN|BAROMETER|STORM,REGEN,VERANDERLIJK,MOOI|DAGLICHT|U|POLLEN|NIEUWE MAAN|EERSTE KWARTIER|VOLLE MAAN|LAATSTE KWARTIER|BINNEN|BUITEN|MORGEN|STABIEL|STIJGEND|DALEND|Radioweer|stand","pt":"TEMP|CHUVA|CHUVA ÀS|CHUVA ATÉ|ATÉ|CHOVENDO|SEM CHUVA|SECO|PRÓXIMAS {n} H|SECO {n} H|GEADA|SEM SINAL|SEM PREVISÃO|PRÓXIMOS DIAS|ACIMA|ABAIXO|AGORA|CHANCE DE CHUVA|VENTO|TEMPERATURA|HOJE|MÍN/MÁX|NEVE|GRANIZO|NEVE ÀS|NEVE ATÉ|NEVANDO|GRANIZO ÀS|GRANIZO ATÉ|GRANIZANDO|UMID|UV|UMIDADE|RAJADA|PRESSÃO|SENSAÇÃO|N,NE,L,SE,S,SO,O,NO|NASCER DO SOL|PÔR DO SOL|UMID|BARO|PRECIP|RAJADA|BARÔMETRO|TEMPESTADE,CHUVA,VARIÁVEL,BOM|LUZ|H|PÓLEN|LUA NOVA|QUARTO CRESCENTE|LUA CHEIA|QUARTO MINGUANTE|INT|EXT|AMANHÃ|ESTÁVEL|SUBINDO|CAINDO|Rádio Tempo|às","ja":"気温|雨|雨の開始|雨の終了|終了|降雨中|雨なし|雨なし|今後{n}時間|{n}時間 雨なし|霜|受信なし|予報なし|週間予報|超過|未満|現在|降水確率|風|気温|今日|最低/最高|雪|ひょう|雪の開始|雪の終了|降雪中|ひょうの開始|ひょうの終了|降ひょう中|湿度|UV|湿度|突風|気圧|体感|北,北東,東,南東,南,南西,西,北西|日の出|日の入|湿度|気圧|降水|突風|気圧計|大荒れ,雨,変わりやすい,晴れ|日照|時間|花粉|新月|上弦|満月|下弦|室内|屋外|明日|安定|上昇|下降|ラジオ天気|更新","ko":"기온|비|비 시작|비 그침|종료|비 오는 중|비 없음|비 없음|향후 {n}시간|{n}시간 비 없음|서리|신호 없음|예보 없음|주간 예보|초과|미만|현재|강수 확률|바람|기온|오늘|최저/최고|눈|우박|눈 시작|눈 그침|눈 오는 중|우박 시작|우박 그침|우박 내리는 중|습도|UV|습도|돌풍|기압|체감|북,북동,동,남동,남,남서,서,북서|일출|일몰|습도|기압|강수|돌풍|기압계|폭풍,비,변덕,맑음|일조|시간|꽃가루|신월|상현|보름달|하현|실내|실외|내일|안정|상승|하강|라디오 날씨|기준","zh-CN":"气温|雨|开始下雨|雨停|至|正在下雨|无雨|无雨|未来{n}小时|{n}小时无雨|霜冻|无信号|无预报|未来几天|超出|低于|现在|降水概率|风|气温|今天|最低/最高|雪|冰雹|开始下雪|雪停|正在下雪|开始下冰雹|冰雹停|正在下冰雹|湿度|UV|湿度|阵风|气压|体感|北,东北,东,东南,南,西南,西,西北|日出|日落|湿度|气压|降水|阵风|气压计|风暴,雨,多变,晴|日照|小时|花粉|新月|上弦月|满月|下弦月|室内|室外|明天|稳定|上升|下降|收音机天气|更新","zh-HK":"氣溫|雨|開始下雨|雨停|至|正在下雨|無雨|無雨|未來{n}小時|{n}小時無雨|霜凍|無信號|無預報|未來數天|超出|低於|現在|降雨概率|風|氣溫|今天|最低/最高|雪|冰雹|開始下雪|雪停|正在下雪|開始下冰雹|冰雹停|正在下冰雹|濕度|UV|濕度|陣風|氣壓|體感|北,東北,東,東南,南,西南,西,西北|日出|日落|濕度|氣壓|降雨|陣風|氣壓計|風暴,雨,多變,晴|日照|小時|花粉|新月|上弦月|滿月|下弦月|室內|室外|明天|穩定|上升|下降|收音機天氣|更新","sv":"TEMP|REGN|REGN FRÅN|REGN TILL|TILL|DET REGNAR|INGET REGN|TORRT|KOMMANDE {n} TIM|TORRT {n} TIM|FROST|INGEN SIGNAL|INGEN PROGNOS|KOMMANDE DAGAR|ÖVER|UNDER|NU|REGNRISK|VIND|TEMPERATUR|IDAG|MIN/MAX|SNÖ|HAGEL|SNÖ FRÅN|SNÖ TILL|DET SNÖAR|HAGEL FRÅN|HAGEL TILL|DET HAGLAR|FUKT|UV|LUFTFUKTIGHET|BY|LUFTTRYCK|KÄNNS SOM|N,NO,O,SO,S,SV,V,NV|SOLUPPGÅNG|SOLNEDGÅNG|FUKT|BARO|NEDERBÖRD|BYAR|BAROMETER|STORM,REGN,VARIABELT,VACKERT|DAGSLJUS|T|POLLEN|NYMÅNE|FÖRSTA KVARTER|FULLMÅNE|SISTA KVARTER|INNE|UTE|IMORGON|STABILT|STIGANDE|FALLANDE|Radioväder|per","da":"TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NÆSTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN PROGNOSE|NÆSTE DAGE|OVER|UNDER|NU|REGNRISIKO|VIND|TEMPERATUR|I DAG|MIN/MAX|SNE|HAGL|SNE FRA|SNE TIL|DET SNER|HAGL FRA|HAGL TIL|DET HAGLER|FUGT|UV|LUFTFUGTIGHED|VINDSTØD|LUFTTRYK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV|SOLOPGANG|SOLNEDGANG|FUGT|BARO|NEDBØR|STØD|BAROMETER|STORM,REGN,SKIFTENDE,SMUKT|DAGSLYS|T|POLLEN|NYMÅNE|FØRSTE KVARTER|FULDMÅNE|SIDSTE KVARTER|INDE|UDE|I MORGEN|STABIL|STIGENDE|FALDENDE|Radiovejr|pr.","no":"TEMP|REGN|REGN FRA|REGN TIL|TIL|DET REGNER|INGEN REGN|TØRT|NESTE {n} TIMER|TØRT {n} TIMER|FROST|INGEN SIGNAL|INGEN VARSEL|NESTE DAGER|OVER|UNDER|NÅ|NEDBØRSSJANSE|VIND|TEMPERATUR|I DAG|MIN/MAKS|SNØ|HAGL|SNØ FRA|SNØ TIL|DET SNØR|HAGL FRA|HAGL TIL|DET HAGLER|FUKT|UV|LUFTFUKTIGHET|VINDKAST|LUFTTRYKK|FØLES SOM|N,NØ,Ø,SØ,S,SV,V,NV|SOLOPPGANG|SOLNEDGANG|FUKT|BARO|NEDBØR|KAST|BAROMETER|STORM,REGN,VARIABELT,FINT|DAGSLYS|T|POLLEN|NYMÅNE|FØRSTE KVARTER|FULLMÅNE|SISTE KVARTER|INNE|UTE|I MORGEN|STABILT|STIGENDE|FALLENDE|Radiovær|per","pl":"TEMP|DESZCZ|DESZCZ OD|DESZCZ DO|DO|PADA|BEZ DESZCZU|SUCHO|KOLEJNE {n} H|SUCHO {n} H|MRÓZ|BRAK SYGNAŁU|BRAK PROGNOZY|KOLEJNE DNI|POWYŻEJ|PONIŻEJ|TERAZ|SZANSA OPADÓW|WIATR|TEMPERATURA|DZIŚ|MIN/MAKS|ŚNIEG|GRAD|ŚNIEG OD|ŚNIEG DO|PADA ŚNIEG|GRAD OD|GRAD DO|PADA GRAD|WILG|UV|WILGOTNOŚĆ|PORYW|CIŚNIENIE|ODCZUWALNA|N,NE,E,SE,S,SW,W,NW|WSCHÓD SŁOŃCA|ZACHÓD SŁOŃCA|WILG|BARO|OPADY|PORYW|BAROMETR|BURZA,DESZCZ,ZMIENNIE,ŁADNIE|DZIEŃ|H|PYŁKI|NÓW|PIERWSZA KWADRA|PEŁNIA|OSTATNIA KWADRA|WEWN|ZEWN|JUTRO|STABILNE|RASNĄCE|SPADAJĄCE|Radio Pogoda|stan na","cs":"TEPL|DÉŠŤ|DÉŠŤ OD|DÉŠŤ DO|DO|PRŠÍ|BEZ DEŠTĚ|SUCHO|DALŠÍCH {n} H|SUCHO {n} H|MRÁZ|BEZ SIGNÁLU|BEZ PŘEDPOVĚDI|DALŠÍ DNY|NAD|POD|TEĎ|ŠANCE SRÁŽEK|VÍTR|TEPLOTA|DNES|MIN/MAX|SNÍH|KRUPOBITÍ|SNÍH OD|SNÍH DO|SNĚŽÍ|KRUPOBITÍ OD|KRUPOBITÍ DO|PADÁ KRUPOBITÍ|VLHK|UV|VLHKOST|NÁRAZ|TLAK|POCITOVÁ|S,SV,V,JV,J,JZ,Z,SZ|VÝCHOD SLUNCE|ZÁPAD SLUNCE|VLHK|BARO|SRÁŽKY|NÁRAZ|BAROMETR|BOUŘE,DÉŠŤ,PROMĚNLIVO,KRÁSNĚ|DENNÍ SVĚTLO|H|PYL|NOVOLUNÍ|PRVNÍ ČTVRŤ|ÚPLNĚK|POSLEDNÍ ČTVRŤ|UVNITŘ|VENKU|ZÍTRA|STABILNÍ|STOUPÁ|KLESÁ|Rádio Počasí|stav"};
 var OURS_COND = {"ja": "晴れ|晴れ時々曇り|曇り|雷|霧|着氷性の霧|弱い霧雨|霧雨|着氷性の霧雨|強い着氷性の霧雨|小雨|雨|大雨|弱い着氷性の雨|強い着氷性の雨|小雪|雪|大雪|凍雨|豪雨|雷雨|快晴|晴れ時々曇り", "it": "SOLEGGIATO|PARZIALMENTE NUVOLOSO|COPERTO|TUONI|NEBBIA|NEBBIA GELATA|PIOVIGGINE DEBOLE|PIOVIGGINE|PIOVIGGINE GELATA|GELICIDIO FORTE|PIOGGIA DEBOLE|PIOGGIA MODERATA|PIOGGIA FORTE|PIOGGIA GELATA DEBOLE|PIOGGIA GELATA FORTE|NEVE DEBOLE|NEVE MODERATA|NEVE FORTE|GRANULI DI GHIACCIO|PIOGGIA TORRENZIALE|TEMPORALE|SERENO|PARZIALMENTE NUVOLOSO", "no": "SOL|DELVIS SKYET|OVERSKYET|TORDEN|TÅKE|FRYSETÅKE|LETT YR|YR|UNDERKJØLT YR|KRAFTIG UNDERKJØLT YR|LETT REGN|MODERAT REGN|KRAFTIG REGN|LETT UNDERKJØLT REGN|KRAFTIG UNDERKJØLT REGN|LETT SNØ|MODERAT SNØ|KRAFTIG SNØ|ISKORN|STYRTREGN|TORDENBYGER|KLART|DELVIS SKYET", "sv": "SOLIGT|HALVKLART|MULET|ÅSKA|DIMMA|UNDERKYLD DIMMA|LÄTT DUGGREGN|DUGGREGN|UNDERKYLT DUGGREGN|KRAFTIGT UNDERKYLT DUGGREGN|LÄTT REGN|MÅTTLIGT REGN|KRAFTIGT REGN|LÄTT UNDERKYLT REGN|KRAFTIGT UNDERKYLT REGN|LÄTT SNÖ|MÅTTLIG SNÖ|KRAFTIG SNÖ|ISKORN|SKYFALL|ÅSKA OCH REGN|KLART|HALVKLART"};
 var WMO_TO_WAPI = { 0: 1000, 1: 1003, 2: 1003, 3: 1009, 45: 1135, 48: 1147, 51: 1150, 53: 1153, 55: 1153, 56: 1168, 57: 1171,
 61: 1183, 63: 1189, 65: 1195, 66: 1198, 67: 1201, 71: 1213, 73: 1219, 75: 1225, 77: 1237, 80: 1183, 81: 1195, 82: 1246,
@@ -95,12 +95,32 @@ function buildI18n(rawLocale) {
   };
 }
 
-// Moon phase as a fraction of the cycle (0 new, 0.25 first quarter, 0.5 full, 0.75 last quarter), from the date.
-function moonPhase(timeStr) {
-  var m = /(\d{4})-(\d{2})-(\d{2})/.exec(String(timeStr || ''));
+// Moon phase as a fraction of the cycle (0 new, 0.25 first quarter, 0.5 full, 0.75 last quarter), at the refresh time (owner 2026-11-14:
+// local time plus the UTC offset in seconds; a date alone counts as its noon).
+function moonPhase(timeStr, off) {
+  var m = /(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2}))?/.exec(String(timeStr || ''));
   if (!m) return null;
-  var jd = Date.UTC(+m[1], +m[2] - 1, +m[3], 12) / 86400000 + 2440587.5, P = 29.530588853;
-  return Math.round(((((jd - 2451550.1) % P) + P) % P) / P * 1000) / 1000;
+  var k = moonSky(Date.UTC(+m[1], +m[2] - 1, +m[3], m[4] === undefined ? 12 : +m[4], +(m[5] || 0)) - (off || 0) * 1000);   // the moon's elongation from the sun (true phase, not the mean cycle)
+  return Math.round(((((k.lm - k.ls) % 360) + 360) % 360) / 360 * 1000) / 1000 % 1;
+}
+
+// Moon tilt (owner 2026-11-14, "like the reference site"): the angle of the moon's bright limb as the observer sees it, in degrees
+// counter-clockwise from the zenith (90 = the left of the disc, 270 = the right). Bright-limb position angle chi from low-precision sun and
+// moon positions (moonSky), minus the parallactic angle q from latitude, sidereal time and the moon's hour angle. utcMs, lat, lon.
+// Low-precision sun and moon ecliptic longitudes (degrees) and moon latitude at a UTC time, about 0.3 degrees.
+function moonSky(utcMs) {
+  var R = Math.PI / 180, d = utcMs / 86400000 + 2440587.5 - 2451545, sn = function (x) { return Math.sin(x * R); };
+  var Ls = 280.46 + 0.9856474 * d, Ms = 357.528 + 0.9856003 * d, Lm = 218.316 + 13.176396 * d, Mm = 134.963 + 13.064993 * d, F = 93.272 + 13.22935 * d, D = Lm - Ls;
+  return { d: d, e: 23.439 - 4e-7 * d, ls: Ls + 1.915 * sn(Ms) + 0.02 * sn(2 * Ms), lm: Lm + 6.289 * sn(Mm) + 1.274 * sn(2 * D - Mm) + 0.658 * sn(2 * D) - 0.186 * sn(Ms) - 0.114 * sn(2 * F), bm: 5.128 * sn(F) };
+}
+function moonLimb(utcMs, lat, lon) {
+  if (!isFinite(utcMs) || !isFinite(lat) || !isFinite(lon)) return null;
+  var R = Math.PI / 180, k = moonSky(utcMs), e = k.e, sn = function (x) { return Math.sin(x * R); }, cs = function (x) { return Math.cos(x * R); };
+  var eq = function (l, b) { return [Math.atan2(sn(l) * cs(e) - Math.tan(b * R) * sn(e), cs(l)) / R, Math.asin(sn(b) * cs(e) + cs(b) * sn(e) * sn(l)) / R]; };
+  var S = eq(k.ls, 0), M = eq(k.lm, k.bm), da = S[0] - M[0];
+  var chi = Math.atan2(cs(S[1]) * sn(da), sn(S[1]) * cs(M[1]) - cs(S[1]) * sn(M[1]) * cs(da)) / R;
+  var H = 280.46061837 + 360.98564736629 * k.d + lon - M[0], q = Math.atan2(sn(H), Math.tan(lat * R) * cs(M[1]) - sn(M[1]) * cs(H)) / R;
+  return Math.round((((chi - q) % 360) + 360) % 360);
 }
 
 // Moon phase icon (wi-moon-alt-*) from the date, about 29.53 days from a known new moon.
@@ -146,8 +166,9 @@ function field(input, key, fallback) {
   return v === undefined || v === null || v === '' ? fallback : v;
 }
 
+var FETCH_MS = 2500, RUN_MS = 2800;   // TRMNL stops a transform at 5 s (2026-11-14: degraded after a slow Open-Meteo answer with 4 s): both requests run in parallel, so 2.5 s leaves room for the VM start and the rest
 async function getJson(url) {
-  var res = await fetch(url, { signal: AbortSignal.timeout(4000) });
+  var res = await fetch(url, { signal: AbortSignal.timeout(FETCH_MS) });
   var body = await res.json();
   if (!res.ok && !(body && body.error)) throw new Error('HTTP ' + res.status);
   return body;
@@ -184,7 +205,7 @@ if (code === 61 || code === 63 || code === 80 || code === 81) return 'rain';
 if (code >= 51 && code <= 55) return 'drizzle';
 if (code === 45 || code === 48) return 'fog';
 if (code === 3) return 'cloud';
-if (code === 2) return 'partly';
+if (code === 1 || code === 2) return 'partly';   // owner 2026-11-14: code 1 reads 'partly cloudy' (WeatherAPI 1003), so its icon is the sun-and-cloud too
 return 'clear';
 }
 function worstKind(codes) {
@@ -306,21 +327,12 @@ model.now.pollen = num(raw.pollen);
 var day0 = String(c.time || '').slice(0, 10), cur0 = String(c.time || ''), th = raw.todayHourly || raw.hourly || {};
 var side = (o, d, cu) => { var ts = list(o, 'time'), p = [], l = []; ts.forEach((t, i) => { t = String(t); if (t.slice(0, 10) !== d) return; if (t < cu) p.push(i); else if (t > cu) l.push(i); }); return { p: p, l: l }; };
 var mx = (o, key, idx) => maxOf(idx.map((i) => num(list(o, key)[i])).filter((v) => v !== null));
-var rg2 = (o, key, sd) => ({ past: mx(o, key, sd.p), later: mx(o, key, sd.l) });
+var rg2 = (o, key, sd) => ({ past: null, later: mx(o, key, sd.l) });   // owner 2026-11-14: forecast only, earlier hours of today are not shown
 var sdW = side(th, day0, cur0), sdA = aq ? side(aq.hourly || {}, aqD, String(aq.current.time || '')) : { p: [], l: [] };
-var gh = maxOf([mx(th, 'wind_gusts_10m', sdW.p.concat(sdW.l)), num(c.wind_gusts_10m)].filter((v) => v !== null));
+var gh = maxOf([mx(th, 'wind_gusts_10m', sdW.l), num(c.wind_gusts_10m)].filter((v) => v !== null));
 model.range = { wind: Object.assign(rg2(th, 'wind_speed_10m', sdW), { hi: gh !== null ? gh : model.today.gustMax }), uv: rg2(th, 'uv_index', sdW), humidity: rg2(th, 'relative_humidity_2m', sdW), baro: rg2(th, 'pressure_msl', sdW), aqi: aq ? rg2(aq.hourly || {}, 'european_aqi', sdA) : { past: null, later: null } };
 model.inn = { temp: null, hum: null, co2: null, press: null };
-var sd = raw.sens && typeof raw.sens === 'object' ? raw.sens : null;
-var dk = sd ? Object.keys(sd).sort().filter((k) => sd[k] && typeof sd[k] === 'object' && Object.keys(sd[k]).some((q) => Array.isArray(sd[k][q]) && sd[k][q].length))[0] : null;
-if (dk) {
-var latest = (arr) => { var best = null, bt = ''; (arr || []).forEach((e) => { var ts = Object.keys(e || {})[0]; if (ts && ts > bt) { bt = ts; best = num(e[ts]); } });
-var m3 = /(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/.exec(bt);
-if (best !== null && raw.renderedAt && m3 && raw.renderedAt - Date.UTC(+m3[1], +m3[2] - 1, +m3[3], +m3[4], +m3[5], +m3[6]) / 1000 > 10800) best = null;
-return best; };
-model.inn = { temp: latest(sd[dk].temperature), hum: latest(sd[dk].humidity), co2: latest(sd[dk].carbon_dioxide), press: latest(sd[dk].pressure) };
-if (model.now.press === null) model.now.press = model.inn.press;
-}
+/* The indoor reading is the markup's job (it reads sensor_readings itself; TRMNL never hands it to this transform). model.inn stays as the slot buildView fills for the stand-in view (see run). */
 var any = false;
 for (var i = 0; i < model.slots.length; i++) if (!model.slots[i].missing) any = true;
 model.ok = any || model.now.temp !== null;
@@ -467,7 +479,8 @@ baro: ['BARO', bar(n.press, 970, 1050), n.press !== null], co2: ['CO2', bar(M.in
 var pm = (opt && opt.prevMt) || {}, flag = (v, th, mg, was) => v === null || v === undefined ? false : (typeof was === 'boolean' ? (was ? v >= th - mg : v >= th + mg) : v >= th);
 var uvOn = n.day !== false && flag(t.uvMax, 3, 0.5, pm.uv), co2Up = flag(M.inn.co2, 1401, 50, pm.co2);
 var relevant = { uv: uvOn, baro: false };
-var ORD = co2Up ? ['wind', 'co2'].concat(RO_ORDER.filter((k) => k !== 'wind' && k !== 'co2')) : RO_ORDER;   // as live: high indoor CO2 moves up
+var inUp = M.inn.temp !== null && M.inn.temp !== undefined, hum2 = inUp && M.inn.hum !== null && M.inn.hum !== undefined ? ['humidity'] : [];
+var ORD = inUp ? ['co2'].concat(hum2, RO_ORDER.filter((k) => k !== 'co2' && k !== hum2[0])) : co2Up ? ['wind', 'co2'].concat(RO_ORDER.filter((k) => k !== 'wind' && k !== 'co2')) : RO_ORDER;   // owner 2026-11-14: with an indoor reading the indoor group first (CO2, then indoor humidity with the outdoor humidity right after it), then the outdoor meters in the usual order; else as live: high indoor CO2 moves up
 var keys = ORD.filter((k) => RO[k][2] && relevant[k] !== false);
 ORD.forEach((k) => { if (keys.length < 4 && keys.indexOf(k) < 0 && RO[k][2] && k !== 'uv') keys.push(k); });
 keys = ORD.filter((k) => keys.indexOf(k) >= 0).slice(0, 4);
@@ -498,7 +511,7 @@ var tl = t.lo, th = t.hi, tvals = [tl, th, tv, inT].filter((v) => v !== null), t
 var tsc = tvals.length ? { a: Math.floor(Math.min.apply(null, tvals) / tst) * tst, b: Math.ceil(Math.max.apply(null, tvals) / tst) * tst } : null;
 if (tsc && tsc.b - tsc.a < 3 * tst) tsc.b = tsc.a + 3 * tst;
 var ps = (M.hours || []).slice(0, 24).map((q) => q.pr).filter((q) => q !== null && q !== undefined); if (pr !== null) ps.push(pr);
-var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg', phase: phase == null ? null : phase };
+var sun = { rise: (M.sunT || {}).riseL || '--', set: (M.sunT || {}).setL || '--', riseIcon: WI_BASE + 'wi-sunrise.svg', setIcon: WI_BASE + 'wi-sunset.svg', moon: WI_BASE + (moon || 'wi-night-clear') + '.svg', phase: phase == null ? null : phase, limb: opt && opt.limb != null ? opt.limb : null };
 var trend = pressTrend(n.press, opt && opt.pressAgo);
 var hrs = opt && opt.hours ? hourStrip(M.hours || [], fmt, deg, opt.prevHour) : null;   // owner: bottom strip Hours instead of the days
 var out = {
@@ -508,7 +521,7 @@ temp: tStr, unit: deg + M.unit,   // owner 2026-11-13: no felt readout; the felt
 inn: inT === null ? null : { temp: t1(inT), out: O.outdoor, in: O.indoor, hum: M.inn.hum === null || hm ? '' : O.hum + ' ' + Math.round(M.inn.hum) + ' %' },
 rain: wetIn12 ? { icon: wiUrl(R.type === 'snow' ? 'snow' : (R.type === 'hail' ? 'hail' : 'heavy'), true), hours: rainHours(M.hours, R), rows: rainRows(rainHours(M.hours, R)), gauge: gauge } : null,
 sun: sun, dry: wetIn12 ? null : sun,
-days: days.map((d, i) => ({ cue: cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3), name: names[i] || d.label, icon: wiUrl(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
+days: days.map((d, i) => ({ cue: cueFor(dayCueInput(opt && opt.hourly, daily, d0 + i), F_).slice(0, 3), name: names[i] || d.label, icon: wiUrl(d.icon, true), iconInk: wiInk(d.icon, true), lo: fmt(d.lo) + deg, hi: fmt(d.hi) + deg, loV: d.lo, hiV: d.hi, today: d0 === 0 && i === 0 })),
 scale: sc, scales: scales,
 baro: { now: pr, lo: ps.length ? Math.min.apply(null, ps) : null, hi: ps.length ? Math.max.apply(null, ps) : null, a: 970, b: 1050,
 value: pr === null ? '--' : String(Math.round(pr)), unit: 'hPa', name: O.baro, trend: trend ? O['p_' + trend] : null, arrow: trend ? { rising: 'up', falling: 'down', steady: 'level' }[trend] : null,
@@ -519,6 +532,13 @@ if (hrs) { out.hours = hrs.hours; out.hscale = hrs.scale; }
 var tp = TOPS.indexOf(out.cue[0]) >= 0 ? out.cue[0] : (opt && opt.prevCue && opt.prevCue.top) || null;
 out.keep = { cue: { top: tp }, mt: { uv: t.uvMax === null ? pm.uv : uvOn, co2: M.inn.co2 === null ? pm.co2 : co2Up } };   // what the next run remembers (saved state)
 return out;
+}
+
+// The parts of a view that differ when an indoor reading exists (the view built with a stand-in reading): the markup merges them into ui.
+function slimL(v) { return v.meters.map((m) => ({ key: m.key, label: m.label, idx: m.idx, rank: m.rank })); }
+function phOverlay(v) {
+  var m = v.meters.filter((q) => q.tw)[0];
+  return { inn: v.inn, twin: v.tdial.twin, tw: m ? { k: m.key, out: m.tw.out, in: m.tw.in } : null };
 }
 
 function timeIs12(over, set) { return String(over === null || over === undefined ? set : over) === '12'; }
@@ -573,34 +593,16 @@ function fromSnap(sn, nowS) {
     return { weather: { current: cur, hourly: hourly, daily: daily, utc_offset_seconds: off }, aq: aq, pollen: rd(sn.pol, 1000), asOf: hmOf(sn.ct) };
   } catch (e) { return null; }
 }
-// Indoor trend (owner 2026-11-13, saved state inn): one point per 30 min ([slot, C, ppm]) for the last 6 h, today's
-// low/high (local date d). Returns the new state and the point nearest to 3 h ago (within 30 min), or null.
-function innTrack(prev, t, co2, nowS, day) {
-  prev = stObj(prev) || {};
-  var slot = Math.floor(nowS / 1800), ok = (q) => Array.isArray(q) && typeof q[0] === 'number' && typeof q[1] === 'number' && q[0] > slot - 13 && q[0] < slot;
-  var pts = (Array.isArray(prev.p) ? prev.p : []).filter(ok).map((q) => [q[0], q[1], typeof q[2] === 'number' ? q[2] : null]).slice(-12).concat([[slot, rd(t, 10), co2 === null ? null : Math.round(co2)]]);
-  var same = prev.d === day && typeof prev.lo === 'number' && typeof prev.hi === 'number';
-  var ago = pts.filter((q) => Math.abs(q[0] - (slot - 6)) <= 1).sort((a, b) => Math.abs(a[0] - slot + 6) - Math.abs(b[0] - slot + 6))[0] || null;
-  return { st: { d: day, lo: rd(same ? Math.min(prev.lo, t) : t, 10), hi: rd(same ? Math.max(prev.hi, t) : t, 10), p: pts }, ago: ago };
-}
-// The size guard: never hand TRMNL a state it would refuse; the indoor points go first, then the copy.
+// The size guard: never hand TRMNL a state it would refuse; the copy goes first.
 function fitState(st) {
   var size = (o) => new TextEncoder().encode(JSON.stringify(o)).length;
-  if (size(st) <= ST_MAX) return st;
-  if (st.inn) st = Object.assign({}, st, { inn: Object.assign({}, st.inn, { p: [] }) });
   if (size(st) <= ST_MAX) return st;
   st = Object.assign({}, st); delete st.snap;
   if (size(st) <= ST_MAX) return st;
   return { v: 1 };
 }
 
-async function run(input) {
-  var loc = LANGUAGE || (((input || {}).trmnl || {}).user || {}).locale;
-  H12 = timeIs12(TIME, field(input, 'time_format', '24'));
-  var i18n = buildI18n(loc);
-  var parts = String(field(input, 'lat_lon', '52.52,13.41')).split(',');
-  var lat = encodeURIComponent((parts[0] || '').trim()), lon = encodeURIComponent((parts[1] || '').trim());
-  var fahrenheit = String(UNIT || field(input, 'unit', 'celsius')) === 'fahrenheit';
+function omUrls(lat, lon, fahrenheit) {   // the two Open-Meteo requests; settings.yml polling_url carries the same two in Liquid (model test 'polling URLs')
   var forecast = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon +
     '&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,weather_code,is_day,uv_index' +
     '&hourly=temperature_2m,apparent_temperature,precipitation_probability,precipitation,pressure_msl,weather_code,is_day,wind_speed_10m,wind_gusts_10m,uv_index,relative_humidity_2m' +
@@ -609,7 +611,22 @@ async function run(input) {
     '&precipitation_unit=' + (fahrenheit ? 'inch' : 'mm') + '&wind_speed_unit=' + (fahrenheit ? 'mph' : 'kmh');
   var air = 'https://air-quality-api.open-meteo.com/v1/air-quality?latitude=' + lat + '&longitude=' + lon +
     '&current=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&hourly=european_aqi,grass_pollen,birch_pollen,alder_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto&forecast_days=2';
-  var got = await Promise.allSettled([getJson(forecast), getJson(air)]);
+  return [forecast, air];
+}
+async function run(input) {
+  var loc = LANGUAGE || (((input || {}).trmnl || {}).user || {}).locale;
+  H12 = timeIs12(TIME, field(input, 'time_format', '24'));
+  var i18n = buildI18n(loc);
+  var parts = String(field(input, 'lat_lon', '52.52,13.41')).split(',');
+  var lat = encodeURIComponent((parts[0] || '').trim()), lon = encodeURIComponent((parts[1] || '').trim());
+  var fahrenheit = String(UNIT || field(input, 'unit', 'celsius')) === 'fahrenheit';
+  var U = omUrls(lat, lon, fahrenheit), forecast = U[0], air = U[1];
+  // Owner 2026-11-14: own requests, no polling URLs (a failed polling URL fails the whole refresh, so the saved copy
+  // could never show). Each request stops at FETCH_MS; RUN_MS caps both together, then the saved copy is used.
+  // IDX_0/IDX_1 are still taken when present (a polling URL added by hand).
+  var pre = [(input || {}).IDX_0, (input || {}).IDX_1], okPre = (o) => !!(o && typeof o === 'object' && !o.error && o.current && typeof o.current === 'object');
+  var cap = (p) => { var t; return Promise.race([p, new Promise((res, rej) => { t = setTimeout(() => rej(new Error('run deadline')), RUN_MS); })]).finally(() => clearTimeout(t)); };
+  var got = await Promise.allSettled([okPre(pre[0]) ? Promise.resolve(pre[0]) : cap(getJson(forecast)), okPre(pre[1]) ? Promise.resolve(pre[1]) : cap(getJson(air))]);
   var st0 = stObj(((input || {}).trmnl || {}).state) || {}, nowS = +(((input || {}).trmnl || {}).system || {}).timestamp_utc || Date.now() / 1000;   // TRMNL hands the transform no system namespace: the clock
   var wr = got[0].status === 'fulfilled' ? got[0].value : null, snap = null, fb = null;
   var aq = got[1].status === 'fulfilled' && got[1].value && got[1].value.current ? got[1].value : null;
@@ -618,28 +635,32 @@ async function run(input) {
   else if ((fb = fromSnap(st0.snap, nowS))) { wr = fb.weather; aq = fb.aq; }   // offline: the saved copy at the current hour, marked stale
   var past = dropPast(wr);
   var weather = past.weather ? past.weather : { error: true, reason: String(got[0].reason && got[0].reason.message || got[0].reason).slice(0, 160) };
-  var sensors = (input && (input.sensor_readings || (input.trmnl && input.trmnl.sensor_readings))) || null;
-  if (field(input, 'sensor_show', 'show') === 'hide') sensors = null;
   var sunO = sunTimes(weather), pollenV = fb ? fb.pollen : pollenLevel(aq), w = weather || {};
-  var raw = { current: w.current || null, hourly: w.hourly || null, todayHourly: past.today || null, daily: w.daily || null, sens: sensors, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
+  var raw = { current: w.current || null, hourly: w.hourly || null, todayHourly: past.today || null, daily: w.daily || null, aq: aq ? { current: aq.current, hourly: aq.hourly } : null,
     error: !!w.error, reason: w.reason || null, offset: w.utc_offset_seconds || 0, pollen: pollenV, sun: sunO,
     renderedAt: ((input || {}).trmnl && input.trmnl.system && input.trmnl.system.timestamp_utc) || 0 };
-  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time);
-  if (field(input, 'sensor_co2', 'show') === 'hide') model.inn.co2 = null;
+  var model = SWModel.build(raw, { unit: fahrenheit ? 'fahrenheit' : 'celsius' }), moon = moonIcon(weather && weather.current && weather.current.time), phase = moonPhase(weather && weather.current && weather.current.time, w.utc_offset_seconds);
   var pc = stObj(st0.cue), pmt = stObj(st0.mt);
-  var ui = buildView(model, i18n, w.daily, moon, phase, { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time) });
+  var vo = { prevCue: pc && typeof pc.top === 'string' ? pc : null, prevMt: pmt, pressAgo: past.ago, prevHour: past.prev, hourly: w.hourly, hours: bottomHours(field(input, 'bottom', 'auto'), w.current && w.current.time), limb: moonLimb(Date.parse(((w.current || {}).time || '') + 'Z') - (w.utc_offset_seconds || 0) * 1000, w.latitude, w.longitude) };
+  var ui = buildView(model, i18n, w.daily, moon, phase, vo);
   if (fb && fb.asOf) ui.stale = i18n.ours.asof + ' ' + clk(fb.asOf.slice(0, 2), fb.asOf.slice(3, 5));
   var st = { v: 1, cue: ui.keep.cue, mt: ui.keep.mt }, keep = snap || stObj(st0.snap); delete ui.keep;
-  if (sensors && model.inn.temp !== null && ui.inn) {   // sensor_show hide: sensors null, no indoor state
-    var cv = (c) => fahrenheit ? c * 1.8 + 32 : c, iv = innTrack(st0.inn, model.inn.temp, model.inn.co2, nowS, String((w.current || {}).time || msIso((nowS + (w.utc_offset_seconds || 0)) * 1000)).slice(0, 10));
-    st.inn = iv.st;
-    ui.inn.arrow = iv.ago ? tempTrend(cv(iv.ago[1]), cv(model.inn.temp), fahrenheit) : null;
-    ui.inn.co2arrow = iv.ago && iv.ago[2] !== null && model.inn.co2 !== null ? (model.inn.co2 - iv.ago[2] >= 100 ? 'up' : (model.inn.co2 - iv.ago[2] <= -100 ? 'down' : 'level')) : null;
-    if (iv.st.p.length > 1) ui.inn.lohi = i18n.lo + ' ' + SWModel.fmt(cv(iv.st.lo)) + '° ' + i18n.hi + ' ' + SWModel.fmt(cv(iv.st.hi)) + '°';
-    if (ui.inn.lohi) { ui.inn.lo = SWModel.fmt(cv(iv.st.lo)) + '°'; ui.inn.hi = SWModel.fmt(cv(iv.st.hi)) + '°'; }   // owner: shown with the plugin's triangle marks (hollow down low, filled up high)
+  // Real devices: the transform input has no sensor_readings (TRMNL adds them for the markup only). So the payload carries
+  // ph, only the parts of the view that differ when an indoor reading exists: the markup merges them into ui and its page
+  // script puts the real values in. Built from the view with a stand-in reading (the outdoor temperature, humidity 50).
+  var phTemp = model.now.temp, ph = null, showIn = field(input, 'sensor_show', 'show') !== 'hide', showCo = field(input, 'sensor_co2', 'show') !== 'hide';
+  if ((showIn || showCo) && phTemp !== null && phTemp !== undefined) {
+    var stand = (co2, hum) => buildView(Object.assign({}, model, { inn: { temp: phTemp, hum: hum === undefined ? 50 : hum, co2: co2, press: null } }), i18n, w.daily, moon, phase, vo);
+    ph = showIn ? phOverlay(stand(null)) : {};
+    if (showIn) ph.hn = slimL(stand(null));   // the indoor order without CO2 (indoor humidity first)
+    if (showCo) {   // the CO2 meter (B9): the meter list with a normal and with a high reading (key, label, idx, rank), the markup picks one by the real reading
+      var lo = stand(800, showIn ? 50 : null), slim = slimL;
+      var cm = lo.meters.filter((m) => m.key === 'co2')[0];
+      ph.mn = slim(lo); ph.cz = cm ? cm.zones : null;
+    }
   }
   if (keep) st.snap = keep;   // a failed fetch writes the old copy back as it was
-  return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, sensors: sensors, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
+  return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, ph: ph, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
 }
 
-if (typeof module !== 'undefined') module.exports = { run: run, snapOf: snapOf, fromSnap: fromSnap, innTrack: innTrack, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase };
+if (typeof module !== 'undefined') module.exports = { run: run, phOverlay: phOverlay, omUrls: omUrls, WMO_TO_WAPI: WMO_TO_WAPI, snapOf: snapOf, fromSnap: fromSnap, fitState: fitState, bottomHours: bottomHours, tempTrend: tempTrend, hourStrip: hourStrip, dayNames: dayNames, buildView: buildView, rainHours: rainHours, rainRows: rainRows, timeIs12: timeIs12, pressTrend: pressTrend, dropPast: dropPast, cueFor: cueFor, dayCueInput: dayCueInput, nowCueInput: nowCueInput, field: field, buildI18n: buildI18n, normaliseLocale: normaliseLocale, pollenLevel: pollenLevel, sunTimes: sunTimes, moonIcon: moonIcon, moonPhase: moonPhase, moonLimb: moonLimb, moonSky: moonSky };

@@ -1,846 +1,207 @@
-{% template main %}
-{%- assign cf = trmnl.plugin_settings.custom_fields_values -%}
-{%- capture sw_icon -%}<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M4 16A10 10 0 0 1 24 16" stroke="#000" stroke-width="2.2" stroke-linecap="round"/> <path d="M14 6V8.5M6.9 8.9L8.6 10.6M21.1 8.9L19.4 10.6" stroke="#000" stroke-width="1.6" stroke-linecap="round"/> <path d="M14 16L18.6 9.6" stroke="#000" stroke-width="2" stroke-linecap="round"/> <circle cx="14" cy="16" r="1.8" fill="#000"/> <rect x="3" y="21" width="4" height="4" rx="0.8" fill="#000"/><rect x="8.5" y="21" width="4" height="4" rx="0.8" fill="#000"/><rect x="14" y="21" width="4" height="4" rx="0.8" fill="#000"/> <rect x="19.5" y="21.5" width="4" height="3" rx="0.8" stroke="#000" stroke-width="1"/> </svg>{%- endcapture -%}
-{%- comment -%} Panel (owner {%- endcomment -%}
-{%- capture p_open_g -%}<div class="relative h--full w--full"><div class="h--full w--full"><div class="relative h--full w--full p--1" data-sw-panel><div class="absolute inset--0" data-sw-part="face"></div>{%- endcapture -%}
-{%- capture vr -%}<div class="border--v-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--v-black" data-sw-rule></div>{%- endcapture -%}
-{%- capture p_close -%}</div></div></div>{%- endcapture -%}
-{%- if ui == nil or ui.ok != true -%}
-<div class="layout layout--col layout--center" data-sw-error="{{ model.reason | default: 'NO SIGNAL' | escape }}">
- <span class="title title--xlarge">{{ i18n.ours.no_signal | default: 'NO SIGNAL' }}</span>
- <span class="description">{{ model.reason | escape }}</span>
+{%template main%}
+{%-assign cf=trmnl.plugin_settings.custom_fields_values-%}{%-assign tsb='title title--small text--bold'%}{%assign fcy='flex flex--row flex--center-y'%}{%assign iia='image image--adaptive'-%}
+{%-capture sw_stale_icon-%}<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="14" cy="14" r="10" stroke="#000" stroke-width="2.2"/><path d="M14 8V14L18 16.5" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>{%-endcapture-%}
+{%-capture sw_icon-%}<svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg"> <path d="M4 16A10 10 0 0 1 24 16" stroke="#000" stroke-width="2.2" stroke-linecap="round"/> <path d="M14 6V8.5M6.9 8.9L8.6 10.6M21.1 8.9L19.4 10.6" stroke="#000" stroke-width="1.6" stroke-linecap="round"/> <path d="M14 16L18.6 9.6" stroke="#000" stroke-width="2" stroke-linecap="round"/> <circle cx="14" cy="16" r="1.8" fill="#000"/> <rect x="3" y="21" width="4" height="4" rx="0.8" fill="#000"/><rect x="8.5" y="21" width="4" height="4" rx="0.8" fill="#000"/><rect x="14" y="21" width="4" height="4" rx="0.8" fill="#000"/> <rect x="19.5" y="21.5" width="4" height="3" rx="0.8" stroke="#000" stroke-width="1"/> </svg>{%-endcapture-%}
+
+{%-capture p_open_g-%}<div class="relative h--full w--full"><div class="h--full w--full"><div class="relative h--full w--full p--1" data-sw-panel><div class="absolute inset--0" data-sw-part="face"></div>{%-endcapture-%}
+{%-capture vr-%}<div class="border--v-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--v-black" data-sw-rule></div>{%-endcapture-%}
+{%-capture p_close-%}</div></div></div>{%-endcapture-%}
+
+{%-assign ml=ui.meters%}{%if ph%}{%assign i_w=trmnl.device.id|append:''%}{%if i_w != ''%}{%assign i_k='device_'|append:i_w%}{%for d in sensor_readings%}{%if d[0] == i_k and d[1].temperature.size > 0%}{%assign i_d=d[1]%}{%endif%}{%endfor%}{%endif%}
+{%-assign i_q='temperature,humidity,carbon_dioxide'|split:','%}{%for q in i_q%}{%assign i_m=0%}{%assign i_v=nil%}{%assign i_l=i_d[q]%}{%for e in i_l%}{%assign kv=e|first%}{% assign s = kv[0] | date: '%s' | plus: 0 %}{%if s > i_m%}{%assign i_m=s%}{%assign i_v=kv[1]%}{%endif%}{%endfor%}{%assign i_a=trmnl.system.timestamp_utc|minus:i_m%}{%if i_a > 10800%}{%assign i_v=nil%}{%endif%}{%if forloop.index == 1%}{%assign i_t=i_v%}{%elsif forloop.index == 2%}{%assign i_h=i_v%}{%else%}{%assign i_c=i_v%}{%endif%}{%endfor%}
+{%-if i_t != nil and ph.inn%}{%assign inn=ph.inn%}{%assign inn_hum=ph.inn.hum%}{%if i_h != nil%}{%assign ph_tw=ph.tw.k%}{%else%}{%assign inn_hum=''%}{%endif%}{%endif%}
+{%-if i_c != nil and ph.mn%}{%assign ml=ph.mn%}{%elsif i_t != nil and i_h != nil and ph.hn%}{%assign ml=ph.hn%}{%endif%}{%endif%}
+{%-if ui == nil or ui.ok != true-%}
+<div class="layout layout--col layout--center" data-sw-error="{{model.reason|default:'NO SIGNAL'|escape}}">
+<span class="title title--xlarge">{{i18n.ours.no_signal|default:'NO SIGNAL'}}</span>
+<span class="description">{{model.reason|escape}}</span>
 </div>
-{%- elsif view >= 1 and view <= 4 -%}
-{%- comment -%} One console and one days strip {%- endcomment -%}
-{%- assign stk = false %}{% assign hm = 1 %}{% assign hl = 1 %}{% assign wm = 1 %}{% assign wl = 1 %}{% assign n_md = 9 %}{% assign n_lg = 9 %}{% assign nd_md = 4 %}{% assign nd_lg = 5 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1' %}{% assign pad_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = '' %}{% assign rgw_l = 18 %}
-{%- assign name_w = 'w--[6cqw] lg:w--[5cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw]' %}{% assign num_w = 'w--[6cqw] lg:w--[5cqw]' %}
-{%- if view == 1 %}{% assign name_w = 'w--[10cqw] lg:w--[5cqw] lg:portrait:w--[12cqw]' %}{% assign icon_w = 'w--[5cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]' %}{% assign hh_m = 6 %}{% assign rw_m = 6 %}{% assign num_cls = '' %}{% assign bar_cls = 'col--span-8' %}{% assign name_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign icon_cls = 'col--span-1 lg:portrait:col--span-2' %}{% assign pad_cls = 'col--span-2 lg:portrait:col--span-4' %}{% assign name_t = ' lg:portrait:title--xlarge' %}{% assign icon_x = ' lg:portrait:h--[7cqh]' %}{% assign row_p = ' lg:portrait:h--[6cqh]' %}{% assign con_h = 'h--[54cqh] lg:h--[33cqh] lg:portrait:h--[31cqh]' %}{% assign days_h = 'h--[39cqh] lg:h--[31cqh] lg:portrait:h--[33cqh]' %}
-{%- elsif view == 2 %}{% assign hm = 1.7 %}{% assign hl = 2.2 %}{% assign rgw_l = 15 %}{% assign mh_l = 1.5 %}{% assign con_h = 'h--full' %}
-{%- elsif view == 3 %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign n_md = 2 %}{% assign n_lg = 5 %}{% assign name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}{% assign dgap = 'gap--xsmall lg:gap--small' %}{% assign num_t = 'title--small' %}{% assign nd_md = 4 %}{% assign nd_lg = 7 %}{% assign num_cls = ' lg:hidden lg:portrait:flex' %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% assign name_w = 'w--[26cqw] lg:w--[11cqw] lg:portrait:w--[15cqw]' %}{% assign icon_w = 'w--[7cqw] lg:portrait:hidden' %}{% assign num_w = 'w--[9cqw]' %}{% assign rw_m = 6 %}{% assign hh_m = 6 %}{% assign name_t = ' lg:title--medium' %}{% assign rh_l = 5 %}{% assign icon_x = ' lg:h--[6cqh]' %}{% assign bar_cls = 'col--span-7 lg:col--span-8' %}{% assign con_h = 'h--[60cqh] lg:h--[54cqh] lg:portrait:h--[44cqh]' %}{% assign days_h = 'h--[38cqh] lg:h--[44cqh] lg:portrait:h--[54cqh]' %}
-{%- else %}{% assign stk = true %}{% assign wm = 2 %}{% assign wl = 2 %}{% assign hm = 1.6 %}{% assign hl = 2.3 %}{% assign n_md = 1 %}{% assign n_lg = 2 %}{% assign con_h = 'h--full' %}{% endif %}
-{%- assign calm_btw = ' 1bit:hidden 2bit:hidden dark:2bit:block' %}{% comment %} Calm: 2-bit panels are filled {% endcomment %}
-{%- assign calm_q = false %}{% if view == 4 %}{% assign calm_q = true %}{% endif %}{% comment %} Calm quadrant (owner) {% endcomment %}
-{%- if view == 3 %}{% assign rw_m = 8 %}{% assign nd_md = 3 %}{% assign rh_l = 6 %}{% assign nd_lg = 6 %}{% endif %}{% comment %} Calm half view (owner) {% endcomment %}
-{%- if view == 1 %}{% assign rw_m = 9 %}{% assign rh_l = 6 %}{% assign nd_md = 3 %}{% assign nd_lg = 4 %}{% endif %}{% comment %} Calm (owner): airier day rows {% endcomment %}
-{%- if mr_m == nil %}{% assign mr_m = 9 %}{% assign mb_m = 7 %}{% endif %}
-{%- if view == 1 %}{% for m in ui.meters %}{% if m.tw %}{% assign mr_m = 7.4 %}{% endif %}{% endfor %}{% endif %}
-{%- if mh_l == nil %}{% assign mh_l = hl %}{% endif %}
-{%- comment -%} Right column {%- endcomment -%}
-{%- assign q1 = 5 | times: wm | round %}{% assign q2 = 23 | times: wm | round %}{% assign q3w = 26 %}{% if ui.rain %}{% assign q3w = 23 %}{% endif %}{% assign q3 = q3w | times: wl | round %}{% assign q4 = 30 | times: wm | round | at_most: 100 %}{% assign ru_cls = 'flex--row lg:portrait:flex--col' %}{% assign ri_md = 'w--[' | append: q1 | append: 'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]' %}{% assign su_cls = 'flex--row' %}{% assign rg_p = ' lg:portrait:w--full' %}{% assign q6b = 20 %}{% if stk %}{% assign q6b = 15 %}{% assign ru_cls = 'flex--col lg:flex--row' %}{% endif %}{% assign q6 = q6b | times: wm | round %}{% assign rg_m = 'w--[' | append: q6 | append: 'cqw]' %}{% assign rc_w = 'w--[' | append: q2 | append: 'cqw] lg:w--[' | append: q3 | append: 'cqw] lg:portrait:gap--xsmall' %}{% assign rule_w = 'w--[' | append: q4 | append: 'cqw]' %}
-{%- if stk %}{% assign ri_md = 'w--[8cqw] lg:hidden' %}{% assign rgw_l = 15 %}{% assign rg_p = '' %}{% assign su_cls = 'flex--row' %}{% assign rc_w = 'w--[40cqw] lg:w--[37cqw] shrink-0' %}{% assign rule_w = 'w--full' %}{% assign tf = 0.7 %}{% assign mh_l = 0.4 %}{% if ui.rain %}{% assign su_cls = 'hidden lg:flex flex--row' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}{% if view == 3 %}{% assign su_cls = 'flex--row' %}{% assign sep_cls = '' %}{% assign ru_cls = 'flex--row' %}{% assign rc_w = 'w--[44cqw] lg:w--[37cqw] lg:portrait:w--[42cqw] shrink-0' %}{% endif %}{% endif %}
-{%- if view <= 2 %}{% assign ru_cls = 'flex--row' %}{% endif %}{% comment %} X full and half horizontal {% endcomment %}
-{%- if calm_q %}{% assign rc_w = 'w--[33cqw] lg:w--[39cqw] lg:portrait:w--full shrink-0' %}{% assign rg_m = 'w--[31cqw]' %}{% endif %}
-{%- if hh_m == nil %}{% assign hh_m = 6 %}{% endif %}{% if rw_m == nil %}{% assign rw_m = 6 %}{% endif %}
-{%- if rh_l == nil %}{% assign rh_l = 4 | times: hl | round | at_most: 100 %}{% endif %}
-{%- if tf == nil %}{% assign tf = 1 %}{% endif %}{% assign tm = tf %}{% if view == 3 %}{% assign tm = 1 %}{% endif %}
-{%- if view == 4 and ui.rain == nil %}{% assign n_lg = 3 %}{% endif %}{% comment %} X quadrant without rain {% endcomment %}
-{%- if stk %}{% assign ms = ui.meters | sort: 'rank' %}{% else %}{% assign ms = ui.meters %}{% endif %}
-{%- assign st_h = cf.hide_title_bar | append: '' %}{% if ui.stale %}{% if view != 1 or st_h == 'true' or st_h == 'yes' %}{% assign st_on = true %}{% endif %}{% endif %}
-<div class="layout layout--col layout--stretch-x gap--base relative" data-sw-debug="v2 view={{ view }} meters={{ ui.meters | map: 'key' | join: ',' }} rain={% if ui.rain %}cal{% else %}dry{% endif %} days={{ ui.days | size }}">
-{%- if st_on %}{% for sp in (1..2) %}{% if sp == 1 %}{% assign sp_c = 'top--5 right--10' %}{% if view == 4 %}{% assign sp_c = 'top--5 right--10 lg:hidden' %}{% endif %}{% elsif view == 4 %}{% assign sp_c = 'top--5 left--10 hidden lg:block' %}{% else %}{% break %}{% endif %}<span class="absolute {{ sp_c }} z--10 label label--small" data-sw-stale>{{ ui.stale }}</span>{% endfor %}{% endif %}{% comment %} offline, no title bar {% endcomment %}
-{%- if view == 1 %}
- <div class="hidden lg:block h--[30cqh] lg:portrait:h--[22cqh]"><div class="flex flex--row flex--stretch-y gap--base h--full">
-  {%- for k in (1..2) %}
-  {%- if k == 2 %}<div class="py--4 shrink-0 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between><div class="border--v-60 h--full"></div></div>{% endif %}{% comment %} owner: hairlines in the gaps {% endcomment %}
-  {{ p_open_g }}<div class="relative h--full w--full">
-   <div class="absolute inset--0" data-sw-part="{% if k == 1 %}baro{% else %}tdial{% endif %}"></div>
-   <span class="absolute bottom--3 left--4 title title--base lg:portrait:title--small text--bold" data-sw-cap>{% if k == 1 %}{{ ui.baro.name }}{% else %}{{ ui.tdial.name }}{% endif %}</span>{% comment %} owner step 13 {% endcomment %}
-   {%- capture dv_row %}
-    {%- if k == 2 and ui.inn %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="0" data-sw-loc="out"></div>{% endif %}
-    {%- if k == 1 %}{% assign arw = ui.baro.arrow %}{% else %}{% assign arw = ui.tdial.arrow %}{% endif %}{% if arw == 'up' or arw == 'down' %}<div class="shrink-0 self--center" data-sw-part="arrow" data-sw-i="{{ k | minus: 1 }}" data-sw-arrow="{{ arw }}"></div>{% endif %}{% comment %} owner 2026-11-13 {% endcomment %}
-    {%- if k == 1 %}<span class="value value--small value--tnums">{{ ui.baro.value }}</span><span class="title title--small text--bold">{{ ui.baro.unit }}</span>{% comment %} owner: the pressure, the trend {% endcomment %}
-    {%- else %}<span class="value value--small value--tnums">{{ ui.tdial.value }}</span><span class="title title--small text--bold">{{ ui.tdial.unit }}</span>{% endif -%}
-   {%- endcapture %}
-   <div class="absolute bottom--3 right--4 flex flex--row flex--bottom gap--small" data-sw-cap>{{ dv_row }}</div>
-   {%- if k == 2 and ui.inn %}<div class="absolute top--3 right--4 flex flex--row flex--bottom gap--small text--gray-30 dark:text--gray-30" data-sw-cap data-sw-dialin>{% comment %} owner 2026-11-13 {% endcomment %}<div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="1" data-sw-loc="in"></div>{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center text--gray-30 dark:text--gray-30" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}"></div>{% endif %}<span class="value value--small value--tnums text--gray-30 dark:text--gray-30">{{ ui.inn.temp }}</span><span class="title title--small text--bold text--gray-30 dark:text--gray-30">{{ ui.tdial.unit }}</span></div>{% endif %}
-  </div>{{ p_close }}
-  {%- endfor %}
- </div></div>
- <div class="hidden lg:block lg:4bit:hidden dark:lg:4bit:block{{ calm_btw }} w--full px--4" data-sw-between><div class="border--h-60"></div></div>
-{%- endif %}
-{% if calm_q %}{% assign mr_m = 6 %}{% assign mb_m = 4 %}{% endif %}
-{%- capture c_meters %}
-  <div class="flex flex--col {% if view == 3 %}gap--medium pt--3 lg:gap--small lg:pt--0{% else %}gap--small{% endif %} {% if stk %}w--full{% else %}shrink-0 w--[{{ 30 | times: wm | round | at_most: 100 }}cqw] lg:w--[{{ 22 | times: wm | round | at_most: 100 }}cqw] lg:portrait:w--full{% endif %}">
-   {%- comment %} owner: no lamps; the rain unit's {% endcomment %}
-   {%- comment %} owner: the meters take the full {% endcomment %}
-   <div class="flex flex--row {% if stk %}{% else %}grow{% endif %}{% if view == 2 %} lg:portrait:flex--stretch-y{% endif %} gap--small w--full">
-    {%- assign any_tw = false %}{% capture c_lab %}{% endcapture %}{% capture c_blk %}{% endcapture %}
-    {%- for m in ms %}{% if forloop.index > n_lg %}{% break %}{% endif %}{% assign passes = 1 %}{% if m.tw %}{% assign passes = 2 %}{% assign any_tw = true %}{% endif %}
-    {%- capture rc %}{% if view == 1 and m.key == 'baro' %}{% if forloop.index > n_md %} hidden{% else %} flex lg:hidden{% endif %}{% elsif forloop.index > n_md %} hidden lg:flex{% else %} flex{% endif %} flex--row flex--center-y{% endcapture %}
-    {%- capture rh %}h--[{{ mr_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}{% endcapture %}
-    {%- for pass in (1..passes) %}{% assign h2 = '' %}{% assign pk = 'meter' %}{% if pass == 2 %}{% assign h2 = ' data-sw-hum2' %}{% assign pk = 'meterin' %}{% endif %}
-    {%- capture c_lab %}{{ c_lab }}<div class="{{ rc }} flex--right w--full gap--xsmall {{ rh }}"{{ h2 }}>{% if m.tw %}<div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-for="{{ m.key }}" data-sw-i="{{ pass | minus: 1 }}" data-sw-loc="{% if pass == 1 %}out{% else %}in{% endif %}"></div>{% endif %}<span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{ m.label }}</span></div>{% endcapture %}
-    {%- capture c_blk %}{{ c_blk }}<div class="{{ rc }} w--full {{ rh }}"{{ h2 }}><div class="w--full h--[{{ mb_m | times: hm | round | at_most: 100 }}cqh] lg:hidden" data-sw-part="{{ pk }}" data-sw-n="5" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div><div class="hidden lg:block w--full h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]{% if view == 1 %} lg:portrait:h--[3cqh]{% endif %}" data-sw-part="{{ pk }}" data-sw-n="10" data-sw-i="{{ m.idx }}" data-sw-key="{{ m.key }}"></div></div>{% endcapture %}
-    {%- endfor %}
-    {%- endfor %}
-    {%- capture mcol %}flex flex--col {% if stk %}gap--xsmall{% else %}flex--between{% endif %}{% endcapture %}
-    <div class="{{ mcol }} shrink-0">{{ c_lab }}</div>
-    <div class="{{ mcol }} grow">{{ c_blk }}</div>
-   </div>
-  </div>
-{%- endcapture %}
-{%- capture c_temp %}
-  <div class="flex flex--col flex--center gap--medium grow w--min-0">{% comment %} owner step 12 {% endcomment %}
-   <div class="flex flex--row flex--center-y flex--center-x w--full {% if view == 3 %}gap--small lg:gap--medium lg:portrait:gap--small{% else %}gap--medium{% endif %} h--[{{ 13 | times: hm | times: tf | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[{% if view == 3 %}3{% elsif view == 4 %}7{% else %}5{% endif %}cqh]">
-    {%- if ui.icon %}<span class="block shrink-0 h--full aspect--1/1"><img class="image image--adaptive h--full w--full" src="{{ ui.icon }}" alt="" data-sw-ink="{{ ui.iconInk }}" data-sw-icon></span>{% endif %}
-    <span class="title {% if view == 3 %}title--small lg:title--base lg:portrait:title--small{% elsif view == 4 %}title--small lg:title--base lg:portrait:title--small{% else %}title--base lg:title--large{% endif %} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ ui.cond }}</span>
-   </div>
-   <div class="{{ rule_w }} h--[{{ 1 | times: hm | round | at_most: 100 }}cqh]"></div>{% comment %} owner: a gap, no rule {% endcomment %}
-   {%- assign th_m = 15 %}{% assign th_l = 13 %}{% if ui.inn %}{% assign th_m = 22 %}{% assign th_l = 18 %}{% endif %}{% assign tr_cls = 'flex--row flex--center-y flex--center-x w--full' %}{% assign tg_h = 'h--full' %}
-   {%- if calm_q and ui.inn == nil %}{% assign th_m = 21 %}{% endif %}
-   {%- if view == 3 and ui.inn == nil %}{% comment %} OG half_vertical (owner) {% endcomment %}{% assign th_m = 26 %}{% assign th_l = 22 %}{% comment %} X half vertical (owner, live 114 {% endcomment %}{% assign tr_cls = 'flex--col flex--center lg:flex--row lg:flex--center-y' %}{% assign tr_gap = 'gap--medium' %}{% assign tg_h = 'h--[15cqh] lg:h--full lg:portrait:h--[7cqh]' %}{% assign tp_h = 'lg:portrait:h--[15cqh]' %}{% endif %}
-   {%- assign bw_m = 9 | times: wm | round %}{% assign bw_l = 6 | times: wl | round %}{% capture badge_w %}w--[{{ bw_m }}cqw] lg:w--[{{ bw_l }}cqw]{% if view == 1 %} lg:portrait:w--[12cqw]{% endif %}{% endcapture %}{% comment %} Calm (owner) {% endcomment %}
-   {%- assign ar_m = 0.6 %}{% assign ar_l = 0.75 %}{% if view == 2 %}{% assign ar_m = 0.3 %}{% assign ar_l = 0.375 %}{% elsif view == 3 %}{% assign ar_m = 1.2 %}{% assign ar_l = 1.5 %}{% endif %}
-   {%- assign dh_m = th_m %}{% assign dh_l = th_l %}{% assign ch_p = 7 %}{% if ui.inn %}{% assign dh_m = 12 %}{% assign dh_l = 10 %}{% assign ch_p = 3.5 %}{% endif %}{% assign ch_m = dh_m | times: hm | times: tm | times: 0.85 | round %}{% assign ch_l = dh_l | times: hl | times: tf | times: 0.85 | round %}{% assign cw_m = ch_m | times: ar_m | times: 1.6 | round %}{% assign cw_l = ch_l | times: ar_l | times: 1.6 | round %}{% assign cw_p = ch_p | times: 2.1 | round %}{% if view == 2 %}{% assign cw_p = ch_p | times: 1.1 | round %}{% endif %}{% comment %} owner: the console badge beside {% endcomment %}
-   {%- capture cbadge %}{% if ui.cue and ui.cue.size > 0 %}<div class="shrink-0 h--[{{ ch_m }}cqh] lg:h--[{{ ch_l }}cqh] lg:portrait:h--[{{ ch_p }}cqh] w--[{{ cw_m }}cqw] lg:w--[{{ cw_l }}cqw] lg:portrait:w--[{{ cw_p }}cqw]{% if view == 3 %} hidden lg:block{% endif %}" data-sw-part="cue" data-sw-cue="{{ ui.cue | join: '+' }}"></div>{% endif %}{% endcapture %}{% comment %} left out on OG half vertical and {% endcomment %}
-   <div class="flex {{ tr_cls }} {{ tr_gap | default: 'gap--small' }} lg:gap--medium h--[{{ th_m | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ th_l | times: hl | times: tf | round | at_most: 100 }}cqh] {% if view == 2 %}lg:portrait:h--[12cqh]{% elsif view == 4 %}lg:portrait:h--[20cqh]{% else %}{{ tp_h | default: 'lg:portrait:h--[8cqh]' }}{% endif %}">
-    {%- if ui.inn %}{% comment %} Indoor sensor (as live) {% endcomment %}
-    {%- for tw in (1..2) %}
-    {%- if tw == 2 %}<div class="border--v-60 h--full"></div>{% endif %}
-    <div class="flex flex--col flex--center gap--xsmall h--full" data-sw-twin="{% if tw == 1 %}out{% else %}in{% endif %}">
-     <div class="flex flex--row flex--top gap--xsmall">{% if tw == 2 %}{% if ui.inn.arrow == 'up' or ui.inn.arrow == 'down' %}<div class="shrink-0 self--center h--[3cqh] hidden lg:block" data-sw-part="arrow" data-sw-i="2" data-sw-arrow="{{ ui.inn.arrow }}" data-sw-inarrow></div>{% endif %}{% endif %}<div class="flex flex--col flex--center gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]" data-sw-part="loc" data-sw-sq data-sw-i="{% if tw == 1 %}0{% else %}1{% endif %}" data-sw-loc="{% if tw == 1 %}out{% else %}in{% endif %}"></div><div class="h--[{{ 12 | times: hm | times: tm | round | at_most: 100 }}cqh] lg:h--[{{ 8 | times: hl | times: tf | round | at_most: 100 }}cqh] lg:portrait:h--[4cqh]" data-sw-part="{% if tw == 1 %}temp{% else %}itemp{% endif %}"></div></div><div class="flex flex--col gap--xsmall"><div class="shrink-0 h--[4cqh] lg:h--[4cqh]"></div><span class="value value--xsmall" data-sw-unit="{% if tw == 2 %}in{% endif %}">{{ ui.unit }}</span></div>{% if tw == 1 %}{{ cbadge }}{% endif %}</div>
-     <span class="label label--small flex flex--row flex--center-y gap--xsmall">{% if tw == 2 %}{{ ui.inn.hum }}{% if ui.inn.lohi %}<span class="hidden lg:flex flex--row flex--center-y gap--xsmall" data-sw-inlohi>{% if ui.inn.hum != '' %}·{% endif %}<div class="shrink-0 h--[1cqh] lg:h--[1cqh]" data-sw-part="tri" data-sw-i="2" data-sw-sq></div>{{ ui.inn.lo }}<div class="shrink-0 h--[1cqh] lg:h--[1cqh]" data-sw-part="tri" data-sw-i="3" data-sw-sq></div>{{ ui.inn.hi }}</span>{% endif %}{% else %}&nbsp;{% endif %}</span>{% comment %} indoor trend (saved state) {% endcomment %}{% comment %} an empty line under BUITEN keeps {% endcomment %}
-    </div>
-    {%- endfor %}
-    {%- else %}
-    <div class="flex flex--row flex--top gap--xsmall shrink-0 {{ tg_h }}"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ ui.unit }}</span></div>
-    {%- if ui.cue and ui.cue.size > 0 %}<div data-sw-div class="border--v-60 shrink-0 h--full{% if view == 3 %} hidden lg:block{% endif %}"></div>{% endif %}{% comment %} owner: the thin divider between the {% endcomment %}
-    {{ cbadge }}
-    {%- endif %}
-   </div>
-  </div>
-{%- endcapture %}
-{%- capture c_right %}
-  {%- comment -%} Rain unit (owner) {%- endcomment -%}
-  {%- assign rr = 2 %}{% if ui.rain.rows == 3 %}{% assign rr = 3 %}{% endif %}{% assign rr_m = rr %}{% if view == 4 or view == 2 %}{% assign rr_m = 2 %}{% endif %}
-  {%- assign k_m = 7 %}{% assign k_l = 4 %}{% if rr_m == 3 %}{% assign k_m = 6 %}{% endif %}{% if view == 3 %}{% assign k_m = 5.6 %}{% if rr_m == 3 %}{% assign k_m = 4 %}{% endif %}{% endif %}{% if view == 4 and rr == 2 %}{% assign k_l = 5.6 %}{% endif %}{% comment %} X quadrant, 2-row calendar (it {% endcomment %}{% assign kw = 1 %}{% if rr == 3 %}{% assign k_l = 3.4 %}{% assign kw = 0.75 %}{% endif %}{% assign rc_m = k_m | times: hm | round %}{% assign rc_l = k_l | times: hl | round %}{% assign cal_m = rc_m | times: rr_m | at_most: 100 %}{% assign cal_l = k_l | times: hl | times: rr | round | at_most: 100 %}{% assign cal_p = 3 | times: rr %}{% if view == 1 %}{% assign cal_p = 5 | times: rr | divided_by: 2 %}{% endif %}{% if view == 2 %}{% assign cal_p = 5 | times: rr %}{% elsif view == 4 %}{% assign cal_p = 4 | times: rr %}{% endif %}
-  {%- assign ib_l = cal_l %}{% if view == 4 and rr == 2 %}{% assign ib_l = 4 | times: hl | times: 2 | round | at_most: 100 %}{% endif %}{%- assign ib_m = cal_m %}{% if stk and view != 3 %}{% assign ib_m = rc_m | times: 0.7 | round %}{% endif %}
-  {%- capture ib_cls %}aspect--1/1 h--[{{ ib_m }}cqh] lg:h--[{{ ib_l }}cqh] {% if view == 3 %}lg:portrait:h--[6cqh]{% elsif view == 2 %}lg:portrait:h--[6cqh]{% elsif view == 1 %}lg:portrait:h--[{{ cal_p }}cqh]{% else %}lg:portrait:h--[7cqh]{% endif %} shrink-0{% endcapture %}{% comment %} X half vertical portrait (owner {% endcomment %}{% if calm_q %}{% assign ib_cls = ib_cls | append: ' hidden lg:block' %}{% endif %}{% comment %} Calm quadrant {% endcomment %}
-  <div data-sw-right class="flex flex--col flex--center gap--xsmall lg:gap--small shrink-0 {{ rc_w }}">
-   {%- if ui.rain %}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small{% if view == 1 %} lg:portrait:gap--none{% endif %}">
-   <div class="flex {{ ru_cls }} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full{% if view == 4 %} lg:portrait:w--[60cqw]{% endif %} pr--1" data-sw-unit="rain">
-    <img class="image image--adaptive {{ ib_cls }}" src="{{ ui.rain.icon }}" alt="" data-sw-icon>
-    <div class="{{ rg_m | default: 'w--full' }} lg:w--[{{ rgw_l | times: wl | times: kw | round | at_most: 100 }}cqw] lg:portrait:w--[{% if view == 3 %}28{% elsif view == 4 %}30{% else %}18{% endif %}cqw] h--[{{ cal_m }}cqh] lg:h--[{{ cal_l }}cqh] lg:portrait:h--[{{ cal_p }}cqh]" data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"></div>
-   </div>
-   {%- if ui.rain.gauge %}<div class="shrink-0 lg:portrait:hidden" data-sw-part="gauge"></div>{% endif %}
-   <div class="h--[{% if view == 3 %}2{% else %}{{ rc_m }}{% endif %}cqh] lg:h--[{{ rc_l }}cqh] lg:portrait:h--[2cqh]{{ sep_cls }}" data-sw-gap="rain-sun"></div>
-   {%- endif %}
-   {%- if calm_q and ui.rain %}{% assign su_cls = 'hidden lg:flex' %}{% assign sep_cls = ' hidden lg:block' %}{% endif %}
-   {%- if ui.rain %}{% assign si_m = 6 %}{% assign si_l = 5 %}{% if view == 4 %}{% assign si_l = 4.3 %}{% endif %}{% else %}{% assign si_m = 8 %}{% assign si_l = 8 %}{% if stk %}{% assign si_m = 5 %}{% endif %}{% if view == 3 %}{% assign si_l = 4.5 %}{% elsif view == 4 %}{% assign si_l = 3.9 %}{% endif %}{% endif %}
-   {% assign si_k = 1 %}{% if view == 3 and ui.sun.rise contains ' ' %}{% assign si_k = 0.8 %}{% endif %}{% comment %} X half vertical, 12 h {% endcomment %}
-   <div class="flex {{ su_cls }} {% if ui.rain %}flex--left flex--center-y w--full gap--xsmall lg:gap--small{% else %}flex--center gap--xsmall {% if view >= 3 %}lg:gap--small{% else %}lg:gap--medium{% endif %}{% endif %}{% if view == 3 %} lg:portrait:gap--xsmall{% elsif view == 4 %} lg:portrait:w--[60cqw] lg:portrait:flex--left{% endif %} shrink-0" data-sw-unit="sun">
-    {%- if ui.rain %}<div class="{{ ib_cls }}" data-sw-part="moon"></div>
-    {%- else %}{% assign mo_m = si_m | times: 2 | plus: 1 | times: hm | round | at_most: 100 %}<div class="w--[{{ mo_m }}cqh] h--[{{ mo_m }}cqh] lg:hidden" data-sw-part="moon"></div>
-    {% if view >= 3 %}{% assign mo_l = si_l | times: 2.25 | times: hl | round | at_most: 100 %}{% elsif stk %}{% assign mo_l = si_l | times: 0.65 | times: hl | round | at_most: 100 %}{% else %}{% assign mo_l = 13 | times: mh_l | round | at_most: 100 %}{% endif %}<div class="hidden lg:block h--[{{ mo_l }}cqh] lg:portrait:h--[{% if view == 3 %}6{% else %}12{% endif %}cqh]" data-sw-part="moon"></div>{% comment %} half vertical (owner step 12) {% endcomment %}{% endif %}
-    <div class="flex flex--col{% if ui.rain %}{% else %} gap--small{% endif %}">
-     <div class="flex flex--row flex--center-y {% if view >= 3 %}gap--xsmall{% else %}gap--small{% endif %}"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | times: si_k | round | at_most: 100 }}cqh] lg:portrait:h--[{% if view == 3 or view == 1 %}3{% elsif calm_q and ui.rain == nil %}6{% else %}4{% endif %}cqh]" src="{{ ui.sun.riseIcon }}" alt="" data-sw-icon>{% assign st = ui.sun.rise | split: ' ' %}<span class="flex flex--row flex--bottom {% if view == 3 %}gap--none{% else %}gap--xsmall{% endif %} shrink-0" data-sw-suntime><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %}{% if st[1] and view == 3 %} lg:title--small{% endif %}{% if view == 3 %} lg:portrait:title--small{% elsif calm_q and ui.rain == nil %} lg:portrait:title--large{% endif %} text--bold">{{ st[0] }}</span>{% if st[1] %}<span class="label label--small text--bold">{% if view == 3 %}&nbsp;{% endif %}{{ st[1] }}</span>{% comment %} 12 h (owner step 12) {% endcomment %}{% endif %}</span></div>
-     <div class="flex flex--row flex--center-y {% if view >= 3 %}gap--xsmall{% else %}gap--small{% endif %}"><img class="image image--adaptive h--[{{ si_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ si_l | times: hl | times: si_k | round | at_most: 100 }}cqh] lg:portrait:h--[{% if view == 3 or view == 1 %}3{% elsif calm_q and ui.rain == nil %}6{% else %}4{% endif %}cqh]" src="{{ ui.sun.setIcon }}" alt="" data-sw-icon>{% assign st = ui.sun.set | split: ' ' %}<span class="flex flex--row flex--bottom {% if view == 3 %}gap--none{% else %}gap--xsmall{% endif %} shrink-0" data-sw-suntime><span class="title title--base{% unless ui.rain or stk %} lg:title--large{% endunless %}{% if st[1] and view == 3 %} lg:title--small{% endif %}{% if view == 3 %} lg:portrait:title--small{% elsif calm_q and ui.rain == nil %} lg:portrait:title--large{% endif %} text--bold">{{ st[0] }}</span>{% if st[1] %}<span class="label label--small text--bold">{% if view == 3 %}&nbsp;{% endif %}{{ st[1] }}</span>{% comment %} 12 h (owner step 12) {% endcomment %}{% endif %}</span></div>
-    </div>
-   </div>
-   {%- if ui.rain %}</div>{% endif %}
-  </div>
-{%- endcapture %}
- <div data-sw-console class="{{ con_h }}">{{ p_open_g }}<div class="relative flex {% if stk %}flex--col {% if view == 4 and ui.rain == nil %}flex--evenly lg:flex--center{% else %}flex--center{% endif %} gap--xsmall{% if view == 4 %} lg:portrait:flex--evenly{% endif %}{% else %}flex--row lg:portrait:flex--col-reverse{% if view == 2 %} lg:portrait:flex--between{% endif %} {% if view == 1 %}landscape:{% endif %}flex--stretch-y gap--medium lg:gap--large{% if view == 1 %} lg:portrait:gap--medium{% endif %}{% endif %} {% if view == 3 %}px--2 pt--3 pb--2 lg:p--4{% else %}p--2 lg:p--4{% endif %} h--full">
-{%- if stk %}
-  <div class="flex flex--row flex--stretch-y gap--medium{% if view == 4 %} lg:portrait:flex--col lg:portrait:gap--small{% endif %} w--full">
-{{ c_temp }}
-  {% if view == 4 %}<div class="flex lg:portrait:hidden">{{ vr }}</div>{% else %}{{ vr }}{% endif %}
-{{ c_right }}
-  </div>
-  {% if calm_q %}<div class="flex flex--col flex--center gap--xsmall w--full lg:hidden">
-   <div class="border--h-60 w--full" data-sw-rule></div>
-{{ c_meters }}
-  </div>{% endif %}
-  {%- if calm_q %}<div class="hidden lg:flex flex--col flex--center gap--xsmall w--full">{% endif %}{% comment %} X quadrant (owner step 12) {% endcomment %}
-  <div class="w--full px--4" data-sw-hairwrap><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-hair="console" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner: block hairline between the {% endcomment %}
-{{ c_meters }}
-  {%- if calm_q %}</div>{% endif %}
-{%- else %}{% comment %} X portrait (owner step 12) {% endcomment %}
-{{ c_meters }}
-  <div class="flex lg:portrait:hidden">{{ vr }}</div>
-  <div class="flex flex--row flex--stretch-y gap--medium lg:gap--large grow">
-{{ c_temp }}
-  {{ vr }}
-{{ c_right }}
-  </div>
-{%- endif %}
- </div>{{ p_close }}</div>
-{%- if days_h %}
- <div class="w--full px--4 4bit:hidden dark:4bit:block{{ calm_btw }}" data-sw-between><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>{% comment %} owner: no divider between filled {% endcomment %}
- <div class="{{ days_h }} grow">{{ p_open_g }}<div class="relative flex flex--col flex--center{% if view == 1 %} lg:portrait:flex--evenly{% endif %} h--full p--2 lg:p--4">
-{%- if ui.hours %}{% comment %} Hours strip (owner) {% endcomment %}
-  {%- assign nh_md = 8 %}{% assign nh_lg = 12 %}{% if view == 3 %}{% assign nh_md = 6 %}{% assign nh_lg = 8 %}{% endif %}
-  <div class="relative z--2 flex flex--row w--full h--full gap--xsmall" data-sw-hours="{{ nh_md }},{{ nh_lg }}">
-  {%- for q in ui.hours %}{% assign i = forloop.index0 %}
-  {%- if i < nh_md or i < nh_lg %}
-   <div class="grow basis--0 h--full{% if i >= nh_md %} hidden lg:block{% elsif i >= nh_lg %} lg:hidden{% endif %}" data-sw-hcol="{{ i }}"><div class="flex flex--col flex--center-x h--full w--full gap--xsmall">{% comment %} the visibility on the outer box, {% endcomment %}
-    <div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y h--[{{ 7 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">{%- if q.now or q.wet %}<span class="label label--inverted label--large{% if q.now %} text--bold{% endif %}" data-sw-hstamp="{% if q.now %}now{% else %}wet{% endif %}">{{ q.hl }}</span>{% else %}<span class="label label--large" data-sw-hstamp="">{{ q.hl }}</span>{% endif %}</div>
-    <div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y h--[{{ 8 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 6 | times: hl | round | at_most: 100 }}cqh]">{% if q.icon %}<img class="image image--adaptive h--full" src="{{ q.icon }}" alt="">{% endif %}</div>
-    <div class="grow w--full" data-sw-part="hbar" data-sw-i="{{ i }}"></div>
-   </div></div>
-  {%- endif %}
-  {%- endfor %}
-  </div>
-{%- else %}
-  <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ hh_m | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 4 | times: hl | round | at_most: 100 }}cqh]">
-   {%- assign dcue_on = false %}{% if view != 2 and view != 4 %}{% assign dcue_on = true %}{% endif %}{% capture dcue_w %}{{ badge_w }}{% if view == 3 %} hidden lg:block lg:portrait:hidden{% endif %}{% endcapture %}{% comment %} Calm (owner) {% endcomment %}
-   <div class="shrink-0 {{ name_w }}"></div><div class="shrink-0 {{ icon_w }}"></div>
-   <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
-   <div class="shrink-0 {{ num_w }} flex flex--center h--full{{ num_cls }}"><div class="h--[{{ 4 | times: hm | round | at_most: 100 }}cqh] lg:h--[{{ 3 | times: hl | round | at_most: 100 }}cqh] w--[{{ 2 | times: wm | round | at_most: 100 }}cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
-   <div class="grow basis--0 h--full" data-sw-part="scale"></div>{% if dcue_on %}<div class="shrink-0 {{ dcue_w }}"></div>{% endif %}
-  </div>
-  {%- assign nd_last = nd_lg | minus: 1 %}
-  {%- for d in ui.days %}
-  {%- assign i = forloop.index0 %}{% assign on_md = false %}{% assign on_lg = false %}
-  {%- if i < nd_md %}{% assign on_md = true %}{% endif %}
-  {%- assign j = i %}{% comment %} owner: the strip always starts {% endcomment %}
-  {%- if j >= 0 and j < nd_lg %}{% assign on_lg = true %}{% endif %}
-  {%- if on_md or on_lg %}
-  <div class="w--full{% if on_md and on_lg %}{% elsif on_md %} lg:hidden{% else %} hidden lg:block{% endif %}{% if j == nd_last %}{{ last_p }}{% endif %}" data-sw-row="day">
-  {% comment %} owner: a faint hairline over {% endcomment %}
-  <div class="relative z--2 flex flex--row flex--center-y w--full {{ dgap | default: 'gap--small' }} h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ rh_l }}cqh]{{ row_p }}">
-   <div class="shrink-0 {{ name_w }} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%- if d.today %}<span class="label label--inverted label--large{% if view != 3 %} lg:portrait:label--xxlarge{% endif %} text--bold" data-sw-today>{{ d.name }}</span>{% comment %} owner: today an inverted label in {% endcomment %}{% else %}<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}</span>{% endif %}</div></div>
-   <div class="shrink-0 {{ icon_w }} flex flex--center">{% if d.icon %}<img class="image image--adaptive h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" src="{{ d.icon }}" alt="">{% endif %}</div>
-   <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.lo }}</span></div>
-   <div class="shrink-0 {{ num_w }} flex flex--center{{ num_cls }}"><span class="title {{ num_t | default: 'title--base' }} text--bold">{{ d.hi }}</span></div>
-   <div class="grow basis--0 h--full" data-sw-part="day" data-sw-i="{{ forloop.index0 }}"></div>{% if dcue_on %}<div class="shrink-0 {{ dcue_w }} flex flex--row flex--center-y"><div class="w--full h--[{{ rw_m | times: hm | at_most: 100 }}cqh] lg:h--[{{ 5 | times: hl | round | at_most: 100 }}cqh]{{ icon_x }}" data-sw-part="dcue" data-sw-i="{{ forloop.index0 }}" data-sw-cue="{{ d.cue | join: '+' }}"></div></div>{% endif %}
-  </div></div>
-  {%- endif %}
-  {%- endfor %}
-{%- endif %}
- </div>{{ p_close }}</div>
-{%- endif %}
+{%-elsif view >= 1 and view <= 4-%}
+
+{%-assign stk=false%}{%assign hm=1%}{%assign hl=1%}{%assign wm=1%}{%assign wl=1%}{%assign n_md=9%}{%assign n_lg=9%}{%assign nd_md=4%}{%assign nd_lg=5%}{%assign num_cls=''%}{%assign bar_cls='col--span-8'%}{%assign name_cls='col--span-1'%}{%assign pad_cls='col--span-2'%}{%assign icon_cls='col--span-1'%}{%assign name_t=' lg:portrait:title--xlarge'%}{%assign icon_x=''%}{%assign rgw_l=18%}
+{%-assign name_w='w--[6cqw] lg:w--[5cqw]'%}{%assign icon_w='w--[5cqw] lg:w--[5cqw]'%}{%assign num_w='w--[6cqw] lg:w--[5cqw]'%}
+{%-if view == 1%}{%assign dgap='gap--small portrait:gap--xsmall lg:gap--small lg:portrait:gap--small'%}{%assign num_w='w--[6cqw] portrait:w--[5cqw] lg:w--[5cqw]'%}{%assign name_w='w--[9cqw] lg:w--[5cqw] lg:portrait:w--[12cqw]'%}{%assign icon_w='w--[5cqw] portrait:w--[8cqw] lg:w--[5cqw] lg:portrait:w--[10cqw]'%}{%assign hh_m=6%}{%assign rw_m=6%}{%assign num_cls=''%}{%assign bar_cls='col--span-8'%}{%assign name_cls='col--span-1 lg:portrait:col--span-2'%}{%assign icon_cls='col--span-1 lg:portrait:col--span-2'%}{%assign pad_cls='col--span-2 lg:portrait:col--span-4'%}{%assign name_t=' lg:portrait:title--xlarge'%}{%assign icon_x=' portrait:h--[7cqh] lg:portrait:h--[7cqh]'%}{%assign row_p=' portrait:h--[8cqh] lg:portrait:h--[6cqh]'%}{%assign con_h='h--[56cqh] lg:h--[38cqh] lg:portrait:h--[31cqh]'%}{%assign days_h='h--[37cqh] portrait:h--[38cqh] lg:h--[28cqh] lg:portrait:h--[33cqh]'%}
+{%-elsif view == 2%}{%assign hm=1.7%}{%assign hl=2.2%}{%assign rgw_l=15%}{%assign mh_l=1.5%}{%assign con_h='h--full'%}
+{%-elsif view == 3%}{%assign stk=true%}{%assign wm=2%}{%assign wl=2%}{%assign n_md=2%}{%assign n_lg=5%}{%assign name_cls='col--span-2'%}{%assign icon_cls='col--span-1 lg:col--span-2'%}{%assign pad_cls='col--span-3 lg:col--span-4'%}{%assign dgap='gap--xsmall lg:gap--small'%}{%assign num_t='title--small'%}{%assign nd_md=4%}{%assign nd_lg=7%}{%assign num_cls=' lg:hidden lg:portrait:flex'%}{%assign mr_m=6%}{%assign mb_m=4%}{%assign name_w='w--[26cqw] portrait:w--[12cqw] lg:w--[11cqw] lg:portrait:w--[15cqw]'%}{%assign icon_w='w--[7cqw] portrait:hidden lg:portrait:hidden'%}{%assign num_w='w--[9cqw] portrait:w--[7cqw] lg:portrait:w--[9cqw]'%}{%assign rw_m=6%}{%assign hh_m=6%}{%assign name_t=' portrait:title--small lg:portrait:title--base'%}{%assign rh_l=5%}{%assign icon_x=' lg:h--[6cqh]'%}{%assign bar_cls='col--span-7 lg:col--span-8'%}{%assign con_h='h--[60cqh] lg:h--[54cqh] lg:portrait:h--[44cqh]'%}{%assign days_h='h--[38cqh] lg:h--[44cqh] lg:portrait:h--[54cqh]'%}
+{%-else%}{%assign stk=true%}{%assign wm=2%}{%assign wl=2%}{%assign hm=1.6%}{%assign hl=2.3%}{%assign n_md=1%}{%assign n_lg=2%}{%assign con_h='h--full'%}{%endif%}
+{%-assign calm_btw=' 1bit:hidden 2bit:hidden dark:2bit:block'%}
+{%-assign calm_q=false%}{%if view == 4%}{%assign calm_q=true%}{%endif%}
+{%-if view == 3%}{%assign rw_m=8%}{%assign nd_md=3%}{%assign rh_l=6%}{%assign nd_lg=6%}{%assign row_p=' portrait:h--[11cqh] lg:portrait:h--[6cqh]'%}{%endif%}
+{%-assign nd_mp=nd_md%}{%if view == 1%}{%assign nd_mp=4%}{%elsif view == 3%}{%assign nd_mp=5%}{%endif%}
+{%-if view == 1%}{%assign rw_m=9%}{%assign rh_l=6%}{%assign nd_md=3%}{%assign nd_lg=4%}{%endif%}
+{%-if mr_m == nil%}{%assign mr_m=9%}{%assign mb_m=7%}{%endif%}
+{%-if view == 1%}{%for m in ml%}{%if m.tw or m.key == ph_tw%}{%assign mr_m=7.4%}{%endif%}{%endfor%}{%endif%}
+{%-if mh_l == nil%}{%assign mh_l=hl%}{%endif%}
+
+{%-assign q1=5|times:wm|round%}{%assign q2=23|times:wm|round%}{%assign q3w=26%}{%if ui.rain%}{%assign q3w=23%}{%endif%}{%assign q3=q3w|times:wl|round%}{%assign q4=30|times:wm|round|at_most:100%}{%assign ru_cls='flex--row lg:portrait:flex--col'%}{%assign ri_md='w--['|append:q1|append:'cqw] lg:hidden lg:portrait:block lg:portrait:w--[4cqw]'%}{%assign su_cls='flex--row'%}{%assign rg_p=' lg:portrait:w--full'%}{%assign q6b=20%}{%if stk%}{%assign q6b=15%}{%assign ru_cls='flex--col lg:flex--row'%}{%endif%}{%assign q6=q6b|times:wm|round%}{%assign rg_m='w--['|append:q6|append:'cqw]'%}{%assign rc_w='w--['|append:q2|append:'cqw] lg:w--['|append:q3|append:'cqw] lg:portrait:gap--xsmall'%}{%assign rule_w='w--['|append:q4|append:'cqw]'%}
+{%-if stk%}{%assign ri_md='w--[8cqw] lg:hidden'%}{%assign rgw_l=15%}{%assign rg_p=''%}{%assign su_cls='flex--row'%}{%assign rc_w='w--[40cqw] lg:w--[37cqw] shrink-0'%}{%assign rule_w='w--full'%}{%assign tf=0.7%}{%assign mh_l=0.4%}{%if ui.rain%}{%assign su_cls='hidden lg:flex flex--row'%}{%assign sep_cls=' hidden lg:block'%}{%endif%}{%if view == 3%}{%assign su_cls='flex--row'%}{%assign sep_cls=''%}{%assign ru_cls='flex--row'%}{%assign rc_w='w--[44cqw] lg:w--[37cqw] lg:portrait:w--[42cqw] shrink-0'%}{%endif%}{%endif%}
+{%-if view <= 2%}{%assign ru_cls='flex--row'%}{%endif%}
+{%-if calm_q%}{%assign rc_w='w--[33cqw] lg:w--[39cqw] lg:portrait:w--full shrink-0'%}{%assign rg_m='w--[31cqw]'%}{%endif%}
+{%-if hh_m == nil%}{%assign hh_m=6%}{%endif%}{%if rw_m == nil%}{%assign rw_m=6%}{%endif%}
+{%-if rh_l == nil%}{%assign rh_l=4|times:hl|round|at_most:100%}{%endif%}
+{%-if tf == nil%}{%assign tf=1%}{%endif%}{%assign tm=tf%}{%if view == 3%}{%assign tm=1%}{%endif%}
+{%-if view == 4 and ui.rain == nil%}{%assign n_lg=3%}{%endif%}
+{%-if stk%}{%assign ms=ml|sort:'rank'%}{%else%}{%assign ms=ml%}{%endif%}
+{%-assign st_h=cf.hide_title_bar|append:''%}{%if ui.stale%}{%if view != 1 or st_h == 'true' or st_h == 'yes'%}{%assign st_on=true%}{%endif%}{%endif%}
+<div class="layout layout--col layout--stretch-x gap--base relative" data-sw-debug="v2 view={{view}} meters={{ml|map:'key'|join:','}} rain={%if ui.rain%}cal{%else%}dry{%endif%} days={{ui.days|size}}">
+{%-if st_on%}{%for sp in (1..2)%}{%if sp == 1%}{%assign sp_c='top--5 right--10'%}{%if view == 4%}{%assign sp_c='top--5 right--10 lg:hidden'%}{%endif%}{%elsif view == 4%}{%assign sp_c='top--5 left--10 hidden lg:block'%}{%else%}{%break%}{%endif%}<span class="absolute {{sp_c}} z--10 label label--small" data-sw-stale>{{ui.stale}}</span>{%endfor%}{%endif%}
+{%-if view == 1%}
+<div class="hidden lg:block h--[28cqh] lg:portrait:h--[22cqh]"><div class="flex flex--row flex--stretch-y gap--base h--full">
+{%-for k in (1..2)%}
+{%-if k == 2%}<div class="py--4 shrink-0 4bit:hidden dark:4bit:block{{calm_btw}}" data-sw-between><div class="border--v-60 h--full"></div></div>{%endif%}
+{{p_open_g}}<div class="relative h--full w--full">
+<div class="absolute inset--0" data-sw-part="{%if k == 1%}baro{%else%}tdial{%endif%}"></div>
+<span class="absolute bottom--3 left--4 title title--base lg:portrait:title--small text--bold" data-sw-cap>{%if k == 1%}{{ui.baro.name}}{%else%}{{ui.tdial.name}}{%endif%}</span>
+{%-capture dv_row%}
+
+{%-if k == 1%}{%assign arw=ui.baro.arrow%}{%assign arw_i=0%}{%elsif inn%}{%assign arw=''%}{%else%}{%assign arw=ui.tdial.arrow%}{%assign arw_i=1%}{%endif%}{%if arw == 'up' or arw == 'down'%}<div class="shrink-0 self--center" data-sw-part="arrow" data-sw-i="{{arw_i}}" data-sw-arrow="{{arw}}"></div>{%endif%}
+{%-if k == 1%}<span class="value value--small value--tnums">{{ui.baro.value}}</span><span class="{{tsb}}">{{ui.baro.unit}}</span>
+{%-elsif inn%}<span class="value value--small value--tnums" data-sw-inval>{{inn.temp}}</span><span class="{{tsb}}">{{ui.tdial.unit}}</span>
+{%-else%}<span class="value value--small value--tnums">{{ui.tdial.value}}</span><span class="{{tsb}}">{{ui.tdial.unit}}</span>{%endif-%}
+{%-endcapture%}
+<div class="absolute bottom--3 right--4 flex flex--row flex--bottom gap--small" data-sw-cap>{{dv_row}}</div>
+{%-if k == 2 and inn%}<div class="absolute top--3 right--4 flex flex--row flex--bottom gap--small text--gray-30 dark:text--gray-30" data-sw-cap data-sw-dialin><div class="shrink-0 self--center h--[3cqh] w--[2cqw]" data-sw-part="loc" data-sw-sq data-sw-i="0" data-sw-loc="out"></div>{%if ui.tdial.arrow == 'up' or ui.tdial.arrow == 'down'%}<div class="shrink-0 self--center text--gray-30 dark:text--gray-30" data-sw-part="arrow" data-sw-i="1" data-sw-arrow="{{ui.tdial.arrow}}"></div>{%endif%}<span class="value value--small value--tnums text--gray-30 dark:text--gray-30">{{ui.tdial.value}}</span><span class="{{tsb}} text--gray-30 dark:text--gray-30">{{ui.tdial.unit}}</span></div>{%endif%}
+</div>{{p_close}}
+{%-endfor%}
+</div></div>
+<div class="hidden lg:block lg:4bit:hidden dark:lg:4bit:block{{calm_btw}} w--full px--4" data-sw-between><div class="border--h-60"></div></div>
+{%-endif%}
+{%if calm_q%}{%assign mr_m=6%}{%assign mb_m=4%}{%endif%}
+{%capture c_meters%}
+<div class="flex flex--col gap--small shrink-0 w--[{%if inn and view < 3%}{{25|times:wm|round}}{%else%}{{30|times:wm|round}}{%endif%}cqw] lg:w--[{%if inn and view == 2%}19{%else%}{{22|times:wm|round}}{%endif%}cqw] lg:portrait:w--full">
+<div class="flex flex--row grow{%if view == 2%} lg:portrait:flex--stretch-y{%endif%} gap--small w--full">{%assign any_tw=false%}{%capture c_lab%}{%endcapture%}{%capture c_blk%}{%endcapture%}{%for m in ms%}{%if forloop.index > n_lg%}{%break%}{%endif%}{%assign passes=1%}{%if m.tw or m.key == ph_tw%}{%assign passes=2%}{%assign any_tw=true%}{%endif%}{%capture rc%}{%if view == 1 and m.key == 'baro'%}{%if forloop.index > n_md%} hidden{%else%} flex lg:hidden{%endif%}{%elsif forloop.index > n_md%} hidden lg:flex{%else%} flex{%endif%} flex--row flex--center-y{%endcapture%}{%capture rh%}h--[{{mr_m|times:hm|round|at_most:100}}cqh] lg:h--[{{5|times:hl|round}}cqh]{%if view == 1%} lg:portrait:h--[3cqh]{%endif%}{%endcapture%}{%for pass in (1..passes)%}{%assign h2=''%}{%assign pk='meter'%}{%if pass == 2%}{%assign h2=' data-sw-hum2'%}{%elsif m.tw or m.key == ph_tw%}{%assign pk='meterin'%}{%endif%}{%capture c_lab%}{{c_lab}}<div class="{{rc}} flex--right w--full gap--xsmall {{rh}}"{{h2}}>{%if m.tw or m.key == ph_tw%}<div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-for="{{m.key}}" data-sw-i="{{2|minus:pass}}" data-sw-loc="{%if pass == 1%}in{%else%}out{%endif%}"></div>{%endif%}<span class="title title--base lg:title--small text--bold" data-sw-mlabel>{{m.label}}</span></div>{%endcapture%}{%capture c_blk%}{{c_blk}}<div class="{{rc}} w--full {{rh}}"{{h2}}><div class="w--full h--[{{mb_m|times:hm|round|at_most:100}}cqh] lg:hidden" data-sw-part="{{pk}}" data-sw-n="5" data-sw-i="{{m.idx}}" data-sw-key="{{m.key}}"></div><div class="hidden lg:block w--full h--[{{4|times:hl|round}}cqh]{%if view == 1%} lg:portrait:h--[3cqh]{%endif%}" data-sw-part="{{pk}}" data-sw-n="10" data-sw-i="{{m.idx}}" data-sw-key="{{m.key}}"></div></div>{%endcapture%}{%endfor%}{%endfor%}{%capture mcol%}flex flex--col flex--between{%endcapture%}
+<div class="{{mcol}} shrink-0">{{c_lab}}</div>
+<div class="{{mcol}} grow">{{c_blk}}</div>
 </div>
-{%- endif -%}
-{%- assign sw_hide = cf.hide_title_bar | append: '' -%}
-{%- unless sw_hide == 'true' or sw_hide == 'yes' or view != 1 %}
+</div>{%endcapture%}{%capture c_temp%}
+<div class="flex flex--col flex--center gap--medium grow w--min-0">
+<div class="{{fcy}} flex--center-x w--full gap--medium h--[{{13|times:hm|times:tf|round}}cqh] lg:h--[{{8|times:hl|times:tf|round}}cqh] lg:portrait:h--[{%if view == 2%}9{%else%}5{%endif%}cqh]">{%if ui.icon%}<span class="block shrink-0 h--full aspect--1/1"><img class="{{iia}} h--full w--full" src="{{ui.icon}}" alt="" data-sw-ink="{{ui.iconInk}}" data-sw-icon></span>{%endif%}
+<span class="title {%if view == 2%}title--base lg:title--xlarge{%else%}title--base lg:title--xlarge{%endif%} text--bold w--min-0" data-clamp="2" data-sw-cond>{{ui.cond}}</span>
+</div>
+<div class="{{rule_w}} h--[{{1|times:hm|round}}cqh]"></div>{%assign th_m=15%}{%assign th_l=13%}{%if inn%}{%assign th_m=22%}{%assign th_l=18%}{%endif%}{%assign tr_cls='flex--row flex--center-y flex--center-x w--full'%}{%assign tg_h='h--full'%}{%if view == 1%}{%assign th_m=22%}{%assign th_l=20%}{%if inn%}{%assign th_m=26%}{%assign th_l=22%}{%endif%}{%endif%}{%assign bw_m=9|times:wm|round%}{%assign bw_l=6|times:wl|round%}{%capture badge_w%}w--[{{bw_m}}cqw] lg:w--[{{bw_l}}cqw]{%if view == 1%} lg:portrait:w--[12cqw]{%endif%}{%endcapture%}{%assign ar_m=0.6%}{%assign ar_l=0.75%}{%if view == 2%}{%assign ar_m=0.3%}{%assign ar_l=0.375%}{%endif%}{%assign dh_m=th_m%}{%assign dh_l=th_l%}{%assign ch_p=7%}{%if inn%}{%assign dh_m=12%}{%assign dh_l=10%}{%assign ch_p=3.5%}{%endif%}{%assign ch_m=dh_m|times:hm|times:tm|times:0.85|round%}{%assign ch_l=dh_l|times:hl|times:tf|times:0.85|round%}{%assign cw_m=ch_m|times:ar_m|times:1.6|round%}{%assign cw_l=ch_l|times:ar_l|times:1.6|round%}{%assign cw_p=ch_p|times:2.1|round%}{%if view == 2%}{%assign cw_p=ch_p|times:1.1|round%}{%endif%}{%capture cbadge%}{%if ui.cue and ui.cue.size > 0%}<div class="shrink-0 h--[{{ch_m}}cqh] lg:h--[{{ch_l}}cqh] lg:portrait:h--[{{ch_p}}cqh] w--[{{cw_m}}cqw] lg:w--[{{cw_l}}cqw] lg:portrait:w--[{{cw_p}}cqw]" data-sw-part="cue" data-sw-cue="{{ui.cue|join:'+'}}"></div>{%endif%}{%endcapture%}
+{%if view == 2%}{%assign th_m=th_m|times:1.15%}{%endif%}<div class="flex {{tr_cls}} {{tr_gap|default:'gap--small'}} lg:gap--medium h--[{{th_m|times:hm|times:tm|round|at_most:100}}cqh] lg:h--[{{th_l|times:hl|times:tf|round|at_most:100}}cqh] {%if view == 2%}lg:portrait:h--[17cqh]{%else%}{{tp_h|default:'lg:portrait:h--[8cqh]'}}{%endif%}">{%if inn%}{%assign tw_o='2,1'|split:','%}{%for tw_s in tw_o%}{%assign tw=tw_s|plus:0%}{%assign tw_k='in'%}{%if tw == 1%}{%assign tw_k='out'%}{%endif%}{%if forloop.index == 2%}<div class="border--v-60 h--full"></div>{%endif%}{%assign tw_dm=13%}{%assign tw_dl=12%}{%if view == 2%}{%assign tw_dm=15%}{%assign tw_dl=11%}{%endif%}
+<div class="flex flex--col flex--center gap--xsmall h--full shrink-0" data-sw-twin="{{tw_k}}">
+
+<div class="flex flex--row flex--top gap--xsmall"><div class="flex flex--col flex--center gap--xsmall"><div class="{{fcy}} gap--xsmall"><div class="shrink-0 h--[4cqh]" data-sw-part="loc" data-sw-sq data-sw-i="{{tw|minus:1}}" data-sw-loc="{{tw_k}}" data-sw-lz></div>{%if tw == 1%}{{cbadge|replace:'data-sw-part="cue"', 'data-sw-part="cue" data-sw-cb'}}{%endif%}</div><div class="h--[{{tw_dm|times:hm|times:tm|round|at_most:100}}cqh] lg:h--[{{tw_dl|times:hl|times:tf|round|at_most:100}}cqh] lg:portrait:h--[6cqh]" data-sw-part="{%if tw == 1%}temp{%else%}itemp{%endif%}"></div></div><div class="flex flex--col gap--xsmall"><div class="shrink-0 h--[4cqh]" data-sw-lsp></div><span class="value value--small" data-sw-unit="{%if tw == 2%}in{%endif%}">{{ui.unit}}</span></div></div>
+{%-if tw == 2%}<span class="label label--small flex flex--row flex--center-y gap--xsmall">{{inn_hum}}</span>{%else%}<span class="label label--small">&nbsp;</span>{%endif%}
+</div>{%endfor%}{%else%}
+<div class="flex flex--row flex--top gap--xsmall shrink-0 {{tg_h}}"><div class="h--full" data-sw-part="temp"></div><span class="value value--small" data-sw-unit>{{ui.unit}}</span></div>{%if ui.cue and ui.cue.size > 0%}<div data-sw-div class="border--v-60 shrink-0 h--full"></div>{%endif%}
+{{cbadge}}{%endif%}
+</div>
+</div>{%endcapture%}{%capture c_right%}{%assign rr=2%}{%if ui.rain.rows == 3%}{%assign rr=3%}{%endif%}{%assign rr_m=rr%}{%if view == 2%}{%assign rr_m=2%}{%endif%}{%assign k_m=7%}{%assign k_l=4%}{%if rr_m == 3%}{%assign k_m=6%}{%endif%}{%assign kw=1%}{%if rr == 3%}{%assign k_l=3.4%}{%assign kw=0.75%}{%endif%}{%assign rc_m=k_m|times:hm|round%}{%assign rc_l=k_l|times:hl|round%}{%assign cal_m=rc_m|times:rr_m|at_most:100%}{%assign cal_l=k_l|times:hl|times:rr|round|at_most:100%}{%assign cal_p=3|times:rr%}{%if view == 1%}{%assign cal_p=5|times:rr|divided_by:2%}{%endif%}{%if view == 2%}{%assign cal_p=5|times:rr%}{%endif%}{%assign ib_l=cal_l%}{%assign ib_m=cal_m%}{%capture ib_cls%}aspect--1/1 h--[{{ib_m}}cqh] lg:h--[{{ib_l}}cqh] {%if view == 2%}lg:portrait:h--[6cqh]{%elsif view == 1%}lg:portrait:h--[{{cal_p}}cqh]{%else%}lg:portrait:h--[7cqh]{%endif%} shrink-0{%endcapture%}
+<div data-sw-right class="flex flex--col flex--center gap--xsmall lg:gap--small shrink-0 {{rc_w}}">{%if ui.rain%}<div class="flex flex--col flex--left lg:portrait:flex--center w--full gap--xsmall lg:gap--small{%if view == 1%} lg:portrait:gap--none{%endif%}">
+<div class="flex {{ru_cls}} flex--left flex--center-y gap--xsmall lg:gap--small shrink-0 w--full pr--1" data-sw-unit="rain">
+<img class="image image--adaptive {{ib_cls}}" src="{{ui.rain.icon}}" alt="" data-sw-icon>
+<div class="{{rg_m|default:'w--full'}} lg:w--[{{rgw_l|times:wl|times:kw|round|at_most:100}}cqw] lg:portrait:w--[18cqw] h--[{{cal_m}}cqh] lg:h--[{{cal_l}}cqh] lg:portrait:h--[{{cal_p}}cqh]" data-sw-part="rain" data-sw-rows="{{rr_m}},{{rr}}"></div>
+</div>{%if ui.rain.gauge%}<div class="shrink-0 lg:portrait:hidden" data-sw-part="gauge"></div>{%endif%}
+<div class="h--[{{rc_m}}cqh] lg:h--[{{rc_l}}cqh] lg:portrait:h--[2cqh]{{sep_cls}}" data-sw-gap="rain-sun"></div>{%endif%}{%if ui.rain%}{%assign si_m=6%}{%assign si_l=5%}{%else%}{%assign si_m=8%}{%assign si_l=8%}{%endif%}
+{%assign si_k=1%}
+<div class="flex {{su_cls}} {%if ui.rain%}flex--left flex--center-y w--full gap--xsmall lg:gap--small{%else%}flex--center gap--xsmall lg:gap--medium{%endif%} shrink-0" data-sw-unit="sun">{%if ui.rain%}<div class="{{ib_cls}}" data-sw-part="moon"></div>{%else%}{%assign mo_m=si_m|times:2|plus:1|times:hm|round|at_most:100%}<div class="w--[{{mo_m}}cqh] h--[{{mo_m}}cqh] lg:hidden" data-sw-part="moon"></div>
+{%assign mo_l=13|times:mh_l|round|at_most:100%}<div class="hidden lg:block h--[{{mo_l}}cqh] lg:portrait:h--[12cqh]" data-sw-part="moon"></div>{%endif%}
+<div class="flex flex--col{%if ui.rain%}{%else%} gap--small{%endif%}">
+<div class="{{fcy}} gap--small"><img class="{{iia}} h--[{{si_m|times:hm|round}}cqh] lg:h--[{{si_l|times:hl|times:si_k|round}}cqh] lg:portrait:h--[{%if view == 1%}3{%else%}4{%endif%}cqh]" src="{{ui.sun.riseIcon}}" alt="" data-sw-icon>{%assign st=ui.sun.rise|split:' '%}<span class="flex flex--row flex--bottom gap--xsmall shrink-0" data-sw-suntime><span class="title title--base{%unless ui.rain%} lg:title--large{%endunless%} text--bold">{{st[0]}}</span>{%if st[1]%}<span class="label label--small text--bold">{{st[1]}}</span>{%endif%}</span></div>
+<div class="{{fcy}} gap--small"><img class="{{iia}} h--[{{si_m|times:hm|round}}cqh] lg:h--[{{si_l|times:hl|times:si_k|round}}cqh] lg:portrait:h--[{%if view == 1%}3{%else%}4{%endif%}cqh]" src="{{ui.sun.setIcon}}" alt="" data-sw-icon>{%assign st=ui.sun.set|split:' '%}<span class="flex flex--row flex--bottom gap--xsmall shrink-0" data-sw-suntime><span class="title title--base{%unless ui.rain%} lg:title--large{%endunless%} text--bold">{{st[0]}}</span>{%if st[1]%}<span class="label label--small text--bold">{{st[1]}}</span>{%endif%}</span></div>
+</div>
+</div>{%if ui.rain%}</div>{%endif%}
+</div>{%endcapture%}
+
+{%-if view != 2%}
+<div data-sw-console data-sw-small{%if view == 1%} data-sw-alt{%endif%} class="{{con_h}}">{{p_open_g}}<div class="relative flex flex--col flex--center h--full w--full p--2 lg:p--4" data-sw-sbox{%if view == 4%} data-sw-nocue{%elsif view == 1%} data-sw-keepcue{%endif%}>
+<div class="{{fcy}} flex--center-x gap--small w--full" data-sw-srow="cond">
+{%-if ui.icon%}<span class="block shrink-0 h--full aspect--1/1" data-sw-sicon><img class="{{iia}} h--full w--full" src="{{ui.icon}}" alt="" data-sw-ink="{{ui.iconInk}}" data-sw-icon></span>{%endif%}
+<span class="{{tsb}}" data-sw-cond data-sw-scond>{{ui.cond}}</span>
+</div>
+<div class="{{fcy}} flex--center-x w--full" data-sw-srow="main">
+
+<div class="flex flex--row flex--top shrink-0" data-sw-sgrp="temp">{%if inn%}<div class="shrink-0" data-sw-part="loc" data-sw-sq data-sw-i="1" data-sw-loc="in" data-sw-sloc></div><div class="shrink-0" data-sw-part="itemp"></div>{%else%}<div class="shrink-0" data-sw-part="temp"></div>{%endif%}<span class="{{tsb}} shrink-0" data-sw-unit data-sw-sunit>{{ui.unit}}</span></div>
+<div class="flex flex--col flex--center shrink-0" data-sw-sgrp="side">
+{%-if inn%}<div class="flex flex--row flex--top shrink-0" data-sw-sout><div class="shrink-0 self--center" data-sw-part="loc" data-sw-sq data-sw-i="0" data-sw-loc="out"></div>{%if ui.cue and ui.cue.size > 0%}<div class="shrink-0 self--center" data-sw-part="cue" data-sw-cb data-sw-socue data-sw-cue="{{ui.cue|join:'+'}}"></div>{%endif%}<div class="shrink-0" data-sw-part="temp" data-sw-tr></div><span class="{{tsb}} shrink-0" data-sw-sounit>{{ui.unit}}</span></div>{%endif%}
+{%-if ui.cue and ui.cue.size > 0%}<div class="shrink-0" data-sw-part="cue" data-sw-cue="{{ui.cue|join:'+'}}"></div>{%endif%}
+{%-if ui.rain%}<div class="{{fcy}} shrink-0" data-sw-unit="rain"><img class="{{iia}} shrink-0" src="{{ui.rain.icon}}" alt="" data-sw-icon data-sw-sricon><div class="shrink-0" data-sw-part="rain" data-sw-rows="2,2"></div></div>
+{%-elsif ui.days[0]%}<span class="{{tsb}} shrink-0" data-sw-slohi="{{ui.days[0].lo}}|{{ui.days[0].hi}}">{{ui.days[0].lo}} {{ui.days[0].hi}}</span>{%endif%}
+</div>
+</div>
+{%-assign sms=ml|sort:'rank'%}
+{%-assign smx=2%}{%if view == 4%}{%assign smx=4%}{%endif%}
+{%-for m in sms%}{%if forloop.index > smx%}{%break%}{%endif%}
+<div class="hidden flex--row flex--center-y gap--small w--full" data-sw-srow="meter"><span class="{{tsb}} shrink-0" data-sw-mlabel>{{m.label}}</span><div class="grow" data-sw-part="{%if m.tw or m.key == ph_tw%}meterin{%else%}meter{%endif%}" data-sw-n="5" data-sw-i="{{m.idx}}" data-sw-key="{{m.key}}"></div></div>
+{%-endfor%}
+</div>{{p_close}}</div>
+{%-endif%}
+{%-if view <= 2%}
+<div data-sw-console{%if view == 1%} data-sw-big{%endif%} class="{{con_h}}">{{p_open_g}}<div class="relative flex flex--row lg:portrait:flex--col-reverse{%if view == 2%} lg:portrait:flex--between{%endif%} {%if view == 1%}landscape:{%endif%}flex--stretch-y gap--medium lg:gap--large{%if view == 1%} lg:portrait:gap--medium{%endif%} p--2 lg:p--4 h--full">
+{{c_meters}}
+<div class="flex lg:portrait:hidden">{{vr}}</div>
+<div class="flex flex--row flex--stretch-y gap--medium lg:gap--large grow">
+{{c_temp}}
+{{vr}}
+{{c_right}}
+</div>
+</div>{{p_close}}</div>
+{%-endif%}
+{%-if days_h%}
+<div class="w--full px--4 4bit:hidden dark:4bit:block{{calm_btw}}" data-sw-between data-sw-dstrip><div class="border--h-60 1bit:hidden 2bit:hidden" data-sw-rule></div><div class="hidden 1bit:block 2bit:block border--h-black" data-sw-rule></div></div>
+<div class="{{days_h}} grow" data-sw-dstrip>{{p_open_g}}<div class="relative flex flex--col flex--center{%if view == 1%} lg:portrait:flex--evenly{%endif%} h--full p--2 lg:p--4">
+{%-if ui.hours%}
+{%-assign nh_md=8%}{%assign nh_lg=12%}{%if view == 3%}{%assign nh_md=6%}{%assign nh_lg=8%}{%endif%}
+<div class="relative z--2 flex flex--row w--full h--full gap--xsmall" data-sw-hours="{{nh_md}},{{nh_lg}}">
+{%-for q in ui.hours%}{%assign i=forloop.index0%}
+{%-if i < nh_md or i < nh_lg%}
+<div class="grow basis--0 h--full{%if i >= nh_md%} hidden lg:block{%elsif i >= nh_lg%} lg:hidden{%endif%}" data-sw-hcol="{{i}}"><div class="flex flex--col flex--center-x h--full w--full gap--xsmall">
+<div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y h--[{{7|times:hm|round}}cqh] lg:h--[{{4|times:hl|round}}cqh]">{%-if q.now or q.wet%}<span class="label label--inverted label--large{%if q.now%} text--bold{%endif%}" data-sw-hstamp="{%if q.now%}now{%else%}wet{%endif%}">{{q.hl}}</span>{%else%}<span class="label label--large" data-sw-hstamp="">{{q.hl}}</span>{%endif%}</div>
+<div class="shrink-0 w--full flex flex--row flex--center-x flex--center-y h--[{{8|times:hm|round}}cqh] lg:h--[{{6|times:hl|round}}cqh]">{%if q.icon%}<img class="{{iia}} h--full" src="{{q.icon}}" alt="">{%endif%}</div>
+<div class="grow w--full" data-sw-part="hbar" data-sw-i="{{i}}"></div>
+</div></div>
+{%-endif%}
+{%-endfor%}
+</div>
+{%-else%}
+<div class="relative z--2 flex flex--row flex--center-y w--full {{dgap|default:'gap--small'}} h--[{{hh_m|times:hm|round|at_most:100}}cqh] lg:h--[{{4|times:hl|round}}cqh]">
+{%-assign dcue_on=false%}{%if view != 2 and view != 4%}{%assign dcue_on=true%}{%endif%}{%capture dcue_w%}{{badge_w}}{%if view == 3%} hidden lg:block lg:portrait:hidden{%endif%}{%endcapture%}
+<div class="shrink-0 {{name_w}}"></div><div class="shrink-0 {{icon_w}}"></div>
+<div class="shrink-0 {{num_w}} flex flex--center h--full{{num_cls}}"><div class="h--[{{4|times:hm|round}}cqh] lg:h--[{{3|times:hl|round}}cqh] w--[{{2|times:wm|round}}cqw]" data-sw-part="tri" data-sw-i="0"></div></div>
+<div class="shrink-0 {{num_w}} flex flex--center h--full{{num_cls}}"><div class="h--[{{4|times:hm|round}}cqh] lg:h--[{{3|times:hl|round}}cqh] w--[{{2|times:wm|round}}cqw]" data-sw-part="tri" data-sw-i="1"></div></div>
+<div class="grow basis--0 h--full" data-sw-part="scale"></div>{%if dcue_on%}<div class="shrink-0 {{dcue_w}}"></div>{%endif%}
+</div>
+{%-assign nd_last=nd_lg|minus:1%}
+{%-for d in ui.days%}
+{%-assign i=forloop.index0%}{%assign on_md=false%}{%assign on_lg=false%}
+{%-if i < nd_md%}{%assign on_md=true%}{%endif%}
+{%-assign j=i%}
+{%-if j >= 0 and j < nd_lg%}{%assign on_lg=true%}{%endif%}
+{%-if on_md or on_lg or i < nd_mp%}
+<div class="w--full{%if on_md and on_lg%}{%elsif on_md%} lg:hidden{%elsif i < nd_mp and on_lg%} hidden portrait:block lg:block{%elsif i < nd_mp%} hidden portrait:block lg:portrait:hidden{%else%} hidden lg:block{%endif%}{%if j == nd_last%}{{last_p}}{%endif%}" data-sw-row="day">
+
+<div class="relative z--2 flex flex--row flex--center-y w--full {{dgap|default:'gap--small'}} h--[{{rw_m|times:hm|at_most:100}}cqh] lg:h--[{{rh_l}}cqh]{{row_p}}">
+<div class="shrink-0 {{name_w}} flex flex--center-y"><div class="flex flex--col gap--xsmall">{%-if d.today%}<span class="label label--inverted label--large{%if view != 3%} lg:portrait:label--xxlarge{%else%} portrait:label--base lg:portrait:label--large{%endif%} text--bold" data-sw-today>{{d.name}}</span>{%else%}<span class="title title--base{{name_t}} text--bold" data-sw-dname>{{d.name}}</span>{%endif%}</div></div>
+<div class="shrink-0 {{icon_w}} flex flex--center">{%if d.icon%}<img class="{{iia}} h--[{{rw_m|times:hm|at_most:100}}cqh] lg:h--[{{5|times:hl|round}}cqh]{{icon_x}}" src="{{d.icon}}" alt="" data-sw-dink="{{d.iconInk}}">{%endif%}</div>
+<div class="shrink-0 {{num_w}} flex flex--center{{num_cls}}"><span class="title {{num_t|default:'title--base'}} text--bold">{{d.lo}}</span></div>
+<div class="shrink-0 {{num_w}} flex flex--center{{num_cls}}"><span class="title {{num_t|default:'title--base'}} text--bold">{{d.hi}}</span></div>
+<div class="grow basis--0 h--full" data-sw-part="day" data-sw-i="{{forloop.index0}}"></div>{%if dcue_on%}<div class="shrink-0 {{dcue_w}} flex flex--row flex--center-y"><div class="w--full h--[{{rw_m|times:hm|at_most:100}}cqh] lg:h--[{{5|times:hl|round}}cqh]{{icon_x}}" data-sw-part="dcue" data-sw-i="{{forloop.index0}}" data-sw-cue="{{d.cue|join:'+'}}"></div></div>{%endif%}
+</div></div>
+{%-endif%}
+{%-endfor%}
+{%-endif%}
+</div>{{p_close}}</div>
+{%-endif%}
+</div>
+{%-endif-%}
+{%-assign sw_hide=cf.hide_title_bar|append:''-%}
+{%-unless sw_hide == 'true' or sw_hide == 'yes' or view != 1%}
 <div class="title_bar">
- <img class="image image--adaptive w--[28px] h--[28px]" src="data:image/svg+xml;base64,{{ sw_icon | base64_encode }}" alt="">
- {%- assign sw_name = trmnl.plugin_settings.instance_name %}{% if sw_name == blank or sw_name == 'Radio Weather' %}{% assign sw_name = i18n.ours.app | default: 'Radio Weather' %}{% endif %}{% comment %} owner 2026-11-13 {% endcomment %}
- <span class="title">{{ sw_name }}</span>
- {%- if ui.stale %}<span class="instance" data-sw-stale>{{ ui.stale }}</span>{% elsif clock != blank %}<span class="instance">Open-Meteo · {{ clock }}</span>{% endif %}{% comment %} offline (saved copy): when the {% endcomment %}
+<img class="{{iia}} w--[28px] h--[28px]" src="data:image/svg+xml;base64,{{sw_icon|base64_encode}}" alt="">
+{%-assign sw_name=trmnl.plugin_settings.instance_name%}{%if sw_name == blank or sw_name == 'Radio Weather'%}{%assign sw_name=i18n.ours.app|default:'Radio Weather'%}{%endif%}
+<span class="title">{{sw_name}}</span>
+{%-if ui.stale%}<span class="instance flex flex--row flex--center-y gap--xsmall"><img class="{{iia}} w--[20px] h--[20px]" src="data:image/svg+xml;base64,{{sw_stale_icon|base64_encode}}" alt=""><span data-sw-stale>{{ui.stale}}</span></span>{%elsif clock != blank%}<span class="instance">Open-Meteo · {{clock}}</span>{%endif%}
 </div>
-{%- endunless %}
-{%- if ui and ui.ok %}
+{%-endunless%}
+{%-if ui and ui.ok%}
 <script type="text/javascript">
-var SW = {{ ui | json }};
+var t=document,a=getComputedStyle;!function(){Object.defineProperty(Node.prototype,"$p",{get(){return this.parentElement}});var t=Element.prototype,a=Document.prototype;t.$b=t.getBoundingClientRect,t.$A=t.querySelectorAll,t.$Q=t.querySelector,t.$g=t.getAttribute,t.$s=t.setAttribute,t.$h=t.hasAttribute,t.$r=t.removeAttribute,t.$c=t.closest,a.$A=a.querySelectorAll,a.$Q=a.querySelector,Range.prototype.$b=Range.prototype.getBoundingClientRect,CSSStyleDeclaration.prototype.$P=CSSStyleDeclaration.prototype.setProperty,CSSStyleDeclaration.prototype.$I=function(t,a){this.setProperty(t,a,"important")}}();var e,SW={{ ui | json }},r={% assign swp = false %}{% if ph.inn and i_t != nil %}{% assign swp = true %}{% endif %}{% if ph.mn and i_c != nil %}{% assign swp = true %}{% endif %}{% if swp %}{{ ph | json }}{% else %}null{% endif %};if(r){var s=[{{ i_t | default: 'null' }},{{ i_h | default: 'null' }},{{ i_c | default: 'null' }}],i=null!==s[2]&&r.mn?r.mn:null!==s[0]&&null!==s[1]&&r.hn?r.hn:0;if(i){var l=SW.meters;SW.meters=i.map((t=>{var a=l.filter((a=>a.key===t.key))[0]||{key:t.key,label:t.label,frac:Math.max(0,Math.min(1,(s[2]-400)/1600)),past:null,later:null,peak:null,zones:r.cz};return a.idx=t.idx,a.rank=t.rank,a}))}}if(r&&null!==s[0]&&r.inn){var n=/F$/.test(SW.tdial.unit),o=SW.tdial,d=SW.inn=r.inn;null===s[1]?d.hum="":r.tw&&SW.meters.forEach((t=>{t.key===r.tw.k&&(t.tw={out:r.tw.out,in:r.tw.in,m:{frac:0}})}));var h=n?1.8*s[0]+32:s[0],c=Math.round(10*h)/10+"";0>c.indexOf(".")&&(c+=".0"),3>c.split(".")[0].length||(c=Math.round(h)+""),d.temp=c,o.twin=h;var f=[o.lo,o.hi,o.now,h].filter((t=>null!==t));o.a=Math.floor(Math.min.apply(null,f)/o.step)*o.step,o.b=Math.ceil(Math.max.apply(null,f)/o.step)*o.step,3*o.step>o.b-o.a&&(o.b=o.a+3*o.step),null!==s[1]&&(d.hum=d.hum.replace(/\d+(?= %$)/,Math.round(s[1])),SW.meters.forEach((t=>{t.tw&&(t.tw.m.frac=Math.min(1,s[1]/100))})));var g=t.$Q("[data-sw-inval]"),p=t.$Q('[data-sw-twin="in"] .label');g&&(g.textContent=c),p&&d.hum&&(p.textContent=d.hum)}(e=t.$Q(".screen"))&&e.classList.contains("screen--lg")&&640>Math.min(e.offsetWidth,e.offsetHeight)&&(e.classList.remove("screen--lg"),e.classList.add("screen--md")),(()=>{var a=t.$Q(".screen"),e=t.$Q("[data-sw-big]");if(e)if(a&&(a.classList.contains("screen--sm")||500>a.offsetWidth||a.offsetHeight>a.offsetWidth&&!a.classList.contains("screen--lg")&&!a.classList.contains("screen--portrait"))){if(e.remove(),t.$A("[data-sw-alt]").forEach((t=>{t.$r("data-sw-alt")})),500>a.offsetWidth&&500>a.offsetHeight&&t.$A("[data-sw-sbox]").forEach((t=>{t.$s("data-sw-nocue","")})),300>a.offsetHeight){t.$A("[data-sw-dstrip]").forEach((t=>{t.remove()}));var r=t.$Q("[data-sw-small]");r&&([].slice.call(r.classList).forEach((t=>{/h--/.test(t)&&r.classList.remove(t)})),r.classList.add("h--full"))}}else t.$A("[data-sw-alt]").forEach((t=>{t.remove()}))})(),(()=>{var a=t.$Q(".screen");a&&a.classList.contains("screen--color-full")&&!a.classList.contains("screen--dark-mode")&&t.$A("[data-sw-between]").forEach((t=>{t.classList.add("hidden")}))})();
 // ==== DRAW_BEGIN ====
-var SWDraw = (() => {
-var API = { paint: null };
-var GLYPH = { '0': 'abcdef', '1': 'bc', '2': 'abdeg', '3': 'abcdg', '4': 'bcfg', '5': 'acdfg', '6': 'acdefg', '7': 'abc', '8': 'abcdefg', '9': 'abcdfg', '-': 'g', ' ': '' };
-var SHADOW = 'dark:hidden 1bit:hidden', SO = 3, K = 0;
-function n1(v) { return String(Math.round(v * 10) / 10); }
-function pts(p) { return p.map((q) => n1(q[0]) + ',' + n1(q[1])).join(' '); }
-function poly(p, extra) { return '<polygon points="' + pts(p) + '"' + (extra || '') + '/>'; }
-function rect(x, y, w, h, rx, extra) { return '<rect x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(Math.max(0, w)) + '" height="' + n1(Math.max(0, h)) + '"' + (rx ? ' rx="' + n1(rx) + '"' : '') + (extra || '') + '/>'; }
-var DEFS = '';
-function nat2(tok) {
-var m = /^gray-(\d+)$/.exec(tok || ''); if (!m) return tok;
-var v = +m[1]; return v <= 20 ? 'black' : (v <= 47 ? 'gray-30' : (v <= 72 ? 'gray-55' : 'white'));
-}
-function act() { return API.mode && API.mode.bits === 2 ? 'text--gray-40' : 'text--gray-20'; }
-function blk(hi) { return API.mode && API.mode.bits <= 1 ? '' : (hi ? 'text--gray-10 dark:text--gray-75' : (act() + ' dark:text--gray-60')); }
-function g(cls, body) {
-var keep = [], tok = null;
-cls.split(' ').forEach((c) => { if (c.indexOf('text--') === 0) tok = c.slice(6); else if (c) keep.push(c); });
-if (API.mode && API.mode.bits === 2) {
-tok = nat2(tok);
-}
-var f = tok && API.paint ? API.paint(tok) : null, at = '';
-if (f && f.url && f.size) { var id = 'swp' + (K++); DEFS += '<pattern id="' + id + '" patternUnits="userSpaceOnUse" width="' + f.size + '" height="' + f.size + '">' + (f.color ? '<rect width="' + f.size + '" height="' + f.size + '" fill="' + f.color + '"/>' : '') + '<image href="' + f.url + '" width="' + f.size + '" height="' + f.size + '"/></pattern>'; at = ' fill="url(#' + id + ')"' + (f.color ? ' color="' + f.color + '"' : ''); }
-else if (f && f.color) at = ' fill="' + f.color + '" color="' + f.color + '"';
-else if (tok) keep.push('text--' + tok);
-return '<g' + (keep.length ? ' class="' + keep.join(' ') + '"' : '') + at + '>' + body + '</g>';
-}
-function hue(tok) {
-if (!(API.mode && API.mode.color) || !API.paint) return null;
-var f = API.paint(tok); if (!f || !f.color || f.url) return null;
-var m = /(\d+)\D+(\d+)\D+(\d+)/.exec(f.color); if (!m) return null;
-var r = +m[1], q = +m[2], b = +m[3], ok = tok === 'red' ? r > 150 && q < 110 && b < 110 : (tok === 'yellow' ? r > 150 && q > 150 && b < 110 : false);
-return ok ? f.color : null;
-}
-function hg(tok, body) { return '<g data-sw-hue="' + tok + '">' + g('text--' + tok, body) + '</g>'; }
-function text(x, y, s, fs, anc, extra) { return '<text x="' + n1(x) + '" y="' + n1(y) + '" font-size="' + n1(fs) + '" font-weight="700" text-anchor="' + (anc || 'middle') + '"' + (extra || '') + '>' + s + '</text>'; }
-function svg(W, H, body, vb) { var d0 = DEFS; DEFS = ''; return svg0(W, H, body, vb, d0); }
-function svg0(W, H, body, vb, DEFS) { return '<svg xmlns="http://www.w3.org/2000/svg" width="' + n1(W) + '" height="' + n1(H) + '" viewBox="' + (vb || '0 0 ' + n1(W) + ' ' + n1(H)) + '" fill="currentColor" overflow="visible"' + (API.font ? ' font-family="' + API.font.replace(/"/g, "'") + '"' : '') + '>' + (DEFS ? '<defs>' + DEFS + '</defs>' : '') + body + '</svg>'; }
-function hseg(x0, x1, y, t) { var h = t / 2; return [[x0, y], [x0 + h, y - h], [x1 - h, y - h], [x1, y], [x1 - h, y + h], [x0 + h, y + h]]; }
-function vseg(x, y0, y1, t) { var h = t / 2; return [[x, y0], [x + h, y0 + h], [x + h, y1 - h], [x, y1], [x - h, y1 - h], [x - h, y0 + h]]; }
-function shapes(x, w, h, t) {
-var gp = Math.max(1, t * 0.16), xl = x + t / 2, xr = x + w - t / 2, yt = t / 2, ym = h / 2, yb = h - t / 2;
-return { a: hseg(xl + gp, xr - gp, yt, t), g: hseg(xl + gp, xr - gp, ym, t), d: hseg(xl + gp, xr - gp, yb, t),
-f: vseg(xl, yt + gp, ym - gp, t), b: vseg(xr, yt + gp, ym - gp, t), e: vseg(xl, ym + gp, yb - gp, t), c: vseg(xr, ym + gp, yb - gp, t) };
-}
-function digits(str, H) {
-var W = 56, HH = 100, T = 13, G = 14, x = 0, body = '';
-for (var i = 0; i < str.length; i++) {
-var ch = str.charAt(i);
-if (ch === '.') { body += rect(x - G + 3, HH - T, T, T); x += 20 - G + (str.charAt(i + 1) === '1' ? 6 : 0); continue; }
-if (ch === '°') { body += '<circle cx="' + (x + 9) + '" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="5"/>'; x += 22 + G; continue; }
-var w = ch === '-' ? 46 : (ch === '1' ? T : W), on = GLYPH[ch] || '', sh = shapes(x, w, HH, T), gb = '';
-'abcdefg'.split('').forEach((s) => { if (on.indexOf(s) >= 0) gb += poly(sh[s]); });
-body += '<g data-sw-glyph="' + ch + '">' + gb + '</g>';
-x += w + (ch === '-' ? G * 0.3 : G);
-}
-var vw = Math.max(1, x - G);
-return svg(H * vw / HH, H, glow(body, GPX * HH / H), '0 0 ' + vw + ' ' + HH);
-}
-function segtime(str, cap) {
-var T = 16, W = 58, G = 14, HH = 100, s = String(str).trim();
-if (!s || /[^0-9:\-. ]/.test(s)) return null;
-var adv = (c) => c === ' ' ? 40 : (c === '1' || c === ':' || c === '.' ? T : W) + G, x = 0, body = '';
-s.split('').forEach((c) => {
-if (c === '.') body += rect(x, HH - T, T, T);
-else if (c === ':') body += rect(x, 0.3 * HH - T / 2, T, T) + rect(x, 0.7 * HH - T / 2, T, T);
-else if (c !== ' ') { var on = GLYPH[c] || '', sh = shapes(x, c === '1' ? T : W, HH, T), gb = ''; 'abcdefg'.split('').forEach((q) => { if (on.indexOf(q) >= 0) gb += poly(sh[q]); }); body += '<g data-sw-glyph="' + c + '">' + gb + '</g>'; }
-x += adv(c);
-});
-var vw = x - G, k = cap * 1.25 / HH;
-return { html: svg(vw * k, HH * k, glow(body, GPX / k), '0 0 ' + vw + ' ' + HH).replace('<svg ', '<svg class="block" '), key: s + '|' + n1(cap) };
-}
-var LOC = { out: "<path d='M8 17a4.5 4.5 0 0 1 .5-8.8A5.5 5.5 0 0 1 19.5 8.2 4.5 4.5 0 0 1 20 17z'/><path d='M14 17v8M10.5 25h7'/>", in: "<path d='M3 14L14 4l11 10'/><path d='M6 12v12h16V12'/><path d='M12 24v-7h4v7'/>" };
-function loc(k, W, H) { return svg(W, H, locAt(k, (W - Math.min(W, H)) / 2, (H - Math.min(W, H)) / 2, Math.min(W, H))); }
-function locAt(k, x, y, s) { return g(k === 'in' ? inc() : '', '<svg x="' + n1(x) + '" y="' + n1(y) + '" width="' + n1(s) + '" height="' + n1(s) + '" viewBox="0 0 28 28" overflow="visible"><g fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.8, 1.5 * 28 / Math.max(1, s)) * 100) / 100 + '" stroke-linecap="round" stroke-linejoin="round" data-sw-loc="' + k + '">' + LOC[k] + '</g></svg>'); }
-var inc = () => 'text--gray-30', inb = () => API.mode && API.mode.dark ? 'text--gray-45' : 'text--gray-50';
-function cells(frac, n) { return frac === null || frac === undefined || !(frac > 0) ? 0 : Math.max(1, Math.round(Math.min(1, frac) * n)); }
-function cellStates(m, n) {
-m = m || {}; var a = cells(m.frac, n), p = cells(m.past, n), l = cells(m.later, n), k = cells(m.peak, n), st = [];
-for (var i = 0; i < n; i++) st.push(i < a ? 'a' : (i < p ? 'p' : (i < l ? 'l' : 'e')));
-return { st: st, peak: k - 1 };
-}
-function meter(m, W, H, n, ind) {
-m = m || {}; if (!ind) return svg(W, H, mrow(m, W, H, n));
-return svg(W, H, '<g data-sw-twrow="in">' + mrow(m.tw.m, W, H, n, inb()) + '</g>');
-}
-function mrow(m, W, H, n, lc) {
-n = n || 10;
-var CS = cellStates(m, n), zones = m.zones, lit = cells(m.frac, n), gk = '', pv = '', lt = '',
-cw = (W - SO) / n, gp = cw * 0.12, ch = H - SO, on = '', sh = '', off = '', zc = ['', '', ''], ZT = [null, hue('yellow') && 'yellow', hue('red') && 'red'];
-var DK = API.mode && API.mode.dark && API.mode.bits >= 2;
-for (var i = 0; i < n; i++) {
-var x = i * cw + gp / 2, w = cw - gp, s = CS.st[i];
-var zi = zones ? ((i + 0.5) / n >= zones[1] ? 2 : ((i + 0.5) / n >= zones[0] ? 1 : 0)) : 0;
-if (i === CS.peak && s === 'e') { var sw = Math.max(3, Math.min(w, ch) * 0.14), gr = rect(x + sw / 2, sw / 2, w - sw, ch - sw, 2, ' fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '" data-sw-gust="' + i + '"'); gk = ZT[zi] ? hg(ZT[zi], gr) : gr; sh += rect(x + sw / 2 + SO, sw / 2 + SO, w - sw, ch - sw, 2, ' fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"'); }
-if (s === 'a' && ZT[zi]) { zc[zi] += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, ch, 2); }
-else if (s === 'a') { on += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, ch, 2); }
-else if (s === 'p') pv += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"');
-else if (s === 'l') lt += rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"');
-else off += DK ? rect(x, 0, w, ch, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1, w - 2, ch - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2" data-sw-c="' + i + '"');
-}
-var PV = API.mode && API.mode.dark ? 'text--gray-45' : (API.mode && API.mode.bits <= 1 ? 'text--gray-50' : (API.mode && API.mode.bits <= 2 ? 'text--gray-65' : 'text--gray-70'));
-var LT = PV;
-return ('<g data-sw-lit="' + lit + '" data-sw-ncell="' + n + '"></g>' + (lc ? '' : g(SHADOW + ' text--gray-65', sh)) + '<g data-sw-st="e">' + g(!API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65'))), off) + '</g>' + '<g data-sw-st="p">' + g(PV, pv) + '</g><g data-sw-st="l">' + g(LT, lt) + '</g><g data-sw-on data-sw-st="a">' + (lc ? g(lc, on) : API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) +   /* owner: dark grey for the value now on 2-bit+ light; 1-bit black, dark mode white */ (zc[1] ? hg('yellow', zc[1]) : '') + (zc[2] ? hg('red', zc[2]) : '') + '</g>' + gk);
-}
-function gauge(gq, W, H) {
-if (!gq) return '';
-var lab = String(gq.label), x0 = API.gx0 || 0, bw = W - x0, fs = Math.min((API.lp || 16) * 0.7, x0 / (lab.length * 0.62 + 0.5)), n = 3, cw = bw / n, gp = API.gp || Math.max(2, Math.min(cw, H) * 0.06), on = '', sh = '', off = '', DK = API.mode && API.mode.dark && API.mode.bits >= 2;
-for (var i = 0; i < n; i++) {
-var x = x0 + i * cw + gp / 2, w = cw - gp;
-if (i < gq.segs) { on += rect(x, 0, w, H, 2, ' data-sw-c="' + i + '"'); sh += rect(x + SO, SO, w, H, 2); }
-else off += DK ? rect(x, 0, w, H, 2, ' data-sw-c="' + i + '"') : rect(x + 1, 1, w - 2, H - 2, 2, ' fill="none" stroke="currentColor" stroke-width="2" data-sw-c="' + i + '"');
-}
-var offc = !API.mode ? 'text--gray-65' : (API.mode.bits <= 1 ? '' : (API.mode.dark ? 'text--gray-70' : (API.mode.bits <= 2 ? 'text--gray-45' : 'text--gray-65')));
-return svg(W, H, '<g data-sw-gauge="' + gq.segs + '"></g>' + g(SHADOW + ' text--gray-65', sh) + '<g data-sw-st="e">' + g(offc, off) + '</g><g data-sw-on data-sw-st="a">' + (API.mode && !API.mode.dark && API.mode.bits >= 2 ? '<g data-sw-dg>' + g(act(), on) + '</g>' : glow(on, GPX)) + '</g>' + text(x0 / 2, H / 2, lab, fs, 'middle', ' dominant-baseline="central" data-sw-glabel'));
-}
-function tick(v) { return String(v === 0 ? 0 : v); }
-function lfs(sc) { return API.nfs ? (API.lp && API.nfs > API.lp && API.ogfull ? API.lp : Math.max(API.nfs, API.lp || 0)) : Math.max((API.scaleH || 20) * 0.7, API.lp || 0); }
-function ticks(sc, W) {
-var fs = lfs(sc), st = sc.major, w = (v) => fs * 0.62 * (tick(v).length + 1.2) + fs * 0.6, n = 0, out = [];
-for (var v = sc.a; v <= sc.b + 1e-9; v += st) n += w(v);
-if (n > W * 0.75) { st = sc.major * 2; if (API.nfs) { var m = 2; while (m * sc.major < sc.b - sc.a && Math.abs((sc.b - sc.a) / (m * sc.major) % 1) > 1e-9) m++; st = m * sc.major; } }
-for (var v = Math.ceil(sc.a / st - 1e-9) * st; v <= sc.b + 1e-9; v += st) out.push(v);
-return out;
-}
-function xmap(sc, W) {
-var fs = lfs(sc), cw = fs * 0.62, pl = cw * tick(sc.a).length / 2 + 2, pr = cw * tick(sc.b).length / 2 + cw * 0.7 + 2;
-return (t) => pl + (t - sc.a) / (sc.b - sc.a) * (W - pl - pr);
-}
-function day(d, sc, W, H, hi) {
-var nowV = sc.now; sc = Object.assign({}, sc, { now: null });
-var X = xmap(sc, W), body = '';
-var E = API.extD || 0;
-body = g('text--gray-70', body);
-if (d.loV !== null && d.hiV !== null) {
-var a = Math.round(d.loV), b = Math.max(a + 1, Math.round(d.hiV)), cw = X(1) - X(0), bh = H * 0.62, y = (H - bh) / 2, cells = '', sh = '';
-var ptH = lfs(sc) * 0.3 * 1.4;
-if (hi && nowV !== null && nowV !== undefined && y < ptH + 2) { var yb = y + bh; y = Math.min(ptH + 2, H * 0.45); bh = Math.max(H * 0.3, yb - y); }
-var k = 1; while (k * cw - Math.max(2.5, k * cw * 0.16) < 6 && k < 50) k++;
-var gp = Math.max(2.5, k * cw * 0.16), pc = [], a0 = sc.a + Math.floor((a - sc.a) / k) * k;
-var ca = API.nfs ? 2.2 : 1.5; if ((API.nfs || API.port) && k * cw - gp >= 6 && bh > (k * cw - gp) * ca) { y += (bh - (k * cw - gp) * ca) / 2; bh = (k * cw - gp) * ca; }
-if (k * cw - gp < 6) pc.push([X(a) + 1, X(b) - 1]); else for (var t = k > 1 ? a0 : a; t < b; t += k) pc.push([X(t) + gp / 2, X(t + k) - gp / 2]);
-pc.forEach((q) => { cells += rect(q[0], y, q[1] - q[0], bh); sh += rect(q[0] + SO, y + SO, q[1] - q[0], bh); });
-body += g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells data-sw-k="' + k + '" data-sw-r="' + (b - a) + '">' + g(blk(hi), cells) + '</g>';
-}
-if (hi && nowV !== null && nowV !== undefined) { var pxn = X(nowV), pr2 = ptH / 1.4, py0 = API.nfs && y !== undefined ? Math.max(0, y - ptH - 2) : 0, ptr = poly([[pxn - pr2, py0], [pxn + pr2, py0], [pxn, py0 + ptH]], ' data-sw-nowmark'); body += hue('red') ? hg('red', ptr) : ptr; }
-if (hi) body += '<g data-sw-hl="1"></g>';
-return svg(W, H, body);
-}
-function hscale(all, nc) {
-var ts = (all || []).slice(0, nc || (all || []).length).map((q) => q && q.tV).filter((v) => v !== null && v !== undefined).map(Math.round);
-return ts.length ? { a: Math.min.apply(null, ts) - 1, b: Math.max.apply(null, ts) } : null;
-}
-function hper(hs, cap) { return Math.max(1, Math.ceil(Math.max(1, hs.b - hs.a) / cap)); }
-function hlevels(hs, C) {
-var steps = Math.max(1, hs.b - hs.a), cap = Math.max(1, Math.min(6, Math.floor(C / 6))), per = hper(hs, cap);
-return per > 1 ? Math.ceil(steps / per) : steps * Math.floor(cap / steps);
-}
-function hbar(q, hs0, W, H, hi, all) {
-var hs = hscale(all, API.hcols) || hs0;
-if (!q || q.tV === null || q.tV === undefined || !hs) return svg(W, H, '');
-var lw = String(q.t).length, fs = Math.max(8, Math.min(W / (Math.max(2, lw) * 0.62), (API.hbarH || H) * 0.2, 30)), R = Math.round(fs * 1.35) + 2;
-var C = Math.min(H, API.hbarH || H) - R, L = hlevels(hs, C), per = hper(hs, Math.max(1, Math.min(6, Math.floor(C / 6))));
-var n = Math.max(1, Math.min(L, per > 1 ? Math.ceil((Math.round(q.tV) - hs.a) / per) : Math.round((Math.round(q.tV) - hs.a) / (hs.b - hs.a) * L))), Hh = H - SO, lh = (C - SO) / L, gp = Math.max(2, lh * 0.2), bw = W - SO, cells = '', sh = '';
-for (var k = 0; k < n; k++) { var y = Hh - (k + 1) * lh + gp / 2; cells += rect(0, y, bw, lh - gp, 2); sh += rect(SO, y + SO, bw, lh - gp, 2); }
-var ty = Hh - n * lh + gp / 2 - 2 - fs * 0.3;
-return svg(W, H, g(SHADOW + ' text--gray-65', sh) + '<g data-sw-cells="' + n + '" data-sw-area="' + n1(C) + '">' + g(blk(hi), cells) + '</g>' + text(bw / 2, ty, q.t, fs, 'middle', ' data-sw-htemp'));
-}
-function scale(sc, W, H) {
-var X = xmap(sc, W), fs = lfs(sc), body = '', rules = '', ty = Math.max(H * 0.62, fs * 0.3 * 1.4 + 2 + fs * 0.4), lb = ty + fs * 0.55, E = API.extD || 0, cross = false, xn = sc.now === null || sc.now === undefined ? null : X(sc.now);
-ticks(sc, W).forEach((v) => {
-var p = X(v), s = tick(v), tw = fs * 0.62 * s.length, l = p - tw / 2;
-body += text(p, ty, s, fs, 'middle', ' dominant-baseline="middle" data-sw-tick="' + s + '"') + text(p + tw / 2, ty, sc.deg, fs, 'start', ' dominant-baseline="middle"');
-
-});
-var pw = (API.paint && (API.paint('white') || {}).color) || '#fff';
-body = '<g data-sw-track="' + n1(X(sc.a)) + ',' + n1(X(sc.b)) + '"></g>' + g('text--gray-70', rules) + '<g data-sw-axis stroke="' + pw + '" stroke-width="' + n1(fs * 0.22) + '" paint-order="stroke" stroke-linejoin="round">' + body + '</g>';
-return svg(W, H, body);
-}
-function rain(hours, W, H, rows) {
-var C = 3, fit = (r) => Math.abs(Math.log((W / C) / (H / r) / 1.3)), R = rows === 2 ? 2 : (rows === 3 || fit(3) < fit(2)) && (W / C) / (H / 3) <= 1.95 && Math.min(H / 3 * 0.9, W / C * 0.7) >= (API.lp || 0) ? 3 : 2, cw = W / C, rh = H / R, fs = Math.min(rh * 0.9, cw * 0.7), body = '';
-var hs = hours.slice(0, C * R), lw = (h) => { var m = String(h).match(/^(\d*)(.*)$/); return m[1].length * 0.62 + m[2].length * 0.7 * 0.6; }, wf = (a) => Math.max.apply(null, a.map((q) => lw(q.h)).concat(0)), wmax = wf(hs);
-if (wmax * fs > cw * 0.9 && cw * 0.9 / wmax < (API.lp || 0) * 0.95) { hs = hs.map((q) => ({ h: String(q.h).replace(/\D+$/, ''), wet: q.wet })); wmax = wf(hs); }
-if (wmax * fs > cw * 0.9) fs = cw * 0.9 / wmax;
-hs.forEach((q, i) => {
-var x = (i % C) * cw, y = Math.floor(i / C) * rh;
-if (q.wet) { var gp = Math.max(2, Math.min(cw, rh) * 0.06), wr = rect(x + gp / 2, y + gp / 2, cw - gp, rh - gp, 2);
-body += hue('red') ? hg('red', wr) : glow(wr, GPX); }
-var hm = String(q.h).match(/^(\d+)(\D+)$/), tx = text(x + cw / 2, y + rh / 2, hm ? hm[1] + '<tspan font-size="' + n1(fs * 0.6) + '">' + hm[2] + '</tspan>' : q.h, fs, 'middle', ' dominant-baseline="central"'); body += q.wet ? g('text--white', tx) : tx;
-});
-return svg(W, H, body);
-}
-function rule(W, H) { return svg(W, H, g('text--gray-40', '<line x1="0" y1="' + n1(H / 2) + '" x2="' + W + '" y2="' + n1(H / 2) + '" stroke="currentColor" stroke-width="3" stroke-dasharray="3 7"/>')); }
-function moonLit(p, cx, cy, r) {
-var c = Math.cos(2 * Math.PI * p), rx = r * Math.abs(c), wax = p < 0.5, top = n1(cx) + ',' + n1(cy - r), bot = n1(cx) + ',' + n1(cy + r);
-var term = wax ? (c > 0 ? 0 : 1) : (c > 0 ? 1 : 0);
-return 'M' + top + ' A' + n1(r) + ',' + n1(r) + ' 0 0 ' + (wax ? 1 : 0) + ' ' + bot + ' A' + n1(rx) + ',' + n1(r) + ' 0 0 ' + term + ' ' + top + ' Z';
-}
-function moon(p, H) {
-if (p == null || isNaN(p)) return '';
-var r = H * 0.27, cx = H / 2, f = (1 - Math.cos(2 * Math.PI * p)) / 2, lit = '';
-var dk = API.mode && API.mode.dark, bits = API.mode ? API.mode.bits : 4, sw = Math.max(bits <= 2 ? 2.5 : 1.5, H * 0.03),
-ri = bits <= 1 && !dk ? r - sw * 1.6 : r;
-if (f > 0.01) lit = '<path d="' + moonLit(p, cx, cx, ri) + '" data-sw-moon="lit"/>';
-var limb = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"/>';
-var h = dk ? halo('<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '"/>', GPX) : '';
-if (h) { var mid = 'swmk' + (K++); h = '<defs><mask id="' + mid + '" maskUnits="userSpaceOnUse" x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '"><rect x="' + n1(-H) + '" y="' + n1(-H) + '" width="' + n1(3 * H) + '" height="' + n1(3 * H) + '" fill="#fff"/><circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r + sw / 2) + '" fill="#000"/></mask></defs><g mask="url(#' + mid + ')" data-sw-moonhalo>' + h + '</g>'; }
-var disk = '<circle cx="' + n1(cx) + '" cy="' + n1(cx) + '" r="' + n1(r) + '" data-sw-moon="disk"/>', fd = !dk && bits >= 3 ? g('text--gray-75', disk) : '';
-return svg(H, H, h + fd + (dk || bits <= 1 ? lit : g('text--gray-45', lit)) + limb);
-}
-var CLOTH = { umbrella: "<path d='M3.5 14a10.5 10.5 0 0 1 21 0c-1.7-1.4-3.5-1.4-5.2 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.5-1.4-5.2 0z'/><path d='M14 14v8.5a2 2 0 0 1-4 0'/><path d='M14 2.5v1'/>",
-parka: "<g transform='translate(0 -0.90)'><path d='M8 9.5C8 6.70 10.5 5.30 14 5.30s6 1.40 6 4.20'/><path d='M8.6 8.2q1.1-1 2.2 0q1.1-1 2.2 0q1.1-1 2.2 0q1.1-1 2.2 0q1.1-1 2.2 0' stroke-width='1.4'/><path d='M8 9.5L5.5 10.5 4 22h3l1.5-8.5V24.5h11V13.5L21 22h3L22.5 10.5 20 9.5'/><path d='M14 10v14.5'/><path d='M14 13.5h1.5' stroke-width='1.6'/><path d='M10 18.5h2.2M15.8 18.5h2.2'/></g>",
-jacket: "<path d='M10.5 4.5L5.5 7 4 22h3l1.5-10V24h11V12L21 22h3L22.5 7l-5-2.5'/><path d='M10.5 4.5L14 9l3.5-4.5'/><path d='M14 9v15'/>",
-sweater: "<path d='M10.2 5Q14 8.4 17.8 5L22.5 7 24 22h-3L19.5 12V24h-11V12L7 22H4L5.5 7Z'/><path d='M8.5 21.5h11M8.5 19h11' stroke-width='1.3'/>",
-tshirt: "<path d='M10 5Q14 9.2 18 5L24 8.5 21.5 13 19 11.5V24H9V11.5L6.5 13 4 8.5Z'/>" };
-function cue(ks, W, H, mid) {
-ks = (ks || []).filter((k) => CLOTH[k]).slice(0, 2); if (!ks.length) return svg(W, H, '');
-if (!mid) W = Math.max(W, 1.6 * H);
-var s = Math.min(48, 30 * W / H), e = s * 0.55, sw = (z) => n1(Math.max(1.8, 1.5 * 28 / (z * H / 48)) * 100) / 100,
-it = (k, x, y, z) => '<g data-sw-item="' + (k === 'umbrella' ? k : 'top') + '" transform="translate(' + n1(x) + ' ' + n1(y) + ') scale(' + n1(z / 28 * 1000) / 1000 + ')" stroke-width="' + sw(z) + '">' + CLOTH[k] + '</g>', y0 = (48 - s) / 2;
-var body = it(ks[0], 0, y0, s) + (ks[1] ? it(ks[1], s * 1.6 - e, y0, e) : '');
-return svg(W, H, '<svg width="' + n1(W) + '" height="' + n1(H) + '" viewBox="0 0 ' + n1(48 * W / H) + ' 48" overflow="visible"><g data-sw-cloth data-sw-box="0,0,' + n1(H) + '"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="' + sw(s) + '">' + body + '</g></g></svg>');
-}
-function backlight(W, H, cx, cy, rad, ryk, rx) {
-var m = API.mode || {}, pa = API.paint ? API.paint(m.bits === 2 ? 'gray-55' : 'gray-75') : null;
-if (m.dark || (m.bits || 4) < 3) return '';
-return rect(0, 0, W, H, rx || 0, ' fill="' + ((pa && pa.color) || '#bbb') + '"' + (m.bits !== 2 ? ' fill-opacity="0.5"' : '') + ' data-sw-fill="1"');
-}
-function glow(s, sd) { return halo(s, sd) + s; }
-function halo(s, sd) {
-var m = API.mode || {};
-if (!m.dark || (m.bits || 4) < 2 || !s) return '';
-var id = 'swgl' + (K++), f = m.bits === 2
-? '<feMorphology in="SourceAlpha" operator="dilate" radius="' + n1(Math.max(0.5, sd / 4)) + '" result="d"/><feFlood flood-color="' + ((API.paint && (API.paint('gray-45') || {}).color) || '#777') + '"/><feComposite operator="in" in2="d"/>'
-: '<feGaussianBlur stdDeviation="' + n1(sd) + '"/><feComponentTransfer><feFuncA type="linear" slope="0.75"/></feComponentTransfer>';
-return '<defs><filter id="' + id + '" x="-30%" y="-30%" width="160%" height="160%">' + f + '</filter></defs><g filter="url(#' + id + ')" data-sw-glow="' + m.bits + '">' + s + '</g>';
-}
-var GPX = 4;
-function icon(href, W, H) {
-var id = 'swink' + (K++);
-return svg(W, H, '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>' + glow('<image href="' + href + '" x="0" y="0" width="' + n1(W) + '" height="' + n1(H) + '" filter="url(#' + id + ')"/>', GPX));
-}
-function mlp(f, r1, lt, W, H, py) {
-var A = 75 * Math.PI / 180, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008), g = Math.max(4, H * 0.03), hw = mfs * 0.62 * lt.length / 2, an = -A + 2 * A * Math.max(-0.03, Math.min(1.03, f));
-var rr = r1 + mg + Math.abs(Math.sin(an)) * hw + Math.abs(Math.cos(an)) * mfs * 0.4 + r1 * 0.022 * 2 * A, x = W / 2 + rr * Math.sin(an), y = py - rr * Math.cos(an), t = g + mfs * 0.625 + 0.5;
-if (y < t) { y = t; x += (an < 0 ? 1 : -1) * (hw + r1 * 0.03 + H * 0.04 + 2); }
-return [Math.max(g + hw, Math.min(W - g - hw, x)), y];
-}
-function dialR(D, W, H, nums, py) {
-var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);
-var g = Math.max(4, H * 0.03), r = Math.min(W * 0.42 / Math.sin(A), H * (W < H * 1.8 ? 0.5893 : 0.639), py - g - 1.3 * mh - bw - lw - 2), rmin = Math.min(r, W * 0.37 / Math.sin(A)), ok = true;
-return [r, ok];
-}
-function dialClash(D, W, H, r, py, nums, kind) {
-var g = Math.max(4, H * 0.03), caps = (API.caps || {})[kind] || [];
-return dialInk(D, W, H, r, py, nums, kind === 'baro').some((b) => b[0] < g || b[1] < g || b[2] > W - g || b[3] > H - g || caps.some((c) => b[0] < c[2] + g && b[2] > c[0] - g && b[1] < c[3] + g && b[3] > c[1] - g));
-}
-function dialInk(D, W, H, r, py, nums, baro) {
-var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008), out = [];
-var cl = (f) => Math.max(-0.03, Math.min(1.03, f)), at = (f, rad) => { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }, F = (v) => (v - D.a) / (D.b - D.a);
-var pt = (q, h) => out.push([q[0] - h, q[1] - h, q[0] + h, q[1] + h]), bx = (q, w, h) => out.push([q[0] - w / 2, q[1] - h / 2, q[0] + w / 2, q[1] + h / 2]);
-for (var f = 0; f <= 1.0001; f += 0.025) { pt(at(f, r), lw); pt(at(f, r - H * 0.07), lw); }
-if (baro) { var zri = r - H * 0.135, isz = r * 0.34; [0, 1, 2, 3].forEach((i) => bx(at((2 * i + 1) / 8, zri - isz * 0.62), isz, isz)); }
-else for (var v = D.a; v <= D.b + 1e-9; v += D.step) { var fs = H * 0.085; bx(at(F(v), r - H * 0.07 - fs * 0.8), fs * 0.62 * String(v).length, fs * 1.25); }
-if (D.lo !== null && D.lo !== undefined && D.hi !== null && D.hi !== undefined) {
-var r0 = r + lw + bw + 2, r1 = r0 + mh, f0 = F(D.lo), f1 = F(D.hi);
-for (var k = 0; k <= 20; k++) pt(at(f0 + (f1 - f0) * k / 20, r + lw / 2 + bw / 2), bw);
-[D.lo, D.hi].forEach((m) => { var f = F(m); pt(at(f, r1), mh * 0.3); if (nums) { var lt = String(Math.round(m)) + '°'; bx(mlp(f, r1, lt, W, H, py), mfs * 0.62 * lt.length, mfs * 1.25); } });
-}
-return out;
-}
-function dial(D, W, H, baro, O) {
-var lw = Math.max(2, H * 0.012), A = 75 * Math.PI / 180, cx = W / 2, py = H * (W < H * 1.8 ? 0.79 : 0.93),
-bw = H * 0.045, mh = H * 0.05 * 1.6;
-var cm = !baro, mfs = H * 0.095, mg = Math.max(2.5, H * 0.008);
-var k0 = baro ? 'baro' : 'tdial', k1 = baro ? 'tdial' : 'baro', R0, R1, r, nums, py0 = py;
-for (var yy = py0; yy >= H * 0.5; yy -= H * 0.01) {
-R0 = dialR(D, W, H, cm, yy); R1 = O ? dialR(O, W, H, baro, yy) : R0; r = Math.min(R0[0], R1[0]); nums = cm && R0[1]; py = yy;
-if (!dialClash(D, W, H, r, yy, nums, k0) && !(O && dialClash(O, W, H, r, yy, baro && R1[1], k1))) break;
-}
-var F = (v) => (v - D.a) / (D.b - D.a), cl = (f) => Math.max(-0.03, Math.min(1.03, f));
-function at(f, rad) { var an = -A + 2 * A * cl(f); return [cx + rad * Math.sin(an), py - rad * Math.cos(an)]; }
-function arc(rad, f0, f1) { var p0 = at(f0, rad), p1 = at(f1, rad); return 'M' + n1(p0[0]) + ' ' + n1(p0[1]) + ' A' + n1(rad) + ' ' + n1(rad) + ' 0 0 1 ' + n1(p1[0]) + ' ' + n1(p1[1]); }
-var id = 'swink' + (K++), body = '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>';
-body += '<g data-sw-arc="' + n1(r) + ',' + n1(W) + '"></g>';
-var path = (d, sw, extra) => '<path d="' + d + '" fill="none" stroke="currentColor" stroke-width="' + n1(sw) + '"' + (extra || '') + '/>';
-if (baro) {
-var zro = r - H * 0.085, zri = zro - H * 0.05, zg = 0.012, isz = r * 0.34;
-[[0, 0.25, 1], [0.25, 0.5, 0], [0.5, 0.75, 1], [0.75, 1, 0]].forEach((z) => {
-var a0 = at(z[0] + zg, zri), a1 = at(z[1] - zg, zri), d = arc(zro, z[0] + zg, z[1] - zg) + ' L' + n1(a1[0]) + ' ' + n1(a1[1]) + ' A' + n1(zri) + ' ' + n1(zri) + ' 0 0 0 ' + n1(a0[0]) + ' ' + n1(a0[1]) + ' Z';
-body += (z[2] ? g('text--gray-45', '<path d="' + d + '"/>') : '') + path(d, Math.max(1, lw * 0.5));
-});
-(D.icons || []).forEach((u, i) => { var q = at((2 * i + 1) / 8, zri - isz * 0.62); body += glow('<image href="' + u + '" x="' + n1(q[0] - isz / 2) + '" y="' + n1(q[1] - isz / 2) + '" width="' + n1(isz) + '" height="' + n1(isz) + '" filter="url(#' + id + ')"/>', Math.max(2, H * 0.012)); });
-}
-body += glow(path(arc(r, 0, 1), lw), Math.max(2, H * 0.012));
-var step = baro ? 5 : 1, major = baro ? 20 : D.step, labs = '';
-for (var v = D.a; v <= D.b + 1e-9; v += step) {
-var mj = Math.abs((v - D.a) / major - Math.round((v - D.a) / major)) < 1e-6, p0 = at(F(v), r), p1 = at(F(v), r - (mj ? H * 0.07 : H * 0.035));
-body += '<line x1="' + n1(p0[0]) + '" y1="' + n1(p0[1]) + '" x2="' + n1(p1[0]) + '" y2="' + n1(p1[1]) + '" stroke="currentColor" stroke-width="' + n1(mj ? lw : Math.max(1, lw * 0.6)) + '"/>';
-if (!baro && mj) { var fs = H * 0.085, pl = at(F(v), r - H * 0.07 - fs * 0.8); labs += text(pl[0], pl[1], String(v), fs, 'middle', ' dominant-baseline="central"'); }
-}
-body += labs;
-var lo = D.lo, hi = D.hi;
-if (lo !== null && hi !== null && lo !== undefined && hi !== undefined) {
-body += path(arc(r + lw / 2 + bw / 2, F(lo), F(hi)), bw);
-var r0 = r + lw + bw + 2, r1 = r0 + mh;
-[[lo, true], [hi, false]].forEach((m) => {
-var f = F(m[0]), q = 0.022, t = [at(f, r0), at(f - q, r1), at(f + q, r1)];
-if (nums) { var lt = String(Math.round(m[0]) === 0 ? 0 : Math.round(m[0])) + '°', lp = mlp(f, r1, lt, W, H, py);
-body += text(lp[0], lp[1], lt, mfs, 'middle', ' dominant-baseline="central" data-sw-mark="' + (m[1] ? 'lo' : 'hi') + '"'); }
-body += poly(t, ' data-sw-markt="' + (m[1] ? 'lo' : 'hi') + '"' + (m[1] ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.5, lw * 0.5)) + '" stroke-linejoin="round"' : ''));
-});
-}
-if (D.now !== null && D.now !== undefined) {
-var ang = -A + 2 * A * cl(F(D.now)), ux = Math.sin(ang), uy = -Math.cos(ang), nx = -uy, ny = ux, tipR = r + H * 0.025, tailR = H * 0.1, wb = Math.max(4, H * 0.012), wt = 1.5;
-var np = (ox, oy, an, k) => { var vx = an === undefined ? ux : Math.sin(an), vy = an === undefined ? uy : -Math.cos(an), qx = -vy, qy = vx, e = k || 1, b = [cx + ox, py + oy], t = [b[0] + vx * tipR * e, b[1] + vy * tipR * e], q = [b[0] - vx * tailR, b[1] - vy * tailR];
-return [[t[0] + qx * wt / 2, t[1] + qy * wt / 2], [b[0] + qx * wb / 2, b[1] + qy * wb / 2], [q[0] + qx * wb * 1.6, q[1] + qy * wb * 1.6], [q[0] - qx * wb * 1.6, q[1] - qy * wb * 1.6], [b[0] - qx * wb / 2, b[1] - qy * wb / 2], [t[0] - qx * wt / 2, t[1] - qy * wt / 2]]; };
-var hr = Math.max(6, H * 0.035), tw = '';
-if (D.twin !== null && D.twin !== undefined) {
-tw = '<g data-sw-twin="1">' + g(inb(), poly(np(0, 0, -A + 2 * A * cl(F(D.twin)), 0.86))) + '</g>';
-}
-body += '<g data-sw-needle>' + g(SHADOW + ' text--gray-55', poly(np(SO, SO)) + '<circle cx="' + n1(cx + SO) + '" cy="' + n1(py + SO) + '" r="' + n1(hr) + '"/>');
-body += glow(tw + poly(np(0, 0)) + '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr) + '" data-sw-hub="' + n1(Math.max(hr, tailR + wb * 1.6)) + '"/>', Math.max(2, H * 0.012)) + g('text--white', '<circle cx="' + n1(cx) + '" cy="' + n1(py) + '" r="' + n1(hr * 0.4) + '"/>') + '</g>';
-}
-return svg(W, H, body);
-}
-function tri(down, W, H, c) {
-var s = Math.min(W, H), x0 = (W - s) / 2, y0 = (H - s) / 2, p = down ? [[x0 + s * 0.1, y0 + s * 0.12], [x0 + s * 0.9, y0 + s * 0.12], [x0 + s / 2, y0 + s * 0.9]] : [[x0 + s * 0.1, y0 + s * 0.9], [x0 + s * 0.9, y0 + s * 0.9], [x0 + s / 2, y0 + s * 0.12]];
-var pl = poly(p, down ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(2, s * 0.1)) + '" stroke-linejoin="round"' : '');
-return svg(W, H, c ? g(c, pl) : pl);
-}
-function arrow(dir, W, H) {
-if (dir !== 'up' && dir !== 'down') return '';
-var s = Math.min(W, H), k = s / 28, tf = 'translate(' + n1((W - s) / 2) + ' ' + n1((H - s) / 2) + ') scale(' + n1(k) + ')' + (dir === 'down' ? ' translate(0 28) scale(1 -1)' : '');
-return svg(W, H, '<g transform="' + tf + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-sw-arrowpoly="' + dir + '"><path d="M3 20l7-7 4 4 9-9"/><path d="M17 8h6v6"/></g>');
-}
-function axisFor(SW) { return (API.nRows && SW.scales && SW.scales[API.nRows]) || SW.scale; }
-function part(SW, kind, i, W, H) {
-var scN = Object.assign({}, axisFor(SW), { now: null });
-switch (kind) {
-case 'arrow': return arrow((i === 2 ? SW.inn : (i ? SW.tdial : SW.baro) || {}).arrow, W, H);
-case 'cue': return cue(SW.cue, W, H);
-case 'dcue': return cue((SW.days[i] || {}).cue, W, H, true);
-case 'temp': return digits(SW.temp, H);
-case 'loc': return loc(['out', 'in'][i] || API.loc || 'out', W, H);
-case 'itemp': return SW.inn ? digits(SW.inn.temp, H) : '';
-case 'meter': return meter(SW.meters[i], W, H, API.n || 10);
-case 'meterin': return meter(SW.meters[i], W, H, API.n || 10, 1);
-case 'day': return day(SW.days[i], axisFor(SW), W, H, !!(SW.days[i] || {}).today);
-case 'scale': return scale(scN, W, H);
-case 'hbar': return hbar((SW.hours || [])[i], SW.hscale, W, H, !!((SW.hours || [])[i] || {}).now, SW.hours);
-case 'gauge': return SW.rain ? gauge(SW.rain.gauge, W, H) : '';
-case 'rain': return SW.rain ? rain(SW.rain.hours, W, H, API.rows || SW.rain.rows) : '';
-case 'tri': return tri(i % 2 === 0, W, H, i > 1 ? inc() : '');
-case 'rule': return rule(W, H);
-case 'moon': return moon(SW.sun && SW.sun.phase, H);
-case 'baro': return dial(SW.baro, W, H, true, SW.tdial);
-case 'tdial': return dial(SW.tdial, W, H, false, SW.baro);
-case 'icon': return icon(API.src, W, H);
-case 'face': { var n = Math.max(1, Math.round(W / H)), w = W / n, two = API.mode && API.mode.bits === 2;
-if (API.mode && !API.mode.dark && API.mode.bits <= 2) { var ow = API.mode.bits === 2 ? 2 : 1;
-return svg(W, H, g(API.mode.bits === 2 ? 'text--gray-55' : '', rect(ow / 2, ow / 2, W - ow, H - ow, Math.min(24, Math.min(W, H) * 0.08), ' fill="none" stroke="currentColor" stroke-width="' + ow + '" data-sw-outline'))); }
-if (two) return '';
-var rx = Math.min(24, Math.min(W, H) * 0.08), cp = 'swfc' + (K++);
-return svg(W, H, '<defs><clipPath id="' + cp + '">' + rect(0, 0, W, H, rx) + '</clipPath></defs><g clip-path="url(#' + cp + ')">' + (two ? backlight(W, H, W / 2, H / 2, W * 0.6 / 0.8, H * 0.78 / (W * 0.6), rx) : backlight(W, H, Array.from({ length: n }, (_, j) => w * (j + 0.5)), H / 2, Math.max(w, H) * 0.62, 0.8, rx)) + '</g>').replace('overflow="visible"', 'overflow="hidden"'); }
-}
-return '';
-}
-Object.assign(API, { cellStates: cellStates, part: part, hbar: hbar, hscale: hscale, hlevels: hlevels, glow: glow, icon: icon, digits: digits, segtime: segtime, meter: meter, day: day, scale: scale, rain: rain, dial: dial, moon: moon, moonLit: moonLit, hue: hue });
-return API;
-})();
+var w=Math.max,$=Math.min,u=Math.round,m=Math.abs;Number.prototype.$f=Number.prototype.toFixed;var SWDraw=(()=>{var t={paint:null},a={0:"abcdef",1:"bc",2:"abdeg",3:"abcdg",4:"bcfg",5:"acdfg",6:"acdefg",7:"abc",8:"abcdefg",9:"abcdfg","-":"g"," ":""},e="dark:hidden 1bit:hidden",r=0,s='stroke="currentColor" stroke-width="';function i(t){return u(10*t)/10+""}function l(t,a){return'<polygon points="'+(t=>t.map((t=>i(t[0])+","+i(t[1]))).join(" "))(t)+'"'+(a||"")+"/>"}function n(t,a,e,r,s,l){return'<rect x="'+i(t)+'" y="'+i(a)+'" width="'+i(w(0,e))+'" height="'+i(w(0,r))+'"'+(s?' rx="'+i(s)+'"':"")+(l||"")+"/>"}var o="";function d(){return t.mode&&2===t.mode.bits?"text--gray-40":"text--gray-20"}function h(a){return t.mode&&1>=t.mode.bits?"":a?"text--gray-10 dark:text--gray-75":d()+" dark:text--gray-60"}function c(a,e){var s=[],i=null;a.split(" ").forEach((t=>{0===t.indexOf("text--")?i=t.slice(6):t&&s.push(t)})),t.mode&&2===t.mode.bits&&(i=(t=>{var a=/^gray-(\d+)$/.exec(t||"");if(!a)return t;var e=+a[1];return e>20?e>47?e>72?"white":"gray-55":"gray-30":"black"})(i));var l=i&&t.paint?t.paint(i):null,n="";if(l&&l.url&&l.size){var d="swp"+r++;o+='<pattern id="'+d+'" patternUnits="userSpaceOnUse" width="'+l.size+'" height="'+l.size+'">'+(l.color?'<rect width="'+l.size+'" height="'+l.size+'" fill="'+l.color+'"/>':"")+'<image href="'+l.url+'" width="'+l.size+'" height="'+l.size+'"/></pattern>',n=' fill="url(#'+d+')"'+(l.color?' color="'+l.color+'"':"")}else l&&l.color?n=' fill="'+l.color+'" color="'+l.color+'"':i&&s.push("text--"+i);return"<g"+(s.length?' class="'+s.join(" ")+'"':"")+n+">"+e+"</g>"}function f(a){if(!t.mode||!t.mode.color||!t.paint)return null;var e=t.paint(a);if(!e||!e.color||e.url)return null;var r=/(\d+)\D+(\d+)\D+(\d+)/.exec(e.color);if(!r)return null;var s=+r[1],i=+r[2],l=+r[3];return("red"===a?s>150&&110>i&&110>l:"yellow"===a&&s>150&&i>150&&110>l)?e.color:null}function g(t,a){return'<g data-sw-hue="'+t+'">'+c("text--"+t,a)+"</g>"}function p(t,a,e,r,s,l){return'<text x="'+i(t)+'" y="'+i(a)+'" font-size="'+i(r)+'" font-weight="700" text-anchor="'+(s||"middle")+'"'+(l||"")+">"+e+"</text>"}function v(a,e,r,s){var l=o;return o="",((a,e,r,s,l)=>'<svg xmlns="http://www.w3.org/2000/svg" width="'+i(a)+'" height="'+i(e)+'" viewBox="'+(s||"0 0 "+i(a)+" "+i(e))+'" fill="currentColor" overflow="visible"'+(t.font?' font-family="'+t.font.replace(/"/g,"'")+'"':"")+">"+(l?"<defs>"+l+"</defs>":"")+r+"</svg>")(a,e,r,s,l)}function b(t,a,e,r){var s=r/2;return[[t,e],[t+s,e-s],[a-s,e-s],[a,e],[a-s,e+s],[t+s,e+s]]}function x(t,a,e,r){var s=r/2;return[[t,a],[t+s,a+s],[t+s,e-s],[t,e],[t-s,e-s],[t-s,a+s]]}function y(t,a,e,r,s){var i=void 0!==s?s:w(1,.16*r),l=t+r/2,n=t+a-r/2,o=r/2,d=e/2,h=e-r/2;return{a:b(l+i,n-i,o,r),g:b(l+i,n-i,d,r),d:b(l+i,n-i,h,r),f:x(l,o+i,d-i,r),b:x(n,o+i,d-i,r),e:x(l,d+i,h-i,r),c:x(n,d+i,h-i,r)}}function k(e,r,i){var o=100,d=0,h="",f="",g=!1;function p(t){g?f+=t:h+=t}var $=(/^-?\d*/.exec(e)||[""])[0],u=$.replace("-","").length,m="-"===$.charAt(0);u>=2||m||i||(d+=70);for(var b=0;e.length>b;b++){var x=e.charAt(b);if("."!==x)if("°"!==x){var k="-"===x?46:56,M=a[x]||"",L=y(d,k,o,13),E="";"abcdefg".split("").forEach((t=>{0>M.indexOf(t)||(E+=l(L[t]))})),p('<g data-sw-glyph="'+x+'">'+E+"</g>"),d+="-"===x?2>u?70:k+4.2:k+14}else g=!1,h+='<circle cx="'+(d+9)+'" cy="10" r="7" fill="none" '+s+'5"/>',d+=36;else g=!0,p(n(d-14+3,87,13,13)),d+=6}f&&(h+="<g data-sw-dec>"+c(t.mode&&1>=t.mode.bits?"":t.mode&&t.mode.dark?"text--gray-30 dark:text--gray-30":"text--gray-30",f)+"</g>");var Q=w(1,d-14);return v(r*Q/o,r,P(h,U*o/r),"0 0 "+Q+" "+o)}var M={out:"<path d='M8 17a4.5 4.5 0 0 1 .5-8.8A5.5 5.5 0 0 1 19.5 8.2 4.5 4.5 0 0 1 20 17z'/><path d='M14 17v8M10.5 25h7'/>",in:"<path d='M3 14L14 4l11 10'/><path d='M6 12v12h16V12'/><path d='M12 24v-7h4v7'/>"},L=()=>t.mode&&t.mode.dark?"text--gray-45":"text--gray-50";function E(t,a){return null!=t&&t>0?w(1,u($(1,t)*a)):0}function Q(t,a){for(var e=E((t=t||{}).frac,a),r=E(t.past,a),s=E(t.later,a),i=E(t.peak,a),l=[],n=0;a>n;n++)l.push(e>n?"a":r>n?"p":s>n?"l":"e");return{st:l,peak:i-1}}function A(t,a,e,r,s){return t=t||{},v(a,e,s?'<g data-sw-twrow="in">'+H(t.tw.m,a,e,r)+"</g>":t.tw?'<g data-sw-twrow="out">'+H(t,a,e,r,L())+"</g>":H(t,a,e,r))}function H(a,r,l,o,h){for(var p=Q(a,o=o||10),u=a.zones,m=E(a.frac,o),v="",b="",x="",y="",k=(r-3)/o,M=.12*k,L=l-3,A="",H="",W="",C=["","",""],_=[null,f("yellow")&&"yellow",f("red")&&"red"],q=t.mode&&t.mode.dark&&t.mode.bits>=2,I=0;o>I;I++){var D=I*k+M/2,R=k-M,S=p.st[I],F=u?u[1]>(I+.5)/o?u[0]>(I+.5)/o?0:1:2:0;if(I===p.peak&&"e"===S){var B=w(3,.14*$(R,L)),T=n(D+B/2,B/2,R-B,L-B,2,' fill="none" '+s+i(B)+'" data-sw-gust="'+I+'"');v=_[F]?g(_[F],T):T,H+=n(D+B/2+3,B/2+3,R-B,L-B,2,' fill="none" '+s+i(B)+'"')}"a"===S&&_[F]?(C[F]+=n(D,0,R,L,2,' data-sw-c="'+I+'"'),H+=n(D+3,3,R,L,2)):"a"===S?(A+=n(D,0,R,L,2,' data-sw-c="'+I+'"'),H+=n(D+3,3,R,L,2)):"p"===S?b+=n(D,0,R,L,2,' data-sw-c="'+I+'"'):"l"===S?(x+=n(D,0,R,L,2,' data-sw-c="'+I+'"'),q||(y+=n(D+1,1,R-2,L-2,2,' fill="none" '+s+'2" data-sw-lo="'+I+'"'))):W+=q?n(D,0,R,L,2,' data-sw-c="'+I+'"'):n(D+1,1,R-2,L-2,2,' fill="none" '+s+'2" data-sw-c="'+I+'"')}var z,j=t.mode&&t.mode.dark?"text--gray-45":t.mode&&1>=t.mode.bits?"text--gray-75":t.mode&&2>=t.mode.bits?"text--gray-65":"text--gray-75",N=j;return'<g data-sw-lit="'+m+'" data-sw-ncell="'+o+'"></g>'+(h?"":c(e+" text--gray-65",H))+'<g data-sw-st="e">'+c(z=t.mode?t.mode.bits>1?t.mode.dark?"text--gray-70":t.mode.bits>2?"text--gray-65":"text--gray-45":"":"text--gray-65",W)+'</g><g data-sw-st="p">'+c(j,b)+'</g><g data-sw-st="l">'+c(N,x)+(y?c(z,y):"")+'</g><g data-sw-on data-sw-st="a">'+(h?c(h,A):!t.mode||t.mode.dark||2>t.mode.bits?P(A,U):"<g data-sw-dg>"+c(d(),A)+"</g>")+(C[1]?g("yellow",C[1]):"")+(C[2]?g("red",C[2]):"")+"</g>"+v}function W(t){return(0===t?0:t)+""}function C(){return t.nfs?t.lp&&t.nfs>t.lp&&t.ogfull?t.lp:w(t.nfs,t.lp||0):w(.7*(t.scaleH||20),t.lp||0)}function _(t,a){var e=.62*C(),r=e*W(t.a).length/2+2,s=e*W(t.b).length/2+.7*e+2;return e=>r+(e-t.a)/(t.b-t.a)*(a-r-s)}function q(a,r,s,i,o){var d=r.now,p=_(r=Object.assign({},r,{now:null}),s),m="";if(m=c("text--gray-70",m),null!==a.loV&&null!==a.hiV){var b=u(a.loV),x=w(b+1,u(a.hiV)),y=p(1)-p(0),k=i*(o||t.nfs?.5:.4),M=(i-k)/2,L="",E="",Q=.3*C()*1.4;if(o&&null!=d&&Q+2>M){var A=M+k;M=$(Q+2,.45*i),k=w(.3*i,A-M)}for(var H=1;6>H*y-w(2.5,H*y*.16)&&50>H;)H++;var W=w(2.5,H*y*.16),q=[],I=r.a+Math.floor((b-r.a)/H)*H,D=t.nfs?3:1.5;if((t.nfs||t.port)&&H*y-W>=6&&k>(H*y-W)*D&&(M+=(k-(H*y-W)*D)/2,k=(H*y-W)*D),t.top&&(M=$(M,Q+2)),6>H*y-W)q.push([p(b)+1,p(x)-1]);else for(var R=H>1?I:b;x>R;R+=H)q.push([p(R)+W/2,p(R+H)-W/2]);q.forEach((t=>{L+=n(t[0],M,t[1]-t[0],k),E+=n(t[0]+3,M+3,t[1]-t[0],k)})),m+=c(e+" text--gray-65",E)+'<g data-sw-cells data-sw-k="'+H+'" data-sw-r="'+(x-b)+'">'+c(o?h(o):t.mode&&1>=t.mode.bits?"":t.mode&&2===t.mode.bits?"text--gray-40 dark:text--gray-60":"text--gray-45 dark:text--gray-50",L)+"</g>"}if(o&&null!=d){var S=p(d),F=Q/1.4,B=t.nfs&&void 0!==M?w(0,M-Q-2):0,T=l([[S-F,B],[S+F,B],[S,B+Q]]," data-sw-nowmark");m+=f("red")?g("red",T):T}return o&&(m+='<g data-sw-hl="1"></g>'),v(s,i,m)}function I(t,a){var e=(t||[]).slice(0,a||(t||[]).length).map((t=>t&&t.tV)).filter((t=>null!=t)).map(Math.round);return e.length?{a:Math.min.apply(null,e)-1,b:Math.max.apply(null,e)}:null}function D(t,a){return w(1,Math.ceil(w(1,t.b-t.a)/a))}function R(t,a){var e=w(1,t.b-t.a),r=w(1,$(6,Math.floor(a/6))),s=D(t,r);return s>1?Math.ceil(e/s):e*Math.floor(r/e)}function S(a,r,s,l,o,d){var f=I(d,t.hcols)||r;if(!a||null==a.tV||!f)return v(s,l,"");for(var g=w(8,$(s/(.62*w(2,(a.t+"").length)),.2*(t.hbarH||l),30)),m=u(1.45*g)+3,b=$(l,t.hbarH||l)-m,x=R(f,b),y=D(f,w(1,$(6,Math.floor(b/6)))),k=w(1,$(x,y>1?Math.ceil((u(a.tV)-f.a)/y):u((u(a.tV)-f.a)/(f.b-f.a)*x))),M=l-3,L=(b-3)/x,E=w(2,.2*L),Q=s-3,A="",H="",W=0;k>W;W++){var C=M-(W+1)*L+E/2;A+=n(0,C,Q,L-E,2),H+=n(3,C+3,Q,L-E,2)}var _=M-k*L+E/2-3-.36*g;return v(s,l,c(e+" text--gray-65",H)+'<g data-sw-cells="'+k+'" data-sw-area="'+i(b)+'">'+c(h(o),A)+"</g>"+p(Q/2,_,a.t,g,"middle"," data-sw-htemp"))}function F(a,e,r){var s=_(a,e),l=C(),n="",o=w(.62*r,.3*l*1.4+2+.4*l);null==a.now||s(a.now),((a,e)=>{for(var r=C(),s=a.major,i=t=>.62*r*(W(t).length+1.2)+.6*r,l=0,n=[],o=a.a;a.b+1e-9>=o;o+=s)l+=i(o);if(l>.75*e&&(s=2*a.major,t.nfs))for(var d=2,h=a.b-a.a,c=t=>{for(var r=0,s=0,l=a.a;a.b+1e-9>=l;l+=t)r+=i(l),s=w(s,i(l));return.75*e>=r&&t/h*e>=s};;){for(;h>d*a.major&&m(h/(d*a.major)%1)>1e-9;)d++;if((s=d*a.major)>=h||c(s))break;d++}for(o=t.nfs&&s>a.major?a.a:Math.ceil(a.a/s-1e-9)*s;a.b+1e-9>=o;o+=s)n.push(o);return n})(a,e).forEach((t=>{var e=s(t),r=W(t),i=.62*l*r.length;n+=p(e,o,r,l,"middle",' dominant-baseline="middle" data-sw-tick="'+r+'"')+p(e+i/2,o,a.deg,l,"start",' dominant-baseline="middle"')}));var d=t.paint&&(t.paint("white")||{}).color||"#fff";return v(e,r,n='<g data-sw-track="'+i(s(a.a))+","+i(s(a.b))+'"></g>'+c("text--gray-70","")+'<g data-sw-axis stroke="'+d+'" stroke-width="'+i(.22*l)+'" paint-order="stroke" stroke-linejoin="round">'+n+"</g>")}function B(a,e,r,s){var l=t=>m(Math.log(e/3/(r/t)/1.3)),o=2===s||3!==s&&l(3)>=l(2)||e/3/(r/3)>1.95||$(r/3*.9,e/3*.7)<(t.lp||0)?2:3,d=e/3,h=r/o,u=$(.9*h,.7*d),b="",x=a.slice(0,3*o),y=t=>Math.max.apply(null,t.map((t=>{return.62*(a=(t.h+"").match(/^(\d*)(.*)$/))[1].length+.7*a[2].length*.6;var a})).concat(0)),k=y(x),M=a=>$(.9,w(.7,.97*(t.lp||0)*a/d));return k*u>d*M(k)&&d*M(k)/k<.95*(t.lp||0)&&(k=y(x=x.map((t=>({h:(t.h+"").replace(/\D+$/,""),wet:t.wet}))))),k*u>d*M(k)&&(u=d*M(k)/k),x.forEach(((a,e)=>{var r=e%3*d,s=Math.floor(e/3)*h;if(a.wet){var l=w(2,.06*$(d,h)),o=n(r+l/2,s+l/2,d-l,h-l,2);b+=f("red")?g("red",o):t.mode&&t.mode.bits>=4?c("text--gray-10 dark:text--gray-30",P(o,U)):P(o,U)}var m=(a.h+"").match(/^(\d+)(\D+)$/),v=p(r+d/2,s+h/2,m?m[1]+'<tspan font-size="'+i(.6*u)+'">'+m[2]+"</tspan>":a.h,u,"middle",' dominant-baseline="central"');b+=a.wet?c("text--white",v):v})),v(e,r,b)}function T(t,a,e,r){var s=Math.cos(2*Math.PI*t),l=r*m(s),n=.5>t,o=i(a)+","+i(e-r),d=i(a)+","+i(e+r),h=n?s>0?0:1:s>0?1:0;return"M"+o+" A"+i(r)+","+i(r)+" 0 0 "+(n?1:0)+" "+d+" A"+i(l)+","+i(r)+" 0 0 "+h+" "+o+" Z"}function z(a,e,l){if(null==a||isNaN(a))return"";var n=.27*e,o=e/2,d=(1-Math.cos(2*Math.PI*a))/2,h="",f=t.mode&&t.mode.dark,g=t.mode?t.mode.bits:4,p=w(g>2?1.5:2.5,.03*e),$=g>1||f?n:n-1.6*p;d>.01&&(h='<path d="'+T(a,o,o,$)+'" data-sw-moon="lit"'+(null==l?"":' transform="rotate('+i(-(l-(.5>a?270:90)))+" "+i(o)+" "+i(o)+')"')+"/>");var u='<circle cx="'+i(o)+'" cy="'+i(o)+'" r="'+i(n)+'" fill="none" '+s+i(p)+'"/>',m=f?V('<circle cx="'+i(o)+'" cy="'+i(o)+'" r="'+i(n)+'"/>',U):"";if(m){var b="swmk"+r++;m='<defs><mask id="'+b+'" maskUnits="userSpaceOnUse" x="'+i(-e)+'" y="'+i(-e)+'" width="'+i(3*e)+'" height="'+i(3*e)+'"><rect x="'+i(-e)+'" y="'+i(-e)+'" width="'+i(3*e)+'" height="'+i(3*e)+'" fill="#fff"/><circle cx="'+i(o)+'" cy="'+i(o)+'" r="'+i(n+p/2)+'" fill="#000"/></mask></defs><g mask="url(#'+b+')" data-sw-moonhalo>'+m+"</g>"}var x='<circle cx="'+i(o)+'" cy="'+i(o)+'" r="'+i(n)+'" data-sw-moon="disk"/>';return v(e,e,f?.08>d?m+c("text--gray-45",x.replace('r="'+i(n)+'"','r="'+i($)+'"').replace('"disk"','"lit"'))+u:m+h+u:c(g>1?2===g?"text--gray-10":"text--gray-20":"",x)+(h?c("text--white",h):"")+u)}var j={umbrella:"<path d='M3.5 14a10.5 10.5 0 0 1 21 0c-1.7-1.4-3.5-1.4-5.2 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.6-1.4-5.3 0-1.7-1.4-3.5-1.4-5.2 0z'/><path d='M14 14v8.5a2 2 0 0 1-4 0'/><path d='M14 2.5v1'/>",parka:"<g transform='translate(0 -0.70)'><path class='text--gray-65' fill='currentColor' stroke='none' d='M7.4 9.2q-.9-1.1 0-2.2q-.2-1.4 1.2-1.9q.4-1.3 1.8-1.3q.9-1 2.2-.6q1.4-.6 2.8 0q1.3-.4 2.2.6q1.4 0 1.8 1.3q1.4.5 1.2 1.9q.9 1.1 0 2.2L18 9.7Q14 13 10 9.7Z'/><path d='M7.4 9.2q-.9-1.1 0-2.2q-.2-1.4 1.2-1.9q.4-1.3 1.8-1.3q.9-1 2.2-.6q1.4-.6 2.8 0q1.3-.4 2.2.6q1.4 0 1.8 1.3q1.4.5 1.2 1.9q.9 1.1 0 2.2' stroke-width='1.4'/><path d='M10 9.7Q14 13 18 9.7L20 9.5 22.5 10.5 24 22.5h-3L19.7 14 20.2 26H7.8L8.3 14 7 22.5H4L5.5 10.5 8 9.5Z'/><path d='M14 11.3v14.7'/><path d='M15.1 14.4h.9M15.1 17.6h.9' stroke-width='1.6'/><path d='M10 20.2h2M16 20.2h2' stroke-width='1.6'/></g>",jacket:"<path d='M10.5 4.5L5.5 7 4 22h3l1.5-10V24h11V12L21 22h3L22.5 7l-5-2.5'/><path d='M10.5 4.5L14 9l3.5-4.5'/><path d='M14 9v15'/>",sweater:"<path d='M10.2 5Q14 8.4 17.8 5L22.5 7 24 22h-3L19.5 12V24h-11V12L7 22H4L5.5 7Z'/><path d='M8.5 21.5h11M8.5 19h11' stroke-width='1.3'/>",tshirt:"<path d='M10 5Q14 9.2 18 5L24 8.5 21.5 13 19 11.5V24H9V11.5L6.5 13 4 8.5Z'/>"};function N(a,e,r,s){if(!(a=(a||[]).filter((t=>j[t])).slice(0,2)).length)return v(e,r,"");s||(e=w(e,1.6*r));var l=$(48,30*e/r),n=.55*l,o=a=>i(100*w(1.05,28*(t.mode&&1>=t.mode.bits?1.25:.9)/(a*r/48)))/100,d=(t,a,e,r)=>'<g data-sw-item="'+("umbrella"===t?t:"top")+'" transform="translate('+i(a)+" "+i(e)+") scale("+i(r/28*1e3)/1e3+')" stroke-width="'+o(r)+'">'+j[t]+"</g>",h=(48-l)/2,c=d(a[0],0,h,l)+(a[1]?d(a[1],1.6*l-n,h,n):"");return v(e,r,'<svg width="'+i(e)+'" height="'+i(r)+'" viewBox="0 0 '+i(48*e/r)+' 48" overflow="visible"><g data-sw-cloth data-sw-box="0,0,'+i(r)+'"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="'+o(l)+'">'+c+"</g></g></svg>")}function O(a,e,r,s,i,l,o){var d=t.mode||{},h=t.paint?t.paint(2===d.bits?"gray-55":"gray-75"):null;return d.dark||3>(d.bits||4)?"":n(0,0,a,e,o||0,' fill="'+(h&&h.color||"#bbb")+'"'+(2!==d.bits?' fill-opacity="0.5"':"")+' data-sw-fill="1"')}function P(t,a){return V(t,a)+t}function V(a,e){var s=t.mode||{};if(!s.dark||2>(s.bits||4)||!a)return"";var l="swgl"+r++;return'<defs><filter id="'+l+'" x="-30%" y="-30%" width="160%" height="160%">'+(2===s.bits?'<feMorphology in="SourceAlpha" operator="dilate" radius="'+i(w(.5,e/4))+'" result="d"/><feFlood flood-color="'+(t.paint&&(t.paint("gray-45")||{}).color||"#777")+'"/><feComposite operator="in" in2="d"/>':'<feGaussianBlur stdDeviation="'+i(e)+'"/><feComponentTransfer><feFuncA type="linear" slope="0.75"/></feComponentTransfer>')+'</filter></defs><g filter="url(#'+l+')" data-sw-glow="'+s.bits+'">'+a+"</g>"}var U=4;function Z(t,a,e){var s="swink"+r++;return v(a,e,'<defs><filter id="'+s+'" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>'+P('<image href="'+t+'" x="0" y="0" width="'+i(a)+'" height="'+i(e)+'" filter="url(#'+s+')"/>',U))}function G(t,a,e,r,s,i,l){var n=75*Math.PI/180,o=.1*s,d=w(2.5,.008*s),h=w(4,.03*s),c=.62*o*e.length/2,f=-n+2*n*w(-.03,$(1.03,t)),g=a+d+m(Math.sin(f))*c+m(Math.cos(f))*o*.4+.022*a*2*n,p=r/2+g*Math.sin(f),u=i-g*Math.cos(f),v=h+.625*o+.5,b=v>u;return b&&(u=w(v,i-a*Math.cos(f)),p=r/2+a*Math.sin(f)+(void 0===l?0>f?-1:1:l?-1:1)*(c+.022*a*2*n+d+2)),[w(h+c,$(r-h-c,p)),u,b]}function Y(t,a,e,r,s){var i=w(2,.026*e),l=75*Math.PI/180,n=.045*e,o=.05*e*1.6,d=(w(2.5,.008*e),w(4,.03*e)),h=$(.42*a/Math.sin(l),e*(1.8*e>a?.5893:.639),s-d-1.3*o-n-i-2);return $(h,.37*a/Math.sin(l)),[h,!0]}function X(a,e,r,s,i,l,n){var o=w(4,.03*r),d=(t.caps||{})[n]||[];return((t,a,e,r,s,i,l)=>{for(var n=w(2,.026*e),o=75*Math.PI/180,d=a/2,h=.045*e,c=.05*e*1.6,f=.1*e,g=(w(2.5,.008*e),[]),p=(t,a)=>{var e=-o+2*o*(t=>w(-.03,$(1.03,t)))(t);return[d+a*Math.sin(e),s-a*Math.cos(e)]},m=a=>(a-t.a)/(t.b-t.a),v=(t,a)=>g.push([t[0]-a,t[1]-a,t[0]+a,t[1]+a]),b=(t,a,e)=>g.push([t[0]-a/2,t[1]-e/2,t[0]+a/2,t[1]+e/2]),x=0;1.0001>=x;x+=.025)v(p(x,r),n),v(p(x,r-.07*e),n);if(l){var y=r-.135*e,k=.34*r;[0,1,2,3].forEach((t=>b(p((2*t+1)/8,y-.62*k),k,k)))}else for(var M=t.a;t.b+1e-9>=M;M+=t.step){var L=.1*e;b(p(m(M),r-.07*e-.8*L),.62*L*(M+"").length,1.25*L)}if(null!=t.lo&&null!=t.hi){for(var E=r+n+h+2+c,Q=m(t.lo),A=m(t.hi),H=0;20>=H;H++)v(p(Q+(A-Q)*H/20,r+n/2+h/2),h);[t.lo,t.hi].forEach((r=>{var l=m(r);if(v(p(l,E),.3*c),i){var n=u(r)+"°";b(G(l,E,n,a,e,s,r===t.lo),.62*f*n.length,1.25*f)}}))}return g})(a,e,r,s,i,l,"baro"===n).some((t=>o>t[0]||o>t[1]||t[2]>e-o||t[3]>r-o||d.some((a=>a[2]+o>t[0]&&t[2]>a[0]-o&&a[3]+o>t[1]&&t[3]>a[1]-o))))}function J(t,a,n,o,d){for(var h,f,g,b,x=w(2,.026*n),y=75*Math.PI/180,k=a/2,M=n*(1.8*n>a?.79:.93),E=.045*n,Q=.05*n*1.6,A=!o,H=.1*n,W=(w(2.5,.008*n),o?"baro":"tdial"),C=o?"tdial":"baro",_=M;_>=.5*n&&(h=Y(0,a,n,0,_),f=d?Y(0,a,n,0,_):h,g=$(h[0],f[0]),M=_,X(t,a,n,g,_,b=A&&h[1],W)||d&&X(d,a,n,g,_,o&&f[1],C));_-=.01*n);var q=a=>(a-t.a)/(t.b-t.a),I=t=>w(-.03,$(1.03,t));function D(t,a){var e=-y+2*y*I(t);return[k+a*Math.sin(e),M-a*Math.cos(e)]}function R(t,a,e){var r=D(a,t),s=D(e,t);return"M"+i(r[0])+" "+i(r[1])+" A"+i(t)+" "+i(t)+" 0 0 1 "+i(s[0])+" "+i(s[1])}var S="swink"+r++,F='<defs><filter id="'+S+'" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>';F+='<g data-sw-arc="'+i(g)+","+i(a)+'"></g>';var B=(t,a,e)=>'<path d="'+t+'" fill="none" '+s+i(a)+'"'+(e||"")+"/>";if(o){var T=g-.085*n,z=T-.05*n,j=.012,N=.34*g;[[0,.25,1],[.25,.5,0],[.5,.75,1],[.75,1,0]].forEach((t=>{var a=D(t[0]+j,z),e=D(t[1]-j,z),r=R(T,t[0]+j,t[1]-j)+" L"+i(e[0])+" "+i(e[1])+" A"+i(z)+" "+i(z)+" 0 0 0 "+i(a[0])+" "+i(a[1])+" Z";F+=(t[2]?c("text--gray-45",'<path d="'+r+'"/>'):"")+B(r,w(1,.5*x))})),(t.icons||[]).forEach(((t,a)=>{var e=D((2*a+1)/8,z-.62*N);F+=P('<image href="'+t+'" x="'+i(e[0]-N/2)+'" y="'+i(e[1]-N/2)+'" width="'+i(N)+'" height="'+i(N)+'" filter="url(#'+S+')"/>',w(2,.012*n))}))}F+=P(B(R(g,0,1),x),w(2,.012*n));for(var O=o?10:t.step/2,V=o?20:t.step,U="",Z=t.a;t.b+1e-9>=Z;Z+=O){var J=1e-6>m((Z-t.a)/V-u((Z-t.a)/V)),K=D(q(Z),g),tt=D(q(Z),g-(J?.07*n:.035*n));if(F+='<line x1="'+i(K[0])+'" y1="'+i(K[1])+'" x2="'+i(tt[0])+'" y2="'+i(tt[1])+'" '+s+i(J?x:w(1,.6*x))+'"/>',!o&&J){var at=.1*n,et=D(q(Z),g-.07*n-.8*at);U+=p(et[0],et[1],Z+"",at,"middle",' dominant-baseline="central"')}}F+=U;var rt=t.lo,st=t.hi;if(null!==rt&&null!==st&&void 0!==rt&&void 0!==st){F+=B(R(g+x/2+E/2,q(rt),q(st)),E);var it=g+x+E+2,lt=it+Q;[[rt,!0],[st,!1]].forEach((t=>{var e=q(t[0]),r=[D(e,it),D(e-.022,lt),D(e+.022,lt)];if(b){var o=(0===u(t[0])?0:u(t[0]))+"°",d=G(e,lt,o,a,n,M,!!t[1]);F+=p(d[0],d[1],o,H,"middle",' dominant-baseline="central" data-sw-mark="'+(t[1]?"lo":"hi")+'"'+(d[2]?" data-sw-beside":""))}F+=l(r,' data-sw-markt="'+(t[1]?"lo":"hi")+'"'+(t[1]?' fill="none" '+s+i(w(1.5,.5*x))+'" stroke-linejoin="round"':""))}))}if(null!=t.now){var nt=-y+2*y*I(q(t.now)),ot=Math.sin(nt),dt=-Math.cos(nt),ht=g+.025*n,ct=.1*n,ft=w(4,.03*n),gt=w(1.5,.012*n),pt=(t,a,e,r)=>{var s=void 0===e?ot:Math.sin(e),i=void 0===e?dt:-Math.cos(e),l=-i,n=r||1,o=[k+t,M+a],d=[o[0]+s*ht*n,o[1]+i*ht*n],h=[o[0]-s*ct,o[1]-i*ct];return[[d[0]+l*gt/2,d[1]+s*gt/2],[o[0]+l*ft/2,o[1]+s*ft/2],[h[0]+l*ft*1.6,h[1]+s*ft*1.6],[h[0]-l*ft*1.6,h[1]-s*ft*1.6],[o[0]-l*ft/2,o[1]-s*ft/2],[d[0]-l*gt/2,d[1]-s*gt/2]]},wt=w(6,.035*n),$t="";null!=t.twin&&($t='<g data-sw-twin="1">'+c(L(),l(pt(0,0,-y+2*y*I(q(t.twin)),.86)))+"</g>"),F+="<g data-sw-needle>"+c(e+" text--gray-55",l(pt(3,3))+'<circle cx="'+i(k+3)+'" cy="'+i(M+3)+'" r="'+i(wt)+'"/>'),F+=P($t+l(pt(0,0))+'<circle cx="'+i(k)+'" cy="'+i(M)+'" r="'+i(wt)+'" data-sw-hub="'+i(w(wt,ct+1.6*ft))+'"/>',w(2,.012*n))+c("text--white",'<circle cx="'+i(k)+'" cy="'+i(M)+'" r="'+i(.4*wt)+'"/>')+"</g>"}return v(a,n,F)}function K(SW){return t.nRows&&SW.scales&&SW.scales[t.nRows]||SW.scale}return Object.assign(t,{cellStates:Q,part:(SW,a,o,h,f)=>{var g=Object.assign({},K(SW),{now:null});switch(a){case"arrow":return((t,a,e)=>{if("up"!==t&&"down"!==t)return"";var r=$(a,e),l=r/28;return v(a,e,'<g transform="translate('+i((a-r)/2)+" "+i((e-r)/2)+") scale("+i(l)+")"+("down"===t?" translate(0 28) scale(1 -1)":"")+'" fill="none" '+s+'2" stroke-linecap="round" stroke-linejoin="round" data-sw-arrowpoly="'+t+'"><path d="M3 20l7-7 4 4 9-9"/><path d="M17 8h6v6"/></g>')})(((o?SW.tdial:SW.baro)||{}).arrow,h,f);case"cue":return N(SW.cue,h,f);case"dcue":return N((SW.days[o]||{}).cue,h,f,!0);case"temp":return k(SW.temp,f,t.tr);case"loc":return((a,e,r)=>v(e,r,((a,e,r,l)=>c("out"===a?t.mode&&1>=t.mode.bits?"":"text--gray-30":"",'<svg x="'+i(e)+'" y="'+i(r)+'" width="'+i(l)+'" height="'+i(l)+'" viewBox="0 0 28 28" overflow="visible"><g fill="none" '+s+i(100*w(1.8,42/w(1,l)))/100+'" stroke-linecap="round" stroke-linejoin="round" data-sw-loc="'+a+'">'+M[a]+"</g></svg>"))(a,(e-$(e,r))/2,(r-$(e,r))/2,$(e,r))))(["out","in"][o]||t.loc||"out",h,f);case"itemp":return SW.inn?k(SW.inn.temp,f):"";case"meter":return A(SW.meters[o],h,f,t.n||10);case"meterin":return A(SW.meters[o],h,f,t.n||10,1);case"day":return q(SW.days[o],K(SW),h,f,!!(SW.days[o]||{}).today);case"scale":return F(g,h,f);case"hbar":return S((SW.hours||[])[o],SW.hscale,h,f,!!((SW.hours||[])[o]||{}).now,SW.hours);case"gauge":return SW.rain?((a,r,i)=>{if(!a)return"";for(var l=a.label+"",o=t.gx0||0,h=r-o,f=$(.7*(t.lp||16),o/(.62*l.length+.5)),g=h/3,u=t.gp||w(2,.06*$(g,i)),m="",b="",x="",y=t.mode&&t.mode.dark&&t.mode.bits>=2,k=0;3>k;k++){var M=o+k*g+u/2,L=g-u;a.segs>k?(m+=n(M,0,L,i,2,' data-sw-c="'+k+'"'),b+=n(M+3,3,L,i,2)):x+=y?n(M,0,L,i,2,' data-sw-c="'+k+'"'):n(M+1,1,L-2,i-2,2,' fill="none" '+s+'2" data-sw-c="'+k+'"')}var E=t.mode?t.mode.bits>1?t.mode.dark?"text--gray-70":t.mode.bits>2?"text--gray-65":"text--gray-45":"":"text--gray-65";return v(r,i,'<g data-sw-gauge="'+a.segs+'"></g>'+c(e+" text--gray-65",b)+'<g data-sw-st="e">'+c(E,x)+'</g><g data-sw-on data-sw-st="a">'+(!t.mode||t.mode.dark||2>t.mode.bits?P(m,U):"<g data-sw-dg>"+c(d(),m)+"</g>")+"</g>"+p(o/2,i/2,l,f,"middle",' dominant-baseline="central" data-sw-glabel'))})(SW.rain.gauge,h,f):"";case"rain":return SW.rain?B(SW.rain.hours,h,f,t.rows||SW.rain.rows):"";case"tri":return((t,a,e)=>{var r=$(a,e),n=(a-r)/2,o=(e-r)/2;return v(a,e,l(t?[[n+.1*r,o+.12*r],[n+.9*r,o+.12*r],[n+r/2,o+.9*r]]:[[n+.1*r,o+.9*r],[n+.9*r,o+.9*r],[n+r/2,o+.12*r]],t?' fill="none" '+s+i(w(2,.1*r))+'" stroke-linejoin="round"':""))})(o%2==0,h,f);case"rule":return((t,a)=>v(t,a,c("text--gray-40",'<line x1="0" y1="'+i(a/2)+'" x2="'+t+'" y2="'+i(a/2)+'" '+s+'3" stroke-dasharray="3 7"/>')))(h,f);case"moon":return z(SW.sun&&SW.sun.phase,f,SW.sun&&SW.sun.limb);case"baro":return J(SW.baro,h,f,!0,SW.tdial);case"tdial":return J(SW.inn&&null!=SW.tdial.twin?Object.assign({},SW.tdial,{now:SW.tdial.twin,twin:SW.tdial.now}):SW.tdial,h,f,!1,SW.baro);case"icon":return Z(t.src,h,f);case"face":var m=w(1,u(h/f)),b=h/m,x=t.mode&&2===t.mode.bits;if(t.mode&&!t.mode.dark&&2>=t.mode.bits){var y=2===t.mode.bits?2:1;return v(h,f,c(2===t.mode.bits?"text--gray-55":"",n(y/2,y/2,h-y,f-y,$(24,.08*$(h,f)),' fill="none" '+s+y+'" data-sw-outline')))}if(x)return"";var L=$(24,.08*$(h,f)),E="swfc"+r++;return v(h,f,'<defs><clipPath id="'+E+'">'+n(0,0,h,f,L)+'</clipPath></defs><g clip-path="url(#'+E+')">'+(x?O(h,f,0,0,0,0,L):O(h,f,Array.from({length:m},((t,a)=>b*(a+.5))),0,w(b,f),0,L))+"</g>").replace('overflow="visible"','overflow="hidden"')}return""},hbar:S,hscale:I,hlevels:R,glow:P,icon:Z,digits:k,segtime:(t,e)=>{var r=17,s=100,o=(t+"").trim();if(!o||/[^0-9:\-. ]/.test(o))return null;var d=0,h="";o.split("").forEach((t=>{if("."===t)h+=n(d,83,r,r);else if(":"===t)h+=n(d+9.1,21.5,r,r)+n(d+9.1,61.5,r,r);else if(" "!==t){var e=a[t]||"",i=y("1"===t?d+(54*.58-r)/2:d,"1"===t?r:54,s,r,1.5),o="";"abcdefg".split("").forEach((a=>{0>e.indexOf(a)||(o+=l("7"===t&&"a"===a?b(d+1.5,d+54-1.5,8.5,r):i[a]))})),h+='<g data-sw-glyph="'+t+'">'+o+"</g>"}d+=(t=>" "===t?40:"."===t?30:"1"===t?54*.58+13:":"===t?48.2:67)(t)}));var c=d-13,f=1.25*e/s;return{html:v(c*f,s*f,P(h,U/f),"0 0 "+c+" "+s).replace("<svg ",'<svg class="block" '),key:o+"|"+i(e)}},meter:A,day:q,scale:F,rain:B,dial:J,moon:z,moonLit:T,hue:f}),t})();
 // ==== DRAW_END ====
-(function () {
-function whenReady(cb) { var tries = 0; (function attempt() { if (window.TRMNLPaint) return cb(); if (++tries > 200) return; setTimeout(attempt, 50); })(); }
-function swSeg(cx) {
-document.querySelectorAll('[data-sw-suntime] > span.title').forEach(function (sp) {
-var t = sp.getAttribute('data-sw-t'); if (t === null) { t = sp.textContent.trim(); sp.setAttribute('data-sw-t', t); }
-var cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-var cap = cx.measureText('H').actualBoundingBoxAscent, r = cap > 0 ? SWDraw.segtime(t, cap) : null;
-if (!r) { if (sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); } return; }
-if (sp.getAttribute('data-sw-segk') !== r.key) { sp.innerHTML = r.html; sp.setAttribute('data-sw-segk', r.key); sp.setAttribute('aria-label', t); }
-});
-}
-function swCond(cx) {
-document.querySelectorAll('[data-sw-cond]').forEach(function (sp) {
-var ic = sp.parentElement.firstElementChild; if (!ic || ic === sp) return;
-var sb = sp.getBoundingClientRect(); if (!sb.height) return;
-var k = (sp.offsetWidth && sb.width / sp.offsetWidth) || 1, cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-function size(v) { ic.style.setProperty('height', v.toFixed(1) + 'px', 'important'); ic.style.setProperty('width', v.toFixed(1) + 'px', 'important'); }
-size(cx.measureText('H').actualBoundingBoxAscent); ic.style.transform = '';
-var n0 = 0, h, mid;
-for (var pass = 0; pass < 3; pass++) {
-var rg = document.createRange(); rg.selectNodeContents(sp); var lr = [].filter.call(rg.getClientRects(), function (q) { return q.width > 0; }), tops = [];
-lr.forEach(function (q) { if (!tops.some(function (t) { return Math.abs(t - q.top) < 2; })) tops.push(q.top); });
-var m = cx.measureText('H'), cap = m.actualBoundingBoxAscent, fa = m.fontBoundingBoxAscent, fd = m.fontBoundingBoxDescent, lh = parseFloat(cs.lineHeight) || (fa + fd);
-var first = lr[0] || sb, base = first.top / k + (first.height / k - (fa + fd)) / 2 + fa;
-if (tops.length <= 1) { h = 2.3 * cap; mid = base - cap / 2; }
-else { var last = lr[lr.length - 1], lb = last.top / k + (last.height / k - (fa + fd)) / 2 + fa; h = 2.3 * cap; mid = (lb + base - cap) / 2; }
-var pn = sp.closest('[data-sw-panel]'); if (pn) { var pr = pn.getBoundingClientRect(), pp = getComputedStyle(pn), lim = 2 * Math.min(mid - pr.top / k - parseFloat(pp.paddingTop), pr.bottom / k - parseFloat(pp.paddingBottom) - mid) - 2; if (lim > 0 && h > lim) { h = lim; ic.setAttribute('data-sw-clamped', '1'); } }
-var ik = (ic.querySelector('[data-sw-ink]') || ic).getAttribute('data-sw-ink') || '0,1', iy = +ik.split(',')[0], ih = +ik.split(',')[1] || 1, ink = h;
-h = ink / ih; mid += (0.5 - iy - ih / 2) * h;
-size(h);
-if (tops.length === n0) break; n0 = tops.length;
-}
-var sv = ic.querySelector('svg'); if (sv) { sv.setAttribute('width', h.toFixed(1)); sv.setAttribute('height', h.toFixed(1)); }
-var ib = ic.getBoundingClientRect(); ic.style.transform = 'translateY(' + (mid - (ib.top + ib.height / 2) / k).toFixed(1) + 'px)';
-ic.setAttribute('data-sw-condicon', tops.length + ',' + h.toFixed(1) + ',' + mid.toFixed(1));
-});
-}
-var swRepaint = null;
-function swFit() {
-document.querySelectorAll('[data-sw-part="temp"]').forEach(function (t) {
-var g = t.parentElement, row = g.parentElement; if (t.closest('[data-sw-twin]')) return;
-var rb = row.getBoundingClientRect(); if (!rb.width) return;
-var k = (row.offsetWidth && rb.width / row.offsetWidth) || 1, w = function (e) { return e ? e.getBoundingClientRect().width / k : 0; };
-var kids = [].filter.call(row.children, function (c) { return c.getBoundingClientRect().width > 0; }), rs = getComputedStyle(row), gap = parseFloat(rs.columnGap) || 0;
-var col = rs.flexDirection.indexOf('column') === 0, need = col ? kids.reduce(function (a, c) { return Math.max(a, w(c)); }, 0) : kids.reduce(function (a, c) { return a + w(c); }, 0) + gap * (kids.length - 1), avail = Math.min(row.clientWidth - parseFloat(rs.paddingLeft) - parseFloat(rs.paddingRight), row.parentElement.clientWidth) - (row.querySelector(':scope > [data-sw-part="cue"]') ? gap : 0);
-var h = function (e) { return e.getBoundingClientRect().height / k; };
-var cu = row.querySelector(':scope > [data-sw-part="cue"]'); if (cu && !cu.getBoundingClientRect().width) cu = null;
-if (!g.hasAttribute('data-sw-h0')) { if (need <= avail + 0.5) return; g.setAttribute('data-sw-h0', h(g)); }
-var hs = function (e) { var v = e && e.querySelector('svg'); return v ? h(v) : 0; }, gr = +g.getAttribute('data-sw-h0') / (hs(t) || 1);
-var tw = w(t.querySelector('svg')) * gr, bw = cu && !col ? w(cu) * gr : 0; need += tw - w(t.querySelector('svg')) + (bw ? bw - w(cu) : 0);
-if (!tw) return;
-var ex = w(g) - w(t.querySelector('svg')), f = col ? Math.min(1, Math.max(0.4, (avail - 1 - ex) / tw)) : Math.min(1, Math.max(0.4, (tw + bw - (need - avail) - 1) / (tw + bw)));
-function set(e, v, p) { if (Math.abs(h(e) - v) > 0.3) { e.style.setProperty('height', v.toFixed(1) + 'px', 'important'); if (swRepaint) swRepaint(p); } }
-set(g, +g.getAttribute('data-sw-h0') * f, t);
-row.setAttribute('data-sw-fit', f.toFixed(3));
-var sq = document.querySelector('.screen'), q4 = / view=4 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug') + ' ') && sq && !sq.classList.contains('screen--portrait');
-if (q4 && !col) { row.classList.toggle('flex--center-y', f >= 1); row.classList.toggle('flex--top', f < 1); }
-});
-}
-function swHair() {
-document.querySelectorAll('[data-sw-hairwrap]').forEach(function (w) {
-var up = w.previousElementSibling, dn = w.nextElementSibling, hr = [].filter.call(w.children, function (e) { return e.getBoundingClientRect().width > 0; })[0];
-if (!up || !dn || !hr) return;
-var H = hr.getBoundingClientRect(), k = (w.offsetWidth && w.getBoundingClientRect().width / w.offsetWidth) || 1;
-function ink(root, lo) { var v = lo ? -1e9 : 1e9; [].forEach.call(root.querySelectorAll('svg path, svg rect, svg circle, svg text, svg polygon, img, span'), function (e) { if (e.tagName === 'SPAN' && e.children.length) return; var b = e.getBoundingClientRect(); if (!b.width || !b.height) return; v = lo ? Math.max(v, b.bottom) : Math.min(v, b.top); }); return v; }
-var pt = parseFloat(w.style.paddingTop) || 0, pb = parseFloat(w.style.paddingBottom) || 0;
-var a = (H.top - ink(up, true)) / k - pt, b = (ink(dn, false) - H.bottom) / k - pb;
-if (!isFinite(a) || !isFinite(b)) return;
-var nt = Math.max(0, b - a), nb = Math.max(0, a - b);
-if (Math.abs(nt - pt) > 0.3 || Math.abs(nb - pb) > 0.3) { w.style.paddingTop = nt.toFixed(1) + 'px'; w.style.paddingBottom = nb.toFixed(1) + 'px'; }
-});
-}
-function swArrow(cx) {
-document.querySelectorAll('[data-sw-part="arrow"]').forEach(function (e) {
-if (e.hasAttribute('data-sw-inarrow')) { e.style.width = e.getBoundingClientRect().height.toFixed(1) + 'px'; return; }
-var c = e.closest('.relative').querySelector('[data-sw-cap]'); if (!c) return; var cs = getComputedStyle(c); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-var v = 1.5 * cx.measureText('H').actualBoundingBoxAscent; e.style.width = v.toFixed(1) + 'px'; e.style.height = v.toFixed(1) + 'px';
-});
-}
-function swInk(e) { var r = e.getBoundingClientRect(), vb = e.viewBox.baseVal, b = e.getBBox(), kx = r.width / (vb.width || r.width), ky = r.height / (vb.height || r.height); return { l: r.left + (b.x - vb.x) * kx, r: r.left + (b.x - vb.x + b.width) * kx, t: r.top + (b.y - vb.y) * ky, h: b.height * ky }; }
-function swBadge(cx) {
-document.querySelectorAll('[data-sw-part="cue"]').forEach(function (cu) {
-var cb = cu.getBoundingClientRect(), sv = cu.querySelector('svg'), g = cu.querySelector('g[data-sw-cloth]'), t = cu.parentElement.querySelector('[data-sw-part="temp"] svg');
-if (!cb.width || !sv || !g || !t || !t.getBoundingClientRect().height) return;
-var sc = (cu.offsetWidth && cb.width / cu.offsetWidth) || 1, ti = swInk(t), vb = sv.viewBox.baseVal, bx = g.getAttribute('data-sw-box').split(',').map(Number), kk = ti.h / bx[2];
-if (Math.abs(cb.height - vb.height * kk) > 0.3) { cu.style.setProperty('height', (vb.height * kk / sc).toFixed(2) + 'px', 'important'); cu.style.setProperty('width', (vb.width * kk / sc).toFixed(2) + 'px', 'important'); sv.setAttribute('preserveAspectRatio', 'xMinYMid slice'); }
-cu.style.transform = ''; cb = cu.getBoundingClientRect();
-var top = cb.top + (cb.height - vb.height * kk) / 2 + (bx[1] - vb.y) * kk;
-cu.style.transform = 'translateY(' + ((ti.t - top) / sc).toFixed(2) + 'px)';
-var dv = cu.previousElementSibling; if (!dv || !dv.hasAttribute('data-sw-div')) return;
-var u = cu.parentElement.querySelector('[data-sw-unit]'); dv.style.transform = '';
-if (!u || !dv.getBoundingClientRect().height) return;
-var cs = getComputedStyle(u); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
-var ub = u.getBoundingClientRect(), us = (u.offsetWidth && ub.width / u.offsetWidth) || 1, ur = ub.left + cx.measureText(u.textContent.trim()).actualBoundingBoxRight * us, bl = cu.getBoundingClientRect().left;
-dv.style.setProperty('height', (ti.h / sc).toFixed(2) + 'px', 'important'); var r = dv.getBoundingClientRect();
-dv.style.transform = 'translate(' + (((ur + bl) / 2 - (r.left + r.right) / 2) / sc).toFixed(2) + 'px,' + ((ti.t - r.top) / sc).toFixed(2) + 'px)';
-});
-}
-function swCapBase() {
-function B(e) { var p = document.createElement('span'); p.style.cssText = 'display:inline-block;width:0;height:0'; e.appendChild(p); var y = p.getBoundingClientRect().bottom; e.removeChild(p); return y; }
-document.querySelectorAll('[data-sw-part="baro"],[data-sw-part="tdial"]').forEach(function (d) {
-var w = d.parentElement, cap = w.querySelector('span[data-sw-cap]'), row = [].filter.call(w.querySelectorAll('div[data-sw-cap]:not([data-sw-dialin])'), function (e) { return e.getBoundingClientRect().width > 0; })[0], v = row && row.querySelector('.value');
-if (!cap || !v || !d.getBoundingClientRect().width) return;
-var k = (cap.offsetWidth && cap.getBoundingClientRect().width / cap.offsetWidth) || 1, dl = B(v) - B(cap);
-if (Math.abs(dl) > 0.2) cap.style.bottom = (parseFloat(getComputedStyle(cap).bottom) - dl / k).toFixed(2) + 'px';
-});
-}
-function swBalance() {
-var dbg = (document.querySelector('[data-sw-debug]') || document.body).getAttribute('data-sw-debug') || '', sc = document.querySelector('.screen');
-if (!/view=3/.test(dbg) || (sc && sc.classList.contains('screen--portrait'))) return;
-var pn = document.querySelector('[data-sw-console] [data-sw-panel]'), f = pn && pn.querySelector('[data-sw-part="face"]'), rel = pn && pn.querySelector(':scope > .relative, :scope > * > .relative');
-if (!f || !rel) return;
-var F = f.getBoundingClientRect(), lo = 1e9, hi = -1e9, k = (pn.offsetWidth && pn.getBoundingClientRect().width / pn.offsetWidth) || 1;
-var tl = false, th = false;
-[].forEach.call(rel.querySelectorAll('[data-sw-part]:not([data-sw-part="face"]), [data-sw-unit], [data-sw-cond], [data-sw-mlabel]'), function (e) { var b = e.getBoundingClientRect(); if (!b.width || !b.height) return; var tx = e.hasAttribute('data-sw-cond') || e.hasAttribute('data-sw-mlabel'), bt = b.bottom - (/^meter/.test(e.getAttribute('data-sw-part') || '') ? 0.045 * b.height : 0); if (b.top < lo - 0.5) tl = tx; else if (b.top < lo + 0.5) tl = tl && tx; lo = Math.min(lo, b.top); if (bt > hi + 0.5) th = tx; else if (bt > hi - 0.5) th = th && tx; hi = Math.max(hi, bt); });
-if (lo > hi || tl || th) return;   // the outermost ink is text (a box is taller than its ink): left as laid out
-var a = lo - F.top, b2 = F.bottom - hi;
-if (Math.abs(a - b2) > 0.4) { rel.style.paddingTop = ((parseFloat(getComputedStyle(rel).paddingTop) || 0) + (b2 - a) / 2 / k).toFixed(2) + 'px'; }
-}
-var swN = 0;
-function swAlign() {
-if (++swN > 60) return;
-var cx = document.createElement('canvas').getContext('2d');
-swSeg(cx); swCond(cx); swFit(); swBadge(cx); swFit(); swBadge(cx); swHair(); swBalance();
-}
-function swOGPortrait() {
-var screen = document.querySelector('.screen');
-if (!screen || !screen.classList.contains('screen--portrait') || !screen.classList.contains('screen--md')) return;
-var panel = document.querySelector('[data-sw-console]'), view = +document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug').match(/view=(\d)/)[1];
-var full = view === 1 || view === 2;
-var narrow = view >= 3, short = view === 2 || view === 4;
-function set(el, re, cls) { if (!el) return; [].slice.call(el.classList).forEach(function(c) { if (re.test(c)) el.classList.remove(c); }); cls.split(' ').forEach(function(c) { if(c) el.classList.add(c); }); }
-var outer = panel.querySelector('[data-sw-panel] > .relative'), cond = panel.querySelector('[data-sw-cond]'), temp = cond.parentElement.parentElement, top = temp.parentElement, right = panel.querySelector('[data-sw-right]');
-set(outer, /^(flex--(?:row|col|col-reverse|center)|gap--\w+)$/, 'flex--col-reverse flex--between gap--small');
-if (narrow) set(outer, /^flex--col-reverse$/, 'flex--col');
-set(top, /^flex--(?:row|stretch-y)$/, (narrow ? 'flex--col' : 'flex--row') + ' w--full');
-set(right, /^w--/, narrow ? 'w--full' : (view === 1 ? 'w--[38cqw]' : 'w--[44cqw]'));
-if(narrow) [].forEach.call(top.querySelectorAll('[data-sw-rule]'),function(e){set(e,/^hidden$/, 'hidden');});
-set(cond.parentElement, /^h--/, 'h--[7cqh]');
-var digits = panel.querySelector('[data-sw-part="temp"]'), tr = digits.parentElement.parentElement;
-var dry3 = view === 3 && !panel.querySelector('[data-sw-part="rain"]'); if (view === 2) { var mb2 = panel.querySelector('[data-sw-part="meter"]'); mb2 = mb2 && mb2.parentElement.parentElement.parentElement; if (mb2) set(mb2, /^flex--stretch-y$/, 'flex--stretch-y'); }
-if (dry3 || view === 4) { set(temp, /^gap--/, 'gap--xsmall'); if (view === 4) set(top, /^gap--/, 'gap--small'); set(cond.parentElement.nextElementSibling, /^h--/, 'h--[0cqh]'); }
-set(tr, /^h--/, (view === 1 ? 'h--[13cqh]' : (view === 2 ? 'h--[21cqh]' : (view === 4 ? 'h--[18cqh]' : 'h--[10cqh]'))) + ' shrink-0'); if (view === 3) { set(tr, /^w--/, 'w--full'); if (panel.querySelector('[data-sw-part="rain"]')) set(tr, /^h--\[10cqh\]$/, 'h--[9cqh]'); }
-if(narrow) set(temp, /^grow$/, 'grow shrink-0');
-set(digits.parentElement, /^h--/, 'h--full');
-set(tr, /^flex--col$/, 'flex--row');
-if(narrow) set(temp, /^w--/, 'w--full');
-[].forEach.call(panel.querySelectorAll('[data-sw-mlabel]'),function(e){set(e,/^title--/, 'title--small');set(e.parentElement,/^h--/,view===2?'h--[7cqh]':short||dry3?'h--[8cqh]':(view===1?'h--[5cqh]':'h--[6cqh]'));set(e.parentElement.parentElement.parentElement.parentElement,/^w--/, 'w--full');});
-[].forEach.call(panel.querySelectorAll('[data-sw-part^="meter"]'),function(e){set(e,/^h--/,view===2?'h--[5cqh]':short?'h--[6cqh]':(dry3?'h--[5cqh]':'h--[4cqh]'));set(e.parentElement,/^h--/,view===2?'h--[7cqh]':short||dry3?'h--[8cqh]':(view===1?'h--[5cqh]':'h--[6cqh]'));});
-var rain = panel.querySelector('[data-sw-part="rain"]'), sun = panel.querySelector('[data-sw-unit="sun"]'), hv = view === 3, ib = hv ? 'h--[8cqh]' : (view === 2 ? 'h--[15cqh]' : (view === 4 ? 'h--[15cqh]' : 'h--[6cqh]'));
-if(full) {
-[].forEach.call(outer.children,function(e){if(!e.querySelector('[data-sw-part]')&&!e.hasAttribute('data-sw-part'))set(e,/^flex$/,'hidden');});
-[].forEach.call(panel.querySelectorAll('[data-sw-part="gauge"]'),function(e){e.parentNode.removeChild(e);});
-var bt = document.querySelector('[data-sw-between]'), days = bt && bt.nextElementSibling;
-if(view === 1 && days) { set(panel,/^h--/,'h--[57cqh]'); set(days,/^h--/,'h--[35cqh]'); }
-if(view === 1) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-row="day"] > div > :nth-child(3)'),function(e){var r=e.parentElement,c=r.children,dr=r.parentElement.hasAttribute('data-sw-row');set(r,/^gap--/,'gap--xsmall');if(dr){set(r.parentElement,/^hidden$/,'');set(r,/^h--/,'h--[7cqh]');}set(c[0],/^w--/,'w--[12cqw]');set(c[1],/^w--/,'w--[6cqw]');set(c[2],/^w--/,'w--[6cqw]');set(c[3],/^w--/,'w--[6cqw]');if(c[5]){set(c[5],/^w--/,'w--[11cqw]');if(dr)set(c[5].firstElementChild,/^h--/,'h--[6cqh]');}var im=c[1].querySelector('img');if(im)set(im,/^h--/,'h--[6cqh]');});
-}
-if(hv) [].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'),function(e){var r=e.parentElement,c=r.children[1],dr=r.parentElement.hasAttribute('data-sw-row');if(c)c.parentNode.removeChild(c);set(r.children[0],/^(w--|lg:w--|lg:portrait:w--)/,'grow');
-set(r,/^(h--\S+|flex--center-y|gap--xsmall)$/,'flex--wrap'+(dr?' gap--none':' h--[7cqh] gap--xsmall mb--3'));set(e,/^(basis--0|h--full)$/,'w--full '+(dr?'h--[4cqh]':'h--[4cqh]'));[].forEach.call(r.children,function(q){if(q!==e){set(q,/^h--full$/,'h--[4cqh]');var t=q.querySelector('span.title');if(t&&!t.hasAttribute('data-sw-dname'))set(t,/^title--/,'title--base');set(q,/^w--\[6cqw\]$/,'w--[14cqw]');}});});
-var dn = [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'),function(q){return q.getBoundingClientRect().width>0;})[0], tpx = dn ? Math.round(parseFloat(getComputedStyle(dn).fontSize)*0.85) : 0;
-if(tpx) [].forEach.call(document.querySelectorAll('[data-sw-part="tri"]'),function(e){set(e,/^[hw]--/,'h--['+tpx+'px] w--['+tpx+'px]');});
-if(hv) [].forEach.call(panel.querySelectorAll('[data-sw-part="cue"], [data-sw-div]'),function(e){set(e,/^hidden$/,'');});
-if(hv && rain) { set(top,/^gap--/,'gap--xsmall'); set(outer,/^gap--/,'gap--xsmall'); set(temp,/^gap--/,'gap--small'); }
-if(rain) {
-set(rain,/^w--/,narrow?'w--[52cqw]':'w--[26cqw]'); set(rain,/^h--/,hv?'h--[8cqh]':(view===2?'h--[15cqh]':(view===4?'h--[18cqh]':'h--[12cqh]')));
-set(rain.parentElement,/^flex--col$/, 'flex--row');
-set(rain.parentElement.querySelector('img'),/^(h--\S+|hidden|lg:block)$/,ib); if(view===4){set(rain.parentElement.parentElement,/^gap--/,'gap--medium');var g4=rain.parentElement.querySelector('[data-sw-part="gauge"]');if(g4)g4.parentNode.removeChild(g4);}
-set(panel.querySelector('[data-sw-gap="rain-sun"]'),/^h--/,'h--[1cqh]');
-}
-if(sun) {
-set(sun,/^hidden$/, 'flex');
-var big = !rain;
-[].forEach.call(sun.querySelectorAll('img'),function(e){set(e,/^h--/,hv&&rain?'h--[5cqh]':(big?(hv?'h--[4cqh]':(view>=2?'h--[8cqh]':'h--[5cqh]')):(view===1?'h--[4cqh]':(view===4?'h--[9cqh]':(view===2?'h--[7cqh]':'h--[3cqh]')))));});
-if(big){if(view!==3)set(sun,/^flex--(?:row|left)$/,'flex--col flex--center');else{set(sun,/^flex--left$/,'flex--center');set(sun,/^gap--/,'gap--small');}set(sun.children[1]||sun,/^gap--/,'gap--medium');}
-if(big||view===4)[].forEach.call(sun.querySelectorAll('[data-sw-suntime] span.title'),function(e){set(e,/^title--/,'title--large');});
-[].forEach.call(sun.querySelectorAll('[data-sw-part="moon"]'),function(e){if(!e.classList.contains('hidden')){set(e,/^[hw]--/,rain?ib:(big?(hv?'h--[7cqh]':(view===4?'h--[21cqh]':(view===2?'h--[11cqh]':'h--[8cqh]'))):'h--[6cqh]'));}});
-}
-
-}
-swOGPortrait();
-whenReady(function () {
-swRepaint = swPaint;
-swArrow(document.createElement('canvas').getContext('2d')); swCapBase();
-document.querySelectorAll('[data-sw-part="gauge"]').forEach(function (el) {
-var un = el.previousElementSibling, cal = un && un.querySelector('[data-sw-part="rain"]'); if (!cal) return;
-var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0], lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
-var lab = ((SW.rain || {}).gauge || {}).label || '', rw = (cal.getAttribute('data-sw-rows') || '').split(','), rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || 2, cb = cal.getBoundingClientRect(), ub = un.getBoundingClientRect();
-var cw = cb.width / 3, ch = cb.height / rows, gp = Math.max(2, Math.min(cw, ch) * 0.06), fs = Math.min(lp * 0.7 || 12, (cb.left - ub.left) / (lab.length * 0.62 + 0.5));
-el.style.width = (cb.right - ub.left).toFixed(2) + 'px'; el.style.height = Math.max(4, ch * 0.3).toFixed(2) + 'px'; el.setAttribute('data-sw-gp', gp.toFixed(2)); el.setAttribute('data-sw-x0', (cb.left - ub.left).toFixed(2));
-var rc = el.closest('[data-sw-right]'), pn = rc && rc.closest('[data-sw-panel]'), pb = pn && pn.getBoundingClientRect(), ps = pn && getComputedStyle(pn), rb = rc && rc.getBoundingClientRect();
-if (!cb.width || cw / ch < 0.85 || cw * 0.7 < lp || fs < (lp * 0.7 || 12) * 0.6 || (rb && pb && (rb.bottom > pb.bottom - parseFloat(ps.paddingBottom) + 0.5 || rb.top < pb.top + parseFloat(ps.paddingTop) - 0.5))) el.classList.add('hidden');
-});
-var qvm = [].filter.call(document.querySelectorAll('[data-sw-part^="meter"]'), function (q) { return q.getBoundingClientRect().height > 0; }), qhv = qvm.filter(function (q) { return q.getAttribute('data-sw-part') === 'meterin'; })[0];
-if (qhv) { var qcol = qhv.parentElement.parentElement, qpn = qcol.closest('[data-sw-panel]') || qcol.parentElement, qcs = getComputedStyle(qpn), qin = qpn.getBoundingClientRect().height - (parseFloat(qcs.paddingTop) + parseFloat(qcs.paddingBottom)) * ((qpn.offsetHeight && qpn.getBoundingClientRect().height / qpn.offsetHeight) || 1);
-if (qcol.getBoundingClientRect().height > qin + 0.5 || qcol.scrollHeight > qcol.clientHeight + 1) document.querySelectorAll('[data-sw-hum2]').forEach(function (q) { q.classList.add('hidden'); q.classList.remove('flex', 'lg:flex', 'lg:block'); }); }
-document.querySelectorAll('[data-sw-for]').forEach(function (el) { var mt = [].filter.call(document.querySelectorAll('[data-sw-part^="meter"][data-sw-key="' + el.getAttribute('data-sw-for') + '"]'), function (q) { return q.getBoundingClientRect().height > 0; })[0]; if (!mt) return; var mk = (mt.offsetHeight && mt.getBoundingClientRect().height / mt.offsetHeight) || 1, mh = (mt.getBoundingClientRect().height / mk).toFixed(2) + 'px'; el.style.setProperty('height', mh, 'important'); el.style.setProperty('width', mh, 'important'); });
-document.querySelectorAll('[data-sw-part]').forEach(function (el) {
-TRMNLPaint.watch(el, function () { swPaint(el); });
-});
-function swPaint(el) {
-SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: el }); };
-SWDraw.bg = null; for (var an = el; an && !SWDraw.bg; an = an.parentElement) { var bc = getComputedStyle(an).backgroundColor; if (bc && !/^rgba\(.*, 0\)$|^transparent$/.test(bc)) SWDraw.bg = bc; }
-var di = el.closest('[data-sw-dialin]'); if (di) { var pf = TRMNLPaint.bg(SWDraw.mode.dark ? 'gray-45' : (SWDraw.mode.bits === 2 ? 'gray-55' : 'gray-50'), { el: el }); if (pf && pf.color) di.style.color = pf.color; }
-var sc = (el.closest('.screen') || document.querySelector('.screen') || document.body).classList;
-var cl = /(^| )screen--color-/.test(sc.value);
-SWDraw.mode = { color: cl, dark: sc.contains('screen--dark-mode'), bits: sc.contains('screen--1bit') || (cl && !sc.contains('screen--color-full')) ? 1 : (sc.contains('screen--2bit') ? 2 : 4) };
-SWDraw.font = (TRMNLPaint.type('title', { el: el }) || {}).fontFamily || null;
-var r = el.getBoundingClientRect();
-if (el.hasAttribute('data-sw-sq') && r.height) { var k0 = (el.offsetHeight && r.height / el.offsetHeight) || 1, tf = el.getAttribute('data-sw-part') === 'tri' ? parseFloat(getComputedStyle(el.parentElement).fontSize) * 0.8 : 0; if (tf) el.style.setProperty('height', tf.toFixed(2) + 'px', 'important'); el.style.setProperty('width', (tf || r.height / k0).toFixed(2) + 'px', 'important'); r = el.getBoundingClientRect(); }
-if (!r.width && !r.height) return;
-SWDraw.gp = +(el.getAttribute('data-sw-gp') || 0); SWDraw.gx0 = +(el.getAttribute('data-sw-x0') || 0); SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
-var ml = [].filter.call(document.querySelectorAll('[data-sw-mlabel]'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
-var ogp = sc.contains('screen--portrait') && (sc.contains('screen--md') || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && [].filter.call(document.querySelectorAll('[data-sw-row="day"] span.title'), function (q) { return q.getBoundingClientRect().width > 0; })[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; SWDraw.ogfull = ogp && sc.contains('screen--md') && / view=1 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'));
-var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[window.innerWidth >= 1024 ? 1 : 0]) || null;
-var rows = [].filter.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (q) { return q.getBoundingClientRect().width > 0; }), k = rows.indexOf(el);
-SWDraw.nRows = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; }).length;
-SWDraw.scaleH = rows.length && rows[0].getAttribute('data-sw-part') === 'scale' ? Math.round(rows[0].getBoundingClientRect().height) : null;
-var hb = [].map.call(document.querySelectorAll('[data-sw-part="hbar"]'), function (q) { return q.getBoundingClientRect().height; }).filter(function (h) { return h > 0; }); SWDraw.hbarH = hb.length ? Math.floor(Math.min.apply(null, hb)) : null; SWDraw.hcols = hb.length || null;
-SWDraw.extD = k >= 0 && k + 1 < rows.length ? Math.max(0, rows[k + 1].getBoundingClientRect().top - r.bottom + 1) : 0;
-if (/^(baro|tdial)$/.test(el.getAttribute('data-sw-part'))) { SWDraw.caps = {}; document.querySelectorAll('[data-sw-part="baro"], [data-sw-part="tdial"]').forEach(function (d) { var b = d.getBoundingClientRect(); if (!b.width) return; SWDraw.caps[d.getAttribute('data-sw-part')] = [].map.call(d.parentElement.querySelectorAll('[data-sw-cap]'), function (c) { var rg = document.createRange(); rg.selectNodeContents(c); var q = rg.getBoundingClientRect(); return [q.left - b.left, q.top - b.top, q.right - b.left, q.bottom - b.top]; }); }); }
-el.innerHTML = SWDraw.part(SW, el.getAttribute('data-sw-part'), +(el.getAttribute('data-sw-i') || 0), Math.floor(r.width), Math.floor(r.height));
-if (el.getAttribute('data-sw-part') === 'cue') { var cs0 = el.firstElementChild; if (cs0) { cs0.setAttribute('width', '100%'); cs0.setAttribute('height', '100%'); cs0.setAttribute('preserveAspectRatio', 'xMinYMid meet'); } }
-el.querySelectorAll('text[data-sw-tick]').forEach(function (t) { var d = t.nextElementSibling; if (d) d.setAttribute('x', (+t.getAttribute('x') + t.getComputedTextLength() / 2 + 1).toFixed(1)); });
-swAlign();
-}
-var scr = (document.querySelector('.screen') || document.body).classList;
-if (scr.contains('screen--dark-mode') && !scr.contains('screen--1bit')) document.querySelectorAll('img[data-sw-icon]').forEach(function (im) {
-function swap() { var r = im.getBoundingClientRect(), k = (im.offsetWidth && r.width / im.offsetWidth) || 1; if (!r.width || !r.height) return;
-SWDraw.paint = function (t) { return TRMNLPaint.bg(t, { el: im.parentElement }); }; SWDraw.mode = { dark: true, bits: scr.contains('screen--2bit') ? 2 : 4 }; SWDraw.src = im.src;
-var w = document.createElement('span'); w.setAttribute('data-sw-part', 'icon'); if (im.getAttribute('data-sw-ink')) w.setAttribute('data-sw-ink', im.getAttribute('data-sw-ink')); w.className = 'block shrink-0'; w.innerHTML = SWDraw.part(SW, 'icon', 0, Math.round(r.width / k), Math.round(r.height / k));
-var sv = w.firstChild, nx = im.parentElement.nextElementSibling; sv.setAttribute('class', 'block');
-if (nx && nx.hasAttribute('data-sw-cond')) { sv.setAttribute('width', '100%'); sv.setAttribute('height', '100%'); w.className = 'block shrink-0 h--full w--full'; }
-else { sv.setAttribute('width', Math.round(r.width / k)); sv.setAttribute('height', Math.round(r.height / k)); }
-im.replaceWith(w); }
-if (im.complete) swap(); else im.addEventListener('load', swap);
-});
-swAlign();
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(swAlign);
-if (window.ResizeObserver) { var ro = new ResizeObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-cond]').forEach(function (q) { ro.observe(q); ro.observe(q.parentElement); }); }
-if (window.MutationObserver) { var mo = new MutationObserver(function () { swAlign(); }); document.querySelectorAll('[data-sw-cond]').forEach(function (q) { mo.observe(q, { attributes: true, childList: true, characterData: true, subtree: true }); }); }
-[200, 800, 2000].forEach(function (ms) { setTimeout(function () { swN = 0; swAlign(); }, ms); });
-document.body.setAttribute('data-sw-drawn', '1');
-});
-})();
+(()=>{var e=t.$Q(".screen--lg")?t.$Q(".screen--portrait")?.455:.385:.356;function r(r){var i=t.$Q("[data-sw-sbox]");if(i){var l=i.$b();if(l.width&&l.height){var n=a(i),o=i.clientWidth-parseFloat(n.paddingLeft)-parseFloat(n.paddingRight)-1,d=i.clientHeight-parseFloat(n.paddingTop)-parseFloat(n.paddingBottom)-1,h=t=>i.$Q(t),c=h("[data-sw-scond]"),f=h("[data-sw-sicon]"),g=h('[data-sw-sgrp="temp"]').$Q('[data-sw-part="temp"],[data-sw-part="itemp"]'),p=h("[data-sw-sunit]"),u=h("[data-sw-sloc]"),m=h("[data-sw-sout]"),v=m,b="itemp"===g.$g("data-sw-part")?SW.inn.temp:SW.temp,x=i.$h("data-sw-nocue")&&!!t.$Q(".screen--portrait")&&d>1.2*o,y=h('[data-sw-sgrp="side"]'),k=i.$h("data-sw-nocue")?null:h('[data-sw-part="cue"]:not([data-sw-socue])'),M=h("[data-sw-socue]"),L=m&&k?M:null,E=h('[data-sw-unit="rain"]'),Q=h('[data-sw-part="rain"]'),A=h("[data-sw-slohi]"),H=h('[data-sw-srow="main"]');L&&(k=null),M&&M.classList.toggle("hidden",!L);var W=[].slice.call(i.$A('[data-sw-srow="meter"]')),C=a(c),_=C.fontFamily,q=C.fontWeight,I=c.$g("data-sw-t0");null===I&&(I=c.textContent.trim(),c.$s("data-sw-t0",I));var D,R=A?A.$g("data-sw-slohi").split("|"):null,S=(r.font=q+" 100px "+_,(r.measureText("H").actualBoundingBoxAscent||72)/100),F=(f&&f.$Q("[data-sw-ink]")||f||{getAttribute:()=>null}).$g("data-sw-ink")||"0,1",B=+F.split(",")[0]||0,T=w(.3,+F.split(",")[1]||1);D=vt(b);var z=m?vt(SW.temp,1):0,j=/[⺀-鿿가-힯＀-￯]/.test(I),N=I.split(j?"":/\s+/),O=W.map((t=>{var a=t.$Q("[data-sw-mlabel]"),e=a.$g("data-sw-t0");return null===e?a.textContent.trim():e})),P=O.length?Math.max.apply(null,O.map((t=>mt(t,100)/100))):0,V=1,U=xt(0);if(m){m=null;var Z=xt(0);m=v,U=null,[1,.7,.5,.35,.22].some((t=>(V=t,(U=xt(0))&&Z&&U.D>=.85*Z.D))),U||(U=Z,m=null)}if(v&&v.classList.toggle("hidden",!m),U){var G=h('[data-sw-part="cue"]:not([data-sw-socue])');if(k){var Y=k;k=null;var X=xt(0);k=Y,X&&.85*X.D>U.D&&!i.$h("data-sw-keepcue")&&(U=X,k=null)}G&&G.classList.toggle("hidden",!k);for(var J=$(x?4:2,W.length);J>0;J--){var K=xt(J);if(K&&K.D>=(x?.97:.85)*U.D){U=K;break}}if(x&&U.n){var tt=$(.5*U.D-U.mh,w(0,d-U.tH-.035*d*(U.n+1))/U.n);tt>0&&o>=.5*P*(U.mh+tt)+5.3*(U.mh+tt)&&(U.mh+=tt,U.fsM=.5*U.mh,U.tH+=tt*U.n)}var at=i.$c("[data-sw-console]"),et=t.$Q("div[data-sw-dstrip]");if(at&&et&&d-U.tH>.06*d){var rt=at.offsetHeight&&at.$b().height/at.offsetHeight||1;at.style.$I("height",(at.$b().height/rt-(d-U.tH)+2).$f(1)+"px"),d=U.tH+1,[].forEach.call(at.$A('[data-sw-part="face"]'),(t=>{s&&s(t)}))}var st=[o.$f(0),d.$f(0),U.D.$f(1),U.n,U.mainRow,U.sideCol,_].join("|");if(i.$g("data-sw-sk")!==st){i.$s("data-sw-sk",st),i.style.rowGap=(U.g+(!et&&d-U.tH>.06*d?$(x?d:.35*U.D,.9*(d-U.tH)/(U.n+1)):0)).$f(1)+"px";var it=h('[data-sw-srow="cond"]');it.style.columnGap=(.3*U.fsC).$f(1)+"px",yt(it,null,U.condH),it.style.marginTop=(-.62*w(0,U.condH-w(U.ic*T,1.15*(U.ln.length-1)*U.fsC+S*U.fsC))/2).$f(1)+"px",yt(f,U.ic,U.ic),f&&(f.style.margin=(-(U.ic-U.ic*T)/2).$f(1)+"px 0",f.style.transform="translateY("+((.5-B-T/2)*U.ic).$f(1)+"px)",f.$s("data-sw-condicon",U.ln.length+","+U.ic.$f(1)));var lt=Math.max.apply(null,U.ln.map((t=>mt(t,U.fsC))))+2,nt=kt(U.ln,U.fsC,lt);c.innerHTML=nt.html,c.$s("data-sw-fs",U.fsC.$f(2)),c.$s("data-sw-lines",U.ln.length),H.classList.toggle("flex--row",U.mainRow),H.classList.toggle("flex--col",!U.mainRow),H.style.gap=(U.mainRow?1.6*U.g:U.g).$f(1)+"px",yt(g,D*U.D,U.D),g.$s("data-sw-d",U.D.$f(1));var ot=kt([SW.unit||""],U.fsU,U.uW);if(p.innerHTML=ot.html,p.style.marginLeft=U.gU.$f(1)+"px",yt(p,U.uW,ot.h),u&&(yt(u,U.lI,U.lI),u.style.marginRight=(1.5*U.gU).$f(1)+"px",u.style.marginTop=(.05*U.D).$f(1)+"px"),m){var dt=m.$Q('[data-sw-part="loc"]'),ht=m.$Q('[data-sw-part="temp"]'),ct=m.$Q("[data-sw-sounit]"),ft=kt([SW.unit||""],U.ofU,U.ouW);yt(dt,U.oI,U.oI),L&&(yt(L,1.6*U.oI,U.oI),dt.style.marginRight=(.1*U.oD).$f(1)+"px"),(L||dt).style.marginRight=(.15*U.oD).$f(1)+"px",[dt,L].forEach((t=>{t&&(t.style.transform="translateX("+(/^1/.test(SW.temp)?.4*U.oD:0).$f(1)+"px)")})),yt(ht,z*U.oD,U.oD),ct.innerHTML=ft.html,ct.style.marginLeft=(.05*U.oD).$f(1)+"px",yt(ct,U.ouW,ft.h)}if(y&&(y.classList.toggle("flex--col",U.sideCol),y.classList.toggle("flex--row",!U.sideCol),y.style.gap=(U.sideCol?U.g:1.5*U.g).$f(1)+"px",y.style.alignItems=U.sideCol&&U.mainRow?"flex-start":"center"),k&&yt(k,1.6*U.cueH,U.cueH),E&&(E.style.gap=U.gR.$f(1)+"px",yt(E.firstElementChild,U.calH,U.calH),yt(Q,U.calW,U.calH)),A){var gt=U.fsL,pt=.8*gt,wt=0,$t="";R.forEach(((t,a)=>{var e=.5*gt;$t+='<polygon points="'+(a?[[wt,e+.8*pt],[wt+pt,e+.8*pt],[wt+pt/2,e]]:[[wt,e],[wt+pt,e],[wt+pt/2,e+.8*pt]]).map((t=>t[0].$f(1)+","+t[1].$f(1))).join(" ")+'" '+(a?'fill="currentColor"':'fill="none" stroke="currentColor" stroke-width="'+(.08*gt).$f(1)+'"')+"/>",$t+='<text x="'+(wt+=pt+.2*gt).$f(1)+'" y="'+(.5*gt+S*gt).$f(1)+'" font-size="'+gt.$f(1)+'" font-family="'+_.replace(/"/g,"'")+'" font-weight="'+q+'" fill="currentColor">'+t+"</text>",wt+=mt(t,gt)+.6*gt})),A.innerHTML='<svg class="block" width="'+U.lW.$f(1)+'" height="'+(1.2*gt+.5*gt).$f(1)+'" viewBox="0 0 '+U.lW.$f(1)+" "+(1.7*gt).$f(1)+'" role="img" aria-label="'+R.join(" ")+'">'+$t+"</svg>"}var ut=$(o,w(U.condW,U.mainRow?U.tW+1.6*U.g+U.sW:w(U.tW,U.sW)));W.forEach(((t,a)=>{var e=U.n>a;if(t.classList.toggle("hidden",!e),t.classList.toggle("flex",e),e){yt(t,ut,U.mh),t.style.gap=(.3*U.mh).$f(1)+"px";var r=t.$Q("[data-sw-mlabel]"),s=r.$g("data-sw-t0");null===s&&(s=r.textContent.trim(),r.$s("data-sw-t0",s));var i=U.fsM,l=Math.max.apply(null,O.map((t=>mt(t,i))))+2,n=kt([s],i,l);r.innerHTML=n.html,yt(r,l,n.h),r.style.$I("font-size",i.$f(2)+"px"),yt(t.$Q("[data-sw-part]"),null,.75*U.mh)}}))}}}}function mt(t,a){return r.font=q+" "+a.$f(2)+"px "+_,r.measureText(t).width}function vt(t,a){try{return parseFloat(SWDraw.digits(t+"",100,a).match(/width="([\d.]+)"/)[1])/100}catch(a){return.6*(t+"").length}}function bt(t,a,r,s){var i,l,n,h=w(4,.07*t),c=e*t,g=f?2.3*S*c/T:0,p=.3*c,v=o-g-(f?p:0),b=(i=c,l=v,n=[""],N.forEach((t=>{var a=n[n.length-1],e=a?a+(j?"":" ")+t:t;a&&mt(e,i)>l?n.push(t):n[n.length-1]=e})),n),y=Math.max.apply(null,b.map((t=>mt(t,c)))),M={D:t,g:h,fsC:c,ic:g,ln:b,ok:2>=b.length&&v>=y};M.condH=w(g*T,1.15*b.length*c),M.condW=g+(f?p:0)+y,M.fsU=.3*t,M.uW=mt(SW.unit||"",M.fsU)+2,M.gU=.05*t,M.lI=u?.42*t:0,M.tW=(u?M.lI+1.5*M.gU:0)+D*t+M.gU+M.uW;var Q=[];m&&(M.oD=V*t,M.oI=$(.42*t,.8*M.oD),M.ofU=.3*M.oD,M.ouW=mt(SW.unit||"",M.ofU)+2,Q.push([M.oI+(L?1.6*M.oI+.1*M.oD:0)+.3*M.oD+z*M.oD+.05*M.oD+M.ouW,M.oD])),k&&(M.cueH=.55*t,Q.push([1.6*M.cueH,M.cueH])),E?(M.calH=.55*t,M.calW=1.95*M.calH,M.gR=.06*t,Q.push([M.calH+M.gR+M.calW,M.calH])):A&&(M.fsL=.3*t,M.lW=mt(R[0],M.fsL)+mt(R[1],M.fsL)+2.8*M.fsL,Q.push([M.lW,1.2*M.fsL]));var H=0,W=0;Q.forEach(((t,a)=>{r?(H=w(H,t[0]),W+=t[1]+(a?h:0)):(H+=t[0]+(a?1.5*h:0),W=w(W,t[1]))})),M.sW=H,M.sH=W;var C=a?M.tW+(Q.length?1.6*h+H:0):w(M.tW,H),_=a?w(t,W):t+(Q.length?h+W:0);M.mh=x?w(.2*t,22):.2*t,M.fsM=.5*M.mh,M.n=s;var q=M.condH+h+_+s*(M.mh+h),I=w(M.condW,C,s?P*M.fsM+.3*M.mh+(x?5:7)*M.mh:0);return M.tH=q,M.fit=M.ok&&d>=q&&o>=I,M.mainRow=a,M.sideCol=r,M}function xt(t){var a=null;return[[!0,!0],[!1,!0],[!1,!1],[!0,!1]].forEach((e=>{for(var r=8,s=d,i=null,l=0;18>l;l++){var n=(r+s)/2,o=bt(n,e[0],e[1],t);o.fit?(r=n,i=o):s=n}i&&(!a||i.D>a.D+.5||x&&i.D>a.D-.5&&i.tH>a.tH+1)&&(a=i)})),a&&t&&11>a.fsM?null:a}function yt(t,a,e){t&&(null!==a&&t.style.$I("width",a.$f(1)+"px"),null!==e&&t.style.$I("height",e.$f(1)+"px"))}function kt(t,a,e){var r=1.15*a,s=r*(t.length-1)+1.25*a,i=(s-r*(t.length-1))/2+S*a/2;return{h:s,html:'<svg class="block" width="'+e.$f(1)+'" height="'+s.$f(1)+'" viewBox="0 0 '+e.$f(1)+" "+s.$f(1)+'" role="img" aria-label="'+t.join(" ").replace(/"/g,"&quot;")+'">'+t.map(((t,e)=>'<text x="0" y="'+(i+e*r).$f(2)+'" font-size="'+a.$f(2)+'" font-family="'+_.replace(/"/g,"'")+'" font-weight="'+q+'" fill="currentColor">'+t.replace(/&/g,"&amp;").replace(/</g,"&lt;")+"</text>")).join("")+"</svg>"}}}var s=null;function i(){t.$A('[data-sw-part="temp"]').forEach((t=>{var e=t.$p,r=e.$p;if(!t.$c("[data-sw-twin]")&&!t.$c("[data-sw-small]")){var i=r.$b();if(i.width){var l=r.offsetWidth&&i.width/r.offsetWidth||1,n=t=>t?t.$b().width/l:0,o=[].filter.call(r.children,(t=>t.$b().width>0)),d=a(r),h=parseFloat(d.columnGap)||0,c=0===d.flexDirection.indexOf("column"),f=c?o.reduce(((t,a)=>w(t,n(a))),0):o.reduce(((t,a)=>t+n(a)),0)+h*(o.length-1),g=$(r.clientWidth-parseFloat(d.paddingLeft)-parseFloat(d.paddingRight),r.$p.clientWidth)-(r.$Q(':scope > [data-sw-part="cue"]')?h:0),p=t=>t.$b().height/l,u=r.$Q(':scope > [data-sw-part="cue"]');if(u&&!u.$b().width&&(u=null),!e.$h("data-sw-h0")){if(g+.5>=f)return;e.$s("data-sw-h0",p(e))}var v,b,x=+e.$g("data-sw-h0")/(((b=(v=t)&&v.$Q("svg"))?p(b):0)||1),y=n(t.$Q("svg"))*x,k=u&&!c?n(u)*x:0;if(f+=y-n(t.$Q("svg"))+(k?k-n(u):0),y){var M=n(e)-n(t.$Q("svg")),L=$(1,w(.4,c?(g-1-M)/y:(y+k-(f-g)-1)/(y+k)));((t,a,e)=>{m(p(t)-a)>.3&&(t.style.$I("height",a.$f(1)+"px"),s&&s(e))})(e,+e.$g("data-sw-h0")*L,t),r.$s("data-sw-fit",L.$f(3))}}}}))}function l(e){t.$A('[data-sw-part="cue"]:not([data-sw-cb])').forEach((t=>{var r=t.$b(),s=t.$Q("svg"),i=t.$Q("g[data-sw-cloth]"),l=t.$p.$Q('[data-sw-part="temp"] svg');if(r.width&&s&&i&&l&&l.$b().height){var n=t.offsetWidth&&r.width/t.offsetWidth||1,o=(t=>{var a=t.$b(),e=t.viewBox.baseVal,r=t.getBBox(),s=a.width/(e.width||a.width),i=a.height/(e.height||a.height);return{l:a.left+(r.x-e.x)*s,r:a.left+(r.x-e.x+r.width)*s,t:a.top+(r.y-e.y)*i,h:r.height*i}})(l),d=s.viewBox.baseVal,h=i.$g("data-sw-box").split(",").map(Number),c=o.h/h[2];m(r.height-d.height*c)>.3&&(t.style.$I("height",(d.height*c/n).$f(2)+"px"),t.style.$I("width",(d.width*c/n).$f(2)+"px"),s.$s("preserveAspectRatio","xMinYMid slice")),t.style.transform="",r=t.$b(),t.style.transform="translateY("+((o.t-(r.top+(r.height-d.height*c)/2+(h[1]-d.y)*c))/n).$f(2)+"px)";var f=t.previousElementSibling;if(f&&f.$h("data-sw-div")){var g=t.$p.$Q("[data-sw-unit]");if(f.style.transform="",g&&f.$b().height){var p=a(g);e.font=p.fontWeight+" "+p.fontSize+" "+p.fontFamily;var w=g.$b(),$=g.offsetWidth&&w.width/g.offsetWidth||1,u=w.left+e.measureText(g.textContent.trim()).actualBoundingBoxRight*$,v=t.$b().left;f.style.$I("height",(o.h/n).$f(2)+"px");var b=f.$b();f.style.transform="translate("+(((u+v)/2-(b.left+b.right)/2)/n).$f(2)+"px,"+((o.t-b.top)/n).$f(2)+"px)"}}}}))}var n,o,d=0;function h(){if(60>=++d){var e,s,n=t.createElement("canvas").getContext("2d");r(n),(()=>{var a=[].slice.call(t.$A('[data-sw-row="day"] > div > :first-child')).filter((t=>t.$b().width>0)),e=t.$Q('[data-sw-part="scale"]');if(a.length){e&&e.$p.firstElementChild.$b().width>0&&a.push(e.$p.firstElementChild);var r=0;a.forEach((t=>{[].forEach.call(t.$A("span"),(t=>{r=w(r,t.scrollWidth)}))})),r>a[0].clientWidth+.5&&a.forEach((t=>{t.style.$I("width",Math.ceil(r+1)+"px")}))}})(),e=[0,0],s=[[],[]],[].forEach.call(t.$A('[data-sw-row="day"]'),(t=>{[].filter.call(t.$A("span.title:not([data-sw-dname])"),(t=>t.$b().width>0)).slice(0,2).forEach(((t,a)=>{e[a]=w(e[a],t.scrollWidth),s[a].push(t.$p)}))})),s.forEach(((t,a)=>{t.length&&e[a]>t[0].clientWidth+.5&&t.forEach((t=>{t.style.$I("width",Math.ceil(e[a]+1)+"px")}))})),(e=>{var r=[].slice.call(t.$A("[data-sw-suntime] > span.title"));function s(r){var s=r.$g("data-sw-t");null===s&&(s=r.textContent.trim(),r.$s("data-sw-t",s));var i=a(r);e.font=i.fontWeight+" "+i.fontSize+" "+i.fontFamily;var l=e.measureText("H").actualBoundingBoxAscent*(+r.$g("data-sw-sf")||1),n=l>0?SWDraw.segtime(s,l):null;if(n){r.$g("data-sw-segk")!==n.key&&(r.innerHTML=n.html,r.$s("data-sw-segk",n.key),r.$s("aria-label",s));var o=t.$Q(".screen");24>1.25*l*(o&&o.offsetWidth?window.innerWidth/o.offsetWidth:1)&&r.$h("data-sw-segk")&&(r.textContent=s,r.$r("data-sw-segk"))}else r.$h("data-sw-segk")&&(r.textContent=s,r.$r("data-sw-segk"))}function i(t){var e=t.$p.$b(),r=t.$c("[data-sw-panel]"),s=t.$c("[data-sw-unit]");if(!e.width||!r)return 0;var i=r.$b(),l=a(r),n=i.width/(r.offsetWidth||i.width),o=i.right-parseFloat(l.paddingRight)*n;return s&&s.$p&&(o=$(o,s.$p.$b().right)),e.right-o}var l=["title--large","title--base","title--small"];r.forEach(s);var n=r.filter((t=>t.$p.$b().width>0));if(n.length){for(var o=0;l.length>o&&n.some((t=>i(t)>.5));o++){var d=parseFloat(a(n[0]).fontSize),h=n[0].className,c=l.map((t=>(n[0].className="title "+t+" text--bold",[t,parseFloat(a(n[0]).fontSize)]))).filter((t=>d-.1>t[1]))[0];if(n[0].className=h,!c)break;n.forEach((t=>{t.className="title "+c[0]+" text--bold",s(t)}))}for(var f=0;3>f&&n.some((t=>i(t)>.5));f++){var g=w(.5,Math.min.apply(null,n.map((t=>{var a=i(t),e=t.$p.$b().width;return a>.5&&e?(+t.$g("data-sw-sf")||1)*(e-a-1)/e:1}))));n.forEach((t=>{t.$s("data-sw-sf",g.$f(3)),t.$r("data-sw-segk"),s(t)}))}for(var p=n.map((t=>t.$p.$p.$Q("img,svg"))),u=p.every(Boolean)?Math.min.apply(null,p.map((t=>t.$b().height))):0,m=0;4>m;m++){var v=Math.max.apply(null,n.map((t=>i(t))));if(.5>=v||!p.every(Boolean))break;var b=Math.min.apply(null,p.map((t=>t.$b().height))),x=p[0].offsetHeight&&p[0].$b().height/p[0].offsetHeight||1,y=w(.45*u/x,(b-2*v-1)/x);if(y*x>=b-.1)break;p.forEach((t=>{t.style.$I("height",y.$f(1)+"px"),t.style.$I("width",y.$f(1)+"px")}))}}})(n),(e=>{t.$A("[data-sw-cond]").forEach((r=>{var s=r.$p.firstElementChild;if(s&&s!==r&&!r.$h("data-sw-scond")){var i=r.$b();if(i.height){var l=r.offsetWidth&&i.width/r.offsetWidth||1,n=a(r);e.font=n.fontWeight+" "+n.fontSize+" "+n.fontFamily,q(e.measureText("H").actualBoundingBoxAscent),s.style.transform="";for(var o,d,h=0,c=0;3>c;c++){var f=t.createRange();f.selectNodeContents(r);var g=[].filter.call(f.getClientRects(),(t=>t.width>0)),p=[];g.forEach((t=>{p.some((a=>2>m(a-t.top)))||p.push(t.top)}));var w=e.measureText("H"),u=w.actualBoundingBoxAscent,v=w.fontBoundingBoxAscent,b=w.fontBoundingBoxDescent,x=g[0]||i,y=x.top/l+(x.height/l-(v+b))/2+v;if(p.length>1){var k=g[g.length-1];o=2.3*u,d=(k.top/l+(k.height/l-(v+b))/2+v+y-u)/2}else o=2.3*u,d=y-u/2;var M=r.$c("[data-sw-panel]");if(M){var L=M.$b(),E=a(M),Q=2*$(d-L.top/l-parseFloat(E.paddingTop),L.bottom/l-parseFloat(E.paddingBottom)-d)-2;Q>0&&o>Q&&(o=Q,s.$s("data-sw-clamped","1"))}var A=(s.$Q("[data-sw-ink]")||s).$g("data-sw-ink")||"0,1",H=+A.split(",")[0],W=+A.split(",")[1]||1;if(d+=(.5-H-W/2)*(o/=W),q(o),p.length===h)break;h=p.length}var C=s.$Q("svg");C&&(C.$s("width",o.$f(1)),C.$s("height",o.$f(1)));var _=s.$b();s.style.transform="translateY("+(d-(_.top+_.height/2)/l).$f(1)+"px)",s.$s("data-sw-condicon",p.length+","+o.$f(1)+","+d.$f(1))}}function q(t){s.style.$I("height",t.$f(1)+"px"),s.style.$I("width",t.$f(1)+"px")}}))})(n),(()=>{var a=[].slice.call(t.$A("img[data-sw-dink]")),e=0;a.forEach((t=>{t.style.transform=""})),a.forEach((t=>{var a=t.$c(".relative"),r=a&&a.$Q("[data-sw-dname], [data-sw-today]"),s=t.offsetHeight;if(r&&s){var i=r.$b(),l=t.$b(),n=t.offsetWidth&&l.width/t.offsetWidth||1,o=s*n*.3-(l.left-i.right);o>0&&(e=w(e,o/n))}})),a.forEach((t=>{var a=t.$g("data-sw-dink").split(","),r=+a[0],s=+a[1]||1,i=$(1.15,w(1,.8/s)),l=t.offsetHeight;l&&(t.style.transformOrigin="left center",t.style.transform="translate("+e.$f(1)+"px,"+((.5-r-s/2)*l*i).$f(1)+"px) scale("+i.$f(3)+")")}));var r=-1e9,s=1;a.forEach((a=>{var e=[].filter.call(a.$c(".relative").$A("span.title:not([data-sw-dname])"),(t=>t.$b().width>0))[0],i=a.$b();if(e&&i.width){var l=t.createRange();l.selectNodeContents(e),s=a.offsetWidth&&i.width/a.offsetWidth/+(a.style.transform.match(/scale\(([\d.]+)/)||[0,1])[1]||1,r=w(r,i.right-l.$b().left)}})),r>-1&&a.forEach((t=>{var a=t.$p,e=parseFloat(a.style.marginRight)||0,i=e+(r+2)/s;i-e>.5&&a.style.$I("margin-right",i.$f(1)+"px")}))})(),i(),l(n),i(),l(n)}}(()=>{var e=t.$Q(".screen");if(e&&e.classList.contains("screen--portrait")&&e.classList.contains("screen--md")&&!t.$Q("[data-sw-small]")){var r=t.$Q("[data-sw-console]"),s=+t.$Q("[data-sw-debug]").$g("data-sw-debug").match(/view=(\d)/)[1],i=r.$Q("[data-sw-panel] > .relative"),l=r.$Q("[data-sw-cond]"),n=l.$p.$p.$p,o=r.$Q("[data-sw-right]");y(i,/^(flex--(?:row|col|col-reverse|center)|gap--\w+)$/,"flex--col-reverse flex--between gap--small"),y(n,/^flex--(?:row|stretch-y)$/,"flex--row w--full"),y(o,/^w--/,1===s?"w--[38cqw]":"w--[44cqw]"),y(l.$p,/^h--/,"h--[7cqh]"),2===s&&y(l,/^title--/,"title--small");var d=r.$Q('[data-sw-part="temp"]'),h=d.$p.$p;if(2===s){var c=r.$Q('[data-sw-part="meter"]');(c=c&&c.$p.$p.$p)&&y(c,/^flex--stretch-y$/,"flex--stretch-y")}y(h,/^h--/,(1===s?"h--[13cqh]":"h--[21cqh]")+" shrink-0"),y(d.$p,/^h--/,"h--full"),y(h,/^flex--col$/,"flex--row");var f=2===s?"h--[7cqh]":"h--[5cqh]";[].forEach.call(r.$A("[data-sw-mlabel]"),(t=>{y(t,/^title--/,"title--small"),y(t.$p,/^h--/,f),y(t.$p.$p.$p.$p,/^w--/,"w--full")})),[].forEach.call(r.$A('[data-sw-part^="meter"]'),(t=>{y(t,/^h--/,2===s?"h--[5cqh]":"h--[4cqh]"),y(t.$p,/^h--/,f)}));var g=r.$Q('[data-sw-part="rain"]'),p=r.$Q('[data-sw-unit="sun"]'),w=2===s?"h--[15cqh]":"h--[7cqh]";[].forEach.call(i.children,(t=>{t.$Q("[data-sw-part]")||t.$h("data-sw-part")||y(t,/^flex$/,"hidden")})),[].forEach.call(r.$A('[data-sw-part="gauge"]'),(t=>{t.parentNode.removeChild(t)}));var $=t.$Q("[data-sw-between]"),m=$&&$.nextElementSibling;1===s&&m&&(y(r,/^h--/,"h--[57cqh]"),y(m,/^h--/,"h--[35cqh]")),1===s&&[].forEach.call(t.$A('[data-sw-part="scale"], [data-sw-row="day"] > div > :nth-child(3)'),(t=>{var a=t.$p,e=a.children,r=a.$p.$h("data-sw-row");y(a,/^gap--/,"gap--xsmall"),r&&(y(a.$p,/^hidden$/,""),y(a,/^h--/,"h--[7cqh]")),y(e[0],/^w--/,"w--[12cqw]"),y(e[1],/^w--/,"w--[6cqw]"),y(e[2],/^w--/,"w--[6cqw]"),y(e[3],/^w--/,"w--[6cqw]"),e[5]&&(y(e[5],/^w--/,"w--[11cqw]"),r&&y(e[5].firstElementChild,/^h--/,"h--[6cqh]"));var s=e[1].$Q("img");s&&y(s,/^h--/,"h--[6cqh]")}));var v=[].filter.call(t.$A('[data-sw-row="day"] span.title'),(t=>t.$b().width>0))[0],b=v?u(.85*parseFloat(a(v).fontSize)):0;if(b&&[].forEach.call(t.$A('[data-sw-part="tri"]'),(t=>{y(t,/^[hw]--/,"h--["+b+"px] w--["+b+"px]")})),g&&(y(g,/^w--/,"w--[26cqw]"),y(g,/^h--/,2===s?"h--[15cqh]":"h--[12cqh]"),y(g.$p,/^flex--col$/,"flex--row"),y(g.$p.$Q("img"),/^(h--\S+|hidden|lg:block)$/,w),y(r.$Q('[data-sw-gap="rain-sun"]'),/^h--/,"h--[1cqh]")),p){y(p,/^hidden$/,"flex");var x=!g;[].forEach.call(p.$A("img"),(t=>{y(t,/^h--/,x?2===s?"h--[8cqh]":"h--[5cqh]":1===s?"h--[4cqh]":"h--[7cqh]")})),x&&(y(p,/^flex--(?:row|left)$/,"flex--col flex--center"),y(p.children[1]||p,/^gap--/,"gap--medium"),[].forEach.call(p.$A("[data-sw-suntime] span.title"),(t=>{y(t,/^title--/,"title--large")}))),[].forEach.call(p.$A('[data-sw-part="moon"]'),(t=>{t.classList.contains("hidden")||y(t,/^[hw]--/,g?w:x?2===s?"h--[11cqh]":"h--[8cqh]":"h--[6cqh]")}))}}function y(t,a,e){t&&([].slice.call(t.classList).forEach((e=>{a.test(e)&&t.classList.remove(e)})),e.split(" ").forEach((a=>{a&&t.classList.add(a)})))}})(),(()=>{var a=t.$Q(".screen"),e=t.$Q("[data-sw-debug]");a&&e&&a.classList.contains("screen--portrait")&&a.classList.contains("screen--md")&&/ view=3 /.test(e.$g("data-sw-debug"))&&[].forEach.call(t.$A('[data-sw-part="scale"], [data-sw-part="day"]'),(t=>{var a=t.$p,e="day"===t.$g("data-sw-part");a.classList.add("flex--wrap"),a.style.rowGap="2px",t.classList.remove("grow","basis--0","h--full"),t.classList.add("w--full","shrink-0"),t.style.$I("height",e?"45%":"50%"),e&&t.$s("data-sw-top",""),[].forEach.call(a.children,((a,r)=>{a!==t&&(a.style.$I("height",e?"50%":"45%"),e&&a.style.$I("align-items","flex-end"),2!==r&&3!==r||a.style.$I("width","13cqw"))})),e||a.style.$I("height",(2*a.offsetHeight).$f(1)+"px")}))})(),n=()=>{var e;s=f,r(t.createElement("canvas").getContext("2d")),e=t.createElement("canvas").getContext("2d"),t.$A('[data-sw-part="arrow"]').forEach((t=>{var r=t.$c(".relative").$Q("[data-sw-cap]");if(r){var s=a(r);e.font=s.fontWeight+" "+s.fontSize+" "+s.fontFamily;var i=1.5*e.measureText("H").actualBoundingBoxAscent;t.style.width=i.$f(1)+"px",t.style.height=i.$f(1)+"px"}})),(()=>{function e(a){var e=t.createElement("span");e.style.cssText="display:inline-block;width:0;height:0",a.appendChild(e);var r=e.$b().bottom;return a.removeChild(e),r}t.$A('[data-sw-part="baro"],[data-sw-part="tdial"]').forEach((t=>{var r=t.$p,s=r.$Q("span[data-sw-cap]"),i=[].filter.call(r.$A("div[data-sw-cap]:not([data-sw-dialin])"),(t=>t.$b().width>0))[0],l=i&&i.$Q(".value");if(s&&l&&t.$b().width){var n=s.offsetWidth&&s.$b().width/s.offsetWidth||1,o=e(l)-e(s);m(o)>.2&&(s.style.bottom=(parseFloat(a(s).bottom)-o/n).$f(2)+"px")}}))})(),t.$A('[data-sw-part="gauge"]').forEach((e=>{var r=e.previousElementSibling,s=r&&r.$Q('[data-sw-part="rain"]');if(s){var i=[].filter.call(t.$A("[data-sw-mlabel]"),(t=>t.$b().width>0))[0],l=i?parseFloat(a(i).fontSize)*(i.$b().width/(i.offsetWidth||1)):0,n=((SW.rain||{}).gauge||{}).label||"",o=+(s.$g("data-sw-rows")||"").split(",")[1024>window.innerWidth?0:1]||2,d=s.$b(),h=r.$b(),c=d.width/3,f=d.height/o,g=w(2,.06*$(c,f)),p=$(.7*l||12,(d.left-h.left)/(.62*n.length+.5));e.style.width=(d.right-h.left).$f(2)+"px",e.style.height=w(4,.3*f).$f(2)+"px",e.$s("data-sw-gp",g.$f(2)),e.$s("data-sw-x0",(d.left-h.left).$f(2));var u=e.$c("[data-sw-right]"),m=u&&u.$c("[data-sw-panel]"),v=m&&m.$b(),b=m&&a(m),x=u&&u.$b();(!d.width||.85>c/f||l>.7*c||.6*(.7*l||12)>p||x&&v&&(x.bottom>v.bottom-parseFloat(b.paddingBottom)+.5||v.top+parseFloat(b.paddingTop)-.5>x.top))&&e.classList.add("hidden")}}));var i=[].filter.call(t.$A('[data-sw-part^="meter"]'),(t=>t.$b().height>0)).filter((t=>"meterin"===t.$g("data-sw-part")))[0];if(i){var l=i.$p.$p,n=l.$c("[data-sw-panel]")||l.$p,o=a(n),c=n.$b().height-(parseFloat(o.paddingTop)+parseFloat(o.paddingBottom))*(n.offsetHeight&&n.$b().height/n.offsetHeight||1);(l.$b().height>c+.5||l.scrollHeight>l.clientHeight+1)&&t.$A("[data-sw-hum2]").forEach((t=>{t.classList.add("hidden"),t.classList.remove("flex","lg:flex","lg:block")}))}function f(e){SWDraw.paint=t=>TRMNLPaint.bg(t,{el:e}),SWDraw.bg=null;for(var r=e;r&&!SWDraw.bg;r=r.$p){var s=a(r).backgroundColor;s&&!/^rgba\(.*, 0\)$|^transparent$/.test(s)&&(SWDraw.bg=s)}var i=e.$c("[data-sw-dialin]");if(i){var l=TRMNLPaint.bg(SWDraw.mode.dark?"gray-45":2===SWDraw.mode.bits?"gray-55":"gray-50",{el:e});l&&l.color&&(i.style.color=l.color)}var n=(e.$c(".screen")||t.$Q(".screen")||t.body).classList,o=/(^| )screen--color-/.test(n.value);SWDraw.mode={color:o,dark:n.contains("screen--dark-mode"),bits:n.contains("screen--1bit")||o&&!n.contains("screen--color-full")?1:n.contains("screen--2bit")?2:4},SWDraw.font=(TRMNLPaint.type("title",{el:e})||{}).fontFamily||null;var d=e.$b(),c=e.$h("data-sw-lz")&&e.$c("[data-sw-twin]"),f=c&&c.$Q("[data-sw-unit]");if(f&&d.height){var g=w(d.height/(e.offsetHeight&&d.height/e.offsetHeight||1),1.4*parseFloat(a(f).fontSize)),p=c.$Q("[data-sw-lsp]");e.style.$I("height",g.$f(2)+"px");var $=c.$Q("[data-sw-cb]");$&&($.style.$I("height",g.$f(2)+"px"),$.style.$I("width",(1.6*g).$f(2)+"px")),p&&p.style.$I("height",g.$f(2)+"px"),d=e.$b()}if(e.$h("data-sw-sq")&&d.height){var m=e.offsetHeight&&d.height/e.offsetHeight||1,v="tri"===e.$g("data-sw-part")?.8*parseFloat(a(e.$p).fontSize):0;v&&e.style.$I("height",v.$f(2)+"px"),e.style.$I("width",(v||d.height/m).$f(2)+"px"),d=e.$b()}if(d.width||d.height){SWDraw.tr=e.$h("data-sw-tr"),SWDraw.gp=+(e.$g("data-sw-gp")||0),SWDraw.gx0=+(e.$g("data-sw-x0")||0),SWDraw.n=+(e.$g("data-sw-n")||0)||null,SWDraw.j=+(e.$g("data-sw-j")||0);var b=[].filter.call(t.$A("[data-sw-mlabel]"),(t=>t.$b().width>0))[0];SWDraw.lp=b?parseFloat(a(b).fontSize)*(b.$b().width/(b.offsetWidth||1)):0;var x=n.contains("screen--portrait")&&(n.contains("screen--md")||/ view=3 /.test(t.$Q("[data-sw-debug]").$g("data-sw-debug"))),y=x&&[].filter.call(t.$A('[data-sw-row="day"] span.title'),(t=>t.$b().width>0))[0];SWDraw.nfs=y?parseFloat(a(y).fontSize):0,SWDraw.ogfull=x&&n.contains("screen--md")&&/ view=1 /.test(t.$Q("[data-sw-debug]").$g("data-sw-debug"));var k=(e.$g("data-sw-rows")||"").split(",");SWDraw.rows=+k[1024>window.innerWidth?0:1]||null;var M=[].filter.call(t.$A('[data-sw-part="scale"], [data-sw-part="day"]'),(t=>t.$b().width>0)),L=M.indexOf(e);SWDraw.nRows=M.filter((t=>"day"===t.$g("data-sw-part"))).length,SWDraw.scaleH=M.length&&"scale"===M[0].$g("data-sw-part")?u(M[0].$b().height):null;var E=[].map.call(t.$A('[data-sw-part="hbar"]'),(t=>t.$b().height)).filter((t=>t>0));if(SWDraw.hbarH=E.length?Math.floor(Math.min.apply(null,E)):null,SWDraw.hcols=E.length||null,SWDraw.top=e.$h("data-sw-top"),SWDraw.extD=L>=0&&M.length>L+1?w(0,M[L+1].$b().top-d.bottom+1):0,/^(baro|tdial)$/.test(e.$g("data-sw-part"))&&(SWDraw.caps={},t.$A('[data-sw-part="baro"], [data-sw-part="tdial"]').forEach((a=>{var e=a.$b();e.width&&(SWDraw.caps[a.$g("data-sw-part")]=[].map.call(a.$p.$A("[data-sw-cap]"),(a=>{var r=t.createRange();r.selectNodeContents(a);var s=r.$b();return[s.left-e.left,s.top-e.top,s.right-e.left,s.bottom-e.top]})))}))),e.innerHTML=SWDraw.part(SW,e.$g("data-sw-part"),+(e.$g("data-sw-i")||0),Math.floor(d.width),Math.floor(d.height)),"cue"===e.$g("data-sw-part")){var Q=e.firstElementChild;Q&&(Q.$s("width","100%"),Q.$s("height","100%"),Q.$s("preserveAspectRatio","xMinYMid meet"))}e.$A("text[data-sw-tick]").forEach((t=>{var a=t.nextElementSibling;a&&a.$s("x",(+t.$g("x")+t.getComputedTextLength()/2+1).$f(1))})),h()}}t.$A("[data-sw-for]").forEach((a=>{var e=[].filter.call(t.$A('[data-sw-part^="meter"][data-sw-key="'+a.$g("data-sw-for")+'"]'),(t=>t.$b().height>0))[0];if(e){var r=e.offsetHeight&&e.$b().height/e.offsetHeight||1,s=(e.$b().height/r).$f(2)+"px";a.style.$I("height",s),a.style.$I("width",s)}})),t.$A("[data-sw-part]").forEach((t=>{TRMNLPaint.watch(t,(()=>{f(t)}))}));var g=(t.$Q(".screen")||t.body).classList;if(g.contains("screen--dark-mode")&&!g.contains("screen--1bit")&&t.$A("img[data-sw-icon]").forEach((a=>{function e(){var e=a.$b(),r=a.offsetWidth&&e.width/a.offsetWidth||1;if(e.width&&e.height){SWDraw.paint=t=>TRMNLPaint.bg(t,{el:a.$p}),SWDraw.mode={dark:!0,bits:g.contains("screen--2bit")?2:4},SWDraw.src=a.src;var s=t.createElement("span");s.$s("data-sw-part","icon"),a.$g("data-sw-ink")&&s.$s("data-sw-ink",a.$g("data-sw-ink")),s.className="block shrink-0",s.innerHTML=SWDraw.part(SW,"icon",0,u(e.width/r),u(e.height/r));var i=s.firstChild,l=a.$p.nextElementSibling;i.$s("class","block"),l&&l.$h("data-sw-cond")?(i.$s("width","100%"),i.$s("height","100%"),s.className="block shrink-0 h--full w--full"):(i.$s("width",u(e.width/r)),i.$s("height",u(e.height/r))),a.replaceWith(s)}}a.complete?e():a.addEventListener("load",e)})),h(),t.fonts&&t.fonts.ready&&t.fonts.ready.then(h),window.ResizeObserver){var p=new ResizeObserver((()=>{h()}));t.$A('[data-sw-unit=""], [data-sw-part="temp"], [data-sw-cond]').forEach((t=>{p.observe(t),p.observe(t.$p)}))}if(window.MutationObserver){var v=new MutationObserver((()=>{h()}));t.$A("[data-sw-cond]").forEach((t=>{v.observe(t,{attributes:!0,childList:!0,characterData:!0,subtree:!0})}))}[200,800,2e3].forEach((t=>{setTimeout((()=>{d=0,h()}),t)})),t.body.$s("data-sw-drawn","1")},o=0,function t(){if(window.TRMNLPaint)return n();++o>200||setTimeout(t,50)}()})();
 </script>
 {%- endif %}
 {% endtemplate %}

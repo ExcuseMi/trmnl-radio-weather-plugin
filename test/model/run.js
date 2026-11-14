@@ -70,9 +70,13 @@ test('format: rounding, no negative zero', () => {
 test('icon kinds follow the WMO code; the worst of a slot wins', () => {
   // owner: hail is its own kind (WMO 96, 99, a thunderstorm with hail), freezing rain is sleet, 71-77 and 85-86 snow
   eq([0, 1, 2, 3, 45, 51, 56, 61, 65, 66, 67, 71, 73, 75, 77, 80, 82, 85, 86, 95, 96, 99, null].map(SWModel.kind),
-    ['clear', 'clear', 'partly', 'cloud', 'fog', 'drizzle', 'sleet', 'rain', 'heavy', 'sleet', 'sleet', 'snow', 'snow', 'snow', 'snow',
+    ['clear', 'partly', 'partly', 'cloud', 'fog', 'drizzle', 'sleet', 'rain', 'heavy', 'sleet', 'sleet', 'snow', 'snow', 'snow', 'snow',
       'rain', 'heavy', 'snow', 'snow', 'storm', 'hail', 'hail', null]);
   eq(SWModel.worstKind([0, 2, 61, 3]), 'rain');
+  // owner 2026-11-14: the condition text and the icon agree (code 1 read 'partly cloudy' under a full sun)
+  const TXT_KIND = { 1000: 'clear', 1003: 'partly', 1006: 'cloud', 1009: 'cloud' }, W2 = T.WMO_TO_WAPI || {};
+  ok(Object.keys(W2).length > 10, 'WMO_TO_WAPI exported');
+  Object.keys(W2).forEach((c) => { if (TXT_KIND[W2[c]]) eq(SWModel.kind(+c), TXT_KIND[W2[c]], 'WMO ' + c + ' text ' + W2[c] + ' vs icon'); });
   const m = SWModel.build(fx('mixed'), {});
   eq(m.days[0].icon, 'rain');
   eq(m.now.day, false, '06:00 in November is night');
@@ -132,6 +136,7 @@ test('time format: the setting decides, 24 h when missing, the TIME constant ove
   const fields = y.split(/^- keyname: /m).slice(1).map((part) => ({ key: part.split('\n')[0], group: (/^  group: (.+)$/m.exec(part) || [])[1] || null }));
   eq(fields.map((f) => f.key), ['author_info', 'lat_lon', 'unit', 'time_format', 'bottom', 'hide_title_bar', 'sensor_show', 'sensor_co2'], 'settings in owner order');
   eq(fields.map((f) => f.group), [null, null, 'Display', 'Display', 'Display', 'Display', 'Sensor', 'Sensor'], 'settings groups');
+  ok(!/sensor_device/.test(y), 'owner 2026-11-14: a screen shows only its own sensor, no setting picks another device');
   ok(/- 24 hours \(17:00\): '24'\n  - 12 hours \(5:00 PM\): '12'\n  default: '24'\n/.test(y) && /- Days: days\n  - Hours: hours\n  - Hours, days after 18:00: auto\n  default: auto\n/.test(y), 'time format 24 by default, bottom strip Days by default');
 });
 
@@ -153,16 +158,8 @@ test('air quality: the current index at any hour (no evening mode)', () => {
   eq(SWModel.build(Object.assign({}, e, { aq }), {}).now.aqi, 30);
 });
 
-test('indoor sensor: latest reading, dropped when older than 3 hours', () => {
-  const sens = { device_1: { temperature: [{ '2026-11-08 05:00:00 UTC': 21.1 }, { '2026-11-08 05:30:00 UTC': 21.6 }], humidity: [{ '2026-11-08 05:30:00 UTC': 48 }], carbon_dioxide: [], pressure: [] } };
-  const base = Date.UTC(2026, 10, 8, 5, 40) / 1000;
-  const m = SWModel.build(Object.assign({}, fx('mixed'), { sens, renderedAt: base }), {});
-  eq([m.inn.temp, m.inn.hum], [21.6, 48]);
-  const old = SWModel.build(Object.assign({}, fx('mixed'), { sens, renderedAt: base + 4 * 3600 }), {});
-  eq([old.inn.temp, old.inn.hum], [null, null]);
-});
-
-test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 meter and high CO2 first (as live)', () => {
+// removed 'indoor sensor: latest reading, dropped when older than 3 hours': the input never carries sensor_readings on TRMNL (owner's live payload), so the transform no longer parses readings; the markup path is the render cases x-sens* (x-sens-stale: over 3 h shows nothing)
+test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 meter and the indoor meters first (owner 2026-11-14)', () => {
   const raw = fx('mixed'), view = (inn) => { const M = SWModel.build(raw, {}); M.inn = Object.assign({ temp: null, hum: null, co2: null, press: null }, inn); return T.buildView(M, T.buildI18n('nl'), raw.daily); };
   const none = view({});
   eq([none.inn, none.tdial.twin, none.meters.some((m) => m.key === 'co2')], [null, null, false], 'no sensor: nothing changes');
@@ -173,9 +170,13 @@ test('indoor sensor in the view: BUITEN/BINNEN twin readout, twin needle, CO2 me
   ok(v.tdial.b >= 21.6, 'dial scale holds the indoor needle');
   const out = view({}), M0 = SWModel.build(raw, {}), cold = Object.assign({}, M0, { now: Object.assign({}, M0.now, { temp: 15, feels: 1 }) });
   eq(['feels' in out, T.buildView(cold, T.buildI18n('nl'), raw.daily).cue[0]], [false, 'parka'], 'owner 2026-11-13: no felt readout without a sensor either; the felt temperature (1) still picks the top layer (parka, not the air temperature 15)');
-  const hi = view({ temp: 21.6, co2: 1500 }).meters.map((m) => m.key), lo = view({ temp: 21.6, co2: 900 }).meters.map((m) => m.key);
-  eq(hi.slice(0, 2), ['wind', 'co2'], 'CO2 above 1400 ppm moves up');
-  ok(lo.indexOf('co2') < 0 || lo.indexOf('co2') === lo.length - 1, 'normal CO2 stays last');
+  // owner 2026-11-14 (replaces 'CO2 above 1400 ppm moves up to second place, a normal reading stays last'): with an indoor reading the indoor group comes first, CO2 then the indoor humidity row (the outdoor humidity right after it), then the other outdoor meters in the usual order; no indoor reading: the usual order
+  const ks = (inn) => view(inn).meters.map((m) => m.key);
+  eq(ks({ temp: 21.6, hum: 48, co2: 900 }).slice(0, 2), ['co2', 'humidity'], 'CO2, then the humidity twin first');
+  eq(ks({ temp: 21.6, co2: 1500 }).slice(0, 2), ['co2', 'wind'], 'CO2 first at any reading, without an indoor humidity the outdoor meters follow in the usual order');
+  eq(ks({ temp: 21.6, hum: 48 })[0], 'humidity', 'no CO2 reading: the humidity twin first');
+  eq(ks({})[0], 'wind', 'no indoor reading: the usual order');
+  eq(ks({ temp: 21.6, hum: 48, co2: 900 }).filter((k) => k !== 'co2' && k !== 'humidity'), ks({}).filter((k) => k !== 'humidity').slice(0, 2), 'the other outdoor meters keep their usual order');
 });
 
 test('temperature readout: no decimal once the whole part has 3+ characters (owner, step 12: 104.6 F touched the divider)', () => {
@@ -222,8 +223,8 @@ test('the X view: no data gives no crash and empty parts', () => {
   const M = SWModel.build(fx('error'), {}), v = T.buildView(M, T.buildI18n('en'), null, null);
   eq(v.ok, false); eq(v.days.length, 0);
 });
-// Page drawings (DRAW block of shared.liquid), cut out like the model so the test runs the page's own bytes.
-const shRaw = fs.readFileSync(path.join(__dirname, '../../plugin/src/shared.liquid'), 'utf-8');
+// Page drawings (DRAW block of source/shared.liquid, the readable source: the built page script is minified into one statement), cut out like the model.
+const shRaw = fs.readFileSync(path.join(__dirname, '../../source/shared.liquid'), 'utf-8');
 const sh = shRaw.replace(/\{\{ (\d+) \| times: \w+ \| round \| at_most: 100 \}\}/g, '$1');   // per-view size factors read as the full view's values
 const da = sh.indexOf('// ==== DRAW_BEGIN ===='), db = sh.indexOf('// ==== DRAW_END ====');
 if (da < 0 || db < 0) throw new Error('DRAW markers missing in shared.liquid');
@@ -232,9 +233,11 @@ test('segment digits: lit segments only, no ghost segments (owner 2026-11-12)', 
   eq((D.digits('1', 100).match(/<polygon/g) || []).length, 2, 'a 1 is two segments');
   eq((D.digits('8.8', 100).match(/<polygon/g) || []).length, 14); ok(/<rect/.test(D.digits('8.8', 100)), 'decimal point');
 });
-test('segment digits: the minus is narrow, no digit-wide gap before the 2', () => {
+test('segment digits: LCD cells (owner 2026-11-14): the minus takes the empty integer cell, narrow minus glyph, no extra gap', () => {
   const w = (s) => +/viewBox="0 0 ([\d.]+)/.exec(D.digits(s, 100))[1];
-  ok(w('-2') < w('22') * 0.9, 'minus width ' + w('-2') + ' vs ' + w('22'));
+  eq(w('-2'), w('22'), 'a minus in the reserved cell: same width as two digits');
+  ok(w('-12') < w('-2') + w('2') * 0.9, 'a minus before two digits is narrow, not digit-wide: ' + w('-12') + ' vs ' + w('-2'));
+  ok(w('-') < w('2') * 0.9, 'minus glyph narrower than a digit cell');
 });
 test('meters (owner 2026-11-12): order wind, uv, aqi, humidity, pollen, baro, co2; pollen only above zero', () => {
   const raw = fx('mixed'), M0 = SWModel.build(raw, {});
@@ -270,11 +273,13 @@ test('dials: needle drawn last, low mark hollow, high mark solid, baro zone icon
 test('right column: no rule between the rain calendar and the sun times (owner 2026-11-12, later decision)', () => {
   ok(sh.indexOf('data-sw-sep="rain-sun"') < 0, 'no rain-sun separator');
 });
-test('days strip: 5-degree lines faint, blocks at least half the row, now line dark', () => {
-  const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40);
+test('days strip: 5-degree lines faint, other days thin mid-grey bars (at least 40 % of the row), today at least half the row in dark ink (owner 2026-11-14)', () => {
+  const day = (hi) => D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40, hi);
+  const s = day(false);
   ok(/^<svg[^>]*>(<defs>.*<\/defs>)?<g class="text--gray-7\d"/.test(s), 'grid lines light grey');
-  const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-20')[1])[1];
-  ok(h >= 20, 'block height ' + h + ' of 40');
+  const hOf = (str, tok) => +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(str.split(tok)[1])[1];
+  ok(hOf(s, 'text--gray-45') >= 16, 'other days: mid-grey block height ' + hOf(s, 'text--gray-45') + ' of 40');
+  ok(hOf(day(true), 'text--gray-10') >= 20, 'today: dark block at least half the row');
 });
 test('panel face (owner 2026-11-12): a plain fill on 4-bit light, no backlight lamps; none on 2-bit, in dark or 1-bit', () => {
   const f = (m, W, H) => { D.mode = m; const s = D.part({}, 'face', 0, W, H); D.mode = null; return s; };
@@ -300,7 +305,7 @@ test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none 
   D.mode = { dark: true, bits: 4 }; const r = D.rain([{ h: '14', wet: true }], 120, 40); D.mode = null;
   ok(r.indexOf('data-sw-glow') < r.lastIndexOf('<rect'), 'halo under the lit cell, not over it');
   D.mode = { dark: true, bits: 4 }; ok(!/text--gray-40/.test(D.meter({ frac: 0.5 }, 200, 30, 10)), 'dark: lit meter cells in full ink, as live'); D.mode = null;
-  ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 4, 'weather, rain and sun icons marked to glow');
+  ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 5, 'weather (full and small console), rain and sun rise/set icons marked to glow');
 });
 test('moon glow outside the disk in dark mode, none in light or 1-bit (owner 2026-11-12)', () => {
   const at = (m) => { D.mode = m; const v = D.moon(0.3, 100); D.mode = null; return v; };
@@ -315,11 +320,11 @@ test('days strip in narrow views: X half vertical 7 days without numbers, OG hal
   ok(/nd_md = 4 %}/.test(v3) && /nd_lg = 7 %}/.test(v3), 'half vertical: 4 days on md (owner 2026-11-12: taller rows), 7 on lg');
   ok(/num_cls = ' lg:hidden lg:portrait:flex' %}/.test(v3), 'half vertical: low/high numbers on the OG (owner 2026-11-12), dropped on the X landscape, kept on X portrait (step 19, coordinator: low/high stay)');
   ok(/bar_cls = 'col--span-7 lg:col--span-8' %}/.test(v3) && /name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}/.test(v3), 'bars keep at least half the strip, header pad matches name + icon');
-  ok(/name_t = ' lg:portrait:title--xlarge' %}/.test(v1) && /icon_x = ' lg:portrait:h--\[7cqh\]' %}/.test(v1), 'portrait: names and icons at the live size');
+  ok(/name_t = ' lg:portrait:title--xlarge' %}/.test(v1) && /icon_x = '(?: portrait:h--\[7cqh\])? lg:portrait:h--\[7cqh\]' %}/.test(v1), 'portrait: names and icons at the live size');
   ok(/<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}/.test(sh) && /{{ icon_x }}" src="{{ d.icon }}"/.test(sh), 'row markup uses the per-view sizes');
 });
 test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 segments, 5 days', () => {
-  ok(/<div class="hidden lg:block h--\[30cqh\][^"]*"><div class="flex flex--row/.test(sh), 'dials only on lg');
+  ok(/<div class="hidden lg:block h--\[\d+cqh\][^"]*"><div class="flex flex--row/.test(sh), 'dials only on lg');
   ok(/lg:hidden" data-sw-part="\{\{ pk \}\}" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="\{\{ pk \}\}" data-sw-n="10"/.test(sh), 'meter copies per size');
   ok(/data-sw-row="day"/.test(sh) && !/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'every day row in the same full-width wrapper (no half-width fifth row)');
   ok(/{%- if d.today %}<span class="label label--inverted[^"]*" data-sw-today>/.test(sh), 'OG: today a lit lamp on the day name (owner 2026-11-12)');
@@ -333,7 +338,7 @@ test('rain unit: icon left of the grid on every size (owner 2026-11-12, later de
   ok(u > 0 && /\{\{ ru_cls \}\}/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign ru_cls = 'flex--row lg:portrait:flex--col'/.test(sh), 'row on md and lg');
   ok(/{% if stk %}[^\n]*{% assign ru_cls = 'flex--col lg:flex--row' %}/.test(sh), 'narrow stacked md column: icon above the calendar (owner 2026-11-12)');
   ok(/<img class="image image--adaptive \{\{ ib_cls \}\}" src="\{\{ ui.rain.icon \}\}"/.test(sh.slice(u, end)) && /h--\[\{\{ cal_m \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\][^"]*" data-sw-part="rain"/.test(sh) && /capture ib_cls %\}aspect--1\/1 h--\[\{\{ ib_m \}\}cqh\] lg:h--\[\{\{ ib_l \}\}cqh\]/.test(sh), 'icon as tall as the grid on md and lg');
-  ok(/assign ib_m = cal_m %}{% if stk and view != 3 %}{% assign ib_m = rc_m/.test(sh) && /{% if view == 3 %}[^\n]*{% assign ru_cls = 'flex--row' %}/.test(sh), 'stacked md: icon above, one row tall; OG half vertical: icon left at the calendar height (owner 2026-11-12)');
+  ok(/{% if view == 3 %}[^\n]*{% assign ru_cls = 'flex--row' %}/.test(sh), 'stacked md: icon above, one row tall; OG half vertical: icon left at the calendar height (owner 2026-11-12)');
   ok(/<div class="\{\{ ib_cls \}\}" data-sw-part="moon">/.test(sh), 'moon box the same as the rain icon box');
   const T3 = (h) => D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, h).match(/<text/g).length;
   eq([T3(150), T3(500)], [6, 9], 'short rain: 2 x 3; a narrow tall box: 3 x 3');
@@ -341,7 +346,7 @@ test('rain unit: icon left of the grid on every size (owner 2026-11-12, later de
   const R3 = (w, h, lp) => { D.lp = lp || 0; const n = D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), w, h, 3).match(/<text/g).length; D.lp = 0; return n; };
   eq(R3(300, 160), 9, 'long rain: 3 x 3 in a box that holds it');
   eq([R3(300, 120), R3(300, 160, 50)], [6, 6], 'long rain: 2 x 3 when 3 rows only fit too flat or below the label size (owner 2026-11-12)');
-  ok(/data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"/.test(sh) && /{% if view == 4 or view == 2 %}{% assign rr_m = 2 %}/.test(sh), 'quadrant and half-horizontal md boxes sized for 2 rows; OG half vertical 3 when the rain is long (owner 2026-11-12)');
+  ok(/data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"/.test(sh) && /{% if view == 2 %}{% assign rr_m = 2 %}/.test(sh), 'quadrant and half-horizontal md boxes sized for 2 rows; OG half vertical 3 when the rain is long (owner 2026-11-12)');
   const c = Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: i >= 2 && i <= 6 }));
   eq([T.rainRows(c), T.rainRows(c.map((q, i) => ({ h: q.h, wet: i >= 2 && i <= 5 })))], [3, 2], 'rows: 3 when the rain runs past the sixth hour');
 });
@@ -395,6 +400,23 @@ test('meter cell states for today (owner 2026-11-13): active, reached earlier, e
   eq([(svg.match(/data-sw-gust/g) || []).length, (gsv.match(/data-sw-gust/g) || []).length], [0, 1], 'peak outline only outside today\'s range (owner): none when the range already reaches it, one for a gust beyond it');
   eq([1, (svg.match(/data-sw-st="p"><g class="([^"]+)"/) || [])[1] === (svg.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1] && !/stroke-dasharray/.test(svg)], [1, true], 'one peak outline; earlier and later cells share one range grey (owner: now + today\'s range)');
 });
+test('forecast cells: a light grey (owner 2026-11-14 "maybe a lighter gray")', () => {
+  const lc = (m) => { D.mode = m; const s = D.meter({ frac: 0.3, past: null, later: 0.9, peak: 0.9 }, 300, 30, 10); D.mode = null; return (s.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1]; };
+  eq([lc({ dark: false, bits: 1 }), lc({ dark: false, bits: 4 })], ['text--gray-75', 'text--gray-75'], '1-bit and X light: gray-75 (was gray-50 / gray-70)');
+});
+// removed 'sensor readings in the shape TRMNL shows' and 'sensor_device picks one device': they ran the transform-side parser, which is gone; a screen shows only its own sensor (owner 2026-11-14), covered by the render cases og-sens-devid, og-sens-other*, og-sens-noid
+test('moon tilt: bright limb as the observer sees it (owner 2026-11-14, true tilt)', () => {
+  const L = (t, la, lo) => T.moonLimb(Date.parse(t), la, lo), near = (a, b, tol) => Math.abs(((a - b + 540) % 360) - 180) <= tol;
+  ok(near(L('2026-11-14T18:00Z', 50.85, 3.35), 242, 6), 'Deerlijk 2026-11-14 19h: waxing crescent lit low on the right (reference site), ' + L('2026-11-14T18:00Z', 50.85, 3.35));
+  ok(near(L('2026-11-14T09:00Z', -33.87, 151.21), 151, 6), 'Sydney the same evening: lit low on the left (southern sky flips), ' + L('2026-11-14T09:00Z', -33.87, 151.21));
+  ok(near(L('2026-12-01T06:00Z', 50.85, 3.35), 109, 6), 'Deerlijk 2026-12-01 07h: waning, lit on the left, ' + L('2026-12-01T06:00Z', 50.85, 3.35));
+  eq(T.moonLimb(NaN, 50, 3), null); eq(T.moonLimb(Date.parse('2026-11-14T18:00Z'), undefined, 3), null);
+  const p = T.moonPhase('2026-11-14T19:00', 3600); ok(p > 0.14 && p < 0.19, 'phase at the refresh time, waxing crescent ' + p);
+  ok(T.moonPhase('2026-11-14T23:00', 3600) > p, 'later the same evening: further on');
+  D.mode = { bits: 4 }; const s = D.moon(p, 100, 242); D.mode = null;
+  ok(/data-sw-moon="lit" transform="rotate\((-?[\d.]+) 50 50\)"/.test(s) && /rotate\(28 50 50\)/.test(s), 'the lit part rotated from the right (270) to 242: 28 degrees clockwise');
+  ok(!/rotate/.test(D.moon(p, 100)), 'no location: no rotation');
+});
 test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter, gibbous and full, light and dark, lit side right while waxing', () => {
   const H = 100, r = H * 0.27, disk = Math.PI * r * r;
   [0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9].forEach((p) => {
@@ -405,10 +427,11 @@ test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter,
       ok(Math.abs(a.area / disk - want) <= 0.1, 'p ' + p + (dark ? ' dark' : ' light') + ': lit ' + (a.area / disk).toFixed(3) + ' want ' + want.toFixed(3));
       if (want < 0.99) ok(p < 0.5 ? a.mx > H / 2 : a.mx < H / 2, 'p ' + p + ': lit on the ' + (p < 0.5 ? 'right' : 'left'));
       ok(/<circle[^>]*fill="none"/.test(s) && !/text--gray-45"><circle[^>]*fill="none"/.test(s), 'limb outline in full ink, light and dark (Calm, owner)');
-      ok(dark ? !/text--gray-45"><path/.test(s) : /text--gray-45"><path/.test(s), dark ? 'dark: lit part in full (light) ink' : 'light: lit part in grey ink');
+      ok(dark ? !/text--gray-45"><path/.test(s) : /text--gray-20"><circle[^>]*data-sw-moon="disk"\/><\/g><g class="text--white"><path/.test(s), dark ? 'dark: lit part in full (light) ink' : 'light: dark disc, lit part white on it (owner 2026-11-14, printed moon-phase icon)');
     });
   });
-  ok(!/<path/.test(D.moon(0, H)) && /<circle/.test(D.moon(0, H)), 'new moon: outline only');
+  D.mode = { bits: 4 }; const nm = D.moon(0, H); D.mode = null;
+  ok(!/<path/.test(nm) && /text--gray-20"><circle[^>]*data-sw-moon="disk"/.test(nm) && /<circle[^>]*fill="none"/.test(nm), 'new moon: a dark disc with its outline, no lit part (owner 2026-11-14)');
   for (let d = 1; d <= 30; d++) { const t = '2026-11-' + String(d).padStart(2, '0') + 'T12:00', ic = T.moonIcon(t), p = T.moonPhase(t);
     if (ic === 'wi-moon-alt-full') ok(Math.abs(p - 0.5) < 0.03, t + ' full at ' + p); if (ic === 'wi-moon-alt-new') ok(p < 0.03 || p > 0.97, t + ' new at ' + p); }
   eq(T.moonPhase(null), null);
@@ -425,7 +448,7 @@ test('barometer trend over 3 h with +/-1 hPa thresholds; clothing cues for every
   eq([C({}), C({ uv: 8 }), C({ rain: true })], ['', '', 'umbrella'], 'no temperature: no top layer, the umbrella still applies');
   const i = T.buildI18n('nl');
   eq([i.ours.p_steady, i.ours.p_rising, i.ours.p_falling], ['STABIEL', 'STIJGEND', 'DALEND']);
-  eq(T.buildI18n('ja').ours.p_rising, 'RISING', 'missing language falls back to English');
+  eq(T.buildI18n('xx').ours.p_rising, 'RISING', 'unknown language falls back to English');
   const f = fx('mixed');
   const M = SWModel.build(f, {}), calm = T.buildView(M, i, f.daily, null, 0.3, { pressAgo: 1015 }), none = T.buildView(M, i, f.daily, null, 0.3);
   eq([calm.cue, calm.baro.trend], [['parka', 'umbrella'], 'DALEND'], 'mixed has rain in the window, 1013.2 now against 1015');
@@ -475,7 +498,7 @@ test('console cue window (owner 2026-11-13): garment now to +3 h, umbrella to 19
   eq(C({ apparent_temperature: [20, 20, 20, 20] }, H(7, 25), { day: false }, 7), 'tshirt', 'no sunglasses at night');
   const fb = T.nowCueInput(null, [], { temp: 15, feels: 1, day: true }, 2); eq([fb.lo, fb.hi, fb.rain], [1, 1, null], 'no hourly data: the current felt temperature; rain falls back to the rain window');
 });
-test('meters: today\'s past and later max from today\'s hours, the peak (WIND: max gust) (owner 2026-11-13)', () => {
+test('meters: forecast only, the later max from today\'s coming hours, the peak (WIND: max gust still to come) (owner 2026-11-13, forecast only 2026-11-14)', () => {
   const f = fx('mixed'), today = (k) => String(f.hourly.time[k]).slice(0, 10) === '2026-11-08';
   const g = JSON.parse(JSON.stringify(f)); g.current.time = '2026-11-08T13:00'; g.current.relative_humidity_2m = 30; g.current.wind_speed_10m = 12; g.current.wind_gusts_10m = 20; g.current.pressure_msl = 1010;
   g.hourly.relative_humidity_2m = f.hourly.time.map((t, k) => today(k) ? (k === 2 ? 55 : (k === 11 ? 95 : 40)) : 100);   // 08:00 55 (past), 17:00 95 (later), tomorrow 100
@@ -485,10 +508,10 @@ test('meters: today\'s past and later max from today\'s hours, the peak (WIND: m
   eq(d.weather.hourly.time[0], '2026-11-08T13:00', 'every other consumer still sees the hours from the current hour');
   const v = T.buildView(SWModel.build(raw, {}), T.buildI18n('nl'), g.daily), m = (k) => v.meters.find((q) => q.key === k) || {};
   const r2 = (x) => x === null || x === undefined ? x : Math.round(x * 1000) / 1000, P = (k) => [m(k).frac, m(k).past, m(k).later, m(k).peak].map(r2);
-  eq(P('humidity'), [0.3, 0.55, 0.95, 0.95], 'humidity: now 30, earlier 55, later 95 (tomorrow\'s 100 not counted)');
-  eq(P('wind'), [0.2, 0.55, 0.35, 0.867], 'wind: speeds earlier 33 and later 21, peak today\'s max gust 52 (tomorrow\'s 99 not counted)');
-  eq(P('baro'), [0.5, 0.763, 0.65, 0.763], 'baro: earlier 1031, later 1022 on 970..1050; peak the earlier max');
-  eq(D.cellStates(m('humidity'), 10).st.join(''), 'aaapppllll', 'humidity on 10 cells');
+  eq(P('humidity'), [0.3, null, 0.95, 0.95], 'humidity: now 30, earlier 55 not shown, later 95 (tomorrow\'s 100 not counted)');
+  eq(P('wind'), [0.2, null, 0.35, 0.333], 'wind: later speed 21, peak the max gust from now on 20 (the earlier 52 and tomorrow\'s 99 not counted)');
+  eq(P('baro'), [0.5, null, 0.65, 0.65], 'baro: later 1022 on 970..1050 (the earlier 1031 not shown); peak the later max');
+  eq(D.cellStates(m('humidity'), 10).st.join(''), 'aaalllllll', 'humidity on 10 cells');
   const none = T.buildView(SWModel.build(f, {}), T.buildI18n('nl'), f.daily), h = none.meters.find((q) => q.key === 'humidity');
   eq([h.past, h.later], [null, null], 'no hourly humidity: no earlier or later cells');
   eq(v.meters.filter((q) => q.key === 'co2' || q.key === 'pollen').filter((q) => q.past !== null || q.later !== null || q.peak !== null).length, 0, 'CO2 and pollen: no marks');
@@ -526,6 +549,41 @@ test('every plugin/src file stays under 98 KiB: TRMNL refuses an import over 100
   const dir = path.join(__dirname, '../../plugin/src');
   fs.readdirSync(dir).forEach((n) => { const b = fs.statSync(path.join(dir, n)).size; ok(b < 98 * 1024, n + ' is ' + b + ' bytes, limit ' + 98 * 1024); });
 });
+test('plugin/src/shared.liquid is the build of source/shared.liquid: run node tools/build.js (owner 2026-11-13)', () => {
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sw-build-'));
+  const out = path.join(tmp, 'shared.liquid');
+  require('child_process').execFileSync(process.execPath, [path.join(__dirname, '../../tools/build.js'), out], { stdio: 'pipe' });
+  const built = fs.readFileSync(out, 'utf8'); fs.rmSync(tmp, { recursive: true });
+  ok(built === fs.readFileSync(path.join(__dirname, '../../plugin/src/shared.liquid'), 'utf8'), 'plugin/src/shared.liquid differs from the build of source/shared.liquid: run `node tools/build.js` and commit both');
+});
+test('built shared.liquid stays under 84 KB: a source edit that pushes it over must cut code first (limit 98 KiB above is the hard one)', () => {
+  const b = fs.statSync(path.join(__dirname, '../../plugin/src/shared.liquid')).size;
+  ok(b < 84 * 1000, 'plugin/src/shared.liquid is ' + b + ' bytes after the build, budget ' + 84 * 1000 + ': trim source/shared.liquid (dead code, duplicates), not the guard');
+});
+async function hangTest() {   // owner 2026-11-14: 'Transform timed out after 5s' (TRMNL limit); a request that never answers must not hold the run
+  const of = global.fetch, t0 = Date.now(), keep = setInterval(() => {}, 1000);   // AbortSignal.timeout does not hold the Node loop
+  global.fetch = (u, o) => new Promise((res, rej) => { if (o && o.signal) o.signal.addEventListener('abort', () => rej(new Error('aborted'))); });
+  let out = null; try { out = await T.run({ trmnl: { user: { locale: 'nl' }, system: { timestamp_utc: Date.UTC(2026, 10, 8, 5, 10) / 1000 }, plugin_settings: { custom_fields_values: { lat_lon: '50.8,3.4' } } } }); } finally { global.fetch = of; clearInterval(keep); }
+  const ms = Date.now() - t0;
+  ok(ms < 3000, 'a hanging Open-Meteo request ends the run in ' + ms + ' ms (TRMNL stops at 5000 incl. VM start)');
+  ok(out && typeof out === 'object', 'and the run still returns a view');
+}
+async function deafTest() {   // a request that ignores its abort signal: only the run deadline (RUN_MS) ends it
+  const of = global.fetch, t0 = Date.now(), keep = setInterval(() => {}, 1000);
+  global.fetch = () => new Promise(() => {});
+  let out = null; try { out = await T.run({ trmnl: { user: { locale: 'nl' }, system: { timestamp_utc: Date.UTC(2026, 10, 8, 5, 10) / 1000 }, plugin_settings: { custom_fields_values: { lat_lon: '50.8,3.4' } } } }); } finally { global.fetch = of; clearInterval(keep); }
+  const ms = Date.now() - t0;
+  ok(ms < 3200, 'a request deaf to its abort signal ends the run in ' + ms + ' ms');
+  ok(out && typeof out === 'object', 'and the run still returns a view');
+}
+async function pollTest() {   // owner 2026-11-14: own requests with deadlines, no polling URLs; IDX_0/IDX_1 still used when present
+  const y = fs.readFileSync(path.join(__dirname, '../../plugin/src/settings.yml'), 'utf8');
+  ok(/^strategy: static$/m.test(y) && /^polling_url: ''$/m.test(y), 'no polling URLs: a failed one fails the whole refresh before the transform (owner 2026-11-14)');
+  const of = global.fetch; let calls = 0; global.fetch = async () => { calls++; throw new Error('no network'); };
+  let out; try { out = await T.run({ IDX_0: fx('mixed'), IDX_1: {}, trmnl: { user: { locale: 'nl' }, system: { timestamp_utc: Date.UTC(2026, 10, 8, 5, 10) / 1000 }, plugin_settings: { custom_fields_values: { lat_lon: '50.8,3.4' } } } }); } finally { global.fetch = of; }
+  ok(out && out.model && out.model.now && out.model.now.temp !== null, 'weather from IDX_0 without fetching it');
+  eq(calls, 1, 'only the unusable IDX_1 (no current) is fetched again');
+}
 async function sensorSettingsTests() {
   const originalFetch = global.fetch;
   global.fetch = async (url) => ({ ok: true, json: async () => url.includes('air-quality') ? {} : fx('mixed') });
@@ -535,27 +593,68 @@ async function sensorSettingsTests() {
     try { await fn(); passed++; } catch (e) { failed++; console.log('FAIL ' + name + ': ' + e.message); }
   }
   try {
-    await check('sensor_show: hide removes every sensor part, show and default keep them', async () => {
-      const baseline = await run({}, false, null);
+    // removed 'sensor_co2: hide removes only CO2' and the parts of the two checks below that gave the transform readings: on TRMNL the input never carries sensor_readings (owner's live payload), so no reading reaches the transform
+    await check('the transform ignores sensor_readings in its input and keeps the payload small (owner 2026-11-14)', async () => {
+      const none = await run({}, false, null);
       for (const nested of [false, true]) {
-        for (const values of [{}, { sensor_show: 'show' }]) {
-          const v = (await run(values, nested)).ui;
-          eq([v.inn.temp, v.inn.out, v.inn.in, v.tdial.twin, v.meters.some((m) => m.key === 'co2')], ['21.6', 'BUITEN', 'BINNEN', 21.6, true]);
-        }
-        const hidden = await run({ sensor_show: 'hide', sensor_co2: 'show' }, nested);
-        eq(hidden.ui, baseline.ui, 'hide matches the complete no-sensor view');
-        eq(hidden.model.inn, baseline.model.inn, 'hide removes all model readings');
+        const r = await run({}, nested);
+        eq(r.ui, none.ui, 'readings in the input change nothing');
+        eq(r.model.inn, none.model.inn, 'no model readings');
+        ok(!('sensors' in r) && !('sens_in' in r) && !('ui_in' in r) && !('ui_in_t' in r), 'no sensor leftovers in the payload');
       }
+      const size = Buffer.byteLength(JSON.stringify(none));
+      ok(size < 22000, 'payload ' + size + ' bytes, the sensor path adds only a small overlay');
+      const io = { inn: none.ph.inn, twin: none.ph.twin, tw: none.ph.tw };
+      ok(Buffer.byteLength(JSON.stringify(io)) < 400, 'indoor overlay ' + Buffer.byteLength(JSON.stringify(io)) + ' bytes');
+      ok(Buffer.byteLength(JSON.stringify(none.ph)) < 1200, 'overlay with the CO2 meter lists ' + Buffer.byteLength(JSON.stringify(none.ph)) + ' bytes');
     });
-    await check('sensor_co2: hide removes only CO2, show and default keep it', async () => {
-      const shown = await run({ sensor_co2: 'show' });
-      eq(shown.ui, (await run({})).ui, 'show is the default');
-      ok(shown.ui.meters.some((m) => m.key === 'co2'), 'show keeps CO2');
-      const hidden = await run({ sensor_co2: 'hide' }, true);
-      ok(!hidden.ui.meters.some((m) => m.key === 'co2'), 'hide removes CO2');
-      eq(hidden.ui.inn, shown.ui.inn, 'indoor readout unchanged');
-      eq(hidden.ui.tdial, shown.ui.tdial, 'twin needle unchanged');
-      eq(hidden.model.inn, Object.assign({}, shown.model.inn, { co2: null }), 'other readings unchanged');
+    await check('sensor_show: hide leaves no indoor overlay, show and default carry it; both hidden: no overlay', async () => {
+      const hid = await run({ sensor_show: 'hide' }, false, null);
+      eq([hid.ph.inn, hid.ph.tw, hid.ph.twin, hid.ui.inn], [undefined, undefined, undefined, null], 'sensor_show hide: no indoor overlay');
+      const both = await run({ sensor_show: 'hide', sensor_co2: 'hide' }, false, null);
+      eq([both.ph, both.ui.inn], [null, null], 'both hidden: no overlay');
+      for (const values of [{}, { sensor_show: 'show' }]) { const r = await run(values, false, null); eq([r.ph.inn.out, r.ph.inn.in, r.ph.tw.k, r.ui.inn], ['BUITEN', 'BINNEN', 'humidity', null]); }
+    });
+    await check('CO2 overlay (owner 2026-11-14): sensor_co2 show carries the meter list, hide carries none, independent of the indoor setting', async () => {
+      const on = await run({}, false, null), off = await run({ sensor_co2: 'hide' }, false, null), only = await run({ sensor_show: 'hide' }, false, null);
+      const slim = (l) => l.map((m) => Object.keys(m).sort().join());
+      ok(Array.isArray(on.ph.mn) && on.ph.mn.length > 0 && Array.isArray(on.ph.hn), 'show: the CO2 list and the list without CO2');
+      ok(slim(on.ph.mn).every((k) => k === 'idx,key,label,rank') && slim(on.ph.hn).every((k) => k === 'idx,key,label,rank'), 'lists hold key, label, idx, rank only (no view copies)');
+      eq([on.ph.mn[0].key, on.ph.hn[0].key, on.ph.mu], ['co2', 'humidity', undefined], 'owner 2026-11-14: CO2 first at any reading (one list, no high-reading variant), the humidity twin first without CO2');
+      eq([off.ph.mn, off.ph.cz, off.ph.inn.in], [undefined, undefined, 'BINNEN'], 'hide: no CO2 list, indoor stays');
+      ok(Array.isArray(only.ph.mn) && only.ph.inn === undefined, 'co2 shown with the indoor readings hidden');
+      eq(on.ui.meters.some((m) => m.key === 'co2'), false, 'the plain view never carries CO2');
+    });
+    await check('CO2 overlay parity: the meters of the view with a stand-in reading equal the page script merge of the list, with and without the other meters', async () => {
+      const raw = fx('mixed'), i18n = T.buildI18n('nl');
+      const mk = (co2, tweak) => { const M = SWModel.build(raw, {}); if (tweak) tweak(M); M.inn = { temp: null, hum: null, co2, press: null }; return T.buildView(M, i18n, raw.daily); };
+      const slim = (l) => l.map((m) => ({ key: m.key, label: m.label, idx: m.idx, rank: m.rank }));
+      // the page script's merge (source/shared.liquid, SWP): the meters already in the view plus the CO2 one, in the list's order
+      const merge = (base, ph, co2) => ph.mn.map((e) => { const b = base.filter((m) => m.key === e.key)[0] || { key: e.key, label: e.label, frac: Math.max(0, Math.min(1, (co2 - 400) / 1600)), past: null, later: null, peak: null, zones: ph.cz }; return Object.assign({}, b, { idx: e.idx, rank: e.rank }); });
+      const tweaks = [null, (M) => { M.now.aqi = null; M.now.hum = null; }, (M) => { M.now.pollen = 0; M.now.wind = null; M.today.uvMax = 5; M.now.day = true; }, (M) => { M.now.aqi = null; M.now.hum = null; M.now.pollen = 0; M.now.wind = null; M.now.press = null; }];
+      tweaks.forEach((tw, ti) => {
+        const base = mk(null, tw), mn = mk(800, tw);
+        const ph = { mn: slim(mn.meters), cz: mn.meters.filter((m) => m.key === 'co2').map((m) => m.zones)[0] || null };
+        [[800, mn], [1800, mn], [1401, mn], [1400, mn]].forEach(([c, want]) => {
+          const got = merge(base.meters, ph, c);
+          eq(got.map((m) => m.key + m.idx + m.rank), want.meters.map((m) => m.key + m.idx + m.rank), 'order, idx, rank (variant ' + ti + ', ' + c + ' ppm)');
+          const g = got.filter((m) => m.key === 'co2')[0], w = want.meters.filter((m) => m.key === 'co2')[0];
+          if (w) { eq([g.label, g.zones], [w.label, w.zones], 'co2 label and zones'); ok(Math.abs(g.frac - (c - 400) / 1600) < 1e-9, 'co2 frac'); }
+          got.filter((m) => m.key !== 'co2').forEach((m) => { const o = want.meters.filter((q) => q.key === m.key)[0]; eq(Object.assign({}, m, { idx: o.idx, rank: o.rank }), Object.assign({}, o, { idx: o.idx, rank: o.rank }), 'other meters unchanged: ' + m.key); });
+        });
+      });
+    });
+    await check('overlay: the view with a stand-in reading equals the view plus the overlay, with and without a humidity meter', async () => {
+      const raw = fx('mixed'), i18n = T.buildI18n('nl');
+      const slimL = (l) => l.map((m) => ({ key: m.key, label: m.label, idx: m.idx, rank: m.rank }));
+      // the page script's merge (source/shared.liquid, SWP): the overlay, and the indoor order of the list ph.hn (owner 2026-11-14: the humidity twin first)
+      const merge = (u, o, hn) => { const v = JSON.parse(JSON.stringify(u)); v.inn = o.inn; v.tdial.twin = o.twin; if (o.tw) v.meters.forEach((m) => { if (m.key === o.tw.k) m.tw = { out: o.tw.out, in: o.tw.in, m: { frac: 0.5 } }; }); if (hn) v.meters = hn.map((e) => Object.assign({}, v.meters.filter((m) => m.key === e.key)[0], { idx: e.idx, rank: e.rank })); return v; };
+      for (const noHum of [false, true]) {
+        const mk = (inn) => { const M = SWModel.build(raw, {}); if (noHum) M.now.hum = null; M.inn = Object.assign({ temp: null, hum: null, co2: null, press: null }, inn); return T.buildView(M, i18n, raw.daily); };
+        const a = mk({}), b = mk({ temp: a.tdial.now, hum: 50 }), o = T.phOverlay(b);
+        eq(merge(a, o, slimL(b.meters)), JSON.parse(JSON.stringify(b)), 'overlay complete' + (noHum ? ' (no humidity meter)' : ''));
+        eq(!!o.tw, !noHum, 'the twin meter key only with a humidity meter');
+      }
     });
   } finally { global.fetch = originalFetch; }
 }
@@ -676,47 +775,58 @@ async function stateTests() {
       ok((await run({ cue: { top: other, bn: false } })).ui.cue[0] !== undefined);
       for (const bad of [{ cue: 'x' }, { cue: { top: 5 } }, { mt: [] }, { cue: null, mt: 'x' }]) eq((await run(bad)).ui.cue, r.ui.cue, 'ignored ' + JSON.stringify(bad));
     });
-    await check('indoor trend: points per 30 min kept 6 h, arrow over 3 h (1 C / 2 F, CO2 100 ppm), today\'s low/high, hide settings write nothing', async () => {
+    // removed 'indoor trend: points per 30 min ...': the trend, low/high and CO2 arrow needed readings in the transform input, which TRMNL never sends (owner's live payload)
+    await check('no indoor state: an old saved inn is dropped, nothing indoor is written', async () => {
       answer = fx('mixed');
-      const S = Math.floor((AT + 600) / 1800), rd = (t, c) => ({ device_1: { temperature: [{ '2026-11-08 05:00:00 UTC': t }], carbon_dioxide: [{ '2026-11-08 05:00:00 UTC': c }] } });
-      const go = (state, t, c, fields = {}) => run(state, AT + 600, fields, { sensor_readings: rd(t, c) });
-      const first = await go({}, 21, 900);
-      eq(first.trmnl_state.inn.p, [[S, 21, 900]]); eq([first.ui.inn.arrow, first.ui.inn.co2arrow, first.ui.inn.lohi], [null, null, undefined], 'one point: no trend, no low/high');
-      const st = (pts, lo, hi, d = '2026-11-08') => ({ inn: { d: d, lo: lo, hi: hi, p: pts } });
-      let r = await go(st([[S - 6, 20, 800]], 19.5, 21), 21, 900);
-      eq([r.ui.inn.arrow, r.ui.inn.co2arrow, r.ui.inn.lohi], ['up', 'up', 'L 20° H 21°']);
-      r = await go(st([[S - 6, 20.1, 801]], 19.5, 21), 21, 900); eq([r.ui.inn.arrow, r.ui.inn.co2arrow], ['level', 'level'], 'just under: level');
-      r = await go(st([[S - 7, 22, 1000]], 19.5, 23), 21, 900); eq([r.ui.inn.arrow, r.ui.inn.co2arrow], ['down', 'down'], '3.5 h ago counts');
-      r = await go(st([[S - 8, 22, 1000]], 19.5, 23), 21, 900); eq(r.ui.inn.arrow, null, '4 h ago does not');
-      r = await go(st([[S - 6, 20, 800]], 19.5, 21), 21, 900, { unit: 'fahrenheit' }); eq(r.ui.inn.arrow, 'level', 'F: 1.8 F is under 2 F');
-      r = await go(st([[S - 6, 19.8, 800]], 19.5, 21), 21, 900, { unit: 'fahrenheit' }); eq(r.ui.inn.arrow, 'up', 'F: 2.2 F');
-      r = await go(st(Array.from({ length: 20 }, (_, i) => [S - 20 + i, 20, 800]), 18, 21), 21, 900);
-      eq(r.trmnl_state.inn.p.map((q) => q[0]), Array.from({ length: 13 }, (_, i) => S - 12 + i), '6 h kept, trimmed');
-      r = await go(st([[S - 6, 20, 800]], 10, 30, '2026-11-07'), 21, 900); eq([r.trmnl_state.inn.lo, r.trmnl_state.inn.hi], [21, 21], 'a new day resets low/high');
-      for (const bad of [{ inn: 'x' }, { inn: [] }, { inn: { p: 'x', lo: 'a' } }, { inn: { p: [null, 'x', [1], ['a', 2]] } }]) eq((await go(bad, 21, 900)).trmnl_state.inn.p, [[S, 21, 900]], 'bad ' + JSON.stringify(bad));
-      ok(!('inn' in (await go(st([[S - 6, 20, 800]], 19, 21), 21, 900, { sensor_show: 'hide' })).trmnl_state), 'sensor_show hide: no indoor state');
-      r = await go(st([[S - 6, 20, 800]], 19, 21), 21, 900, { sensor_co2: 'hide' }); eq([r.trmnl_state.inn.p[1][2], r.ui.inn.co2arrow], [null, null], 'sensor_co2 hide: no CO2 kept');
+      const S = Math.floor((AT + 600) / 1800), rd = { device_1: { temperature: [{ '2026-11-08 05:00:00 UTC': 21 }], carbon_dioxide: [{ '2026-11-08 05:00:00 UTC': 900 }] } };
+      const r = await run({ inn: { d: '2026-11-08', lo: 19, hi: 21, p: [[S - 6, 20, 800]] } }, AT + 600, {}, { sensor_readings: rd });
+      ok(!('inn' in r.trmnl_state), 'no inn in the saved state');
+      ok(!r.ui.inn && !r.model.inn.temp, 'no indoor reading from the transform input');
     });
-    await check('state size guard: an oversize state drops the indoor points, then the copy, and always stays an object under 8000 bytes', () => {
-      const big = { v: 1, snap: { pad: 'x'.repeat(5000) }, inn: { p: Array.from({ length: 900 }, () => [1, 2, 3]) } };
-      const a = T.fitState(big); ok(Buffer.byteLength(JSON.stringify(a)) <= 8000); eq(a.snap, big.snap, 'copy kept'); eq(a.inn.p, []);
+    await check('state size guard: an oversize state drops the copy, and always stays an object under 8000 bytes', () => {
+      const big = { v: 1, snap: { pad: 'x'.repeat(5000) } };
+      const a = T.fitState(big); ok(Buffer.byteLength(JSON.stringify(a)) <= 8000); eq(a.snap, big.snap, 'copy kept');
       const b = T.fitState({ v: 1, snap: { pad: 'x'.repeat(9000) } }); eq(b, { v: 1 });
       const c = { v: 1, snap: { a: 1 } }; eq(T.fitState(c), c, 'small state unchanged');
     });
   } finally { global.fetch = originalFetch; }
 }
-sensorSettingsTests().then(stateTests).then(() => {
+test('location icons (owner 2026-11-14, B10): the outdoor icon is ink on 1-bit (grey dithers away), grey on 2 bit; readout icons are sized by the script from the unit font', () => {
+  const m0 = D.mode;
+  D.mode = { bits: 1 }; const o1 = D.part({}, 'loc', 0, 40, 40), i1 = D.part({}, 'loc', 1, 40, 40);
+  D.mode = { bits: 2 }; const o2 = D.part({}, 'loc', 0, 40, 40);
+  D.mode = m0;
+  ok(!/text--gray/.test(o1) && !/text--gray/.test(i1), '1-bit: no grey class on either icon');
+  ok(/text--gray-30/.test(o2), '2-bit: the outdoor icon stays grey');
+  ok(/data-sw-part="loc"[^>]*data-sw-lz/.test(sh) && /data-sw-lsp/.test(sh) && /1\.4 \* parseFloat\(getComputedStyle\(lzu\)\.fontSize\)/.test(sh), 'twin readout icons: marked, spacer marked, 1.4 unit fonts in swPaint');
+});
+async function aTest(name, fn) { try { await fn(); passed++; } catch (e) { failed++; console.log('FAIL ' + name + ': ' + e.message); } }
+sensorSettingsTests().then(stateTests).then(() => aTest('a hanging request ends within TRMNL\'s 5 s', hangTest)).then(() => aTest('a request deaf to its abort signal', deafTest)).then(() => aTest('no polling URLs; IDX data used when present', pollTest)).then(() => {
   console.log(passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 });
-test('2-bit active cells are the native dark grey, not black; 4-bit gray-20 (owner 2026-11-13)', () => {
-  const f = (m) => { D.mode = m; const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40); D.mode = null; return s; };
-  ok(/gray-30/.test(f({ dark: false, bits: 2 })) && !/<g class="text--black/.test(f({ dark: false, bits: 2 }).split('data-sw-hl')[0].replace(/text--black[^>]*><line/g, '')), '2-bit day blocks gray-30');
-  ok(/text--gray-20/.test(f({ dark: false, bits: 4 })), '4-bit day blocks gray-20');
+test('2-bit active cells are the native dark grey, not black; 4-bit mid grey, today dark (owner 2026-11-13, bars lightened 2026-11-14)', () => {
+  const f = (m, hi) => { D.mode = m; const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40, hi); D.mode = null; return s; };
+  const cells = (s) => s.split('data-sw-cells')[1];
+  ok(/gray-30/.test(cells(f({ dark: false, bits: 2 }))) && !/text--black/.test(cells(f({ dark: false, bits: 2 }))), '2-bit day blocks gray-30, not black');
+  ok(/text--gray-45/.test(cells(f({ dark: false, bits: 4 }))), '4-bit day blocks gray-45');
+  ok(/text--gray-10/.test(cells(f({ dark: false, bits: 4 }, true))), '4-bit today block dark');
 });
 
 test('plugin name translated for the title bar when the instance name is the default (owner 2026-11-13)', () => {
   eq(['en-US', 'de', 'nl', 'fr-CA', 'ja', 'xx'].map((l) => T.buildI18n(l).ours.app), ['Radio Weather', 'Radiowetter', 'Radioweer', 'Radio Météo', 'ラジオ天気', 'Radio Weather']);
   const src = require('fs').readFileSync(require('path').join(__dirname, '../../plugin/src/shared.liquid'), 'utf8');
-  ok(/instance_name %\}{% if sw_name == blank or sw_name == 'Radio Weather' %\}{% assign sw_name = i18n\.ours\.app/.test(src), 'title bar uses i18n.ours.app when instance_name is the default');
+  ok(/instance_name ?%\}\{% ?if sw_name == blank or sw_name == 'Radio Weather' ?%\}\{% ?assign sw_name ?= ?i18n\.ours\.app/.test(src), 'title bar uses i18n.ours.app when instance_name is the default');
+});
+
+test('no shown label falls back to English in any locale (item 38.1)', () => {
+  const tsrc = require('fs').readFileSync(require('path').join(__dirname, '../../plugin/src/transform.js'), 'utf8');
+  const KEYS = eval(tsrc.match(/^var OURS_KEYS = (.*);$/m)[1]);
+  const OURS = eval('(' + tsrc.match(/^var OURS = (.*);$/m)[1] + ')');
+  const SHOWN = ['uv', 'pollen', 'm_hum', 'hum', 'baro', 'indoor', 'outdoor', 'p_steady', 'p_rising', 'p_falling', 'temperature', 'app', 'asof', 'no_signal'];
+  const empty = [];
+  Object.keys(OURS).forEach((l) => { const p = OURS[l].split('|'); SHOWN.forEach((k) => { if (!p[KEYS.indexOf(k)]) empty.push(l + ':' + k); }); });
+  eq(empty, [], 'empty slots');
+  ['ja', 'ko', 'zh-CN', 'zh-HK'].forEach((l) => { const p = OURS[l].split('|'); KEYS.forEach((k, i) => { if (!p[i] && !['raining_now'].includes(k)) empty.push(l + ':' + k); }); });
+  eq(empty, [], 'empty CJK slots');
 });

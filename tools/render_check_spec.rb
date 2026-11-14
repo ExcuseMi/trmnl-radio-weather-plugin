@@ -2,9 +2,42 @@
 require 'json'
 require 'fileutils'
 # SW_CASES: JSON list of {name, view, device, fields, fixture, patch (json merged into current), mocks_extra, palette, orientation}
+# A real device: the serverless transform input has no sensor_readings (TRMNL adds it to the markup's merge variables at
+# render time). trmnlp hands every case variable to both, so sensor_readings is taken out of the transform input and put
+# back into the markup's variables.
+module SensorsAfterTransform
+  def call(device: {})
+    r = super
+    sr = config.project.user_data_overrides['sensor_readings']
+    r['sensor_readings'] = sr if sr
+    r
+  end
+
+  private
+
+  def transform_input(merged)
+    super(merged.reject { |k, _| k == 'sensor_readings' })
+  end
+end
+TRMNLP::UserDataAssembler.prepend(SensorsAfterTransform)
 DIAL_R = Hash.new { |h, k| h[k] = [] }
+COND_R = Hash.new { |h, k| h[k] = [] }
 RSpec.describe 'renders' do
   after(:all) do
+    # Condition text proportion (owner 2026-11-13, "the same size relative"): the condition label's font size over the big temperature
+    # digit height is, in every layout of one device (and orientation), within 15 % of the full view's ratio.
+    aggregate_failures do
+      COND_R.each do |k, v|
+        ref = v.find { |q| q[2] == 'full' }
+        next unless ref
+        v.each do |q|
+          next if q.equal?(ref)
+          rel = q[1] / ref[1]
+          puts "CONDRATIO #{q[0]}: #{q[1].round(3)} vs full #{ref[1].round(3)} = #{rel.round(2)}" if rel > 1.15 || rel < 1 / 1.15
+          expect(rel).to be_between(1 / 1.15, 1.15), "condition/temperature ratio differs across #{k.inspect}: #{q[0]} #{q[1].round(3)} vs full #{ref[1].round(3)}"
+        end
+      end
+    end
     DIAL_R.each do |k, v|
       lo, hi = v.map { |q| q[1] }.minmax
       puts "DIALR-SPREAD #{k.inspect}: #{v.inspect}" if hi / lo > 1.02
@@ -39,6 +72,8 @@ RSpec.describe 'renders' do
       opts = { view: c['view'] || 'full', device: dev, mocks:, custom_fields: fields, now:, wait_for: "document.querySelector('[data-sw-drawn],[data-sw-error]') !== null" }
       opts[:variables] = { 'trmnl' => { 'user' => { 'locale' => c['locale'] } } } if c['locale']
       opts[:variables] = (opts[:variables] || {}).merge(c['vars']) if c['vars']
+      # a screen shows only its own sensor, device_<trmnl.device.id> (owner 2026-11-14): a case with readings and no trmnl of its own is device 1
+      opts[:variables]['trmnl'] = (opts[:variables]['trmnl'] || {}).merge('device' => { 'id' => 1 }) if c['vars'] && c['vars']['sensor_readings'] && !c['vars'].key?('trmnl')
       opts[:theme] = c['theme'] if c['theme']
       opts[:palette] = c['palette'] if c['palette']
       opts[:orientation] = c['orientation'].to_sym if c['orientation']
@@ -52,6 +87,7 @@ RSpec.describe 'renders' do
         opts[:now] = (Time.iso8601(now) + c['offline_h'] * 3600).iso8601
       end
       s = trmnl.render(**opts)
+      is_lg = s.evaluate("!!document.querySelector('.screen--lg')")   # the X layouts follow the lg size class, not the model name (device tier, 2026-11-13)
       puts "SCREEN #{c['name']}: #{s.evaluate("document.querySelector('.screen').className+' '+innerWidth")}" if ENV['SW_SCREEN']
       FileUtils.mkdir_p(out)
       FileUtils.cp(s.png_path, File.join(out, "#{c['name']}.png"))
@@ -71,26 +107,31 @@ RSpec.describe 'renders' do
       puts "ERR #{c['name']}: #{err}" if err
       expect(err).to be_nil
       # Offline (saved state, owner 2026-11-13): a stale view shows its "as of" once, inside the view, clear of every other ink box.
-      sl = s.evaluate(%q{(function(){var st=SW.stale||null,ls=[].filter.call(document.querySelectorAll('[data-sw-stale]'),function(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0});if(!st)return ls.length?'label without stale data':'';if(ls.length!==1)return 'labels '+ls.length;var L=ls[0].getBoundingClientRect(),V=(document.querySelector('.view')||document.body).getBoundingClientRect(),bad=[];if(ls[0].textContent.trim()!==st)bad.push('text '+ls[0].textContent);if(L.left<V.left||L.right>V.right||L.top<V.top||L.bottom>V.bottom)bad.push('outside the view');var cx=(L.left+L.right)/2,cy=(L.top+L.bottom)/2,F=[].map.call(document.querySelectorAll('[data-sw-part="face"]'),function(e){return e.getBoundingClientRect()}).filter(function(f){return f.width>0&&cx>f.left&&cx<f.right&&cy>f.top&&cy<f.bottom})[0];if(ls[0].closest('.title_bar')){}else if(!F)bad.push('not on a panel');else{var r=Math.min(24,Math.min(F.width,F.height)*0.08),I=2;if(L.left<F.left+I||L.right>F.right-I||L.top<F.top+I||L.bottom>F.bottom-I)bad.push('over the panel edge');[[L.left,L.top],[L.right,L.top],[L.left,L.bottom],[L.right,L.bottom]].forEach(function(q){var ox=q[0]<F.left+r?F.left+r:(q[0]>F.right-r?F.right-r:null),oy=q[1]<F.top+r?F.top+r:(q[1]>F.bottom-r?F.bottom-r:null);if(ox!==null&&oy!==null&&Math.hypot(q[0]-ox,q[1]-oy)>r-I)bad.push('over the rounded corner')});}[].forEach.call(document.querySelectorAll('img,svg,.value,.title,.label,.instance,[data-sw-rule]'),function(e){if(e===ls[0]||ls[0].contains(e)||e.contains(ls[0])||e.closest('[data-sw-part="face"]'))return;var b=e.getBoundingClientRect();if(b.width>0&&b.height>0&&b.left<L.right-1&&b.right>L.left+1&&b.top<L.bottom-1&&b.bottom>L.top+1)bad.push('overlaps '+((e.closest('[data-sw-part]')||e).getAttribute('data-sw-part')||e.tagName+' '+(e.textContent||'').trim().slice(0,12)))});return bad.join('; ');})()})
+      sl = s.evaluate(%q{(function(){var st=SW.stale||null,ls=[].filter.call(document.querySelectorAll('[data-sw-stale]'),function(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0});if(!st)return ls.length?'label without stale data':'';if(ls.length!==1)return 'labels '+ls.length;var L=ls[0].getBoundingClientRect(),V=(document.querySelector('.view')||document.body).getBoundingClientRect(),bad=[];if(ls[0].textContent.trim()!==st)bad.push('text '+ls[0].textContent);if(L.left<V.left||L.right>V.right||L.top<V.top||L.bottom>V.bottom)bad.push('outside the view');var cx=(L.left+L.right)/2,cy=(L.top+L.bottom)/2,F=[].map.call(document.querySelectorAll('[data-sw-part="face"]'),function(e){return e.getBoundingClientRect()}).filter(function(f){return f.width>0&&cx>f.left&&cx<f.right&&cy>f.top&&cy<f.bottom})[0];if(ls[0].closest('.title_bar')){}else if(!F)bad.push('not on a panel');else{var r=Math.min(24,Math.min(F.width,F.height)*0.08),I=2;if(L.left<F.left+I||L.right>F.right-I||L.top<F.top+I||L.bottom>F.bottom-I)bad.push('over the panel edge');[[L.left,L.top],[L.right,L.top],[L.left,L.bottom],[L.right,L.bottom]].forEach(function(q){var ox=q[0]<F.left+r?F.left+r:(q[0]>F.right-r?F.right-r:null),oy=q[1]<F.top+r?F.top+r:(q[1]>F.bottom-r?F.bottom-r:null);if(ox!==null&&oy!==null&&Math.hypot(q[0]-ox,q[1]-oy)>r-I)bad.push('over the rounded corner')});}[].forEach.call(document.querySelectorAll('img,svg,.value,.title,.label,.instance,[data-sw-rule]'),function(e){if(e===ls[0]||ls[0].contains(e)||e.contains(ls[0])||e.closest('[data-sw-part="face"]'))return;var b=e.getBoundingClientRect();if(e.tagName==='IMG'&&e.getAttribute('data-sw-ink')){var ik=e.getAttribute('data-sw-ink').split(',').map(Number),cxx=(b.left+b.right)/2;b={left:cxx-ik[1]*b.height/2,right:cxx+ik[1]*b.height/2,top:b.top+ik[0]*b.height,bottom:b.top+(ik[0]+ik[1])*b.height,width:b.width,height:ik[1]*b.height}}   // the icon's drawn ink (square icons), not its transparent box
+if(b.width>0&&b.height>0&&b.left<L.right-1&&b.right>L.left+1&&b.top<L.bottom-1&&b.bottom>L.top+1)bad.push('overlaps '+((e.closest('[data-sw-part]')||e).getAttribute('data-sw-part')||e.tagName+' '+(e.textContent||'').trim().slice(0,12)))});return bad.join('; ');})()})
       puts "STALE #{c['name']}: #{sl}" unless sl.empty?
       expect(sl).to eq('')
       # Indoor trend (saved state, owner 2026-11-13): an up/down arrow behind the indoor unit, inside its twin column; today's low/high fully inside the column.
       it3 = s.evaluate(%q{(function(){var I=SW.inn;if(!I)return '';var bad=[],col=document.querySelector('[data-sw-twin="in"]');if(!col||!col.getBoundingClientRect().width)return '';var C=col.getBoundingClientRect(),a=[].filter.call(col.querySelectorAll('[data-sw-inarrow]'),function(e){return e.getBoundingClientRect().width>0}),want=(I.arrow==='up'||I.arrow==='down')&&document.querySelector('.screen--lg')?1:0;if(a.length!==want)bad.push('arrows '+a.length+'/'+want+' '+[].map.call(col.querySelectorAll('[data-sw-inarrow]'),function(e){var b=e.getBoundingClientRect();return b.width+'x'+b.height+' '+e.innerHTML.length}).join(','));if(a.length){var p=a[0].querySelector('[data-sw-arrowpoly]'),u=col.querySelector('[data-sw-unit="in"]').getBoundingClientRect(),A=a[0].getBoundingClientRect();if(!p||p.getAttribute('data-sw-arrowpoly')!==I.arrow)bad.push('arrow shape');var dg=col.querySelector('[data-sw-part="itemp"]').getBoundingClientRect();if(A.right>dg.left+1)bad.push('arrow not in front of the digits');if(A.left<C.left-1)bad.push('arrow outside the column')}var l=col.querySelector('[data-sw-inlohi]');if(I.lohi&&l){var rg=document.createRange();rg.selectNodeContents(l);var L=rg.getBoundingClientRect();if(L.width>0&&l.querySelectorAll('[data-sw-part="tri"] svg polygon').length!==2)bad.push('low/high marks not two triangles');if(/[LH] \d/.test(l.textContent))bad.push('low/high as letters');if(L.width>0&&(L.left<C.left-1||L.right>C.right+1))bad.push('low/high outside the column');var pe=l.parentElement,ro=document.querySelector('[data-sw-twin="out"]'),rl=ro&&ro.lastElementChild,lh=rl?rl.getBoundingClientRect().height:0;if(L.width>0&&lh>0&&pe.getBoundingClientRect().height>1.3*lh)bad.push('humidity line wraps')}return bad.join('; ');})()})
       puts "INTREND #{c['name']}: #{it3}" unless it3.empty?
       expect(it3).to eq('')
-      # Twin meter (owner 2026-11-13): the indoor (grey) blocks keep a shadow clearly lighter than their fill, or none, so no block melts into a smear.
-      sd = s.evaluate(%q{(function(){var bad=[],L=function(c){var m=c.match(/[\d.]+/g)||[];return m.length>2?0.3*m[0]+0.59*m[1]+0.11*m[2]:0};document.querySelectorAll('[data-sw-twrow="in"]').forEach(function(r){var on=r.querySelector('[data-sw-on] [data-sw-c]'),sh=[].filter.call(r.querySelectorAll('g[class*="1bit:hidden"]'),function(e){return e.getBBox().width>0})[0];if(!on||!sh)return;var d=L(getComputedStyle(sh).color)-L(getComputedStyle(on).fill);if(d<40)bad.push('shadow only '+d.toFixed(0)+' lighter than the block')});return bad.join('; ')})()})
+      # Twin meter (owner 2026-11-13; grey moved to outdoor, owner 2026-11-14: indoor is the primary reading): the outdoor (grey) blocks keep a shadow clearly lighter than their fill, or none, so no block melts into a smear.
+      sd = s.evaluate(%q{(function(){var bad=[],L=function(c){var m=c.match(/[\d.]+/g)||[];return m.length>2?0.3*m[0]+0.59*m[1]+0.11*m[2]:0};document.querySelectorAll('[data-sw-twrow="out"]').forEach(function(r){var on=r.querySelector('[data-sw-on] [data-sw-c]'),sh=[].filter.call(r.querySelectorAll('g[class*="1bit:hidden"]'),function(e){return e.getBBox().width>0})[0];if(!on||!sh)return;var d=L(getComputedStyle(sh).color)-L(getComputedStyle(on).fill);if(d<40)bad.push('shadow only '+d.toFixed(0)+' lighter than the block')});return bad.join('; ')})()})
       puts "TWINSHADOW #{c['name']}: #{sd}" unless sd.empty?
       expect(sd).to eq('')
-      # Indoor text (owner 2026-11-13): the indoor value is a readable grey, clearly darker than 130 (light) / lighter than 125 (dark)
-      # yet at least 40 levels away from black / white, so it still differs from the outdoor ink.
-      it4 = s.evaluate(%q{(function(){var e=document.querySelector('.value--small[class*="text--gray"]');if(!e||!e.getBoundingClientRect().width)return '';var m=getComputedStyle(e).color.match(/[\d.]+/g),v=0.3*m[0]+0.59*m[1]+0.11*m[2],dk=document.documentElement.classList.contains('dark')||!!document.querySelector('.dark,.screen--dark,[data-theme=dark]')&&getComputedStyle(document.body).backgroundColor!=='rgb(255, 255, 255)';var bg=getComputedStyle(document.querySelector('.screen')||document.body).backgroundColor.match(/[\d.]+/g)||[255,255,255],bl=0.3*bg[0]+0.59*bg[1]+0.11*bg[2],ink=bl<128?255:0,d=Math.abs(v-ink);return d<40?'indoor text '+v.toFixed(0)+' too close to the ink':(d>130?'indoor text '+v.toFixed(0)+' too light to read':'')})()})
+      # Secondary text (owner 2026-11-13 for indoor; owner 2026-11-14: indoor is primary, the grey value is now the outdoor one): the grey
+      # dial value is readable, clearly darker than 130 (light) / lighter than 125 (dark) yet at least 40 levels away from black / white, so it still differs from the main ink.
+      it4 = s.evaluate(%q{(function(){var e=document.querySelector('.value--small[class*="text--gray"]');if(!e||!e.getBoundingClientRect().width)return '';var m=getComputedStyle(e).color.match(/[\d.]+/g),v=0.3*m[0]+0.59*m[1]+0.11*m[2],dk=document.documentElement.classList.contains('dark')||!!document.querySelector('.dark,.screen--dark,[data-theme=dark]')&&getComputedStyle(document.body).backgroundColor!=='rgb(255, 255, 255)';var bg=getComputedStyle(document.querySelector('.screen')||document.body).backgroundColor.match(/[\d.]+/g)||[255,255,255],bl=0.3*bg[0]+0.59*bg[1]+0.11*bg[2],ink=bl<128?255:0,d=Math.abs(v-ink);return d<40?'outdoor text '+v.toFixed(0)+' too close to the ink':(d>130?'outdoor text '+v.toFixed(0)+' too light to read':'')})()})
       puts "INDOORTEXT #{c['name']}: #{it4}" unless it4.empty?
       expect(it4).to eq('')
       tf = s.evaluate(%q{(function(){var v=function(q){var e=document.querySelector(q);if(!e)return 0;var r=e.getBoundingClientRect();return r.width>0?r.height:0};var t=v('[data-sw-part="temp"] svg'),f=v('[data-sw-part="feels"] svg');return f&&!(t>f)?'temp '+t.toFixed(0)+' felt '+f.toFixed(0):''})()})   # owner step 12: the main temperature is the largest number in the console
       arc = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0}),bad=[],rs=[];a.forEach(function(g){var sv=g.ownerSVGElement,k=sv.getBoundingClientRect().width/+sv.getAttribute('width'),v=g.getAttribute('data-sw-arc').split(',').map(Number),r=v[0]*k,w=v[1]*k;rs.push(r);var SB=sv.getBoundingClientRect(),T=1e9;[].forEach.call(sv.querySelectorAll('path,polygon,circle,line,text'),function(e){var b=e.getBoundingClientRect();if(b.width||b.height)T=Math.min(T,b.top)});var hb=sv.querySelector('[data-sw-hub]').getBoundingClientRect();if((T-SB.top)/SB.height>0.2||(SB.bottom-hb.bottom)/SB.height>0.2)bad.push('dial not filling its panel: top '+((T-SB.top)/SB.height*100).toFixed(0)+'% hub '+((SB.bottom-hb.bottom)/SB.height*100).toFixed(0)+'%');var d=sv.closest('[data-sw-part]').getAttribute('data-sw-part'),D=d==='baro'?SW.baro:SW.tdial;if(D&&D.lo!=null&&D.hi!=null&&sv.querySelectorAll('[data-sw-markt]').length!==2)bad.push(d+' marks '+sv.querySelectorAll('[data-sw-markt]').length);});if(rs.length===2&&Math.abs(rs[0]-rs[1])>2)bad.push('radius '+rs.map(function(x){return x.toFixed(1)}).join('/'));return a.length+'|'+bad.join('; ');})()})   # owner step 13: both dials one radius, filling the panel height (ink within 20 % of the top: 3-digit low/high numbers and the twin needle shrink both; hub within 5 % of the bottom), low/high marks on both
       # Dial radius (owner 2026-11-13): the arc radius, as a share of the dial width, is the same in every case of one device and view (within 2 %).
       rw = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0});return a.map(function(g){var v=g.getAttribute('data-sw-arc').split(',').map(Number);return (v[0]/v[1]).toFixed(4)}).join(' ')})()})
+      # the main temperature: the largest digits (indoor with a sensor, owner 2026-11-14); cases with an indoor reading form their own group
+      cr0 = s.evaluate(%q{(function(){var v=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},c=[].filter.call(document.querySelectorAll('[data-sw-cond]'),v)[0],h=function(e){return e.getBBox().height*e.getBoundingClientRect().height/(e.viewBox.baseVal.height||1)},te=[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg,[data-sw-part="itemp"] svg'),v).sort(function(a,b){return h(b)-h(a)})[0];if(!c||!te)return '';var ti=h(te),fz=(+c.getAttribute('data-sw-fs')||parseFloat(getComputedStyle(c).fontSize))*(c.getBoundingClientRect().width/(c.offsetWidth||1));return String(fz/ti)})()})
+      puts "CONDR #{c[%q(name)]}: #{cr0}"
+      COND_R[[dev.is_a?(Hash) ? dev[:model] : dev, c['orientation'], c['text_scale'], c['fixture'], c['dark'] ? 1 : 0, s.evaluate('!!SW.inn')]] << [c['name'], cr0.to_f, c['view'] || 'full'] unless cr0.empty? || (c['fields'] || {})['unit'] == 'fahrenheit' || c['name'].start_with?('wide-')   # wide numbers shrink their digits (fit rule), the ratio is for normal values
       DIAL_R[[dev.is_a?(Hash) ? dev[:model] : dev, c['view'] || 'full', c['orientation'], c['text_scale']]] << [c['name'], rw.split.map(&:to_f).min] unless rw.empty?
       puts "DIALR #{c['name']}: #{rw}"
       puts "ARC #{c['name']}: #{arc}"
@@ -131,17 +172,53 @@ caps.forEach(function(c){if(bx.some(function(b){return b[0]<c.right+g&&b[2]>c.le
       end
       if c['og_quadrant_console']
         console = s.evaluate(%q{(function(){function vis(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0}var labels=[].filter.call(document.querySelectorAll('[data-sw-mlabel]'),vis).map(function(e){return e.textContent.trim()});var moon=[].filter.call(document.querySelectorAll('[data-sw-part="moon"]'),vis)[0];var ring=moon&&moon.querySelector('circle[stroke]');return {labels:labels,ring:!!ring,lit:!!(moon&&moon.querySelector('[data-sw-moon="lit"]'))}})()})
-        expect(console['labels']).to eq(['WIND'])
-        expect(console['ring']).to eq(true) unless c['hourly'].nil?
-        expect(console['lit']).to eq(true) unless c['hourly'].nil?
+        small_q = s.evaluate("document.querySelectorAll('[data-sw-small]').length").positive?
+        if small_q   # the small console (owner-approved 2026-11-13) keeps a meter row and the moon only while they fit
+          expect(console['labels'] - ['WIND']).to eq([])
+        else
+          expect(console['labels']).to eq(['WIND'])
+          expect(console['ring']).to eq(true) unless c['hourly'].nil?
+          expect(console['lit']).to eq(true) unless c['hourly'].nil?
+        end
       end
-      clip = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part]:not([data-sw-part="face"]), [data-sw-part]:not([data-sw-part="face"]) > svg, [data-sw-unit] img, [data-sw-unit] span').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;var ci=e.closest('[data-sw-condicon]'),ik=ci&&(ci.querySelector('[data-sw-ink]')||{getAttribute:function(){return null}}).getAttribute('data-sw-ink');if(ik){var iy=+ik.split(',')[0],ih=+ik.split(',')[1]||1;b={left:b.left,right:b.right,top:b.top+iy*b.height,bottom:b.top+(iy+ih)*b.height,width:b.width,height:ih*b.height};}var p=e.closest('[data-sw-panel]');if(!p)return;var q=p.getBoundingClientRect(),cs=getComputedStyle(p),k=q.width/(p.offsetWidth||q.width);q={left:q.left+parseFloat(cs.paddingLeft)*k,right:q.right-parseFloat(cs.paddingRight)*k,top:q.top+parseFloat(cs.paddingTop)*k,bottom:q.bottom-parseFloat(cs.paddingBottom)*k};var un=e.closest('[data-sw-unit]');if(un){var cb=un.parentElement.getBoundingClientRect();q={left:Math.max(q.left,cb.left),right:Math.min(q.right,cb.right),top:Math.max(q.top,cb.top),bottom:Math.min(q.bottom,cb.bottom)}}if(b.left<q.left-1||b.right>q.right+1||b.top<q.top-1||b.bottom>q.bottom+1)bad.push((e.getAttribute('data-sw-part')||e.tagName)+'@'+[b.left,b.right,b.top,b.bottom].map(function(v){return v.toFixed(0)}).join(':')+'/'+[q.left,q.right,q.top,q.bottom].map(function(v){return v.toFixed(0)}).join(':'))});return bad.join(' ')})()})
+      clip = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part]:not([data-sw-part="face"]), [data-sw-part]:not([data-sw-part="face"]) > svg, [data-sw-unit] img, [data-sw-unit] span').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;var ci=e.closest('[data-sw-condicon]'),ik=ci&&(ci.querySelector('[data-sw-ink]')||{getAttribute:function(){return null}}).getAttribute('data-sw-ink');if(ik){var iy=+ik.split(',')[0],ih=+ik.split(',')[1]||1;b={left:b.left,right:b.right,top:b.top+iy*b.height,bottom:b.top+(iy+ih)*b.height,width:b.width,height:ih*b.height};}var p=e.closest('[data-sw-panel]');if(!p)return;var q=p.getBoundingClientRect(),cs=getComputedStyle(p),k=q.width/(p.offsetWidth||q.width);var pm=e.closest('[data-sw-suntime]')?1:0;q={left:q.left+pm*parseFloat(cs.paddingLeft)*k,right:q.right-pm*parseFloat(cs.paddingRight)*k,top:q.top+pm*parseFloat(cs.paddingTop)*k,bottom:q.bottom-pm*parseFloat(cs.paddingBottom)*k};var un=e.closest('[data-sw-unit]');if(un){var cb=un.parentElement.getBoundingClientRect();q={left:Math.max(q.left,cb.left),right:Math.min(q.right,cb.right),top:Math.max(q.top,cb.top),bottom:Math.min(q.bottom,cb.bottom)}}if(b.left<q.left-1||b.right>q.right+1||b.top<q.top-1||b.bottom>q.bottom+1)bad.push((e.getAttribute('data-sw-part')||e.tagName)+'@'+[b.left,b.right,b.top,b.bottom].map(function(v){return v.toFixed(0)}).join(':')+'/'+[q.left,q.right,q.top,q.bottom].map(function(v){return v.toFixed(0)}).join(':'))});return bad.join(' ')})()})
       puts "CLIP #{c['name']}: #{clip}" unless clip.empty?
       expect(clip).to eq('')
+      # Owner 2026-11-14: a meter label's text fits inside its own box, padding included (an inverted extreme label lost its D;
+      # seen red with the label-width padding HP removed, og1-port-quadrant-storm).
+      mlab = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-mlabel]').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;var g=document.createRange();g.selectNodeContents(e);var t=g.getBoundingClientRect(),cs=getComputedStyle(e),k=b.width/(e.offsetWidth||b.width);if(t.left<b.left+parseFloat(cs.paddingLeft)*k-0.5||t.right>b.right-parseFloat(cs.paddingRight)*k+0.5)bad.push(e.textContent.trim()+' text '+Math.round(t.left)+'..'+Math.round(t.right)+' box '+Math.round(b.left)+'..'+Math.round(b.right));});return bad.join('; ');})()})
+      puts "MLAB #{c['name']}: #{mlab}" unless mlab.empty?
+      expect(mlab).to eq('')
+      # Owner 2026-11-14: with several devices a screen shows only its own sensor (the X showed the OG's); want_in '' = no indoor reading.
+      if c['want_in']
+        inr = s.evaluate("(window.SW && SW.inn && SW.inn.temp) || ''").to_s
+        puts "INDOOR #{c['name']}: #{inr}" unless inr == c['want_in']
+        expect(inr).to eq(c['want_in'])
+      end
+      # Owner 2026-11-14 (B9): the CO2 meter is drawn exactly when the case says (co2 'yes'): a fresh reading of this screen's own
+      # device, sensor_co2 not hidden, a place in the view's meter rows (a half vertical with a normal reading shows only two
+      # rows, CO2 last, so no). Whatever is drawn is also in SW.meters (the list the page script draws from).
+      co2 = s.evaluate(%q{document.querySelectorAll('[data-sw-key="co2"]').length + ',' + (window.SW ? SW.meters.some(function(m){return m.key==='co2'}) : false)})
+      puts "CO2 #{c['name']}: #{co2}"
+      expect(co2.split(',')[0].to_i.positive?).to eq(c['co2'] == 'yes')
+      expect(co2.split(',')[1]).to eq('true') if c['co2'] == 'yes'
+      # Owner 2026-11-14 (B1 guards, each seen red on a mutation): (1) a rain calendar always has its rain/snow icon beside it, in every
+      # view; (2) in a small console the big temperature is the largest text; (3) wide numbers (-20.5 C, 104 F, -13 F, 100 F) stay inside their
+      # panel with a 2 px margin and overlap no unit, badge, calendar, low/high, condition or location icon of that panel.
+      wd = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null};
+[].filter.call(document.querySelectorAll('[data-sw-part="rain"]'),vis).forEach(function(c){var ic=[].filter.call(document.querySelectorAll('[data-sw-unit="rain"] img, [data-sw-unit="rain"] [data-sw-part="icon"]'),vis)[0];if(!ic)bad.push('rain calendar without its rain icon')});
+var ink=function(v){var r=v.getBoundingClientRect(),bb=v.getBBox(),vb=v.viewBox.baseVal,kx=r.width/(vb.width||r.width),ky=r.height/(vb.height||r.height);return {left:r.left+(bb.x-vb.x)*kx,right:r.left+(bb.x-vb.x+bb.width)*kx,top:r.top+(bb.y-vb.y)*ky,bottom:r.top+(bb.y-vb.y+bb.height)*ky}};
+[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg, [data-sw-part="itemp"] svg'),vis).forEach(function(v){var p=v.closest('[data-sw-panel]'),P=vis(p);if(!P)return;var I=ink(v);
+if(I.left<P.left+2||I.right>P.right-2||I.top<P.top+2||I.bottom>P.bottom-2)bad.push('temperature outside its panel '+[I.left,I.right,P.left,P.right].map(Math.round));
+[].forEach.call(p.querySelectorAll('[data-sw-unit], [data-sw-part="cue"], [data-sw-part="rain"], [data-sw-slohi], [data-sw-inlohi], [data-sw-cond], [data-sw-part="loc"], [data-sw-part="itemp"], [data-sw-part="temp"]'),function(e){if(e.contains(v)||v.closest('[data-sw-part]').contains(e))return;var b=vis(e);if(!b)return;if(Math.min(I.right,b.right)-Math.max(I.left,b.left)>1&&Math.min(I.bottom,b.bottom)-Math.max(I.top,b.top)>1)bad.push('temperature overlaps '+(e.getAttribute('data-sw-part')||e.getAttribute('data-sw-unit')!==null&&'unit'||e.tagName))});});
+var sm=document.querySelector('[data-sw-small]');if(sm){var te=[].filter.call(sm.querySelectorAll('[data-sw-sgrp="temp"] [data-sw-part="temp"] svg,[data-sw-sgrp="temp"] [data-sw-part="itemp"] svg'),vis)[0];if(te){var h=ink(te),th=h.bottom-h.top,mx=0,who='';[].forEach.call(sm.querySelectorAll('span, text'),function(e){if(!vis(e)||!(e.textContent||'').trim())return;if(e.tagName==='span'&&e.querySelector('svg'))return;var k=e.ownerSVGElement?e.ownerSVGElement.getBoundingClientRect().height/(+e.ownerSVGElement.getAttribute('height')||1):(vis(e).width/(e.offsetWidth||1)),f=(e.tagName==='text'?+e.getAttribute('font-size'):(+e.getAttribute('data-sw-fs')||parseFloat(getComputedStyle(e).fontSize)))*(e.tagName==='text'?k:1);if(f>mx){mx=f;who=(e.textContent||'').trim().slice(0,10)}});if(mx&&th<=mx)bad.push('small console: temperature '+th.toFixed(0)+' not the largest text ('+who+' '+mx.toFixed(0)+')')}}
+return bad.join('; ');})()})
+      puts "WIDE #{c['name']}: #{wd}" unless wd.empty?
+      expect(wd).to eq('')
       # Rain unit (owner 2026-11-12): calendar cells square-ish and readable (numbers at least the meter label size),
       # rain icon and moon the same size on the same left edge. Dials: caption and value never under the hub or tail.
       ru = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null};
-var lab=[].filter.call(document.querySelectorAll('[data-sw-mlabel]'),vis)[0],lp=lab?parseFloat(getComputedStyle(lab).fontSize):14;
+var lab=[].filter.call(document.querySelectorAll('[data-sw-mlabel]'),vis)[0],lp=lab?parseFloat(getComputedStyle(lab).fontSize):(document.querySelector('[data-sw-small]')?12:14);   // a small console without a meter row has no label to match: at least 12 px
 [].forEach.call(document.querySelectorAll('[data-sw-part="rain"]'),function(d){var sv=d.querySelector('svg');if(!vis(d)||!sv)return;
 var k=d.offsetHeight/+sv.getAttribute('height'),t=sv.querySelector('text'),fs=t?+t.getAttribute('font-size')*k:0,ch=d.offsetHeight/Math.ceil(sv.querySelectorAll('text').length/3),cw=d.offsetWidth/3;
 var tb=[].map.call(sv.querySelectorAll('text'),function(t){var r=t.getBoundingClientRect();r.y0=t.getAttribute('y');return r});tb.forEach(function(a,i){tb.slice(i+1).forEach(function(b){if(a.y0===b.y0&&Math.min(a.right,b.right)-Math.max(a.left,b.left)>-1)bad.push('labels overlap '+[a.left,a.right,b.left,b.right].map(Math.round))})});
@@ -166,11 +243,11 @@ var ci=m.querySelector('circle'),b=ci?ci.getBoundingClientRect():m.getBoundingCl
       expect(mo).to eq('') if c['view'] == 'half_vertical'
       # X quadrant (owner, step 12: big empty bands above and below): the content of each panel (images, drawings,
       # text) leaves no band over 8 % of the panel height at its top or bottom, also none between its rows on X quadrant (step 19: landscape too) and X full portrait, hairlines counting as ink (step 18).
-      if (c['view'] == 'quadrant' && (c['device'] || 'v2') == 'v2') || c['portrait_console']
+      if (c['view'] == 'quadrant' && is_lg) || c['portrait_console']
         band = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=p.getBoundingClientRect();if(!q.height)return;var t=1e9,b=-1e9;
 var iv=[];p.querySelectorAll('img, svg, span').forEach(function(e){if(e.closest('[data-sw-part="face"]'))return;var r=e.getBoundingClientRect();if(!r.width||!r.height||(e.tagName==='SPAN'&&!e.textContent.trim()))return;t=Math.min(t,r.top);b=Math.max(b,r.bottom);iv.push([r.top,r.bottom])});
 var a=(t-q.top)/q.height,z=(q.bottom-b)/q.height;if(a>0.08||z>0.08)bad.push('top '+(a*100).toFixed(0)+'% bottom '+(z*100).toFixed(0)+'%');
-if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&getComputedStyle(e).display!=='none')iv.push([r.top,Math.max(r.bottom,r.top+1)])});iv.sort(function(x,y){return x[0]-y[0]});var e0=t;iv.forEach(function(v){if((v[0]-e0)/q.height>0.08)bad.push('band '+((v[0]-e0)/q.height*100).toFixed(0)+'% at '+Math.round(e0-q.top));e0=Math.max(e0,v[1]);})}});return bad.join('; ')})()}.sub('BETWEEN', ((c['device'] || 'v2') == 'v2' && (c['view'] == 'quadrant' || (c['view'] == 'full' && c['orientation'] == 'portrait'))).to_s))
+if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&getComputedStyle(e).display!=='none')iv.push([r.top,Math.max(r.bottom,r.top+1)])});iv.sort(function(x,y){return x[0]-y[0]});var e0=t;iv.forEach(function(v){if((v[0]-e0)/q.height>0.08)bad.push('band '+((v[0]-e0)/q.height*100).toFixed(0)+'% at '+Math.round(e0-q.top));e0=Math.max(e0,v[1]);})}});return bad.join('; ')})()}.sub('BETWEEN', (is_lg && (c['view'] == 'quadrant' || (c['view'] == 'full' && c['orientation'] == 'portrait'))).to_s))
         puts "BAND #{c['name']}: #{band}" unless band.empty?
         expect(band).to eq('')
       end
@@ -180,12 +257,12 @@ if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.get
       # at the track's ends (within a cell); no empty band over 12 % of the panel height inside the console, the days
       # panel or the console's right column (ink measured in the screenshot); low/high digits at least 0.85 x the day name size;
       # quadrant: the temperature digits at least 13 % of the console height.
-      if c['orientation'] == 'portrait' && (c['device'] || 'v2') != 'v2' && %w[full half_vertical half_horizontal quadrant].include?(c['view'] || 'full')
+      if c['orientation'] == 'portrait' && !is_lg && %w[full half_vertical half_horizontal quadrant].include?(c['view'] || 'full')
         require 'chunky_png'
         og = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d'),R=function(b){return [b.left,b.top,b.right,b.bottom]};
-function cap(sp){var b=vis(sp);if(!b)return 0;var cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;return cx.measureText('H').actualBoundingBoxAscent*(b.width/(sp.offsetWidth||b.width));}
+function cap(sp){var b=vis(sp);if(!b)return 0;var cs=getComputedStyle(sp),sf=+sp.getAttribute('data-sw-fs')||0;cx.font=cs.fontWeight+' '+(sf?sf+'px':cs.fontSize)+' '+cs.fontFamily;return cx.measureText('H').actualBoundingBoxAscent*(b.width/(sp.offsetWidth||b.width));}
 function scap(t){var sv=t.ownerSVGElement,k=sv.getBoundingClientRect().height/(+sv.getAttribute('height')||sv.getBoundingClientRect().height);cx.font='bold '+(+t.getAttribute('font-size'))+'px '+getComputedStyle(t).fontFamily;return cx.measureText('H').actualBoundingBoxAscent*k;}
-var ic=[],add=function(n,e,c){var b=vis(e);if(b&&c)ic.push([n].concat(R(b)).concat([c]))};
+var ic=[],add=function(n,e,c){var b=vis(e);if(b&&c)ic.push([n].concat(R({left:Math.max(0,b.left),top:Math.max(0,b.top),right:Math.min(innerWidth,b.right),bottom:Math.min(innerHeight,b.bottom)})).concat([c]))};   // the small console's icon box may reach past the screen edge (negative margin: only its transparent part)
 [].filter.call(document.querySelectorAll('[data-sw-cond]'),vis).forEach(function(sp){add('cond',sp.parentElement.firstElementChild,cap(sp))});
 var st=[].filter.call(document.querySelectorAll('[data-sw-suntime] span.title'),vis);
 [].filter.call(document.querySelectorAll('[data-sw-unit="sun"] img'),vis).forEach(function(e,i){var t=e.parentElement.querySelector('[data-sw-suntime] span.title');add('sun',e,cap(t||st[0]))});
@@ -220,7 +297,7 @@ return JSON.stringify({ic:ic,tr:tr,pn:pn,iw:innerWidth});})()}.sub('QUAD', (c['v
           bad << "scale labels first #{f.round(1)} last #{z.round(1)} from the track ends (cell #{cw.round(1)})" if f.abs > cw || z.abs > cw
         end
         og['pn'].each do |n, l, t, r, b, ph, edges|
-          y0 = (t * k).floor; y1 = [(b * k).ceil - 1, png.height - 1].min; xs = ((l * k).ceil..[(r * k).floor - 1, png.width - 1].min)
+          y0 = [(t * k).floor, 0].max; y1 = [(b * k).ceil - 1, png.height - 1].min; xs = ((l * k).ceil..[(r * k).floor - 1, png.width - 1].min)
           ink = (y0..y1).select { |y| xs.any? { |x| dark.(x, y, 600) } }
           next if ink.empty?
           runs = ink.each_cons(2).map { |a, z2| [z2 - a - 1, a] }
@@ -246,9 +323,9 @@ var d=Math.min(b.left-S.left,b.top-S.top,S.right-b.right,S.bottom-b.bottom);if(d
       end
       # Weather icon (owner 2026-11-12, revised): drawn ink 2.1 to 2.5 x the cap height (owner, step 12: about 2.3x), one line or two, ink centred on the label.
       ci = s.evaluate(%q{(function(){var bad=[],cx=document.createElement('canvas').getContext('2d');document.querySelectorAll('[data-sw-cond]').forEach(function(sp){var sb=sp.getBoundingClientRect();if(!sb.height)return;
-var ic=sp.parentElement.firstElementChild,ib=ic.getBoundingClientRect(),k=sb.width/(sp.offsetWidth||sb.width),cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var m=cx.measureText('H'),fa=m.fontBoundingBoxAscent*k,fd=m.fontBoundingBoxDescent*k,cap=m.actualBoundingBoxAscent*k;
-var rg=document.createRange();rg.selectNodeContents(sp);var lr=[].filter.call(rg.getClientRects(),function(q){return q.width>0}),bl=function(q){return q.top+(q.height-fa-fd)/2+fa},t0=bl(lr[0])-cap,t1=bl(lr[lr.length-1]),n=lr.filter(function(q,i){return i===0||Math.abs(q.top-lr[i-1].top)>2}).length;
-var ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),it=ib.top+ik[0]*ib.height,ih=ik[1]*ib.height,h=n>1?t1-t0+cap:cap,mid=n>1?(t0+t1)/2:t0+cap/2,q=ih/h;if(n>2)bad.push('label on '+n+' lines');if(n>1&&(q=ih/cap,0))0;if(n>1?(q<(ic.hasAttribute('data-sw-clamped')?1.6:2.1)||q>2.5):(q<(ic.hasAttribute('data-sw-clamped')?1.6:2.1)||q>2.5))bad.push('icon ink '+ih.toFixed(1)+' / cap '+(n>1?cap:h).toFixed(1)+' = '+q.toFixed(2)+' ('+n+' lines)');if(Math.abs(it+ih/2-mid)>1.5)bad.push('icon ink centre off '+(it+ih/2-mid).toFixed(1));});return bad.join('; ');})()})
+var ic=sp.parentElement.firstElementChild,ib=ic.getBoundingClientRect(),k=sb.width/(sp.offsetWidth||sb.width),cs=getComputedStyle(sp);var sf=+sp.getAttribute('data-sw-fs')||0;cx.font=cs.fontWeight+' '+(sf?sf+'px':cs.fontSize)+' '+cs.fontFamily;var m=cx.measureText('H'),fa=m.fontBoundingBoxAscent*k,fd=m.fontBoundingBoxDescent*k,cap=m.actualBoundingBoxAscent*k;
+var rg=document.createRange();rg.selectNodeContents(sp);var lr=[].filter.call(rg.getClientRects(),function(q){return q.width>0}),bl=function(q){return q.top+(q.height-fa-fd)/2+fa},t0=sf?0:bl(lr[0])-cap,t1=sf?0:bl(lr[lr.length-1]),n=sf?+sp.getAttribute('data-sw-lines'):lr.filter(function(q,i){return i===0||Math.abs(q.top-lr[i-1].top)>2}).length;
+var ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),it=ib.top+ik[0]*ib.height,ih=ik[1]*ib.height,h=n>1?t1-t0+cap:cap,mid=sf?(sb.top+sb.bottom)/2:(n>1?(t0+t1)/2:t0+cap/2),q=ih/h;if(n>2)bad.push('label on '+n+' lines');if(n>1&&(q=ih/cap,0))0;if(n>1?(q<(ic.hasAttribute('data-sw-clamped')?1.6:2.1)||q>2.5):(q<(ic.hasAttribute('data-sw-clamped')?1.6:2.1)||q>2.5))bad.push('icon ink '+ih.toFixed(1)+' / cap '+(n>1?cap:h).toFixed(1)+' = '+q.toFixed(2)+' ('+n+' lines)');if(Math.abs(it+ih/2-mid)>1.5)bad.push('icon ink centre off '+(it+ih/2-mid).toFixed(1));});return bad.join('; ');})()})
       puts "CONDICON #{c['name']}: #{ci}" unless ci.empty?
       expect(ci).to eq('')
       # Days strip (owner 2026-11-12, later): the strip always starts with today, the one highlighted row.
@@ -280,14 +357,53 @@ return n+(bad.length?' '+bad.slice(0,4).join('; '):'');})()})
       sn = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},bad=[];
 var tw=[].filter.call(document.querySelectorAll('[data-sw-twin="out"],[data-sw-twin="in"]'),vis),nd=[].filter.call(document.querySelectorAll('svg [data-sw-twin="1"] polygon'),function(l){return vis(l.ownerSVGElement)&&!l.closest('[data-sw-glow]')});
 if(tw.length){if(tw.length!==2)bad.push('twins '+tw.length);else{var a=tw[0].getBoundingClientRect(),b=tw[1].getBoundingClientRect();if(a.right>b.left+1)bad.push('twins overlap');
-tw.forEach(function(t){var k=t.getAttribute('data-sw-twin'),d=t.querySelector('[data-sw-part="temp"] svg,[data-sw-part="itemp"] svg'),sp=t.querySelectorAll(':scope > span'),lc=t.querySelector('[data-sw-part="loc"]'),lb=lc&&lc.querySelector('svg path')&&vis(lc);if(!d||!vis(d)||!d.querySelector('path,rect,polygon'))bad.push(k+' no digits');if(!lb)bad.push(k+' no location icon');else{var db=d.getBoundingClientRect(),cb=lc.getBoundingClientRect(),cc=(cb.left+cb.right)/2;if(cc<db.left||cc>db.right)bad.push(k+' icon centre '+cc.toFixed(0)+' outside its digits '+db.left.toFixed(0)+'-'+db.right.toFixed(0));if(Math.abs(cc-(db.left+db.right)/2)>db.width*0.15)bad.push(k+' icon not centred over its digits');}if(k==='out'&&sp[0]&&sp[0].textContent.trim())bad.push('line under BUITEN '+sp[0].textContent.trim());});}}
+tw.forEach(function(t){var k=t.getAttribute('data-sw-twin'),d=t.querySelector('[data-sw-part="temp"] svg,[data-sw-part="itemp"] svg'),sp=t.querySelectorAll(':scope > span'),lc=t.querySelector('[data-sw-part="loc"]'),lb=lc&&lc.querySelector('svg path')&&vis(lc);if(!d||!vis(d)||!d.querySelector('path,rect,polygon'))bad.push(k+' no digits');if(!lb)bad.push(k+' no location icon');else{var db=d.getBoundingClientRect(),cb=lc.getBoundingClientRect(),cq=vis(t.querySelector('[data-sw-cb]')),cc=((cq?Math.min(cb.left,cq.left):cb.left)+(cq?Math.max(cb.right,cq.right):cb.right))/2;   /* owner 2026-11-14: the tree and the clothing cue are one group centred over the outdoor digits */if(cc<db.left||cc>db.right)bad.push(k+' icon centre '+cc.toFixed(0)+' outside its digits '+db.left.toFixed(0)+'-'+db.right.toFixed(0));if(Math.abs(cc-(db.left+db.right)/2)>db.width*0.15)bad.push(k+' icon not centred over its digits');}var un=t.querySelector('[data-sw-unit]'),fs=un?parseFloat(getComputedStyle(un).fontSize):0;if(fs&&lc.offsetHeight<1.35*fs)bad.push(k+' readout icon '+lc.offsetHeight.toFixed(0)+' px under 1.4 unit fonts of '+fs.toFixed(0)+' px (owner 2026-11-14, B10)');if(k==='out'&&sp[0]&&sp[0].textContent.trim())bad.push('line under BUITEN '+sp[0].textContent.trim());});}}
+/* B10: on 1-bit a location icon is ink, not grey (a grey outline dithers away) */if(document.querySelector('.screen--1bit'))[].forEach.call(document.querySelectorAll('[data-sw-part="loc"] svg path'),function(p){if(!vis(p.ownerSVGElement))return;var m=getComputedStyle(p).stroke.match(/[\d.]+/g)||[],L=0.3*m[0]+0.59*m[1]+0.11*m[2];if(document.querySelector('.screen--dark-mode')?L<165:L>90)bad.push('1-bit icon grey '+L.toFixed(0))});
 var td=[].filter.call(document.querySelectorAll('[data-sw-part="tdial"]'),vis).length;
+if(!tw.length&&vis(document.querySelector('[data-sw-small] [data-sw-sgrp="temp"] [data-sw-part="itemp"] svg')))tw=[1,2];
 return tw.length+','+nd.length+','+td+(bad.length?' '+bad.join('; '):'');})()})
       puts "SENSOR #{c['name']}: #{sn}"
-      want = c['vars'] && c['vars']['sensor_readings'] ? 2 : 0
+      want = c['sens_want'] || (c['vars'] && c['vars']['sensor_readings'] ? 2 : 0)   # sens_want 0: a reading over 3 h old shows nothing
       expect(sn.split(' ')[0].split(',')[0].to_i).to eq(want)
       expect(sn).not_to include(' ')
       dials = sn.split(',')[2].to_i
+      # Indoor primary (owner 2026-11-14): with an indoor reading shown the indoor digits are the largest temperature on the screen
+      # and the temperature dial's main needle is indoor (its twin outdoor); without one the outdoor temperature is the largest and no indoor digits show.
+      tm = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},ds=[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg,[data-sw-part="itemp"] svg'),function(e){return vis(e)&&e.querySelector('path,rect,polygon')});if(!ds.length)return 'no digits';
+var ink=function(e){var r=e.getBBox();return r.height*vis(e).height/(e.viewBox.baseVal.height||vis(e).height)},top=ds.slice().sort(function(a,b){return ink(b)-ink(a)}),k=top[0].closest('[data-sw-part]').getAttribute('data-sw-part'),inn=ds.some(function(e){return e.closest('[data-sw-part]').getAttribute('data-sw-part')==='itemp'}),bad=[];
+if(inn!==!!SW.inn)bad.push('indoor digits '+inn+'/'+!!SW.inn);var pI=function(n){return ds.filter(function(e){return e.closest('[data-sw-part]').getAttribute('data-sw-part')===n}).map(ink)},iI=pI('itemp'),oO=pI('temp');
+/* owner 2026-11-14 (replaces 'indoor the largest'): the two temperatures the same size; the outdoor reading always shows beside an indoor one, in the stacked small views at most as large as the indoor one */
+if(SW.inn){if(!iI.length)bad.push('no indoor digits');if(!oO.length)bad.push('outdoor reading missing');else if(iI.length){var i0=Math.max.apply(null,iI),o0=Math.max.apply(null,oO),twv=vis(document.querySelector('[data-sw-twin="out"]'));if(o0>i0+0.5)bad.push('outdoor digits larger than indoor');if(twv&&Math.abs(i0-o0)>0.01*i0)bad.push('indoor and outdoor digits not the same height '+i0.toFixed(0)+'/'+o0.toFixed(0));}}
+var D=SW.tdial;[].filter.call(document.querySelectorAll('[data-sw-part="tdial"] svg'),vis).forEach(function(sv){var tn=sv.querySelector('[data-sw-twin="1"] polygon'),nd=[].filter.call(sv.querySelectorAll('[data-sw-needle] polygon'),function(p){return !p.closest('[data-sw-twin]')&&!p.closest('[class*="gray-55"]')&&!p.closest('[data-sw-glow]')}).pop();if(!SW.inn||!tn||!nd)return;var hb=sv.querySelector('[data-sw-hub]'),cx=+hb.getAttribute('cx'),ang=function(p){var q=p.getAttribute('points').split(' ')[0].split(',').map(Number);return Math.atan2(q[0]-cx,+hb.getAttribute('cy')-q[1])};
+if((ang(nd)-ang(tn))*(parseFloat(SW.inn.temp)-D.now)<0)bad.push('main needle not indoor')});
+return bad.join('; ');})()})
+      puts "TEMPMAIN #{c['name']}: #{tm}" unless tm.empty?
+      expect(tm).to eq('')
+      # Meter order (owner 2026-11-14): with an indoor reading the indoor group is first (CO2, then the indoor humidity row, then the outdoor
+      # humidity right after it), then the other outdoor meters; the shown rows follow it top to bottom in every view.
+      mo = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},bad=[];
+var ks=[].filter.call(document.querySelectorAll('[data-sw-part^="meter"][data-sw-key]'),vis).sort(function(a,b){return a.getBoundingClientRect().top-b.getBoundingClientRect().top||a.getBoundingClientRect().left-b.getBoundingClientRect().left}).map(function(e){return e.getAttribute('data-sw-key')+(e.getAttribute('data-sw-part')==='meterin'?'*':'')});
+var ci=ks.indexOf('co2'),hi=ks.indexOf('humidity*'),oh=ks.indexOf('humidity');if(ci>0)bad.push('CO2 not first: '+ks.join());if(hi>=0){if(hi!==(ci===0?1:0))bad.push('indoor humidity not right after CO2: '+ks.join());if(oh>=0&&oh!==hi+1)bad.push('outdoor humidity not right after indoor: '+ks.join());}
+if(!SW.inn&&(hi>=0))bad.push('indoor humidity without an indoor reading');
+/* B11 blocker: the readout holding the indoor value carries the house icon (data-sw-i 1, loc in) and never the clothing cue; the one holding the outdoor value the tree (data-sw-i 0, loc out) */
+[].forEach.call(document.querySelectorAll('[data-sw-twin],[data-sw-sgrp="temp"],[data-sw-sout]'),function(g){if(!SW.inn||!vis(g))return;var ind=!!g.querySelector('[data-sw-part="itemp"]'),out=!!g.querySelector('[data-sw-part="temp"]');if(ind===out)return;var lc=[].filter.call(g.querySelectorAll('[data-sw-part="loc"]'),vis)[0];if(!lc){bad.push((ind?'indoor':'outdoor')+' readout without a location icon');return;}if(+lc.getAttribute('data-sw-i')!==(ind?1:0)||lc.getAttribute('data-sw-loc')!==(ind?'in':'out'))bad.push((ind?'indoor':'outdoor')+' value carries the '+lc.getAttribute('data-sw-loc')+' icon (i '+lc.getAttribute('data-sw-i')+')');if(ind&&[].some.call(g.querySelectorAll('[data-sw-part="cue"]'),vis))bad.push('clothing cue on the indoor readout');});
+/* owner 2026-11-14: in the small views the tree (and the clothing cue) sit directly left of the outdoor digits as one group, not at the panel edge */
+[].forEach.call(document.querySelectorAll('[data-sw-sout]'),function(o){if(!vis(o))return;var te=o.querySelector('[data-sw-part="temp"] svg'),ic=[].filter.call(o.querySelectorAll('[data-sw-part="loc"],[data-sw-socue]'),vis),r=te&&vis(te);if(!r||!ic.length)return;var vb=te.viewBox.baseVal,bb=te.getBBox(),ky=r.height/(vb.height||r.height),kx=r.width/(vb.width||r.width),il=r.left+(bb.x-vb.x)*kx,h=bb.height*ky,gr=Math.max.apply(null,ic.map(function(e){return e.getBoundingClientRect().right})),gap=il-gr;if(gap>0.45*h)bad.push('outdoor icons '+gap.toFixed(0)+' px left of their digits (digits '+h.toFixed(0)+' px high)');if(gap<-2)bad.push('outdoor icons over their digits '+gap.toFixed(0));});
+return bad.join('; ');})()})
+      puts "METERORD #{c['name']}: #{mo}" unless mo.empty?
+      expect(mo).to eq('')
+      # Rain hour calendar (owner 2026-11-14): on 4-bit the lit cells are clearly dark (near black; light on a dark screen), so the numbers read.
+      rl = s.evaluate(%q{(function(){var sc=document.querySelector('.screen');if(!sc||sc.classList.contains('screen--1bit')||sc.classList.contains('screen--2bit'))return '';var r=[].filter.call(document.querySelectorAll('[data-sw-part="rain"] svg g[class*="text--gray"] rect'),function(e){var b=e.getBoundingClientRect();return b.width>3&&b.height>3})[0];if(!r)return '';var b=r.getBoundingClientRect();return [b.left,b.top,b.width,b.height,innerWidth,sc.classList.contains('screen--dark-mode')?1:0].join(',')})()})
+      unless rl.empty?
+        require 'chunky_png'
+        rx, ry, _rw, _rh, riw, rdk = rl.split(',').map(&:to_f)
+        rpng = ChunkyPNG::Image.from_file(s.png_path)
+        rk = rpng.width / riw
+        rv = rpng[((rx + 5) * rk).to_i, ((ry + 4) * rk).to_i]
+        rlum = 0.3 * ChunkyPNG::Color.r(rv) + 0.59 * ChunkyPNG::Color.g(rv) + 0.11 * ChunkyPNG::Color.b(rv)
+        puts "RAINLIT #{c['name']}: lit cell luminance #{rlum.round}" if rdk.zero? ? rlum > 80 : rlum < 170
+        expect(rdk.zero? ? rlum <= 80 : rlum >= 170).to be(true), "lit rain cell too mid-grey (#{rlum.round}) for its numbers"
+      end
       expect(sn.split(',')[1].to_i).to eq(want.positive? ? dials : 0)
       # Days strip (owner 2026-11-12): a paper channel beside the now line in every row with cells; cells a solid bar or
       # separated by at least 2 px; the now line over the axis labels (continuous) and its pointer clear of every label.
@@ -306,7 +422,7 @@ return bad.join('; ');})()})
       puts "DAYSTRIP #{c['name']}: #{ds}" unless ds.empty?
       expect(ds).to eq('')
       # X condition label (owner 2026-11-12): a clearly larger title than the day names, so it fills the middle block.
-      if c['device'] == 'v2' && %w[full half_horizontal].include?(c['view'] || 'full') && c['orientation'].nil?
+      if is_lg && %w[full half_horizontal].include?(c['view'] || 'full') && c['orientation'].nil?
         cr = s.evaluate(%q{(function(){var v=function(q){return [].filter.call(document.querySelectorAll(q),function(e){return e.getBoundingClientRect().width>0})[0]},a=v('[data-sw-cond]'),b=v('[data-sw-dname]')||v('[data-sw-mlabel]');return a&&b?parseFloat(getComputedStyle(a).fontSize)/parseFloat(getComputedStyle(b).fontSize):9;})()})
         puts "CONDSIZE #{c['name']}: #{cr.round(2)}" if cr < 1.2
         expect(cr).to be >= 1.2
@@ -341,10 +457,10 @@ var mn=Math.min.apply(null,g),mx=Math.max.apply(null,g);return mx-mn>2?'gaps '+m
       expect(bl).to eq(0)
       # OG half_vertical (owner 2026-11-12): rain icon left of the calendar at its height, sun times shown, temperature
       # clearly bigger than the felt one, meter labels no bigger than day names, today an inverted lamp, solid dividers.
-      if c['view'] == 'half_vertical' && c['device'] != 'v2'
+      if c['view'] == 'half_vertical' && !is_lg
         hv = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},one=function(q){return [].filter.call(document.querySelectorAll(q),vis)[0]};
 var ic=one('[data-sw-unit="rain"] img')||one('[data-sw-unit="rain"] [data-sw-part="icon"]'),ca=one('[data-sw-part="rain"]');if(ca&&!ic)bad.push('no rain icon');if(ca&&ic){var a=ic.getBoundingClientRect(),b=ca.getBoundingClientRect();if(a.right>b.left+1||Math.abs(a.height-b.height)>2)bad.push('rain icon '+[a.left,a.right,a.height].map(Math.round)+' cal '+[b.left,b.height].map(Math.round));}
-if(!one('[data-sw-unit="sun"]'))bad.push('no sun times');var wi=one('img[data-sw-icon], [data-sw-cond]'),pn=one('[data-sw-panel]');if(wi&&pn){var wb=one('[data-sw-cond]').parentElement.getBoundingClientRect(),pq=pn.getBoundingClientRect();if(wb.left<pq.left+4)bad.push('weather row past the panel '+wb.left.toFixed(0));}
+if(!one('[data-sw-unit="sun"]')&&!document.querySelector('[data-sw-small]'))bad.push('no sun times');   // the small console (owner-approved 2026-11-13) carries no sun timesvar wi=one('img[data-sw-icon], [data-sw-cond]'),pn=one('[data-sw-panel]');if(wi&&pn){var wb=one('[data-sw-cond]').parentElement.getBoundingClientRect(),pq=pn.getBoundingClientRect();if(wb.left<pq.left+4)bad.push('weather row past the panel '+wb.left.toFixed(0));}
 var t=one('[data-sw-part="temp"] svg'),f=one('[data-sw-part="feels"] svg');if(t&&f&&(t.getBoundingClientRect().height<f.getBoundingClientRect().height*1.4||t.getBoundingClientRect().height<innerHeight*0.09))bad.push('temp not bigger '+t.getBoundingClientRect().height.toFixed(0)+'/'+f.getBoundingClientRect().height.toFixed(0));
 var ml=one('[data-sw-mlabel]'),dn=one('[data-sw-dname]');if(ml&&dn&&parseFloat(getComputedStyle(ml).fontSize)>parseFloat(getComputedStyle(dn).fontSize)+0.5)bad.push('meter label > day name');
 var td=one('[data-sw-today]');if(td&&!/label--inverted/.test(td.className))bad.push('today not lit');
@@ -365,15 +481,21 @@ var dial=n('[data-sw-part="baro"]');return [1,dial,n('[data-sw-part="baro"] ~ .l
         expect(q[3]).to eq(0)   # owner 2026-11-13: no trend word on the dial (the pressure shows; the trend is the arrow)
         expect(q[4]).to eq(q[1] * 2)
         expect(q[5..7]).to eq([0, 0, 0])
-        expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && !(c['view'] == 'half_vertical' && c['device'] != 'v2' && c['orientation'] != 'portrait'))   # step 18 (owner via coordinator): OG half_vertical portrait has room, the badge shows there   # owner 2026-11-13: beside the temperature, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) ; X half_vertical portrait shows it again (step 19, coordinator: owner rule, badge beside the temperature in every view; the OG hv portrait layout as the model)
+        small_c = s.evaluate("document.querySelectorAll('[data-sw-small]').length").positive?
+        if small_c   # the small console (owner-approved 2026-11-13) keeps the badge only while it fits: shown only with a cue, never in the quadrant
+          expect(!q[8].positive? || (q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-nocue]').length").zero?)).to be(true)
+        else
+          expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && s.evaluate("document.querySelectorAll('[data-sw-nocue]').length").zero? && !(c['view'] == 'half_vertical' && !is_lg && c['orientation'] != 'portrait'))   # step 18 (owner via coordinator): OG half_vertical portrait has room, the badge shows there   # owner 2026-11-13: beside the temperature, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) ; X half_vertical portrait shows it again (step 19, coordinator: owner rule, badge beside the temperature in every view; the OG hv portrait layout as the model)
+        end
       end
       # Calm (owner): 1-bit and 2-bit panels stay paper (no grey fill); the dial's low/high numbers clear their triangles by 2 px
       # and are at least the size of the dial's scale numbers.
+      # Owner 2026-11-14: a number pushed beside its triangle (no room above the dial) sits left of it for the low value, right of it for the high value.
       begin
         cf = s.evaluate(%q{(function(){var sc=(document.querySelector('.screen')||document.body).classList,lo=sc.contains('screen--1bit')||sc.contains('screen--2bit');
 var f=lo?[].filter.call(document.querySelectorAll('[data-sw-fill]'),function(e){return e.getBoundingClientRect().width>0}).length:0,bad=[];
 document.querySelectorAll('text[data-sw-mark]').forEach(function(t){var k=t.getAttribute('data-sw-mark'),m=t.ownerSVGElement.querySelector('[data-sw-markt="'+k+'"]');if(!m)return bad.push('no mark '+k);var a=t.getBoundingClientRect(),b=m.getBoundingClientRect();
-var sf=[].map.call(t.ownerSVGElement.querySelectorAll('text:not([data-sw-mark])'),function(e){return +e.getAttribute('font-size')});if(sf.length&&+t.getAttribute('font-size')<Math.max.apply(null,sf))bad.push(k+' smaller than the scale numbers');var gx=Math.max(b.left-a.right,a.left-b.right),gy=Math.max(b.top-a.bottom,a.top-b.bottom),gp=Math.max(gx,gy);if(gp<2)bad.push(k+' gap '+gp.toFixed(1));});
+var sf=[].map.call(t.ownerSVGElement.querySelectorAll('text:not([data-sw-mark])'),function(e){return +e.getAttribute('font-size')});if(sf.length&&+t.getAttribute('font-size')<Math.max.apply(null,sf))bad.push(k+' smaller than the scale numbers');var gx=Math.max(b.left-a.right,a.left-b.right),gy=Math.max(b.top-a.bottom,a.top-b.bottom),gp=Math.max(gx,gy);if(gp<2)bad.push(k+' gap '+gp.toFixed(1));if(t.hasAttribute('data-sw-beside')&&(k==='lo'?a.right>b.left+1:a.left<b.right-1))bad.push(k+' beside its mark on the wrong side');});
 return (f?'fill '+f+' ':'')+bad.join('; ');})()})
         puts "CALMFIX #{c['name']}: #{cf}" unless cf.empty?
         expect(cf).to eq('')
@@ -415,11 +537,22 @@ var px=function(r){var sv=r.ownerSVGElement;return +r.getAttribute('rx')*sv.getB
       r3 = s.evaluate(%q{(function(){var sv=[].filter.call(document.querySelectorAll('[data-sw-part="rain"] svg'),function(v){return v.getBoundingClientRect().width>0})[0];if(!sv)return '';var ys={};[].forEach.call(sv.querySelectorAll('text'),function(t){var y=t.getAttribute('y');ys[y]=ys[y]||[];ys[y].push(!!t.closest('.text--white'))});var k=Object.keys(ys).sort(function(a,b){return a-b});if(k.length<3)return '';return ys[k[k.length-1]].some(Boolean)?'':k.length+' rows, last dry'})()})
       puts "RAIN3 #{c['name']}: #{r3}" unless r3.empty?
       expect(r3).to eq('')
+      # Day row parts apart (owner 2026-11-14, OG portrait "lots of clipping"): in each day row the day name, the icon (its box as
+      # drawn, shifts included), the low and the high text and the bar cells neither overlap nor touch (at least 1 px apart); the
+      # numbers no longer spill out of their columns into the icon or the bar track.
+      dp = s.evaluate(%q{(function(){var bad=[],T=function(e){var g=document.createRange();g.selectNodeContents(e);return g.getBoundingClientRect()},v=function(b){return b&&b.width>0&&b.height>0};[].forEach.call(document.querySelectorAll('[data-sw-row="day"]'),function(r,i){if(!r.getBoundingClientRect().height)return;var P=[],nm=r.querySelector('[data-sw-today],[data-sw-dname]'),im=[].filter.call(r.querySelectorAll('img,[data-sw-part="icon"]'),function(e){return v(e.getBoundingClientRect())&&!e.closest('[data-sw-part="dcue"]')})[0],nu=[].filter.call(r.querySelectorAll('span.title:not([data-sw-dname])'),function(e){return v(e.getBoundingClientRect())}),cl=[].filter.call(r.querySelectorAll('[data-sw-cells] rect'),function(e){return v(e.getBoundingClientRect())});if(nm)P.push(['name',nm.hasAttribute('data-sw-today')?nm.getBoundingClientRect():T(nm)]);if(im)P.push(['icon',im.getBoundingClientRect()]);nu.forEach(function(e,j){P.push([j?'high':'low',T(e)])});if(cl.length){var L=1e9,R=-1e9,U=1e9,D=-1e9;cl.forEach(function(e){var b=e.getBoundingClientRect();L=Math.min(L,b.left);R=Math.max(R,b.right);U=Math.min(U,b.top);D=Math.max(D,b.bottom)});P.push(['bar',{left:L,right:R,top:U,bottom:D,width:R-L,height:D-U}])}
+for(var a=0;a<P.length;a++)for(var b=a+1;b<P.length;b++){var x=P[a][1],y=P[b][1];if(v(x)&&v(y)&&x.left<y.right+1&&y.left<x.right+1&&x.top<y.bottom-1&&y.top<x.bottom-1)bad.push('row '+i+' '+P[a][0]+' meets '+P[b][0]+' (gap '+Math.round(Math.max(x.left,y.left)-Math.min(x.right,y.right))+' px)')}});return bad.join('; ')})()})
+      puts "DAYPARTS #{c['name']}: #{dp}" unless dp.empty?
+      # Days scale labels apart (owner 2026-11-14, OG portrait: "-25°-15°" ran together on a wide range): the visible tick labels (number and degree mark) do not overlap.
+      tk = s.evaluate(%q{(function(){var bad=[],L=[].map.call(document.querySelectorAll('text[data-sw-tick]'),function(t){var b=t.getBoundingClientRect(),d=t.nextElementSibling,q=d&&!d.hasAttribute('data-sw-tick')?d.getBoundingClientRect():b;return [t.textContent,{left:Math.min(b.left,q.left),right:Math.max(b.right,q.right),top:Math.min(b.top,q.top),bottom:Math.max(b.bottom,q.bottom),width:b.width}]}).filter(function(q){return q[1].width>0}).sort(function(a,b){return a[1].left-b[1].left});for(var i=1;i<L.length;i++){var g=L[i][1].left-L[i-1][1].right;if(g<0&&L[i][1].top<L[i-1][1].bottom&&L[i-1][1].top<L[i][1].bottom)bad.push(L[i-1][0]+' '+L[i][0]+' gap '+g.toFixed(1))}return bad.join('; ')})()})
+      puts "TICKS #{c['name']}: #{tk}" unless tk.empty?
+      expect(tk).to eq('')
+      expect(dp).to eq('')
       puts "DAYALIGN #{c['name']}: #{al}" unless al.empty?
       expect(al).to eq('')
       d = dr.split(',').map(&:to_f)
       expect(d[0]).to eq(0) if c['view'] == 'quadrant'
-      expect(d[1]).to be >= (c['device'] == 'v2' ? 53 : 28) if d[0].positive?
+      expect(d[1]).to be >= (is_lg ? 53 : 28) * (c['dark'] ? 0.85 : 1) if d[0].positive?   # the comment above says less 15 % for dark mode's divider; the code never took it (dark rows were 55 px by luck until the larger console)
       expect([d[3], d[4]]).to eq(d[0].positive? ? [1, 1] : [0, 0])
       expect(d[5]).to eq(1)
       # Felt temperature (owner decision 2026-11-13): no felt readout anywhere (no felt digits, no felt word, no person
@@ -441,7 +574,7 @@ gs.forEach(function(e){var m=e.querySelector('[data-sw-gauge]'),lit=Object.keys(
 if(!m||+m.getAttribute('data-sw-gauge')!==G.segs||lit!==G.segs||Object.keys([].reduce.call(e.querySelectorAll('[data-sw-c]'),function(o,r){o[r.getAttribute('data-sw-c')]=1;return o},{})).length!==3)bad.push('gauge segments '+lit+' want '+(G&&G.segs));
 if(!t||t.textContent!==G.label)bad.push('gauge label');if(Math.abs(b.right-u.right)>1)bad.push('gauge not under the calendar columns');if(t&&t.getBoundingClientRect().right>u.left+0.5)bad.push('gauge label over the bar');});
 if(G&&!gs.length&&INNER_X_FULL)bad.push('no gauge on a wet X full case');
-return bad.join('; ')})()}.sub('INNER_X_FULL', (c['device'] == 'v2' && (c['view'] || 'full') == 'full' && !c['orientation'] && !c['fixture']) ? 'true' : 'false'))
+return bad.join('; ')})()}.sub('INNER_X_FULL', (is_lg && (c['view'] || 'full') == 'full' && !c['orientation'] && !c['fixture']) ? 'true' : 'false'))
       expect(rg0).to eq('')
       # Hours strip (owner): column count per view, an inverted stamp exactly on the current and the wet hours, the block
       # curve inside its column and its panel, stamp, temperature and icon ink centred on the column axis (2 px; every
@@ -483,11 +616,11 @@ var b=e.getBoundingClientRect();if(b.width>0&&getComputedStyle(e).display!=='non
       # today, l expected later today, e empty) and one thick outline at today's peak; active cells in full ink, earlier
       # cells filled grey, later cells a dashed outline.
       mr = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part^="meter"]').forEach(function(e){if(!e.getBoundingClientRect().width)return;var m0=SW.meters[+e.getAttribute('data-sw-i')||0],isin=e.getAttribute('data-sw-part')==='meterin',m=isin&&m0?m0.tw.m:m0,lt=e.querySelector('[data-sw-lit]');if(!m||!lt)return;var n=+lt.getAttribute('data-sw-ncell'),W=SWDraw.cellStates(m,n),got=[];
-var ir=e.querySelector('[data-sw-twrow]');if(!!ir!==isin)bad.push(m0.key+' indoor row set '+!!ir+'/'+isin);if(ir&&!ir.querySelector('[data-sw-on] g.text--gray-50,[data-sw-on] g[fill]'))bad.push(m0.key+' indoor set not grey');if(isin)return;
-e.querySelectorAll('rect[data-sw-c]').forEach(function(r){if(r.closest('[data-sw-twrow]'))return;var i=+r.getAttribute('data-sw-c'),st=r.closest('[data-sw-st]');var sv=st?st.getAttribute('data-sw-st'):'?';if((got[i]||'').indexOf(sv)<0)got[i]=(got[i]||'')+sv;if(st&&st.getAttribute('data-sw-st')==='l'&&!r.getAttribute('stroke-dasharray')&&r.getAttribute('fill')==='none')bad.push(m.key+' later cell neither filled nor dashed');if(st&&st.getAttribute('data-sw-st')==='p'&&r.getAttribute('fill')==='none')bad.push(m.key+' earlier cell not filled');});
+var ir=e.querySelector('[data-sw-twrow]'),tk=ir?ir.getAttribute('data-sw-twrow'):'',tw0=m0.tw?(isin?'in':'out'):'';if(tk!==tw0)bad.push(m0.key+' twin row set '+tk+'/'+tw0);if(tk==='out'){var Lf=function(r){var c=r&&getComputedStyle(r).fill,q=c&&c.match(/[\d.]+/g);return q&&q.length>2?0.3*q[0]+0.59*q[1]+0.11*q[2]:null},pi=[].filter.call(document.querySelectorAll('[data-sw-part="meterin"][data-sw-i="'+e.getAttribute('data-sw-i')+'"]'),function(q){return q.getBoundingClientRect().width>0})[0],lo=Lf(ir.querySelector('[data-sw-on] rect')),li=Lf(pi&&pi.querySelector('[data-sw-on] rect'));if(lo!==null&&li!==null&&Math.abs(lo-li)<20)bad.push(m0.key+' outdoor set not grey ('+lo+' vs indoor '+li+')');}if(isin)return;
+e.querySelectorAll('rect[data-sw-c]').forEach(function(r){if(r.closest('[data-sw-twrow="in"]'))return;var i=+r.getAttribute('data-sw-c'),st=r.closest('[data-sw-st]');var sv=st?st.getAttribute('data-sw-st'):'?';if((got[i]||'').indexOf(sv)<0)got[i]=(got[i]||'')+sv;if(st&&st.getAttribute('data-sw-st')==='l'&&!r.getAttribute('stroke-dasharray')&&r.getAttribute('fill')==='none')bad.push(m.key+' later cell neither filled nor dashed');if(st&&st.getAttribute('data-sw-st')==='p'&&r.getAttribute('fill')==='none')bad.push(m.key+' earlier cell not filled');});
 var gs=[];for(var i=0;i<n;i++)gs.push(got[i]||'-');if(gs.join('')!==W.st.join(''))bad.push(m.key+' states '+gs.join('')+'/'+W.st.join(''));
 var pk=[].map.call(e.querySelectorAll('[data-sw-gust]'),function(r){return +r.getAttribute('data-sw-gust')});if(pk.join(',')!==(W.peak>=0&&W.st[W.peak]==='e'?String(W.peak):''))bad.push(m.key+' peak '+pk.join(',')+'/'+W.peak);
-var on=e.querySelector('[data-sw-on]');var dg=on&&on.querySelector(':scope > [data-sw-dg]');if(!on||(!dg&&(on.hasAttribute('fill')||on.querySelector(':scope > g[fill]'))))bad.push(m.key+' current cells light grey');});return bad.join('; ');})()})
+var on=e.querySelector('[data-sw-on]');var dg=on&&on.querySelector(':scope > [data-sw-dg]');if(!on||tk!=='out'&&(!dg&&(on.hasAttribute('fill')||on.querySelector(':scope > g[fill]'))))bad.push(m.key+' current cells light grey');});return bad.join('; ');})()})
       puts "MRANGE #{c['name']}: #{mr}" unless mr.empty?
       # Every visible meter has the same block left edge, right edge and width (the twin meter's legend icons sit in a reserved right column), and each legend icon is level with its block row.
       ml = s.evaluate(%q{(function(){var bad=[],xs=[],ys=[],hs=[];document.querySelectorAll('[data-sw-part^="meter"]').forEach(function(e){if(!e.getBoundingClientRect().width)return;var l=1e9,rr=-1e9;[].forEach.call(e.querySelectorAll('rect[data-sw-c]'),function(r){var q=r.getBoundingClientRect();l=Math.min(l,q.left);rr=Math.max(rr,q.right);hs.push(q.height)});if(l<1e9){xs.push(l);ys.push(rr)}});var sp=function(a){return Math.max.apply(null,a)-Math.min.apply(null,a)};var vi=function(q){return [].filter.call(document.querySelectorAll(q),function(e){return e.getBoundingClientRect().width>0})},ks={};vi('[data-sw-for]').forEach(function(e){var k=e.getAttribute('data-sw-for');ks[k]=(ks[k]||0)+1});Object.keys(ks).forEach(function(k){var mm=SW.meters.filter(function(x){return x.key===k})[0],nl=vi('[data-sw-mlabel]').filter(function(e){return e.textContent.trim()===mm.label}).length;if(nl!==ks[k])bad.push(k+' rows '+ks[k]+' but labels '+nl+' (every row has its own label)')});if(hs.length&&sp(hs)>1.5)bad.push('block heights (HUM rows are full meter rows) '+hs.map(Math.round).filter(function(v,i,a){return a.indexOf(v)===i}).join(','));if(xs.length&&sp(xs)>1.5)bad.push('block left edges '+xs.map(Math.round).join(','));if(ys.length&&sp(ys)>1.5)bad.push('block right edges '+ys.map(Math.round).join(','));if(xs.length&&sp(xs.map(function(x,i){return ys[i]-x}))>1.5)bad.push('block widths '+xs.map(function(x,i){return Math.round(ys[i]-x)}).join(','));
@@ -510,15 +643,15 @@ if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);if(ws.length&&Math.max
       expect(co.split('|', 2)[1]).to eq('')
       expect(co.split(',')[1].to_i).to be_positive if (c['view'] || 'full') == 'full' && (c['fields'] || {})['bottom'] != 'hours'
       # Portrait day rows and console (owner, step 19 on x-port-hv; OG half vertical portrait the model): the console badge
-      # beside the temperature, every day row keeps its low and high, the header its two markers, and the scale labels
+      # beside the temperature (full and half views; quadrants are tiny views without a badge, owner B3 2026-11-14), every day row keeps its low and high, the header its two markers, and the scale labels
       # no larger than 1.3 x the low/high digits.
       if c['orientation'] == 'portrait'
         pr = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},bad=[],fs=function(e){return parseFloat(getComputedStyle(e).fontSize)*(e.getBoundingClientRect().width/(e.offsetWidth||1))};
-if(SW.cue&&SW.cue.length&&![].some.call(document.querySelectorAll('[data-sw-part="cue"]'),vis))bad.push('no console badge');
+if(QUAD0&&SW.cue&&SW.cue.length&&![].some.call(document.querySelectorAll('[data-sw-part="cue"]'),vis))bad.push('no console badge');
 var rows=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis),lf=0;rows.forEach(function(r){var n=[].filter.call(r.querySelectorAll('span.title:not([data-sw-dname])'),vis);if(n.length<2)bad.push('row '+r.textContent.trim().split(/\s+/)[0]+' without low/high');else lf=fs(n[0]);});
 if(rows.length){var tr=[].filter.call(document.querySelectorAll('[data-sw-part="tri"]'),vis).length;if(tr!==2)bad.push('markers '+tr);
 var sv=[].filter.call(document.querySelectorAll('[data-sw-part="scale"] svg'),vis)[0];if(sv&&lf){var k=sv.getBoundingClientRect().height/(+sv.getAttribute('height')||1);[].forEach.call(sv.querySelectorAll('text'),function(t){var f=+t.getAttribute('font-size')*k;if(f>lf*1.3)bad.push('scale label '+f.toFixed(0)+' px over low/high '+lf.toFixed(0));});}}
-return bad.filter(function(x,i,a){return a.indexOf(x)===i}).join('; ');})()})
+return bad.filter(function(x,i,a){return a.indexOf(x)===i}).join('; ');})()}.sub('QUAD0', (c['view'] != 'quadrant').to_s))
         puts "PORT #{c['name']}: #{pr}" unless pr.empty?
         expect(pr).to eq('')
       end
@@ -567,12 +700,13 @@ var a=H.top-ink(up,true),b=ink(dn,false)-H.bottom,g=parseFloat(getComputedStyle(
       # clothing badge beside the big temperature, right of the digits and unit, its top layer's box on the digits' ink
       # (top and bottom within 3 px, owner: anchored, not floating) after a divider (DIV: midway, as tall as the digits); the last day row inside its panel.
       cr2 = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},all=function(q){return [].map.call(document.querySelectorAll(q),vis).filter(Boolean)},ov=function(a,b){return Math.min(a.right,b.right)-Math.max(a.left,b.left)>0.5&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>0.5};
-var te=[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg'),vis)[0];
-[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){if(!te){bad.push('badge without temperature');return;}var r=te.getBoundingClientRect(),vb=te.viewBox.baseVal,bb=te.getBBox(),ky=r.height/(vb.height||r.height),kx=r.width/(vb.width||r.width),tt=r.top+(bb.y-vb.y)*ky,th=bb.height*ky,tr=r.left+(bb.x-vb.x+bb.width)*kx;
+var dgh=function(e){return e.getBBox().height*e.getBoundingClientRect().height/(e.viewBox.baseVal.height||1)},tm=[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg,[data-sw-part="itemp"] svg'),vis).sort(function(a,b){return dgh(b)-dgh(a)})[0];   // the main temperature: the largest digits (indoor with a sensor, owner 2026-11-14)
+[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){var tw=e.closest('[data-sw-twin]'),te=tw?vis(tw.querySelector('[data-sw-part="temp"] svg'))&&tw.querySelector('[data-sw-part="temp"] svg'):tm;if(!te){bad.push('badge without temperature');return;}var sm=!!e.closest('[data-sw-small]'),cb=e.hasAttribute('data-sw-cb');   /* owner 2026-11-14: next to the tree icon (cb): above the outdoor digits in the twin row, left of them in the small views; not right of the digits */   // small console (owner-approved 2026-11-13): the badge may sit below the digits, never over them
+var r=te.getBoundingClientRect(),vb=te.viewBox.baseVal,bb=te.getBBox(),ky=r.height/(vb.height||r.height),kx=r.width/(vb.width||r.width),tt=r.top+(bb.y-vb.y)*ky,th=bb.height*ky,tr=r.left+(bb.x-vb.x+bb.width)*kx;
 var u=te.closest('[data-sw-part]').parentElement.querySelector('[data-sw-unit]'),ur=u?vis(u).right:tr,g=e.querySelector('g[data-sw-cloth]'),sv=e.querySelector('svg'),sr=vis(sv);if(!g||!sr){bad.push('badge not drawn');return;}var sb=sv.viewBox.baseVal,sk=(/slice/.test(sv.getAttribute('preserveAspectRatio')||'')?Math.max:Math.min)(sr.width/sb.width,sr.height/sb.height),oy=sr.top+(sr.height-sb.height*sk)/2,bx=g.getAttribute('data-sw-box').split(',').map(Number),gb={left:sr.left+(bx[0]-sb.x)*sk,top:oy+(bx[1]-sb.y)*sk,height:bx[2]*sk};gb.right=gb.left+bx[2]*sk;gb.bottom=gb.top+gb.height;   // the top layer's box (xMinYMid: a T-shirt draws shorter than a parka in the same box)
-if(gb.left<Math.max(tr,ur)-0.5)bad.push('badge not right of the temperature '+gb.left.toFixed(0)+'<'+Math.max(tr,ur).toFixed(0));if(ov(gb,{left:r.left,right:tr,top:tt,bottom:tt+th}))bad.push('badge over temp');
-if(Math.abs(gb.top-tt)>3||Math.abs(gb.bottom-tt-th)>3)bad.push('badge '+gb.top.toFixed(1)+'-'+gb.bottom.toFixed(1)+' not on the digits '+tt.toFixed(1)+'-'+(tt+th).toFixed(1));var dv=e.previousElementSibling;if(!e.closest('[data-sw-twin]')&&!(dv&&dv.hasAttribute('data-sw-div')&&dv.getBoundingClientRect().height>0))bad.push('no divider before the badge');});
-if(te){var ti2=te.getBBox().height*te.getBoundingClientRect().height/(te.viewBox.baseVal.height||1),fz=function(e){return parseFloat(getComputedStyle(e).fontSize)*(e.getBoundingClientRect().width/(e.offsetWidth||1))},mx=0;[].forEach.call(document.querySelectorAll('[data-sw-suntime],[data-sw-cond]'),function(e){if(vis(e))mx=Math.max(mx,fz(e))});if(mx&&ti2<1.2*mx)bad.push('temperature digits '+ti2.toFixed(0)+' not the largest readout (text '+mx.toFixed(0)+')');}   // owner 2026-11-13 (live X hv dark, 4.4 smaller than the sun times)
+if(cb&&tw&&gb.bottom>tt+3)bad.push('outdoor badge '+gb.bottom.toFixed(0)+' not above its digits '+tt.toFixed(0));if(!sm&&!cb&&gb.left<Math.max(tr,ur)-0.5)bad.push('badge not right of the temperature '+gb.left.toFixed(0)+'<'+Math.max(tr,ur).toFixed(0));if(ov(gb,{left:r.left,right:tr,top:tt,bottom:tt+th}))bad.push('badge over temp');
+if(!sm&&!cb&&(Math.abs(gb.top-tt)>3||Math.abs(gb.bottom-tt-th)>3))bad.push('badge '+gb.top.toFixed(1)+'-'+gb.bottom.toFixed(1)+' not on the digits '+tt.toFixed(1)+'-'+(tt+th).toFixed(1));var dv=e.previousElementSibling;if(!sm&&!e.closest('[data-sw-twin]')&&!(dv&&dv.hasAttribute('data-sw-div')&&dv.getBoundingClientRect().height>0))bad.push('no divider before the badge');});
+if(tm){var ti2=dgh(tm),fz=function(e){return (+e.getAttribute('data-sw-fs')||parseFloat(getComputedStyle(e).fontSize))*(e.getBoundingClientRect().width/(e.offsetWidth||1))},mx=0;[].forEach.call(document.querySelectorAll('[data-sw-suntime],[data-sw-cond]'),function(e){if(vis(e))mx=Math.max(mx,fz(e))});if(mx&&ti2<1.2*mx)bad.push('temperature digits '+ti2.toFixed(0)+' not the largest readout (text '+mx.toFixed(0)+')');}   // owner 2026-11-13 (live X hv dark, 4.4 smaller than the sun times)
 document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=vis(p);if(!q)return;var r=[].map.call(p.querySelectorAll('[data-sw-row="day"]'),vis).filter(Boolean);if(r.length&&r[r.length-1].bottom>q.bottom+0.5)bad.push('day row '+r.length+' past the panel '+(r[r.length-1].bottom-q.bottom).toFixed(0))});
 return bad.join('; ');})()})
       puts "READOUT #{c['name']}: #{cr2}" unless cr2.empty?
@@ -585,14 +719,15 @@ return bad.join('; ');})()})
       # Digit spacing (owner 2026-11-13, "4. 1"): in the seven-segment readouts the ink gap between neighbouring digits
       # (a decimal point between them allowed) at most 30 of the 100-unit digit height (normal 14, with a point 20).
       sp = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part] svg').forEach(function(v){var r=v.getBoundingClientRect();if(!r.height)return;var k=100/r.height,gl=[].filter.call(v.querySelectorAll('g[data-sw-glyph]'),function(g){return /[0-9]/.test(g.getAttribute('data-sw-glyph'))&&g.getBoundingClientRect().width>0});
-for(var i=1;i<gl.length;i++){var a=gl[i-1].getBoundingClientRect(),b=gl[i].getBoundingClientRect(),gp=(b.left-a.right)*k;if(gp>30)bad.push(gl[i-1].getAttribute('data-sw-glyph')+gl[i].getAttribute('data-sw-glyph')+' gap '+gp.toFixed(0));}});return bad.join('; ');})()})
+for(var i=1;i<gl.length;i++){var a=gl[i-1].getBoundingClientRect(),b=gl[i].getBoundingClientRect(),gp=((gl[i].getAttribute('data-sw-glyph')==='1'&&v.closest('[data-sw-part="temp"],[data-sw-part="itemp"]')?b.right-56/k:b.left)-a.right)*k;   // LCD cells (owner 2026-11-14): a 1 sits right in a full cell, the gap counts to the cell edge
+if(gp>30)bad.push(gl[i-1].getAttribute('data-sw-glyph')+gl[i].getAttribute('data-sw-glyph')+' gap '+gp.toFixed(0));}});return bad.join('; ');})()})
       puts "DIGITGAP #{c['name']}: #{sp}" unless sp.empty?
       expect(sp).to eq('')
-      # Dial trend arrows (owner 2026-11-13): one trend-line arrow per dial trending up or down (barometer from 3 h ago,
+      # Dial trend arrows (owner 2026-11-13): one trend-line arrow per dial trending up or down (with a sensor the temperature dial's value and arrow are indoor, owner 2026-11-14; barometer from 3 h ago,
       # temperature +3 h), matching the direction, none when level, in front of the value on its line (owner 2026-11-13; was top right, then behind the unit), its 28-unit box about 1.5 x the name caption's cap height.
       ar = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d');
-[].filter.call(document.querySelectorAll('[data-sw-part="baro"],[data-sw-part="tdial"]'),vis).forEach(function(d){var k=d.getAttribute('data-sw-part'),aw=(k==='baro'?SW.baro:SW.tdial).arrow,want=aw==='up'||aw==='down'?1:0,box=d.parentElement,B=box.getBoundingClientRect(),a=[].filter.call(box.querySelectorAll('[data-sw-arrowpoly]'),function(e){return vis(e)&&!e.closest('[data-sw-dialin]')}),di=box.querySelector('[data-sw-dialin]');
-if(k==='tdial'&&!!SW.inn!==!!(di&&vis(di)))bad.push('stacked indoor value '+!!(di&&vis(di))+'/'+!!SW.inn);if(di&&vis(di)){var q=di.getBoundingClientRect(),ov=q,o2=box.querySelector('[data-sw-cap]').getBoundingClientRect(),sp=di.querySelector('span.value');if(q.left<B.left||q.right>B.right||q.top<B.top||!sp||!sp.textContent.trim())bad.push('indoor value outside the panel or empty');if(!di.querySelector('[data-sw-part="loc"] svg path'))bad.push('indoor icon missing');if(Math.abs(q.right-di.previousElementSibling.getBoundingClientRect().right)>1.5)bad.push('indoor value right edge not level with the outdoor value');var lb=[].filter.call(d.querySelectorAll('svg text'),vis);lb.forEach(function(e){var b=e.getBoundingClientRect();if(Math.min(b.right,q.right)-Math.max(b.left,q.left)>1&&Math.min(b.bottom,q.bottom)-Math.max(b.top,q.top)>1)bad.push('indoor value over dial label '+e.textContent)});if(q.top<o2.bottom&&q.left<o2.right)bad.push('indoor value over the TEMPERATURE label');[].forEach.call(d.querySelectorAll('svg text,svg line,svg polygon'),function(e){if(e.closest('[data-sw-needle],defs')&&e.tagName!=='polygon')return;var b=e.getBoundingClientRect();[q,di.previousElementSibling.getBoundingClientRect()].forEach(function(r){if(b.width&&Math.min(b.right,r.right)-Math.max(b.left,r.left)>1&&Math.min(b.bottom,r.bottom)-Math.max(b.top,r.top)>1)bad.push('indoor or outdoor value over the dial '+e.tagName+' '+[b.left,b.top,b.right,b.bottom].map(Math.round)+' vs '+[r.left,r.top,r.right,r.bottom].map(Math.round))})});}
+[].filter.call(document.querySelectorAll('[data-sw-part="baro"],[data-sw-part="tdial"]'),vis).forEach(function(d){var k=d.getAttribute('data-sw-part'),aw=(k==='baro'?SW.baro:(SW.inn||SW.tdial)).arrow,want=aw==='up'||aw==='down'?1:0,box=d.parentElement,B=box.getBoundingClientRect(),a=[].filter.call(box.querySelectorAll('[data-sw-arrowpoly]'),function(e){return vis(e)&&!e.closest('[data-sw-dialin]')}),di=box.querySelector('[data-sw-dialin]');
+if(k==='tdial'&&!!SW.inn!==!!(di&&vis(di)))bad.push('stacked outdoor value '+!!(di&&vis(di))+'/'+!!SW.inn);if(di&&vis(di)){var q=di.getBoundingClientRect(),ov=q,o2=box.querySelector('[data-sw-cap]').getBoundingClientRect(),sp=di.querySelector('span.value');if(q.left<B.left||q.right>B.right||q.top<B.top||!sp||!sp.textContent.trim())bad.push('outdoor value outside the panel or empty');if(!di.querySelector('[data-sw-part="loc"] svg path'))bad.push('outdoor icon missing');if(Math.abs(q.right-di.previousElementSibling.getBoundingClientRect().right)>1.5)bad.push('outdoor value right edge not level with the indoor value');var lb=[].filter.call(d.querySelectorAll('svg text'),vis);lb.forEach(function(e){var b=e.getBoundingClientRect();if(Math.min(b.right,q.right)-Math.max(b.left,q.left)>1&&Math.min(b.bottom,q.bottom)-Math.max(b.top,q.top)>1)bad.push('indoor value over dial label '+e.textContent)});if(q.top<o2.bottom&&q.left<o2.right)bad.push('indoor value over the TEMPERATURE label');[].forEach.call(d.querySelectorAll('svg text,svg line,svg polygon'),function(e){if(e.closest('[data-sw-needle],defs')&&e.tagName!=='polygon')return;var b=e.getBoundingClientRect();[q,di.previousElementSibling.getBoundingClientRect()].forEach(function(r){if(b.width&&Math.min(b.right,r.right)-Math.max(b.left,r.left)>1&&Math.min(b.bottom,r.bottom)-Math.max(b.top,r.top)>1)bad.push('indoor or outdoor value over the dial '+e.tagName+' '+[b.left,b.top,b.right,b.bottom].map(Math.round)+' vs '+[r.left,r.top,r.right,r.bottom].map(Math.round))})});}
 if(a.length!==want){bad.push(k+' arrows '+a.length+'/'+want);return;}if(!a.length)return;if(a[0].getAttribute('data-sw-arrowpoly')!==aw)bad.push(k+' arrow '+a[0].getAttribute('data-sw-arrowpoly')+' for '+aw);var r=a[0].ownerSVGElement.getBoundingClientRect(),c=box.querySelector('[data-sw-cap]'),cs=getComputedStyle(c);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var cap=cx.measureText('H').actualBoundingBoxAscent*(c.getBoundingClientRect().height/(c.offsetHeight||1)),h=Math.max(r.width,r.height);
 var vv=a[0].ownerSVGElement.closest('[data-sw-part="arrow"]'),vv=vv&&vv.nextElementSibling,V=vv&&vv.getBoundingClientRect();if(!V||!vv.classList.contains('value')||r.right>V.left||V.left-r.right>2.5*cap||r.top>V.bottom||r.bottom<V.top)bad.push(k+' arrow not in front of the value');if(h<1.2*cap||h>1.8*cap)bad.push(k+' arrow '+h.toFixed(0)+' cap '+cap.toFixed(0));});return bad.join('; ');})()})
       puts "ARROW #{c['name']}: #{ar}" unless ar.empty?
