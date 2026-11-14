@@ -646,9 +646,15 @@ async function run(input) {
   // Real devices: the transform input has no sensor_readings (TRMNL adds them for the markup only). So the payload carries
   // ph, only the parts of the view that differ when an indoor reading exists: the markup merges them into ui and its page
   // script puts the real values in. Built from the view with a stand-in reading (the outdoor temperature, humidity 50).
-  var phTemp = model.now.temp, ph = null;
-  if (field(input, 'sensor_show', 'show') !== 'hide' && phTemp !== null && phTemp !== undefined) {
-    ph = phOverlay(buildView(Object.assign({}, model, { inn: { temp: phTemp, hum: 50, co2: null, press: null } }), i18n, w.daily, moon, phase, vo));
+  var phTemp = model.now.temp, ph = null, showIn = field(input, 'sensor_show', 'show') !== 'hide', showCo = field(input, 'sensor_co2', 'show') !== 'hide';
+  if ((showIn || showCo) && phTemp !== null && phTemp !== undefined) {
+    var stand = (co2) => buildView(Object.assign({}, model, { inn: { temp: phTemp, hum: 50, co2: co2, press: null } }), i18n, w.daily, moon, phase, vo);
+    ph = showIn ? phOverlay(stand(null)) : {};
+    if (showCo) {   // the CO2 meter (B9): the meter list with a normal and with a high reading (key, label, idx, rank), the markup picks one by the real reading
+      var lo = stand(800), hi = stand(1800), slim = (v) => v.meters.map((m) => ({ key: m.key, label: m.label, idx: m.idx, rank: m.rank }));
+      var cm = hi.meters.concat(lo.meters).filter((m) => m.key === 'co2')[0];
+      ph.mn = slim(lo); ph.mu = slim(hi); ph.cz = cm ? cm.zones : null;
+    }
   }
   if (keep) st.snap = keep;   // a failed fetch writes the old copy back as it was
   return { trmnl_state: fitState(st), ui: ui, model: model, sun: sunO, moon: moon, pollen: pollenV, ph: ph, weather: weather, aq: aq, i18n: i18n, unit: fahrenheit ? 'fahrenheit' : 'celsius', clock: ((m) => m ? clk(m[1], m[2]) : null)(/T(\d{2}):(\d{2})/.exec(String((w.current || {}).time || ''))) };
