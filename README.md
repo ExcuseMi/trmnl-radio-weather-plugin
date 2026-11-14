@@ -37,8 +37,22 @@ cd plugin
 trmnlp serve        # preview
 SW_CASES="$(cat ../tools/render_check_cases.json)" SW_OUT=/tmp/rw trmnlp test ../tools/render_check_spec.rb   # render check, PNGs in /tmp/rw
 node ../test/model/run.js   # pure-logic tests of the weather model
+(cd .. && npm install && node tools/build.js)   # after editing source/shared.liquid
 ruby ../tools/sync_trmnl_i18n.rb   # re-sync TRMNL's translations
 ```
+
+## Editing
+
+Edit `source/shared.liquid` (all comments live there), then run `node tools/build.js`: it writes `plugin/src/shared.liquid` (Liquid comments stripped, page script minified), which is what trmnlp pushes. Never edit the built file; the model tests fail when it is out of date or over 84 KB.
+
+Two render-check tiers, same spec (`tools/render_check_spec.rb`), run base first, then devices, then ship:
+
+| Tier | Cases | Run |
+|---|---|---|
+| Base | `tools/render_check_cases.json` (OG, X, colour OG; scope unchanged) | `cd plugin && SW_CASES="$(cat ../tools/render_check_cases.json)" SW_OUT=<dir> trmnlp test ../tools/render_check_spec.rb` |
+| Devices | `tools/render_check_devices.json`: every TRMNL model x full/hh/hv/quadrant, portrait full+hv, one dark | `tools/check_devices.sh [out_dir] [model-substring]` prints a pass/fail table per device (about 12 min for all) |
+
+Regenerate the device file after TRMNL adds a model: `python3 tools/make_device_cases.py` (reads trmnl.com/api/models). Playdate is left out until the owner decides on small screens.
 
 ## Licence
 

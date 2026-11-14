@@ -222,8 +222,8 @@ test('the X view: no data gives no crash and empty parts', () => {
   const M = SWModel.build(fx('error'), {}), v = T.buildView(M, T.buildI18n('en'), null, null);
   eq(v.ok, false); eq(v.days.length, 0);
 });
-// Page drawings (DRAW block of shared.liquid), cut out like the model so the test runs the page's own bytes.
-const shRaw = fs.readFileSync(path.join(__dirname, '../../plugin/src/shared.liquid'), 'utf-8');
+// Page drawings (DRAW block of source/shared.liquid, the readable source: the built page script is minified into one statement), cut out like the model.
+const shRaw = fs.readFileSync(path.join(__dirname, '../../source/shared.liquid'), 'utf-8');
 const sh = shRaw.replace(/\{\{ (\d+) \| times: \w+ \| round \| at_most: 100 \}\}/g, '$1');   // per-view size factors read as the full view's values
 const da = sh.indexOf('// ==== DRAW_BEGIN ===='), db = sh.indexOf('// ==== DRAW_END ====');
 if (da < 0 || db < 0) throw new Error('DRAW markers missing in shared.liquid');
@@ -232,9 +232,11 @@ test('segment digits: lit segments only, no ghost segments (owner 2026-11-12)', 
   eq((D.digits('1', 100).match(/<polygon/g) || []).length, 2, 'a 1 is two segments');
   eq((D.digits('8.8', 100).match(/<polygon/g) || []).length, 14); ok(/<rect/.test(D.digits('8.8', 100)), 'decimal point');
 });
-test('segment digits: the minus is narrow, no digit-wide gap before the 2', () => {
+test('segment digits: LCD cells (owner 2026-11-14): the minus takes the empty integer cell, narrow minus glyph, no extra gap', () => {
   const w = (s) => +/viewBox="0 0 ([\d.]+)/.exec(D.digits(s, 100))[1];
-  ok(w('-2') < w('22') * 0.9, 'minus width ' + w('-2') + ' vs ' + w('22'));
+  eq(w('-2'), w('22'), 'a minus in the reserved cell: same width as two digits');
+  ok(w('-12') < w('-2') + w('2') * 0.9, 'a minus before two digits is narrow, not digit-wide: ' + w('-12') + ' vs ' + w('-2'));
+  ok(w('-') < w('2') * 0.9, 'minus glyph narrower than a digit cell');
 });
 test('meters (owner 2026-11-12): order wind, uv, aqi, humidity, pollen, baro, co2; pollen only above zero', () => {
   const raw = fx('mixed'), M0 = SWModel.build(raw, {});
@@ -270,11 +272,13 @@ test('dials: needle drawn last, low mark hollow, high mark solid, baro zone icon
 test('right column: no rule between the rain calendar and the sun times (owner 2026-11-12, later decision)', () => {
   ok(sh.indexOf('data-sw-sep="rain-sun"') < 0, 'no rain-sun separator');
 });
-test('days strip: 5-degree lines faint, blocks at least half the row, now line dark', () => {
-  const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40);
+test('days strip: 5-degree lines faint, other days thin mid-grey bars (at least 40 % of the row), today at least half the row in dark ink (owner 2026-11-14)', () => {
+  const day = (hi) => D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40, hi);
+  const s = day(false);
   ok(/^<svg[^>]*>(<defs>.*<\/defs>)?<g class="text--gray-7\d"/.test(s), 'grid lines light grey');
-  const h = +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(s.split('text--gray-20')[1])[1];
-  ok(h >= 20, 'block height ' + h + ' of 40');
+  const hOf = (str, tok) => +/<rect x="[\d.]+" y="[\d.]+" width="[\d.]+" height="([\d.]+)"/.exec(str.split(tok)[1])[1];
+  ok(hOf(s, 'text--gray-45') >= 16, 'other days: mid-grey block height ' + hOf(s, 'text--gray-45') + ' of 40');
+  ok(hOf(day(true), 'text--gray-10') >= 20, 'today: dark block at least half the row');
 });
 test('panel face (owner 2026-11-12): a plain fill on 4-bit light, no backlight lamps; none on 2-bit, in dark or 1-bit', () => {
   const f = (m, W, H) => { D.mode = m; const s = D.part({}, 'face', 0, W, H); D.mode = null; return s; };
@@ -300,7 +304,7 @@ test('dark glow on the lit parts: blur halo on 4-bit, crisp halo on 2-bit, none 
   D.mode = { dark: true, bits: 4 }; const r = D.rain([{ h: '14', wet: true }], 120, 40); D.mode = null;
   ok(r.indexOf('data-sw-glow') < r.lastIndexOf('<rect'), 'halo under the lit cell, not over it');
   D.mode = { dark: true, bits: 4 }; ok(!/text--gray-40/.test(D.meter({ frac: 0.5 }, 200, 30, 10)), 'dark: lit meter cells in full ink, as live'); D.mode = null;
-  ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 4, 'weather, rain and sun icons marked to glow');
+  ok((sh.match(/<img [^>]*data-sw-icon>/g) || []).length === 5, 'weather (full and small console), rain and sun rise/set icons marked to glow');
 });
 test('moon glow outside the disk in dark mode, none in light or 1-bit (owner 2026-11-12)', () => {
   const at = (m) => { D.mode = m; const v = D.moon(0.3, 100); D.mode = null; return v; };
@@ -315,11 +319,11 @@ test('days strip in narrow views: X half vertical 7 days without numbers, OG hal
   ok(/nd_md = 4 %}/.test(v3) && /nd_lg = 7 %}/.test(v3), 'half vertical: 4 days on md (owner 2026-11-12: taller rows), 7 on lg');
   ok(/num_cls = ' lg:hidden lg:portrait:flex' %}/.test(v3), 'half vertical: low/high numbers on the OG (owner 2026-11-12), dropped on the X landscape, kept on X portrait (step 19, coordinator: low/high stay)');
   ok(/bar_cls = 'col--span-7 lg:col--span-8' %}/.test(v3) && /name_cls = 'col--span-2' %}{% assign icon_cls = 'col--span-1 lg:col--span-2' %}{% assign pad_cls = 'col--span-3 lg:col--span-4' %}/.test(v3), 'bars keep at least half the strip, header pad matches name + icon');
-  ok(/name_t = ' lg:portrait:title--xlarge' %}/.test(v1) && /icon_x = ' lg:portrait:h--\[7cqh\]' %}/.test(v1), 'portrait: names and icons at the live size');
+  ok(/name_t = ' lg:portrait:title--xlarge' %}/.test(v1) && /icon_x = '(?: portrait:h--\[7cqh\])? lg:portrait:h--\[7cqh\]' %}/.test(v1), 'portrait: names and icons at the live size');
   ok(/<span class="title title--base{{ name_t }} text--bold" data-sw-dname>{{ d.name }}/.test(sh) && /{{ icon_x }}" src="{{ d.icon }}"/.test(sh), 'row markup uses the per-view sizes');
 });
 test('OG full (md): no dials, 5-segment meters, 4 days; X (lg) keeps dials, 10 segments, 5 days', () => {
-  ok(/<div class="hidden lg:block h--\[30cqh\][^"]*"><div class="flex flex--row/.test(sh), 'dials only on lg');
+  ok(/<div class="hidden lg:block h--\[\d+cqh\][^"]*"><div class="flex flex--row/.test(sh), 'dials only on lg');
   ok(/lg:hidden" data-sw-part="\{\{ pk \}\}" data-sw-n="5"/.test(sh) && /hidden lg:block[^"]*" data-sw-part="\{\{ pk \}\}" data-sw-n="10"/.test(sh), 'meter copies per size');
   ok(/data-sw-row="day"/.test(sh) && !/forloop.index > 4 %}<div class="hidden lg:block">/.test(sh), 'every day row in the same full-width wrapper (no half-width fifth row)');
   ok(/{%- if d.today %}<span class="label label--inverted[^"]*" data-sw-today>/.test(sh), 'OG: today a lit lamp on the day name (owner 2026-11-12)');
@@ -333,7 +337,7 @@ test('rain unit: icon left of the grid on every size (owner 2026-11-12, later de
   ok(u > 0 && /\{\{ ru_cls \}\}/.test(sh.slice(sh.lastIndexOf('<div', u), u)) && /assign ru_cls = 'flex--row lg:portrait:flex--col'/.test(sh), 'row on md and lg');
   ok(/{% if stk %}[^\n]*{% assign ru_cls = 'flex--col lg:flex--row' %}/.test(sh), 'narrow stacked md column: icon above the calendar (owner 2026-11-12)');
   ok(/<img class="image image--adaptive \{\{ ib_cls \}\}" src="\{\{ ui.rain.icon \}\}"/.test(sh.slice(u, end)) && /h--\[\{\{ cal_m \}\}cqh\] lg:h--\[\{\{ cal_l \}\}cqh\][^"]*" data-sw-part="rain"/.test(sh) && /capture ib_cls %\}aspect--1\/1 h--\[\{\{ ib_m \}\}cqh\] lg:h--\[\{\{ ib_l \}\}cqh\]/.test(sh), 'icon as tall as the grid on md and lg');
-  ok(/assign ib_m = cal_m %}{% if stk and view != 3 %}{% assign ib_m = rc_m/.test(sh) && /{% if view == 3 %}[^\n]*{% assign ru_cls = 'flex--row' %}/.test(sh), 'stacked md: icon above, one row tall; OG half vertical: icon left at the calendar height (owner 2026-11-12)');
+  ok(/{% if view == 3 %}[^\n]*{% assign ru_cls = 'flex--row' %}/.test(sh), 'stacked md: icon above, one row tall; OG half vertical: icon left at the calendar height (owner 2026-11-12)');
   ok(/<div class="\{\{ ib_cls \}\}" data-sw-part="moon">/.test(sh), 'moon box the same as the rain icon box');
   const T3 = (h) => D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), 300, h).match(/<text/g).length;
   eq([T3(150), T3(500)], [6, 9], 'short rain: 2 x 3; a narrow tall box: 3 x 3');
@@ -341,7 +345,7 @@ test('rain unit: icon left of the grid on every size (owner 2026-11-12, later de
   const R3 = (w, h, lp) => { D.lp = lp || 0; const n = D.rain(Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: false })), w, h, 3).match(/<text/g).length; D.lp = 0; return n; };
   eq(R3(300, 160), 9, 'long rain: 3 x 3 in a box that holds it');
   eq([R3(300, 120), R3(300, 160, 50)], [6, 6], 'long rain: 2 x 3 when 3 rows only fit too flat or below the label size (owner 2026-11-12)');
-  ok(/data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"/.test(sh) && /{% if view == 4 or view == 2 %}{% assign rr_m = 2 %}/.test(sh), 'quadrant and half-horizontal md boxes sized for 2 rows; OG half vertical 3 when the rain is long (owner 2026-11-12)');
+  ok(/data-sw-part="rain" data-sw-rows="{{ rr_m }},{{ rr }}"/.test(sh) && /{% if view == 2 %}{% assign rr_m = 2 %}/.test(sh), 'quadrant and half-horizontal md boxes sized for 2 rows; OG half vertical 3 when the rain is long (owner 2026-11-12)');
   const c = Array.from({ length: 12 }, (_, i) => ({ h: String(i), wet: i >= 2 && i <= 6 }));
   eq([T.rainRows(c), T.rainRows(c.map((q, i) => ({ h: q.h, wet: i >= 2 && i <= 5 })))], [3, 2], 'rows: 3 when the rain runs past the sixth hour');
 });
@@ -395,6 +399,18 @@ test('meter cell states for today (owner 2026-11-13): active, reached earlier, e
   eq([(svg.match(/data-sw-gust/g) || []).length, (gsv.match(/data-sw-gust/g) || []).length], [0, 1], 'peak outline only outside today\'s range (owner): none when the range already reaches it, one for a gust beyond it');
   eq([1, (svg.match(/data-sw-st="p"><g class="([^"]+)"/) || [])[1] === (svg.match(/data-sw-st="l"><g class="([^"]+)"/) || [])[1] && !/stroke-dasharray/.test(svg)], [1, true], 'one peak outline; earlier and later cells share one range grey (owner: now + today\'s range)');
 });
+test('moon tilt: bright limb as the observer sees it (owner 2026-11-14, true tilt)', () => {
+  const L = (t, la, lo) => T.moonLimb(Date.parse(t), la, lo), near = (a, b, tol) => Math.abs(((a - b + 540) % 360) - 180) <= tol;
+  ok(near(L('2026-11-14T18:00Z', 50.85, 3.35), 242, 6), 'Deerlijk 2026-11-14 19h: waxing crescent lit low on the right (reference site), ' + L('2026-11-14T18:00Z', 50.85, 3.35));
+  ok(near(L('2026-11-14T09:00Z', -33.87, 151.21), 151, 6), 'Sydney the same evening: lit low on the left (southern sky flips), ' + L('2026-11-14T09:00Z', -33.87, 151.21));
+  ok(near(L('2026-12-01T06:00Z', 50.85, 3.35), 109, 6), 'Deerlijk 2026-12-01 07h: waning, lit on the left, ' + L('2026-12-01T06:00Z', 50.85, 3.35));
+  eq(T.moonLimb(NaN, 50, 3), null); eq(T.moonLimb(Date.parse('2026-11-14T18:00Z'), undefined, 3), null);
+  const p = T.moonPhase('2026-11-14T19:00', 3600); ok(p > 0.14 && p < 0.19, 'phase at the refresh time, waxing crescent ' + p);
+  ok(T.moonPhase('2026-11-14T23:00', 3600) > p, 'later the same evening: further on');
+  D.mode = { bits: 4 }; const s = D.moon(p, 100, 242); D.mode = null;
+  ok(/data-sw-moon="lit" transform="rotate\((-?[\d.]+) 50 50\)"/.test(s) && /rotate\(28 50 50\)/.test(s), 'the lit part rotated from the right (270) to 242: 28 degrees clockwise');
+  ok(!/rotate/.test(D.moon(p, 100)), 'no location: no rotation');
+});
 test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter, gibbous and full, light and dark, lit side right while waxing', () => {
   const H = 100, r = H * 0.27, disk = Math.PI * r * r;
   [0.1, 0.25, 0.4, 0.5, 0.6, 0.75, 0.9].forEach((p) => {
@@ -405,10 +421,11 @@ test('moon drawn from the phase: lit fraction within 10 % for crescent, quarter,
       ok(Math.abs(a.area / disk - want) <= 0.1, 'p ' + p + (dark ? ' dark' : ' light') + ': lit ' + (a.area / disk).toFixed(3) + ' want ' + want.toFixed(3));
       if (want < 0.99) ok(p < 0.5 ? a.mx > H / 2 : a.mx < H / 2, 'p ' + p + ': lit on the ' + (p < 0.5 ? 'right' : 'left'));
       ok(/<circle[^>]*fill="none"/.test(s) && !/text--gray-45"><circle[^>]*fill="none"/.test(s), 'limb outline in full ink, light and dark (Calm, owner)');
-      ok(dark ? !/text--gray-45"><path/.test(s) : /text--gray-45"><path/.test(s), dark ? 'dark: lit part in full (light) ink' : 'light: lit part in grey ink');
+      ok(dark ? !/text--gray-45"><path/.test(s) : /text--gray-20"><circle[^>]*data-sw-moon="disk"\/><\/g><g class="text--white"><path/.test(s), dark ? 'dark: lit part in full (light) ink' : 'light: dark disc, lit part white on it (owner 2026-11-14, printed moon-phase icon)');
     });
   });
-  ok(!/<path/.test(D.moon(0, H)) && /<circle/.test(D.moon(0, H)), 'new moon: outline only');
+  D.mode = { bits: 4 }; const nm = D.moon(0, H); D.mode = null;
+  ok(!/<path/.test(nm) && /text--gray-20"><circle[^>]*data-sw-moon="disk"/.test(nm) && /<circle[^>]*fill="none"/.test(nm), 'new moon: a dark disc with its outline, no lit part (owner 2026-11-14)');
   for (let d = 1; d <= 30; d++) { const t = '2026-11-' + String(d).padStart(2, '0') + 'T12:00', ic = T.moonIcon(t), p = T.moonPhase(t);
     if (ic === 'wi-moon-alt-full') ok(Math.abs(p - 0.5) < 0.03, t + ' full at ' + p); if (ic === 'wi-moon-alt-new') ok(p < 0.03 || p > 0.97, t + ' new at ' + p); }
   eq(T.moonPhase(null), null);
@@ -425,7 +442,7 @@ test('barometer trend over 3 h with +/-1 hPa thresholds; clothing cues for every
   eq([C({}), C({ uv: 8 }), C({ rain: true })], ['', '', 'umbrella'], 'no temperature: no top layer, the umbrella still applies');
   const i = T.buildI18n('nl');
   eq([i.ours.p_steady, i.ours.p_rising, i.ours.p_falling], ['STABIEL', 'STIJGEND', 'DALEND']);
-  eq(T.buildI18n('ja').ours.p_rising, 'RISING', 'missing language falls back to English');
+  eq(T.buildI18n('xx').ours.p_rising, 'RISING', 'unknown language falls back to English');
   const f = fx('mixed');
   const M = SWModel.build(f, {}), calm = T.buildView(M, i, f.daily, null, 0.3, { pressAgo: 1015 }), none = T.buildView(M, i, f.daily, null, 0.3);
   eq([calm.cue, calm.baro.trend], [['parka', 'umbrella'], 'DALEND'], 'mixed has rain in the window, 1013.2 now against 1015');
@@ -525,6 +542,17 @@ test('days axis (owner bug): from the values as shown (rounded, -0 as 0) and onl
 test('every plugin/src file stays under 98 KiB: TRMNL refuses an import over 100 KB (step 18: shared.liquid reached 102.3 KB)', () => {
   const dir = path.join(__dirname, '../../plugin/src');
   fs.readdirSync(dir).forEach((n) => { const b = fs.statSync(path.join(dir, n)).size; ok(b < 98 * 1024, n + ' is ' + b + ' bytes, limit ' + 98 * 1024); });
+});
+test('plugin/src/shared.liquid is the build of source/shared.liquid: run node tools/build.js (owner 2026-11-13)', () => {
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'sw-build-'));
+  const out = path.join(tmp, 'shared.liquid');
+  require('child_process').execFileSync(process.execPath, [path.join(__dirname, '../../tools/build.js'), out], { stdio: 'pipe' });
+  const built = fs.readFileSync(out, 'utf8'); fs.rmSync(tmp, { recursive: true });
+  ok(built === fs.readFileSync(path.join(__dirname, '../../plugin/src/shared.liquid'), 'utf8'), 'plugin/src/shared.liquid differs from the build of source/shared.liquid: run `node tools/build.js` and commit both');
+});
+test('built shared.liquid stays under 84 KB: a source edit that pushes it over must cut code first (limit 98 KiB above is the hard one)', () => {
+  const b = fs.statSync(path.join(__dirname, '../../plugin/src/shared.liquid')).size;
+  ok(b < 84 * 1000, 'plugin/src/shared.liquid is ' + b + ' bytes after the build, budget ' + 84 * 1000 + ': trim source/shared.liquid (dead code, duplicates), not the guard');
 });
 async function sensorSettingsTests() {
   const originalFetch = global.fetch;
@@ -709,14 +737,28 @@ sensorSettingsTests().then(stateTests).then(() => {
   console.log(passed + ' passed, ' + failed + ' failed');
   process.exit(failed ? 1 : 0);
 });
-test('2-bit active cells are the native dark grey, not black; 4-bit gray-20 (owner 2026-11-13)', () => {
-  const f = (m) => { D.mode = m; const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40); D.mode = null; return s; };
-  ok(/gray-30/.test(f({ dark: false, bits: 2 })) && !/<g class="text--black/.test(f({ dark: false, bits: 2 }).split('data-sw-hl')[0].replace(/text--black[^>]*><line/g, '')), '2-bit day blocks gray-30');
-  ok(/text--gray-20/.test(f({ dark: false, bits: 4 })), '4-bit day blocks gray-20');
+test('2-bit active cells are the native dark grey, not black; 4-bit mid grey, today dark (owner 2026-11-13, bars lightened 2026-11-14)', () => {
+  const f = (m, hi) => { D.mode = m; const s = D.day({ loV: 2, hiV: 6 }, { a: -5, b: 15, major: 5, now: 1.6 }, 800, 40, hi); D.mode = null; return s; };
+  const cells = (s) => s.split('data-sw-cells')[1];
+  ok(/gray-30/.test(cells(f({ dark: false, bits: 2 }))) && !/text--black/.test(cells(f({ dark: false, bits: 2 }))), '2-bit day blocks gray-30, not black');
+  ok(/text--gray-45/.test(cells(f({ dark: false, bits: 4 }))), '4-bit day blocks gray-45');
+  ok(/text--gray-10/.test(cells(f({ dark: false, bits: 4 }, true))), '4-bit today block dark');
 });
 
 test('plugin name translated for the title bar when the instance name is the default (owner 2026-11-13)', () => {
   eq(['en-US', 'de', 'nl', 'fr-CA', 'ja', 'xx'].map((l) => T.buildI18n(l).ours.app), ['Radio Weather', 'Radiowetter', 'Radioweer', 'Radio Météo', 'ラジオ天気', 'Radio Weather']);
   const src = require('fs').readFileSync(require('path').join(__dirname, '../../plugin/src/shared.liquid'), 'utf8');
   ok(/instance_name %\}{% if sw_name == blank or sw_name == 'Radio Weather' %\}{% assign sw_name = i18n\.ours\.app/.test(src), 'title bar uses i18n.ours.app when instance_name is the default');
+});
+
+test('no shown label falls back to English in any locale (item 38.1)', () => {
+  const tsrc = require('fs').readFileSync(require('path').join(__dirname, '../../plugin/src/transform.js'), 'utf8');
+  const KEYS = eval(tsrc.match(/^var OURS_KEYS = (.*);$/m)[1]);
+  const OURS = eval('(' + tsrc.match(/^var OURS = (.*);$/m)[1] + ')');
+  const SHOWN = ['uv', 'pollen', 'm_hum', 'hum', 'baro', 'indoor', 'outdoor', 'p_steady', 'p_rising', 'p_falling', 'temperature', 'app', 'asof', 'no_signal'];
+  const empty = [];
+  Object.keys(OURS).forEach((l) => { const p = OURS[l].split('|'); SHOWN.forEach((k) => { if (!p[KEYS.indexOf(k)]) empty.push(l + ':' + k); }); });
+  eq(empty, [], 'empty slots');
+  ['ja', 'ko', 'zh-CN', 'zh-HK'].forEach((l) => { const p = OURS[l].split('|'); KEYS.forEach((k, i) => { if (!p[i] && !['raining_now'].includes(k)) empty.push(l + ':' + k); }); });
+  eq(empty, [], 'empty CJK slots');
 });

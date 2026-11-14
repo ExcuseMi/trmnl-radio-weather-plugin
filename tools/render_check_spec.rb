@@ -3,8 +3,23 @@ require 'json'
 require 'fileutils'
 # SW_CASES: JSON list of {name, view, device, fields, fixture, patch (json merged into current), mocks_extra, palette, orientation}
 DIAL_R = Hash.new { |h, k| h[k] = [] }
+COND_R = Hash.new { |h, k| h[k] = [] }
 RSpec.describe 'renders' do
   after(:all) do
+    # Condition text proportion (owner 2026-11-13, "the same size relative"): the condition label's font size over the big temperature
+    # digit height is, in every layout of one device (and orientation), within 15 % of the full view's ratio.
+    aggregate_failures do
+      COND_R.each do |k, v|
+        ref = v.find { |q| q[2] == 'full' }
+        next unless ref
+        v.each do |q|
+          next if q.equal?(ref)
+          rel = q[1] / ref[1]
+          puts "CONDRATIO #{q[0]}: #{q[1].round(3)} vs full #{ref[1].round(3)} = #{rel.round(2)}" if rel > 1.15 || rel < 1 / 1.15
+          expect(rel).to be_between(1 / 1.15, 1.15), "condition/temperature ratio differs across #{k.inspect}: #{q[0]} #{q[1].round(3)} vs full #{ref[1].round(3)}"
+        end
+      end
+    end
     DIAL_R.each do |k, v|
       lo, hi = v.map { |q| q[1] }.minmax
       puts "DIALR-SPREAD #{k.inspect}: #{v.inspect}" if hi / lo > 1.02
@@ -52,6 +67,7 @@ RSpec.describe 'renders' do
         opts[:now] = (Time.iso8601(now) + c['offline_h'] * 3600).iso8601
       end
       s = trmnl.render(**opts)
+      is_lg = s.evaluate("!!document.querySelector('.screen--lg')")   # the X layouts follow the lg size class, not the model name (device tier, 2026-11-13)
       puts "SCREEN #{c['name']}: #{s.evaluate("document.querySelector('.screen').className+' '+innerWidth")}" if ENV['SW_SCREEN']
       FileUtils.mkdir_p(out)
       FileUtils.cp(s.png_path, File.join(out, "#{c['name']}.png"))
@@ -71,7 +87,8 @@ RSpec.describe 'renders' do
       puts "ERR #{c['name']}: #{err}" if err
       expect(err).to be_nil
       # Offline (saved state, owner 2026-11-13): a stale view shows its "as of" once, inside the view, clear of every other ink box.
-      sl = s.evaluate(%q{(function(){var st=SW.stale||null,ls=[].filter.call(document.querySelectorAll('[data-sw-stale]'),function(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0});if(!st)return ls.length?'label without stale data':'';if(ls.length!==1)return 'labels '+ls.length;var L=ls[0].getBoundingClientRect(),V=(document.querySelector('.view')||document.body).getBoundingClientRect(),bad=[];if(ls[0].textContent.trim()!==st)bad.push('text '+ls[0].textContent);if(L.left<V.left||L.right>V.right||L.top<V.top||L.bottom>V.bottom)bad.push('outside the view');var cx=(L.left+L.right)/2,cy=(L.top+L.bottom)/2,F=[].map.call(document.querySelectorAll('[data-sw-part="face"]'),function(e){return e.getBoundingClientRect()}).filter(function(f){return f.width>0&&cx>f.left&&cx<f.right&&cy>f.top&&cy<f.bottom})[0];if(ls[0].closest('.title_bar')){}else if(!F)bad.push('not on a panel');else{var r=Math.min(24,Math.min(F.width,F.height)*0.08),I=2;if(L.left<F.left+I||L.right>F.right-I||L.top<F.top+I||L.bottom>F.bottom-I)bad.push('over the panel edge');[[L.left,L.top],[L.right,L.top],[L.left,L.bottom],[L.right,L.bottom]].forEach(function(q){var ox=q[0]<F.left+r?F.left+r:(q[0]>F.right-r?F.right-r:null),oy=q[1]<F.top+r?F.top+r:(q[1]>F.bottom-r?F.bottom-r:null);if(ox!==null&&oy!==null&&Math.hypot(q[0]-ox,q[1]-oy)>r-I)bad.push('over the rounded corner')});}[].forEach.call(document.querySelectorAll('img,svg,.value,.title,.label,.instance,[data-sw-rule]'),function(e){if(e===ls[0]||ls[0].contains(e)||e.contains(ls[0])||e.closest('[data-sw-part="face"]'))return;var b=e.getBoundingClientRect();if(b.width>0&&b.height>0&&b.left<L.right-1&&b.right>L.left+1&&b.top<L.bottom-1&&b.bottom>L.top+1)bad.push('overlaps '+((e.closest('[data-sw-part]')||e).getAttribute('data-sw-part')||e.tagName+' '+(e.textContent||'').trim().slice(0,12)))});return bad.join('; ');})()})
+      sl = s.evaluate(%q{(function(){var st=SW.stale||null,ls=[].filter.call(document.querySelectorAll('[data-sw-stale]'),function(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0});if(!st)return ls.length?'label without stale data':'';if(ls.length!==1)return 'labels '+ls.length;var L=ls[0].getBoundingClientRect(),V=(document.querySelector('.view')||document.body).getBoundingClientRect(),bad=[];if(ls[0].textContent.trim()!==st)bad.push('text '+ls[0].textContent);if(L.left<V.left||L.right>V.right||L.top<V.top||L.bottom>V.bottom)bad.push('outside the view');var cx=(L.left+L.right)/2,cy=(L.top+L.bottom)/2,F=[].map.call(document.querySelectorAll('[data-sw-part="face"]'),function(e){return e.getBoundingClientRect()}).filter(function(f){return f.width>0&&cx>f.left&&cx<f.right&&cy>f.top&&cy<f.bottom})[0];if(ls[0].closest('.title_bar')){}else if(!F)bad.push('not on a panel');else{var r=Math.min(24,Math.min(F.width,F.height)*0.08),I=2;if(L.left<F.left+I||L.right>F.right-I||L.top<F.top+I||L.bottom>F.bottom-I)bad.push('over the panel edge');[[L.left,L.top],[L.right,L.top],[L.left,L.bottom],[L.right,L.bottom]].forEach(function(q){var ox=q[0]<F.left+r?F.left+r:(q[0]>F.right-r?F.right-r:null),oy=q[1]<F.top+r?F.top+r:(q[1]>F.bottom-r?F.bottom-r:null);if(ox!==null&&oy!==null&&Math.hypot(q[0]-ox,q[1]-oy)>r-I)bad.push('over the rounded corner')});}[].forEach.call(document.querySelectorAll('img,svg,.value,.title,.label,.instance,[data-sw-rule]'),function(e){if(e===ls[0]||ls[0].contains(e)||e.contains(ls[0])||e.closest('[data-sw-part="face"]'))return;var b=e.getBoundingClientRect();if(e.tagName==='IMG'&&e.getAttribute('data-sw-ink')){var ik=e.getAttribute('data-sw-ink').split(',').map(Number),cxx=(b.left+b.right)/2;b={left:cxx-ik[1]*b.height/2,right:cxx+ik[1]*b.height/2,top:b.top+ik[0]*b.height,bottom:b.top+(ik[0]+ik[1])*b.height,width:b.width,height:ik[1]*b.height}}   // the icon's drawn ink (square icons), not its transparent box
+if(b.width>0&&b.height>0&&b.left<L.right-1&&b.right>L.left+1&&b.top<L.bottom-1&&b.bottom>L.top+1)bad.push('overlaps '+((e.closest('[data-sw-part]')||e).getAttribute('data-sw-part')||e.tagName+' '+(e.textContent||'').trim().slice(0,12)))});return bad.join('; ');})()})
       puts "STALE #{c['name']}: #{sl}" unless sl.empty?
       expect(sl).to eq('')
       # Indoor trend (saved state, owner 2026-11-13): an up/down arrow behind the indoor unit, inside its twin column; today's low/high fully inside the column.
@@ -91,6 +108,9 @@ RSpec.describe 'renders' do
       arc = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0}),bad=[],rs=[];a.forEach(function(g){var sv=g.ownerSVGElement,k=sv.getBoundingClientRect().width/+sv.getAttribute('width'),v=g.getAttribute('data-sw-arc').split(',').map(Number),r=v[0]*k,w=v[1]*k;rs.push(r);var SB=sv.getBoundingClientRect(),T=1e9;[].forEach.call(sv.querySelectorAll('path,polygon,circle,line,text'),function(e){var b=e.getBoundingClientRect();if(b.width||b.height)T=Math.min(T,b.top)});var hb=sv.querySelector('[data-sw-hub]').getBoundingClientRect();if((T-SB.top)/SB.height>0.2||(SB.bottom-hb.bottom)/SB.height>0.2)bad.push('dial not filling its panel: top '+((T-SB.top)/SB.height*100).toFixed(0)+'% hub '+((SB.bottom-hb.bottom)/SB.height*100).toFixed(0)+'%');var d=sv.closest('[data-sw-part]').getAttribute('data-sw-part'),D=d==='baro'?SW.baro:SW.tdial;if(D&&D.lo!=null&&D.hi!=null&&sv.querySelectorAll('[data-sw-markt]').length!==2)bad.push(d+' marks '+sv.querySelectorAll('[data-sw-markt]').length);});if(rs.length===2&&Math.abs(rs[0]-rs[1])>2)bad.push('radius '+rs.map(function(x){return x.toFixed(1)}).join('/'));return a.length+'|'+bad.join('; ');})()})   # owner step 13: both dials one radius, filling the panel height (ink within 20 % of the top: 3-digit low/high numbers and the twin needle shrink both; hub within 5 % of the bottom), low/high marks on both
       # Dial radius (owner 2026-11-13): the arc radius, as a share of the dial width, is the same in every case of one device and view (within 2 %).
       rw = s.evaluate(%q{(function(){var a=[].filter.call(document.querySelectorAll('g[data-sw-arc]'),function(g){return g.ownerSVGElement.getBoundingClientRect().width>0});return a.map(function(g){var v=g.getAttribute('data-sw-arc').split(',').map(Number);return (v[0]/v[1]).toFixed(4)}).join(' ')})()})
+      cr0 = s.evaluate(%q{(function(){var v=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},c=[].filter.call(document.querySelectorAll('[data-sw-cond]'),v)[0],te=[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg'),v)[0];if(!c||!te)return '';var ti=te.getBBox().height*te.getBoundingClientRect().height/(te.viewBox.baseVal.height||1),fz=(+c.getAttribute('data-sw-fs')||parseFloat(getComputedStyle(c).fontSize))*(c.getBoundingClientRect().width/(c.offsetWidth||1));return String(fz/ti)})()})
+      puts "CONDR #{c[%q(name)]}: #{cr0}"
+      COND_R[[dev.is_a?(Hash) ? dev[:model] : dev, c['orientation'], c['text_scale'], c['fixture'], c['dark'] ? 1 : 0, s.evaluate(%q{[].some.call(document.querySelectorAll('[data-sw-twin="in"]'),function(e){return e.getBoundingClientRect().width>0})})]] << [c['name'], cr0.to_f, c['view'] || 'full'] unless cr0.empty? || (c['fields'] || {})['unit'] == 'fahrenheit' || c['name'].start_with?('wide-')   # wide numbers shrink their digits (fit rule), the ratio is for normal values
       DIAL_R[[dev.is_a?(Hash) ? dev[:model] : dev, c['view'] || 'full', c['orientation'], c['text_scale']]] << [c['name'], rw.split.map(&:to_f).min] unless rw.empty?
       puts "DIALR #{c['name']}: #{rw}"
       puts "ARC #{c['name']}: #{arc}"
@@ -131,17 +151,35 @@ caps.forEach(function(c){if(bx.some(function(b){return b[0]<c.right+g&&b[2]>c.le
       end
       if c['og_quadrant_console']
         console = s.evaluate(%q{(function(){function vis(e){var b=e.getBoundingClientRect();return b.width>0&&b.height>0}var labels=[].filter.call(document.querySelectorAll('[data-sw-mlabel]'),vis).map(function(e){return e.textContent.trim()});var moon=[].filter.call(document.querySelectorAll('[data-sw-part="moon"]'),vis)[0];var ring=moon&&moon.querySelector('circle[stroke]');return {labels:labels,ring:!!ring,lit:!!(moon&&moon.querySelector('[data-sw-moon="lit"]'))}})()})
-        expect(console['labels']).to eq(['WIND'])
-        expect(console['ring']).to eq(true) unless c['hourly'].nil?
-        expect(console['lit']).to eq(true) unless c['hourly'].nil?
+        small_q = s.evaluate("document.querySelectorAll('[data-sw-small]').length").positive?
+        if small_q   # the small console (owner-approved 2026-11-13) keeps a meter row and the moon only while they fit
+          expect(console['labels'] - ['WIND']).to eq([])
+        else
+          expect(console['labels']).to eq(['WIND'])
+          expect(console['ring']).to eq(true) unless c['hourly'].nil?
+          expect(console['lit']).to eq(true) unless c['hourly'].nil?
+        end
       end
-      clip = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part]:not([data-sw-part="face"]), [data-sw-part]:not([data-sw-part="face"]) > svg, [data-sw-unit] img, [data-sw-unit] span').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;var ci=e.closest('[data-sw-condicon]'),ik=ci&&(ci.querySelector('[data-sw-ink]')||{getAttribute:function(){return null}}).getAttribute('data-sw-ink');if(ik){var iy=+ik.split(',')[0],ih=+ik.split(',')[1]||1;b={left:b.left,right:b.right,top:b.top+iy*b.height,bottom:b.top+(iy+ih)*b.height,width:b.width,height:ih*b.height};}var p=e.closest('[data-sw-panel]');if(!p)return;var q=p.getBoundingClientRect(),cs=getComputedStyle(p),k=q.width/(p.offsetWidth||q.width);q={left:q.left+parseFloat(cs.paddingLeft)*k,right:q.right-parseFloat(cs.paddingRight)*k,top:q.top+parseFloat(cs.paddingTop)*k,bottom:q.bottom-parseFloat(cs.paddingBottom)*k};var un=e.closest('[data-sw-unit]');if(un){var cb=un.parentElement.getBoundingClientRect();q={left:Math.max(q.left,cb.left),right:Math.min(q.right,cb.right),top:Math.max(q.top,cb.top),bottom:Math.min(q.bottom,cb.bottom)}}if(b.left<q.left-1||b.right>q.right+1||b.top<q.top-1||b.bottom>q.bottom+1)bad.push((e.getAttribute('data-sw-part')||e.tagName)+'@'+[b.left,b.right,b.top,b.bottom].map(function(v){return v.toFixed(0)}).join(':')+'/'+[q.left,q.right,q.top,q.bottom].map(function(v){return v.toFixed(0)}).join(':'))});return bad.join(' ')})()})
+      clip = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part]:not([data-sw-part="face"]), [data-sw-part]:not([data-sw-part="face"]) > svg, [data-sw-unit] img, [data-sw-unit] span').forEach(function(e){var b=e.getBoundingClientRect();if(!b.width||!b.height)return;var ci=e.closest('[data-sw-condicon]'),ik=ci&&(ci.querySelector('[data-sw-ink]')||{getAttribute:function(){return null}}).getAttribute('data-sw-ink');if(ik){var iy=+ik.split(',')[0],ih=+ik.split(',')[1]||1;b={left:b.left,right:b.right,top:b.top+iy*b.height,bottom:b.top+(iy+ih)*b.height,width:b.width,height:ih*b.height};}var p=e.closest('[data-sw-panel]');if(!p)return;var q=p.getBoundingClientRect(),cs=getComputedStyle(p),k=q.width/(p.offsetWidth||q.width);var pm=e.closest('[data-sw-suntime]')?1:0;q={left:q.left+pm*parseFloat(cs.paddingLeft)*k,right:q.right-pm*parseFloat(cs.paddingRight)*k,top:q.top+pm*parseFloat(cs.paddingTop)*k,bottom:q.bottom-pm*parseFloat(cs.paddingBottom)*k};var un=e.closest('[data-sw-unit]');if(un){var cb=un.parentElement.getBoundingClientRect();q={left:Math.max(q.left,cb.left),right:Math.min(q.right,cb.right),top:Math.max(q.top,cb.top),bottom:Math.min(q.bottom,cb.bottom)}}if(b.left<q.left-1||b.right>q.right+1||b.top<q.top-1||b.bottom>q.bottom+1)bad.push((e.getAttribute('data-sw-part')||e.tagName)+'@'+[b.left,b.right,b.top,b.bottom].map(function(v){return v.toFixed(0)}).join(':')+'/'+[q.left,q.right,q.top,q.bottom].map(function(v){return v.toFixed(0)}).join(':'))});return bad.join(' ')})()})
       puts "CLIP #{c['name']}: #{clip}" unless clip.empty?
       expect(clip).to eq('')
+      # Owner 2026-11-14 (B1 guards, each seen red on a mutation): (1) a rain calendar always has its rain/snow icon beside it, in every
+      # view; (2) in a small console the big temperature is the largest text; (3) wide numbers (-20.5 C, 104 F, -13 F, 100 F) stay inside their
+      # panel with a 2 px margin and overlap no unit, badge, calendar, low/high, condition or location icon of that panel.
+      wd = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null};
+[].filter.call(document.querySelectorAll('[data-sw-part="rain"]'),vis).forEach(function(c){var ic=[].filter.call(document.querySelectorAll('[data-sw-unit="rain"] img, [data-sw-unit="rain"] [data-sw-part="icon"]'),vis)[0];if(!ic)bad.push('rain calendar without its rain icon')});
+var ink=function(v){var r=v.getBoundingClientRect(),bb=v.getBBox(),vb=v.viewBox.baseVal,kx=r.width/(vb.width||r.width),ky=r.height/(vb.height||r.height);return {left:r.left+(bb.x-vb.x)*kx,right:r.left+(bb.x-vb.x+bb.width)*kx,top:r.top+(bb.y-vb.y)*ky,bottom:r.top+(bb.y-vb.y+bb.height)*ky}};
+[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg, [data-sw-part="itemp"] svg'),vis).forEach(function(v){var p=v.closest('[data-sw-panel]'),P=vis(p);if(!P)return;var I=ink(v);
+if(I.left<P.left+2||I.right>P.right-2||I.top<P.top+2||I.bottom>P.bottom-2)bad.push('temperature outside its panel '+[I.left,I.right,P.left,P.right].map(Math.round));
+[].forEach.call(p.querySelectorAll('[data-sw-unit], [data-sw-part="cue"], [data-sw-part="rain"], [data-sw-slohi], [data-sw-inlohi], [data-sw-cond], [data-sw-part="loc"], [data-sw-part="itemp"], [data-sw-part="temp"]'),function(e){if(e.contains(v)||v.closest('[data-sw-part]').contains(e))return;var b=vis(e);if(!b)return;if(Math.min(I.right,b.right)-Math.max(I.left,b.left)>1&&Math.min(I.bottom,b.bottom)-Math.max(I.top,b.top)>1)bad.push('temperature overlaps '+(e.getAttribute('data-sw-part')||e.getAttribute('data-sw-unit')!==null&&'unit'||e.tagName))});});
+var sm=document.querySelector('[data-sw-small]');if(sm){var te=[].filter.call(sm.querySelectorAll('[data-sw-part="temp"] svg'),vis)[0];if(te){var h=ink(te),th=h.bottom-h.top,mx=0,who='';[].forEach.call(sm.querySelectorAll('span, text'),function(e){if(!vis(e)||!(e.textContent||'').trim())return;if(e.tagName==='span'&&e.querySelector('svg'))return;var k=e.ownerSVGElement?e.ownerSVGElement.getBoundingClientRect().height/(+e.ownerSVGElement.getAttribute('height')||1):(vis(e).width/(e.offsetWidth||1)),f=(e.tagName==='text'?+e.getAttribute('font-size'):(+e.getAttribute('data-sw-fs')||parseFloat(getComputedStyle(e).fontSize)))*(e.tagName==='text'?k:1);if(f>mx){mx=f;who=(e.textContent||'').trim().slice(0,10)}});if(mx&&th<=mx)bad.push('small console: temperature '+th.toFixed(0)+' not the largest text ('+who+' '+mx.toFixed(0)+')')}}
+return bad.join('; ');})()})
+      puts "WIDE #{c['name']}: #{wd}" unless wd.empty?
+      expect(wd).to eq('')
       # Rain unit (owner 2026-11-12): calendar cells square-ish and readable (numbers at least the meter label size),
       # rain icon and moon the same size on the same left edge. Dials: caption and value never under the hub or tail.
       ru = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null};
-var lab=[].filter.call(document.querySelectorAll('[data-sw-mlabel]'),vis)[0],lp=lab?parseFloat(getComputedStyle(lab).fontSize):14;
+var lab=[].filter.call(document.querySelectorAll('[data-sw-mlabel]'),vis)[0],lp=lab?parseFloat(getComputedStyle(lab).fontSize):(document.querySelector('[data-sw-small]')?12:14);   // a small console without a meter row has no label to match: at least 12 px
 [].forEach.call(document.querySelectorAll('[data-sw-part="rain"]'),function(d){var sv=d.querySelector('svg');if(!vis(d)||!sv)return;
 var k=d.offsetHeight/+sv.getAttribute('height'),t=sv.querySelector('text'),fs=t?+t.getAttribute('font-size')*k:0,ch=d.offsetHeight/Math.ceil(sv.querySelectorAll('text').length/3),cw=d.offsetWidth/3;
 var tb=[].map.call(sv.querySelectorAll('text'),function(t){var r=t.getBoundingClientRect();r.y0=t.getAttribute('y');return r});tb.forEach(function(a,i){tb.slice(i+1).forEach(function(b){if(a.y0===b.y0&&Math.min(a.right,b.right)-Math.max(a.left,b.left)>-1)bad.push('labels overlap '+[a.left,a.right,b.left,b.right].map(Math.round))})});
@@ -166,11 +204,11 @@ var ci=m.querySelector('circle'),b=ci?ci.getBoundingClientRect():m.getBoundingCl
       expect(mo).to eq('') if c['view'] == 'half_vertical'
       # X quadrant (owner, step 12: big empty bands above and below): the content of each panel (images, drawings,
       # text) leaves no band over 8 % of the panel height at its top or bottom, also none between its rows on X quadrant (step 19: landscape too) and X full portrait, hairlines counting as ink (step 18).
-      if (c['view'] == 'quadrant' && (c['device'] || 'v2') == 'v2') || c['portrait_console']
+      if (c['view'] == 'quadrant' && is_lg) || c['portrait_console']
         band = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=p.getBoundingClientRect();if(!q.height)return;var t=1e9,b=-1e9;
 var iv=[];p.querySelectorAll('img, svg, span').forEach(function(e){if(e.closest('[data-sw-part="face"]'))return;var r=e.getBoundingClientRect();if(!r.width||!r.height||(e.tagName==='SPAN'&&!e.textContent.trim()))return;t=Math.min(t,r.top);b=Math.max(b,r.bottom);iv.push([r.top,r.bottom])});
 var a=(t-q.top)/q.height,z=(q.bottom-b)/q.height;if(a>0.08||z>0.08)bad.push('top '+(a*100).toFixed(0)+'% bottom '+(z*100).toFixed(0)+'%');
-if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&getComputedStyle(e).display!=='none')iv.push([r.top,Math.max(r.bottom,r.top+1)])});iv.sort(function(x,y){return x[0]-y[0]});var e0=t;iv.forEach(function(v){if((v[0]-e0)/q.height>0.08)bad.push('band '+((v[0]-e0)/q.height*100).toFixed(0)+'% at '+Math.round(e0-q.top));e0=Math.max(e0,v[1]);})}});return bad.join('; ')})()}.sub('BETWEEN', ((c['device'] || 'v2') == 'v2' && (c['view'] == 'quadrant' || (c['view'] == 'full' && c['orientation'] == 'portrait'))).to_s))
+if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.getBoundingClientRect();if(r.width&&getComputedStyle(e).display!=='none')iv.push([r.top,Math.max(r.bottom,r.top+1)])});iv.sort(function(x,y){return x[0]-y[0]});var e0=t;iv.forEach(function(v){if((v[0]-e0)/q.height>0.08)bad.push('band '+((v[0]-e0)/q.height*100).toFixed(0)+'% at '+Math.round(e0-q.top));e0=Math.max(e0,v[1]);})}});return bad.join('; ')})()}.sub('BETWEEN', (is_lg && (c['view'] == 'quadrant' || (c['view'] == 'full' && c['orientation'] == 'portrait'))).to_s))
         puts "BAND #{c['name']}: #{band}" unless band.empty?
         expect(band).to eq('')
       end
@@ -180,12 +218,12 @@ if(BETWEEN){p.querySelectorAll('[data-sw-rule]').forEach(function(e){var r=e.get
       # at the track's ends (within a cell); no empty band over 12 % of the panel height inside the console, the days
       # panel or the console's right column (ink measured in the screenshot); low/high digits at least 0.85 x the day name size;
       # quadrant: the temperature digits at least 13 % of the console height.
-      if c['orientation'] == 'portrait' && (c['device'] || 'v2') != 'v2' && %w[full half_vertical half_horizontal quadrant].include?(c['view'] || 'full')
+      if c['orientation'] == 'portrait' && !is_lg && %w[full half_vertical half_horizontal quadrant].include?(c['view'] || 'full')
         require 'chunky_png'
         og = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},cx=document.createElement('canvas').getContext('2d'),R=function(b){return [b.left,b.top,b.right,b.bottom]};
-function cap(sp){var b=vis(sp);if(!b)return 0;var cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;return cx.measureText('H').actualBoundingBoxAscent*(b.width/(sp.offsetWidth||b.width));}
+function cap(sp){var b=vis(sp);if(!b)return 0;var cs=getComputedStyle(sp),sf=+sp.getAttribute('data-sw-fs')||0;cx.font=cs.fontWeight+' '+(sf?sf+'px':cs.fontSize)+' '+cs.fontFamily;return cx.measureText('H').actualBoundingBoxAscent*(b.width/(sp.offsetWidth||b.width));}
 function scap(t){var sv=t.ownerSVGElement,k=sv.getBoundingClientRect().height/(+sv.getAttribute('height')||sv.getBoundingClientRect().height);cx.font='bold '+(+t.getAttribute('font-size'))+'px '+getComputedStyle(t).fontFamily;return cx.measureText('H').actualBoundingBoxAscent*k;}
-var ic=[],add=function(n,e,c){var b=vis(e);if(b&&c)ic.push([n].concat(R(b)).concat([c]))};
+var ic=[],add=function(n,e,c){var b=vis(e);if(b&&c)ic.push([n].concat(R({left:Math.max(0,b.left),top:Math.max(0,b.top),right:Math.min(innerWidth,b.right),bottom:Math.min(innerHeight,b.bottom)})).concat([c]))};   // the small console's icon box may reach past the screen edge (negative margin: only its transparent part)
 [].filter.call(document.querySelectorAll('[data-sw-cond]'),vis).forEach(function(sp){add('cond',sp.parentElement.firstElementChild,cap(sp))});
 var st=[].filter.call(document.querySelectorAll('[data-sw-suntime] span.title'),vis);
 [].filter.call(document.querySelectorAll('[data-sw-unit="sun"] img'),vis).forEach(function(e,i){var t=e.parentElement.querySelector('[data-sw-suntime] span.title');add('sun',e,cap(t||st[0]))});
@@ -220,7 +258,7 @@ return JSON.stringify({ic:ic,tr:tr,pn:pn,iw:innerWidth});})()}.sub('QUAD', (c['v
           bad << "scale labels first #{f.round(1)} last #{z.round(1)} from the track ends (cell #{cw.round(1)})" if f.abs > cw || z.abs > cw
         end
         og['pn'].each do |n, l, t, r, b, ph, edges|
-          y0 = (t * k).floor; y1 = [(b * k).ceil - 1, png.height - 1].min; xs = ((l * k).ceil..[(r * k).floor - 1, png.width - 1].min)
+          y0 = [(t * k).floor, 0].max; y1 = [(b * k).ceil - 1, png.height - 1].min; xs = ((l * k).ceil..[(r * k).floor - 1, png.width - 1].min)
           ink = (y0..y1).select { |y| xs.any? { |x| dark.(x, y, 600) } }
           next if ink.empty?
           runs = ink.each_cons(2).map { |a, z2| [z2 - a - 1, a] }
@@ -246,9 +284,9 @@ var d=Math.min(b.left-S.left,b.top-S.top,S.right-b.right,S.bottom-b.bottom);if(d
       end
       # Weather icon (owner 2026-11-12, revised): drawn ink 2.1 to 2.5 x the cap height (owner, step 12: about 2.3x), one line or two, ink centred on the label.
       ci = s.evaluate(%q{(function(){var bad=[],cx=document.createElement('canvas').getContext('2d');document.querySelectorAll('[data-sw-cond]').forEach(function(sp){var sb=sp.getBoundingClientRect();if(!sb.height)return;
-var ic=sp.parentElement.firstElementChild,ib=ic.getBoundingClientRect(),k=sb.width/(sp.offsetWidth||sb.width),cs=getComputedStyle(sp);cx.font=cs.fontWeight+' '+cs.fontSize+' '+cs.fontFamily;var m=cx.measureText('H'),fa=m.fontBoundingBoxAscent*k,fd=m.fontBoundingBoxDescent*k,cap=m.actualBoundingBoxAscent*k;
-var rg=document.createRange();rg.selectNodeContents(sp);var lr=[].filter.call(rg.getClientRects(),function(q){return q.width>0}),bl=function(q){return q.top+(q.height-fa-fd)/2+fa},t0=bl(lr[0])-cap,t1=bl(lr[lr.length-1]),n=lr.filter(function(q,i){return i===0||Math.abs(q.top-lr[i-1].top)>2}).length;
-var ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),it=ib.top+ik[0]*ib.height,ih=ik[1]*ib.height,h=n>1?t1-t0+cap:cap,mid=n>1?(t0+t1)/2:t0+cap/2,q=ih/h;if(n>2)bad.push('label on '+n+' lines');if(n>1&&(q=ih/cap,0))0;if(n>1?(q<(ic.hasAttribute('data-sw-clamped')?1.6:2.1)||q>2.5):(q<(ic.hasAttribute('data-sw-clamped')?1.6:2.1)||q>2.5))bad.push('icon ink '+ih.toFixed(1)+' / cap '+(n>1?cap:h).toFixed(1)+' = '+q.toFixed(2)+' ('+n+' lines)');if(Math.abs(it+ih/2-mid)>1.5)bad.push('icon ink centre off '+(it+ih/2-mid).toFixed(1));});return bad.join('; ');})()})
+var ic=sp.parentElement.firstElementChild,ib=ic.getBoundingClientRect(),k=sb.width/(sp.offsetWidth||sb.width),cs=getComputedStyle(sp);var sf=+sp.getAttribute('data-sw-fs')||0;cx.font=cs.fontWeight+' '+(sf?sf+'px':cs.fontSize)+' '+cs.fontFamily;var m=cx.measureText('H'),fa=m.fontBoundingBoxAscent*k,fd=m.fontBoundingBoxDescent*k,cap=m.actualBoundingBoxAscent*k;
+var rg=document.createRange();rg.selectNodeContents(sp);var lr=[].filter.call(rg.getClientRects(),function(q){return q.width>0}),bl=function(q){return q.top+(q.height-fa-fd)/2+fa},t0=sf?0:bl(lr[0])-cap,t1=sf?0:bl(lr[lr.length-1]),n=sf?+sp.getAttribute('data-sw-lines'):lr.filter(function(q,i){return i===0||Math.abs(q.top-lr[i-1].top)>2}).length;
+var ik=((ic.querySelector('[data-sw-ink]')||ic).getAttribute('data-sw-ink')||'0,1').split(',').map(Number),it=ib.top+ik[0]*ib.height,ih=ik[1]*ib.height,h=n>1?t1-t0+cap:cap,mid=sf?(sb.top+sb.bottom)/2:(n>1?(t0+t1)/2:t0+cap/2),q=ih/h;if(n>2)bad.push('label on '+n+' lines');if(n>1&&(q=ih/cap,0))0;if(n>1?(q<(ic.hasAttribute('data-sw-clamped')?1.6:2.1)||q>2.5):(q<(ic.hasAttribute('data-sw-clamped')?1.6:2.1)||q>2.5))bad.push('icon ink '+ih.toFixed(1)+' / cap '+(n>1?cap:h).toFixed(1)+' = '+q.toFixed(2)+' ('+n+' lines)');if(Math.abs(it+ih/2-mid)>1.5)bad.push('icon ink centre off '+(it+ih/2-mid).toFixed(1));});return bad.join('; ');})()})
       puts "CONDICON #{c['name']}: #{ci}" unless ci.empty?
       expect(ci).to eq('')
       # Days strip (owner 2026-11-12, later): the strip always starts with today, the one highlighted row.
@@ -306,7 +344,7 @@ return bad.join('; ');})()})
       puts "DAYSTRIP #{c['name']}: #{ds}" unless ds.empty?
       expect(ds).to eq('')
       # X condition label (owner 2026-11-12): a clearly larger title than the day names, so it fills the middle block.
-      if c['device'] == 'v2' && %w[full half_horizontal].include?(c['view'] || 'full') && c['orientation'].nil?
+      if is_lg && %w[full half_horizontal].include?(c['view'] || 'full') && c['orientation'].nil?
         cr = s.evaluate(%q{(function(){var v=function(q){return [].filter.call(document.querySelectorAll(q),function(e){return e.getBoundingClientRect().width>0})[0]},a=v('[data-sw-cond]'),b=v('[data-sw-dname]')||v('[data-sw-mlabel]');return a&&b?parseFloat(getComputedStyle(a).fontSize)/parseFloat(getComputedStyle(b).fontSize):9;})()})
         puts "CONDSIZE #{c['name']}: #{cr.round(2)}" if cr < 1.2
         expect(cr).to be >= 1.2
@@ -341,10 +379,10 @@ var mn=Math.min.apply(null,g),mx=Math.max.apply(null,g);return mx-mn>2?'gaps '+m
       expect(bl).to eq(0)
       # OG half_vertical (owner 2026-11-12): rain icon left of the calendar at its height, sun times shown, temperature
       # clearly bigger than the felt one, meter labels no bigger than day names, today an inverted lamp, solid dividers.
-      if c['view'] == 'half_vertical' && c['device'] != 'v2'
+      if c['view'] == 'half_vertical' && !is_lg
         hv = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},one=function(q){return [].filter.call(document.querySelectorAll(q),vis)[0]};
 var ic=one('[data-sw-unit="rain"] img')||one('[data-sw-unit="rain"] [data-sw-part="icon"]'),ca=one('[data-sw-part="rain"]');if(ca&&!ic)bad.push('no rain icon');if(ca&&ic){var a=ic.getBoundingClientRect(),b=ca.getBoundingClientRect();if(a.right>b.left+1||Math.abs(a.height-b.height)>2)bad.push('rain icon '+[a.left,a.right,a.height].map(Math.round)+' cal '+[b.left,b.height].map(Math.round));}
-if(!one('[data-sw-unit="sun"]'))bad.push('no sun times');var wi=one('img[data-sw-icon], [data-sw-cond]'),pn=one('[data-sw-panel]');if(wi&&pn){var wb=one('[data-sw-cond]').parentElement.getBoundingClientRect(),pq=pn.getBoundingClientRect();if(wb.left<pq.left+4)bad.push('weather row past the panel '+wb.left.toFixed(0));}
+if(!one('[data-sw-unit="sun"]')&&!document.querySelector('[data-sw-small]'))bad.push('no sun times');   // the small console (owner-approved 2026-11-13) carries no sun timesvar wi=one('img[data-sw-icon], [data-sw-cond]'),pn=one('[data-sw-panel]');if(wi&&pn){var wb=one('[data-sw-cond]').parentElement.getBoundingClientRect(),pq=pn.getBoundingClientRect();if(wb.left<pq.left+4)bad.push('weather row past the panel '+wb.left.toFixed(0));}
 var t=one('[data-sw-part="temp"] svg'),f=one('[data-sw-part="feels"] svg');if(t&&f&&(t.getBoundingClientRect().height<f.getBoundingClientRect().height*1.4||t.getBoundingClientRect().height<innerHeight*0.09))bad.push('temp not bigger '+t.getBoundingClientRect().height.toFixed(0)+'/'+f.getBoundingClientRect().height.toFixed(0));
 var ml=one('[data-sw-mlabel]'),dn=one('[data-sw-dname]');if(ml&&dn&&parseFloat(getComputedStyle(ml).fontSize)>parseFloat(getComputedStyle(dn).fontSize)+0.5)bad.push('meter label > day name');
 var td=one('[data-sw-today]');if(td&&!/label--inverted/.test(td.className))bad.push('today not lit');
@@ -365,7 +403,12 @@ var dial=n('[data-sw-part="baro"]');return [1,dial,n('[data-sw-part="baro"] ~ .l
         expect(q[3]).to eq(0)   # owner 2026-11-13: no trend word on the dial (the pressure shows; the trend is the arrow)
         expect(q[4]).to eq(q[1] * 2)
         expect(q[5..7]).to eq([0, 0, 0])
-        expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && !(c['view'] == 'half_vertical' && c['device'] != 'v2' && c['orientation'] != 'portrait'))   # step 18 (owner via coordinator): OG half_vertical portrait has room, the badge shows there   # owner 2026-11-13: beside the temperature, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) ; X half_vertical portrait shows it again (step 19, coordinator: owner rule, badge beside the temperature in every view; the OG hv portrait layout as the model)
+        small_c = s.evaluate("document.querySelectorAll('[data-sw-small]').length").positive?
+        if small_c   # the small console (owner-approved 2026-11-13) keeps the badge only while it fits: shown only with a cue, never in the quadrant
+          expect(!q[8].positive? || (q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-nocue]').length").zero?)).to be(true)
+        else
+          expect(q[8].positive?).to eq(q[9] == 1 && s.evaluate("document.querySelectorAll('[data-sw-cueout]').length").zero? && s.evaluate("document.querySelectorAll('[data-sw-nocue]').length").zero? && !(c['view'] == 'half_vertical' && !is_lg && c['orientation'] != 'portrait'))   # step 18 (owner via coordinator): OG half_vertical portrait has room, the badge shows there   # owner 2026-11-13: beside the temperature, X half_vertical too; left out on OG half_vertical (owner 2026-11-13, too narrow) ; X half_vertical portrait shows it again (step 19, coordinator: owner rule, badge beside the temperature in every view; the OG hv portrait layout as the model)
+        end
       end
       # Calm (owner): 1-bit and 2-bit panels stay paper (no grey fill); the dial's low/high numbers clear their triangles by 2 px
       # and are at least the size of the dial's scale numbers.
@@ -419,7 +462,7 @@ var px=function(r){var sv=r.ownerSVGElement;return +r.getAttribute('rx')*sv.getB
       expect(al).to eq('')
       d = dr.split(',').map(&:to_f)
       expect(d[0]).to eq(0) if c['view'] == 'quadrant'
-      expect(d[1]).to be >= (c['device'] == 'v2' ? 53 : 28) if d[0].positive?
+      expect(d[1]).to be >= (is_lg ? 53 : 28) * (c['dark'] ? 0.85 : 1) if d[0].positive?   # the comment above says less 15 % for dark mode's divider; the code never took it (dark rows were 55 px by luck until the larger console)
       expect([d[3], d[4]]).to eq(d[0].positive? ? [1, 1] : [0, 0])
       expect(d[5]).to eq(1)
       # Felt temperature (owner decision 2026-11-13): no felt readout anywhere (no felt digits, no felt word, no person
@@ -441,7 +484,7 @@ gs.forEach(function(e){var m=e.querySelector('[data-sw-gauge]'),lit=Object.keys(
 if(!m||+m.getAttribute('data-sw-gauge')!==G.segs||lit!==G.segs||Object.keys([].reduce.call(e.querySelectorAll('[data-sw-c]'),function(o,r){o[r.getAttribute('data-sw-c')]=1;return o},{})).length!==3)bad.push('gauge segments '+lit+' want '+(G&&G.segs));
 if(!t||t.textContent!==G.label)bad.push('gauge label');if(Math.abs(b.right-u.right)>1)bad.push('gauge not under the calendar columns');if(t&&t.getBoundingClientRect().right>u.left+0.5)bad.push('gauge label over the bar');});
 if(G&&!gs.length&&INNER_X_FULL)bad.push('no gauge on a wet X full case');
-return bad.join('; ')})()}.sub('INNER_X_FULL', (c['device'] == 'v2' && (c['view'] || 'full') == 'full' && !c['orientation'] && !c['fixture']) ? 'true' : 'false'))
+return bad.join('; ')})()}.sub('INNER_X_FULL', (is_lg && (c['view'] || 'full') == 'full' && !c['orientation'] && !c['fixture']) ? 'true' : 'false'))
       expect(rg0).to eq('')
       # Hours strip (owner): column count per view, an inverted stamp exactly on the current and the wet hours, the block
       # curve inside its column and its panel, stamp, temperature and icon ink centred on the column axis (2 px; every
@@ -510,15 +553,15 @@ if(n&&n!==rows.length)bad.push('rows '+n+'/'+rows.length);if(ws.length&&Math.max
       expect(co.split('|', 2)[1]).to eq('')
       expect(co.split(',')[1].to_i).to be_positive if (c['view'] || 'full') == 'full' && (c['fields'] || {})['bottom'] != 'hours'
       # Portrait day rows and console (owner, step 19 on x-port-hv; OG half vertical portrait the model): the console badge
-      # beside the temperature, every day row keeps its low and high, the header its two markers, and the scale labels
+      # beside the temperature (full and half views; quadrants are tiny views without a badge, owner B3 2026-11-14), every day row keeps its low and high, the header its two markers, and the scale labels
       # no larger than 1.3 x the low/high digits.
       if c['orientation'] == 'portrait'
         pr = s.evaluate(%q{(function(){var vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0},bad=[],fs=function(e){return parseFloat(getComputedStyle(e).fontSize)*(e.getBoundingClientRect().width/(e.offsetWidth||1))};
-if(SW.cue&&SW.cue.length&&![].some.call(document.querySelectorAll('[data-sw-part="cue"]'),vis))bad.push('no console badge');
+if(QUAD0&&SW.cue&&SW.cue.length&&![].some.call(document.querySelectorAll('[data-sw-part="cue"]'),vis))bad.push('no console badge');
 var rows=[].filter.call(document.querySelectorAll('[data-sw-row="day"]'),vis),lf=0;rows.forEach(function(r){var n=[].filter.call(r.querySelectorAll('span.title:not([data-sw-dname])'),vis);if(n.length<2)bad.push('row '+r.textContent.trim().split(/\s+/)[0]+' without low/high');else lf=fs(n[0]);});
 if(rows.length){var tr=[].filter.call(document.querySelectorAll('[data-sw-part="tri"]'),vis).length;if(tr!==2)bad.push('markers '+tr);
 var sv=[].filter.call(document.querySelectorAll('[data-sw-part="scale"] svg'),vis)[0];if(sv&&lf){var k=sv.getBoundingClientRect().height/(+sv.getAttribute('height')||1);[].forEach.call(sv.querySelectorAll('text'),function(t){var f=+t.getAttribute('font-size')*k;if(f>lf*1.3)bad.push('scale label '+f.toFixed(0)+' px over low/high '+lf.toFixed(0));});}}
-return bad.filter(function(x,i,a){return a.indexOf(x)===i}).join('; ');})()})
+return bad.filter(function(x,i,a){return a.indexOf(x)===i}).join('; ');})()}.sub('QUAD0', (c['view'] != 'quadrant').to_s))
         puts "PORT #{c['name']}: #{pr}" unless pr.empty?
         expect(pr).to eq('')
       end
@@ -568,11 +611,12 @@ var a=H.top-ink(up,true),b=ink(dn,false)-H.bottom,g=parseFloat(getComputedStyle(
       # (top and bottom within 3 px, owner: anchored, not floating) after a divider (DIV: midway, as tall as the digits); the last day row inside its panel.
       cr2 = s.evaluate(%q{(function(){var bad=[],vis=function(e){var b=e&&e.getBoundingClientRect();return b&&b.width>0&&b.height>0?b:null},all=function(q){return [].map.call(document.querySelectorAll(q),vis).filter(Boolean)},ov=function(a,b){return Math.min(a.right,b.right)-Math.max(a.left,b.left)>0.5&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>0.5};
 var te=[].filter.call(document.querySelectorAll('[data-sw-part="temp"] svg'),vis)[0];
-[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){if(!te){bad.push('badge without temperature');return;}var r=te.getBoundingClientRect(),vb=te.viewBox.baseVal,bb=te.getBBox(),ky=r.height/(vb.height||r.height),kx=r.width/(vb.width||r.width),tt=r.top+(bb.y-vb.y)*ky,th=bb.height*ky,tr=r.left+(bb.x-vb.x+bb.width)*kx;
+[].filter.call(document.querySelectorAll('[data-sw-part="cue"]'),vis).forEach(function(e){if(!te){bad.push('badge without temperature');return;}var sm=!!e.closest('[data-sw-small]');   // small console (owner-approved 2026-11-13): the badge may sit below the digits, never over them
+var r=te.getBoundingClientRect(),vb=te.viewBox.baseVal,bb=te.getBBox(),ky=r.height/(vb.height||r.height),kx=r.width/(vb.width||r.width),tt=r.top+(bb.y-vb.y)*ky,th=bb.height*ky,tr=r.left+(bb.x-vb.x+bb.width)*kx;
 var u=te.closest('[data-sw-part]').parentElement.querySelector('[data-sw-unit]'),ur=u?vis(u).right:tr,g=e.querySelector('g[data-sw-cloth]'),sv=e.querySelector('svg'),sr=vis(sv);if(!g||!sr){bad.push('badge not drawn');return;}var sb=sv.viewBox.baseVal,sk=(/slice/.test(sv.getAttribute('preserveAspectRatio')||'')?Math.max:Math.min)(sr.width/sb.width,sr.height/sb.height),oy=sr.top+(sr.height-sb.height*sk)/2,bx=g.getAttribute('data-sw-box').split(',').map(Number),gb={left:sr.left+(bx[0]-sb.x)*sk,top:oy+(bx[1]-sb.y)*sk,height:bx[2]*sk};gb.right=gb.left+bx[2]*sk;gb.bottom=gb.top+gb.height;   // the top layer's box (xMinYMid: a T-shirt draws shorter than a parka in the same box)
-if(gb.left<Math.max(tr,ur)-0.5)bad.push('badge not right of the temperature '+gb.left.toFixed(0)+'<'+Math.max(tr,ur).toFixed(0));if(ov(gb,{left:r.left,right:tr,top:tt,bottom:tt+th}))bad.push('badge over temp');
-if(Math.abs(gb.top-tt)>3||Math.abs(gb.bottom-tt-th)>3)bad.push('badge '+gb.top.toFixed(1)+'-'+gb.bottom.toFixed(1)+' not on the digits '+tt.toFixed(1)+'-'+(tt+th).toFixed(1));var dv=e.previousElementSibling;if(!e.closest('[data-sw-twin]')&&!(dv&&dv.hasAttribute('data-sw-div')&&dv.getBoundingClientRect().height>0))bad.push('no divider before the badge');});
-if(te){var ti2=te.getBBox().height*te.getBoundingClientRect().height/(te.viewBox.baseVal.height||1),fz=function(e){return parseFloat(getComputedStyle(e).fontSize)*(e.getBoundingClientRect().width/(e.offsetWidth||1))},mx=0;[].forEach.call(document.querySelectorAll('[data-sw-suntime],[data-sw-cond]'),function(e){if(vis(e))mx=Math.max(mx,fz(e))});if(mx&&ti2<1.2*mx)bad.push('temperature digits '+ti2.toFixed(0)+' not the largest readout (text '+mx.toFixed(0)+')');}   // owner 2026-11-13 (live X hv dark, 4.4 smaller than the sun times)
+if(!sm&&gb.left<Math.max(tr,ur)-0.5)bad.push('badge not right of the temperature '+gb.left.toFixed(0)+'<'+Math.max(tr,ur).toFixed(0));if(ov(gb,{left:r.left,right:tr,top:tt,bottom:tt+th}))bad.push('badge over temp');
+if(!sm&&(Math.abs(gb.top-tt)>3||Math.abs(gb.bottom-tt-th)>3))bad.push('badge '+gb.top.toFixed(1)+'-'+gb.bottom.toFixed(1)+' not on the digits '+tt.toFixed(1)+'-'+(tt+th).toFixed(1));var dv=e.previousElementSibling;if(!sm&&!e.closest('[data-sw-twin]')&&!(dv&&dv.hasAttribute('data-sw-div')&&dv.getBoundingClientRect().height>0))bad.push('no divider before the badge');});
+if(te){var ti2=te.getBBox().height*te.getBoundingClientRect().height/(te.viewBox.baseVal.height||1),fz=function(e){return (+e.getAttribute('data-sw-fs')||parseFloat(getComputedStyle(e).fontSize))*(e.getBoundingClientRect().width/(e.offsetWidth||1))},mx=0;[].forEach.call(document.querySelectorAll('[data-sw-suntime],[data-sw-cond]'),function(e){if(vis(e))mx=Math.max(mx,fz(e))});if(mx&&ti2<1.2*mx)bad.push('temperature digits '+ti2.toFixed(0)+' not the largest readout (text '+mx.toFixed(0)+')');}   // owner 2026-11-13 (live X hv dark, 4.4 smaller than the sun times)
 document.querySelectorAll('[data-sw-panel]').forEach(function(p){var q=vis(p);if(!q)return;var r=[].map.call(p.querySelectorAll('[data-sw-row="day"]'),vis).filter(Boolean);if(r.length&&r[r.length-1].bottom>q.bottom+0.5)bad.push('day row '+r.length+' past the panel '+(r[r.length-1].bottom-q.bottom).toFixed(0))});
 return bad.join('; ');})()})
       puts "READOUT #{c['name']}: #{cr2}" unless cr2.empty?
@@ -585,7 +629,8 @@ return bad.join('; ');})()})
       # Digit spacing (owner 2026-11-13, "4. 1"): in the seven-segment readouts the ink gap between neighbouring digits
       # (a decimal point between them allowed) at most 30 of the 100-unit digit height (normal 14, with a point 20).
       sp = s.evaluate(%q{(function(){var bad=[];document.querySelectorAll('[data-sw-part] svg').forEach(function(v){var r=v.getBoundingClientRect();if(!r.height)return;var k=100/r.height,gl=[].filter.call(v.querySelectorAll('g[data-sw-glyph]'),function(g){return /[0-9]/.test(g.getAttribute('data-sw-glyph'))&&g.getBoundingClientRect().width>0});
-for(var i=1;i<gl.length;i++){var a=gl[i-1].getBoundingClientRect(),b=gl[i].getBoundingClientRect(),gp=(b.left-a.right)*k;if(gp>30)bad.push(gl[i-1].getAttribute('data-sw-glyph')+gl[i].getAttribute('data-sw-glyph')+' gap '+gp.toFixed(0));}});return bad.join('; ');})()})
+for(var i=1;i<gl.length;i++){var a=gl[i-1].getBoundingClientRect(),b=gl[i].getBoundingClientRect(),gp=((gl[i].getAttribute('data-sw-glyph')==='1'&&v.closest('[data-sw-part="temp"],[data-sw-part="itemp"]')?b.right-56/k:b.left)-a.right)*k;   // LCD cells (owner 2026-11-14): a 1 sits right in a full cell, the gap counts to the cell edge
+if(gp>30)bad.push(gl[i-1].getAttribute('data-sw-glyph')+gl[i].getAttribute('data-sw-glyph')+' gap '+gp.toFixed(0));}});return bad.join('; ');})()})
       puts "DIGITGAP #{c['name']}: #{sp}" unless sp.empty?
       expect(sp).to eq('')
       # Dial trend arrows (owner 2026-11-13): one trend-line arrow per dial trending up or down (barometer from 3 h ago,
