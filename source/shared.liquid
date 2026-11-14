@@ -463,11 +463,12 @@ function icon(href, W, H) {
 var id = 'swink' + (K++);
 return svg(W, H, '<defs><filter id="' + id + '" x="0" y="0" width="1" height="1"><feFlood flood-color="currentColor"/><feComposite in2="SourceAlpha" operator="in"/></filter></defs>' + glow('<image href="' + href + '" x="0" y="0" width="' + n1(W) + '" height="' + n1(H) + '" filter="url(#' + id + ')"/>', GPX));
 }
-function mlp(f, r1, lt, W, H, py) {
+function mlp(f, r1, lt, W, H, py, lo) {
 var A = 75 * Math.PI / 180, mfs = H * 0.1, mg = Math.max(2.5, H * 0.008), g = Math.max(4, H * 0.03), hw = mfs * 0.62 * lt.length / 2, an = -A + 2 * A * Math.max(-0.03, Math.min(1.03, f));
 var rr = r1 + mg + Math.abs(Math.sin(an)) * hw + Math.abs(Math.cos(an)) * mfs * 0.4 + r1 * 0.022 * 2 * A, x = W / 2 + rr * Math.sin(an), y = py - rr * Math.cos(an), t = g + mfs * 0.625 + 0.5;
-if (y < t) { y = t; x += (an < 0 ? 1 : -1) * (hw + r1 * 0.03 + H * 0.06 + 2); }
-return [Math.max(g + hw, Math.min(W - g - hw, x)), y];
+var bs = y < t;
+if (bs) { y = Math.max(t, py - r1 * Math.cos(an)); x = W / 2 + r1 * Math.sin(an) + (lo === undefined ? (an < 0 ? -1 : 1) : (lo ? -1 : 1)) * (hw + r1 * 0.022 * 2 * A + mg + 2); /* owner 2026-11-14: right beside its marker at its height, the low value left, the high value right */ }
+return [Math.max(g + hw, Math.min(W - g - hw, x)), y, bs];
 }
 function dialR(D, W, H, nums, py) {
 var lw = Math.max(2, H * 0.026), A = 75 * Math.PI / 180, cx = W / 2, bw = H * 0.045, mh = H * 0.05 * 1.6, mfs = H * 0.1, mg = Math.max(2.5, H * 0.008);
@@ -488,7 +489,7 @@ else for (var v = D.a; v <= D.b + 1e-9; v += D.step) { var fs = H * 0.1; bx(at(F
 if (D.lo !== null && D.lo !== undefined && D.hi !== null && D.hi !== undefined) {
 var r0 = r + lw + bw + 2, r1 = r0 + mh, f0 = F(D.lo), f1 = F(D.hi);
 for (var k = 0; k <= 20; k++) pt(at(f0 + (f1 - f0) * k / 20, r + lw / 2 + bw / 2), bw);
-[D.lo, D.hi].forEach((m) => { var f = F(m); pt(at(f, r1), mh * 0.3); if (nums) { var lt = String(Math.round(m)) + '°'; bx(mlp(f, r1, lt, W, H, py), mfs * 0.62 * lt.length, mfs * 1.25); } });
+[D.lo, D.hi].forEach((m) => { var f = F(m); pt(at(f, r1), mh * 0.3); if (nums) { var lt = String(Math.round(m)) + '°'; bx(mlp(f, r1, lt, W, H, py, m === D.lo), mfs * 0.62 * lt.length, mfs * 1.25); } });
 }
 return out;
 }
@@ -529,8 +530,8 @@ body += path(arc(r + lw / 2 + bw / 2, F(lo), F(hi)), bw);
 var r0 = r + lw + bw + 2, r1 = r0 + mh;
 [[lo, true], [hi, false]].forEach((m) => {
 var f = F(m[0]), q = 0.022, t = [at(f, r0), at(f - q, r1), at(f + q, r1)];
-if (nums) { var lt = String(Math.round(m[0]) === 0 ? 0 : Math.round(m[0])) + '°', lp = mlp(f, r1, lt, W, H, py);
-body += text(lp[0], lp[1], lt, mfs, 'middle', ' dominant-baseline="central" data-sw-mark="' + (m[1] ? 'lo' : 'hi') + '"'); }
+if (nums) { var lt = String(Math.round(m[0]) === 0 ? 0 : Math.round(m[0])) + '°', lp = mlp(f, r1, lt, W, H, py, !!m[1]);
+body += text(lp[0], lp[1], lt, mfs, 'middle', ' dominant-baseline="central" data-sw-mark="' + (m[1] ? 'lo' : 'hi') + '"' + (lp[2] ? ' data-sw-beside' : '')); }
 body += poly(t, ' data-sw-markt="' + (m[1] ? 'lo' : 'hi') + '"' + (m[1] ? ' fill="none" stroke="currentColor" stroke-width="' + n1(Math.max(1.5, lw * 0.5)) + '" stroke-linejoin="round"' : ''));
 });
 }

@@ -417,11 +417,12 @@ var dial=n('[data-sw-part="baro"]');return [1,dial,n('[data-sw-part="baro"] ~ .l
       end
       # Calm (owner): 1-bit and 2-bit panels stay paper (no grey fill); the dial's low/high numbers clear their triangles by 2 px
       # and are at least the size of the dial's scale numbers.
+      # Owner 2026-11-14: a number pushed beside its triangle (no room above the dial) sits left of it for the low value, right of it for the high value.
       begin
         cf = s.evaluate(%q{(function(){var sc=(document.querySelector('.screen')||document.body).classList,lo=sc.contains('screen--1bit')||sc.contains('screen--2bit');
 var f=lo?[].filter.call(document.querySelectorAll('[data-sw-fill]'),function(e){return e.getBoundingClientRect().width>0}).length:0,bad=[];
 document.querySelectorAll('text[data-sw-mark]').forEach(function(t){var k=t.getAttribute('data-sw-mark'),m=t.ownerSVGElement.querySelector('[data-sw-markt="'+k+'"]');if(!m)return bad.push('no mark '+k);var a=t.getBoundingClientRect(),b=m.getBoundingClientRect();
-var sf=[].map.call(t.ownerSVGElement.querySelectorAll('text:not([data-sw-mark])'),function(e){return +e.getAttribute('font-size')});if(sf.length&&+t.getAttribute('font-size')<Math.max.apply(null,sf))bad.push(k+' smaller than the scale numbers');var gx=Math.max(b.left-a.right,a.left-b.right),gy=Math.max(b.top-a.bottom,a.top-b.bottom),gp=Math.max(gx,gy);if(gp<2)bad.push(k+' gap '+gp.toFixed(1));});
+var sf=[].map.call(t.ownerSVGElement.querySelectorAll('text:not([data-sw-mark])'),function(e){return +e.getAttribute('font-size')});if(sf.length&&+t.getAttribute('font-size')<Math.max.apply(null,sf))bad.push(k+' smaller than the scale numbers');var gx=Math.max(b.left-a.right,a.left-b.right),gy=Math.max(b.top-a.bottom,a.top-b.bottom),gp=Math.max(gx,gy);if(gp<2)bad.push(k+' gap '+gp.toFixed(1));if(t.hasAttribute('data-sw-beside')&&(k==='lo'?a.right>b.left+1:a.left<b.right-1))bad.push(k+' beside its mark on the wrong side');});
 return (f?'fill '+f+' ':'')+bad.join('; ');})()})
         puts "CALMFIX #{c['name']}: #{cf}" unless cf.empty?
         expect(cf).to eq('')
