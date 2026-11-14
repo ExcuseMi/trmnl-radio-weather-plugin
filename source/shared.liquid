@@ -339,7 +339,7 @@ function ticks(sc, W) {
 var fs = lfs(sc), st = sc.major, w = (v) => fs * 0.62 * (tick(v).length + 1.2) + fs * 0.6, n = 0, out = [];
 for (var v = sc.a; v <= sc.b + 1e-9; v += st) n += w(v);
 if (n > W * 0.75) { st = sc.major * 2; if (API.nfs) { var m = 2; while (m * sc.major < sc.b - sc.a && Math.abs((sc.b - sc.a) / (m * sc.major) % 1) > 1e-9) m++; st = m * sc.major; } }
-for (var v = Math.ceil(sc.a / st - 1e-9) * st; v <= sc.b + 1e-9; v += st) out.push(v);
+for (var v = API.nfs && st > sc.major ? sc.a : Math.ceil(sc.a / st - 1e-9) * st; v <= sc.b + 1e-9; v += st) out.push(v);   // a widened step (portrait rows) starts at the track's first value, so the labels sit at both track ends
 return out;
 }
 function xmap(sc, W) {
@@ -872,7 +872,19 @@ if(big){set(sun,/^flex--(?:row|left)$/,'flex--col flex--center');set(sun.childre
 }
 
 }
-swOGPortrait();
+// OG half vertical portrait (B3, owner "fill the screen like a real e-ink design", 240x800): each day row takes two lines, name and
+// low/high above, its bar below across the whole row (the scale row likewise: markers above, scale below), so the bars and the scale
+// track get the row's width instead of a third of it (render check OGPORT: track at least 45 %).
+function swOGPortraitDays() {
+var sc = document.querySelector('.screen'), dbg = document.querySelector('[data-sw-debug]');
+if (!sc || !dbg || !sc.classList.contains('screen--portrait') || !sc.classList.contains('screen--md') || !/ view=3 /.test(dbg.getAttribute('data-sw-debug'))) return;
+[].forEach.call(document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]'), function (e) { var r = e.parentElement, dr = e.getAttribute('data-sw-part') === 'day';
+r.classList.add('flex--wrap'); r.style.rowGap = '2px'; e.classList.remove('grow', 'basis--0', 'h--full'); e.classList.add('w--full', 'shrink-0');
+e.style.setProperty('height', dr ? '45%' : '50%', 'important');
+[].forEach.call(r.children, function (c, i) { if (c === e) return; c.style.setProperty('height', dr ? '50%' : '45%', 'important'); if (i === 2 || i === 3) c.style.setProperty('width', '13cqw', 'important'); });
+if (!dr) r.style.setProperty('height', (2 * r.offsetHeight).toFixed(1) + 'px', 'important'); });
+}
+swOGPortrait(); swOGPortraitDays();
 whenReady(function () {
 swRepaint = swPaint;
 swSmall(document.createElement('canvas').getContext('2d'));
