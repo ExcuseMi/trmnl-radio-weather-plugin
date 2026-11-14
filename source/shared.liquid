@@ -252,7 +252,7 @@ if (c.contains('screen--portrait') && w > h) { w = h; h = t; }
 // a native portrait screen (reMarkable, Poke 5) takes the portrait layouts too: the framework's portrait class, its own size kept
 if (h > w && !c.contains('screen--portrait')) { sc.style.setProperty('--screen-w', v('--screen-w') + 'px'); sc.style.setProperty('--screen-h', v('--screen-h') + 'px'); c.add('screen--portrait'); }
 if (c.contains('screen--lg') && Math.min(v('--screen-w') || w, v('--screen-h') || h) < 750) { c.remove('screen--lg'); c.add('screen--md'); }
-return [w, h, c.contains('screen--sm') || (h > w && !c.contains('screen--lg')), Math.max(w, h) / (Math.max(v('--screen-w'), v('--screen-h')) || Math.max(w, h)), c.contains('screen--lg'), c.contains('screen--portrait')]; })();   // [4] lg, [5] portrait
+return [w, h, c.contains('screen--sm') || (h > w && !c.contains('screen--lg')), Math.max(w, h) / (Math.max(v('--screen-w'), v('--screen-h')) || Math.max(w, h)), c.contains('screen--lg'), c.contains('screen--portrait'), {{ view }}]; })();   // [4] lg, [5] portrait, [6] view
 // Owner 2026-11-14 (B12, option a): portrait layouts show no outdoor readout on the temperature dial (the console shows outdoor)
 if (SWS[5]) document.querySelectorAll('[data-sw-dialin]').forEach(function (e) { e.remove(); });
 // The full view on a small screen shows the small-view console (data-sw-alt) instead of the full one (data-sw-big); on a screen
@@ -664,7 +664,7 @@ var cs = getComputedStyle(sp); cx.font = cs.fontWeight + ' ' + cs.fontSize + ' '
 var cap = cx.measureText('H').actualBoundingBoxAscent * (+sp.getAttribute('data-sw-sf') || 1), r = cap > 0 ? SWDraw.segtime(t, cap) : null;
 if (!r) { if (sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); } return; }
 if (sp.getAttribute('data-sw-segk') !== r.key) { sp.innerHTML = r.html; sp.setAttribute('data-sw-segk', r.key); sp.setAttribute('aria-label', t); }
-var scr = document.querySelector('.screen'), sc = scr && scr.offsetWidth ? window.innerWidth / scr.offsetWidth : 1; if (cap * 1.25 * sc < 24 && sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); }
+if (cap * 1.25 * SWS[3] < 24 && sp.hasAttribute('data-sw-segk')) { sp.textContent = t; sp.removeAttribute('data-sw-segk'); }
 }
 // The sun times never leave their column: owner 2026-11-13, narrow and native-portrait screens cut them by 3 to 91 px. Both rows take the
 // largest Framework title size at which every time fits the column and the panel's inner edge (the same size for sunrise and sunset).
@@ -982,8 +982,7 @@ sun.querySelectorAll('[data-sw-part="moon"]').forEach(function(e){if(!e.classLis
 // low/high above, its bar below across the whole row (the scale row likewise: markers above, scale below), so the bars and the scale
 // track get the row's width instead of a third of it (render check OGPORT: track at least 45 %).
 function swOGPortraitDays() {
-var dbg = document.querySelector('[data-sw-debug]');
-if (!dbg || !SWS[5] || SWS[4] || !/ view=3 /.test(dbg.getAttribute('data-sw-debug'))) return;
+if (!SWS[5] || SWS[4] || SWS[6] != 3) return;
 document.querySelectorAll('[data-sw-part="scale"], [data-sw-part="day"]').forEach(function (e) { var r = e.parentElement, dr = e.getAttribute('data-sw-part') === 'day';
 r.classList.add('flex--wrap'); r.style.rowGap = '2px'; e.classList.remove('grow', 'basis--0', 'h--full'); e.classList.add('w--full', 'shrink-0');
 e.style.setProperty('height', dr ? '45%' : '50%', 'important'); if (dr) e.setAttribute('data-sw-top', '');
@@ -1035,7 +1034,7 @@ if (tf) swTri();   // the mark's own size settles here: centre it again
 if (!r.width && !r.height) return;
 SWDraw.tr = el.hasAttribute('data-sw-tr'); SWDraw.gp = +(el.getAttribute('data-sw-gp') || 0); SWDraw.gx0 = +(el.getAttribute('data-sw-x0') || 0); SWDraw.n = +(el.getAttribute('data-sw-n') || 0) || null; SWDraw.j = +(el.getAttribute('data-sw-j') || 0);
 var ml = swVis('[data-sw-mlabel]')[0]; SWDraw.lp = ml ? parseFloat(getComputedStyle(ml).fontSize) * (ml.getBoundingClientRect().width / (ml.offsetWidth || 1)) : 0;
-var ogp = SWS[5] && (!SWS[4] || / view=3 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'))), nm = ogp && swVis('[data-sw-row="day"] span.title')[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; var lh = swVis('[data-sw-row="day"] span.title:not([data-sw-dname])')[0]; SWDraw.lhf = lh ? parseFloat(getComputedStyle(lh).fontSize) : 0; SWDraw.ogfull = ogp && !sc.contains('screen--lg') && / view=1 /.test(document.querySelector('[data-sw-debug]').getAttribute('data-sw-debug'));
+var ogp = SWS[5] && (!SWS[4] || SWS[6] == 3), nm = ogp && swVis('[data-sw-row="day"] span.title')[0]; SWDraw.nfs = nm ? parseFloat(getComputedStyle(nm).fontSize) : 0; var lh = swVis('[data-sw-row="day"] span.title:not([data-sw-dname])')[0]; SWDraw.lhf = lh ? parseFloat(getComputedStyle(lh).fontSize) : 0; SWDraw.ogfull = ogp && !sc.contains('screen--lg') && SWS[6] == 1;
 var rw = (el.getAttribute('data-sw-rows') || '').split(','); SWDraw.rows = +(rw[SWS[4] ? 1 : 0]) || null;
 var rows = swVis('[data-sw-part="scale"], [data-sw-part="day"]'), k = rows.indexOf(el);
 SWDraw.nRows = rows.filter(function (q) { return q.getAttribute('data-sw-part') === 'day'; }).length;
